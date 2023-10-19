@@ -402,7 +402,8 @@ def _extract_source_data(
     cells_y = np.array([coord[1] for coord in xyz])
     zone = None
     if zone_file is not None:
-        zone = xtgeo.gridproperty_from_file(zone_file, grid=grid)
+        xtg_grid = xtgeo.grid_from_file(grid_file)
+        zone = xtgeo.gridproperty_from_file(zone_file, grid=xtg_grid)
         zone = zone.values.data[global_active_idx]
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
     properties_reduced["VOL"] = {d: vol0 for d in dates}
