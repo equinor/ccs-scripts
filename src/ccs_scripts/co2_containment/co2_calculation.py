@@ -551,14 +551,15 @@ def _pflotran_co2_molar_volume(
     co2_molar_vol = {}
     for date in dates:
         co2_molar_vol[date] = [
-            (1 / amfg[date])
+            [(1 / amfg[date][x])
             * (
-                -water_molar_mass * (1 - amfg[date]) / (1000 * water_density)
-                + (co2_molar_mass * amfg[date] + water_molar_mass * (1 - amfg[date]))
-                / (1000 * dwat[date])
+                -water_molar_mass * (1 - amfg[date][x]) / (1000 * water_density[x])
+                + (co2_molar_mass * amfg[date][x] + water_molar_mass * (1 - amfg[date][x]))
+                / (1000 * dwat[date][x])
             )
-            if not all(amfg[date]) == 0
-            else amfg[date],
+            if not amfg[date][x] == 0
+            else 0 for x in range(len(amfg[date]))
+            ],
             (1 / ymfg[date])
             * (
                 -water_molar_mass * (1 - ymfg[date]) / (1000 * water_density)
@@ -606,11 +607,14 @@ def _eclipse_co2_molar_volume(
     co2_molar_vol = {}
     for date in dates:
         co2_molar_vol[date] = [
-            (1 / xmf2[date])
+            [(1 / xmf2[date])
             * (
                 -water_molar_mass * (1 - xmf2[date]) / (1000 * water_density)
                 + 1 / (1000 * bwat[date])
-            ),
+            )
+            if not xmf2[date][x] == 0
+            else 0 for x in range(len(xmf2[date)
+            ],
             (1 / ymf2[date])
             * (
                 -water_molar_mass * (1 - ymf2[date]) / (1000 * water_density)
