@@ -555,7 +555,7 @@ def _pflotran_co2_molar_volume(
             [
                 (1 / amfg[date][x])
                 * (
-                    -water_molar_mass * (1 - amfg[date][x]) / (1000 * water_density[x])
+                    -water_molar_mass * (1 - amfg[date][x]) / (1000 * water_density)
                     + (
                         co2_molar_mass * amfg[date][x]
                         + water_molar_mass * (1 - amfg[date][x])
