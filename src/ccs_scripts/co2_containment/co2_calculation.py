@@ -608,13 +608,13 @@ def _eclipse_co2_molar_volume(
     co2_molar_vol = {}
     for date in dates:
         co2_molar_vol[date] = [
-            [(1 / xmf2[date])
+            [(1 / xmf2[date][x])
             * (
-                -water_molar_mass * (1 - xmf2[date]) / (1000 * water_density)
-                + 1 / (1000 * bwat[date])
+                -water_molar_mass * (1 - xmf2[date][x]) / (1000 * water_density)
+                + 1 / (1000 * bwat[date][x])
             )
             if not xmf2[date][x] == 0
-            else 0 for x in range(len(xmf2[date)
+            else 0 for x in range(len(xmf2[date]))
             ],
             (1 / ymf2[date])
             * (
