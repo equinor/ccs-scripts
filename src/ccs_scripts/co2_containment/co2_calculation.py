@@ -404,7 +404,7 @@ def _extract_source_data(
     if zone_file is not None:
         xtg_grid = xtgeo.grid_from_file(grid_file)
         zone = xtgeo.gridproperty_from_file(zone_file, grid=xtg_grid)
-        zone = zone.values.data.flatten(order='F')[global_active_idx]
+        zone = zone.values.data.flatten(order="F")[global_active_idx]
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
     properties_reduced["VOL"] = {d: vol0 for d in dates}
     try:
@@ -552,14 +552,19 @@ def _pflotran_co2_molar_volume(
     co2_molar_vol = {}
     for date in dates:
         co2_molar_vol[date] = [
-            [(1 / amfg[date][x])
-            * (
-                -water_molar_mass * (1 - amfg[date][x]) / (1000 * water_density[x])
-                + (co2_molar_mass * amfg[date][x] + water_molar_mass * (1 - amfg[date][x]))
-                / (1000 * dwat[date][x])
-            )
-            if not amfg[date][x] == 0
-            else 0 for x in range(len(amfg[date]))
+            [
+                (1 / amfg[date][x])
+                * (
+                    -water_molar_mass * (1 - amfg[date][x]) / (1000 * water_density[x])
+                    + (
+                        co2_molar_mass * amfg[date][x]
+                        + water_molar_mass * (1 - amfg[date][x])
+                    )
+                    / (1000 * dwat[date][x])
+                )
+                if not amfg[date][x] == 0
+                else 0
+                for x in range(len(amfg[date]))
             ],
             (1 / ymfg[date])
             * (
@@ -608,13 +613,15 @@ def _eclipse_co2_molar_volume(
     co2_molar_vol = {}
     for date in dates:
         co2_molar_vol[date] = [
-            [(1 / xmf2[date][x])
-            * (
-                -water_molar_mass * (1 - xmf2[date][x]) / (1000 * water_density)
-                + 1 / (1000 * bwat[date][x])
-            )
-            if not xmf2[date][x] == 0
-            else 0 for x in range(len(xmf2[date]))
+            [
+                (1 / xmf2[date][x])
+                * (
+                    -water_molar_mass * (1 - xmf2[date][x]) / (1000 * water_density)
+                    + 1 / (1000 * bwat[date][x])
+                )
+                if not xmf2[date][x] == 0
+                else 0
+                for x in range(len(xmf2[date]))
             ],
             (1 / ymf2[date])
             * (
