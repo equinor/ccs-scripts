@@ -215,6 +215,10 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument("grid", help="Grid (.EGRID) from which maps are generated")
     parser.add_argument("outfile", help="Output filename")
     parser.add_argument(
+        "calc_type_input",
+        help="CO2 calculation options: mass / cell_volume / actual_volume",
+    )
+    parser.add_argument(
         "--containment_polygon",
         help="Polygon that determines the bounds of the containment area."
         "Count all CO2 as contained if polygon is not provided.",
@@ -236,11 +240,6 @@ def get_parser() -> argparse.ArgumentParser:
         "--compact",
         help="Write the output to a single file as compact as possible",
         action="store_true",
-    )
-    parser.add_argument(
-        "--calc_type_input",
-        help="CO2 calculation options: mass / cell_volume / actual_volume",
-        default="mass",
     )
     parser.add_argument(
         "--hazardous_polygon",
