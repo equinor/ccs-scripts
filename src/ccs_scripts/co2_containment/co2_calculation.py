@@ -544,6 +544,8 @@ def _pflotran_co2_molar_volume(
       Dict
 
     """
+    if type(water_density) != np.ndarray:  # NBNB-AS: Not the best way to do this
+        water_density = [water_density for i in range(len(amfg[dates[0]]))]
     dates = source_data.DATES
     dgas = source_data.get_dgas()
     dwat = source_data.get_dwat()
@@ -555,7 +557,7 @@ def _pflotran_co2_molar_volume(
             [
                 (1 / amfg[date][x])
                 * (
-                    -water_molar_mass * (1 - amfg[date][x]) / (1000 * water_density)
+                    -water_molar_mass * (1 - amfg[date][x]) / (1000 * water_density[x])
                     + (
                         co2_molar_mass * amfg[date][x]
                         + water_molar_mass * (1 - amfg[date][x])
@@ -605,6 +607,8 @@ def _eclipse_co2_molar_volume(
       Dict
 
     """
+    if type(water_density) != np.ndarray:  # NBNB-AS: Not the best way to do this
+        water_density = [water_density for i in range(len(amfg[dates[0]]))]
     dates = source_data.DATES
     bgas = source_data.get_bgas()
     bwat = source_data.get_bwat()
@@ -616,7 +620,7 @@ def _eclipse_co2_molar_volume(
             [
                 (1 / xmf2[date][x])
                 * (
-                    -water_molar_mass * (1 - xmf2[date][x]) / (1000 * water_density)
+                    -water_molar_mass * (1 - xmf2[date][x]) / (1000 * water_density[x])
                     + 1 / (1000 * bwat[date][x])
                 )
                 if not xmf2[date][x] == 0
