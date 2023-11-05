@@ -1,7 +1,7 @@
 """Methods for CO2 containment calculations"""
 from dataclasses import dataclass, fields
 from enum import Enum
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 import xtgeo
@@ -526,7 +526,7 @@ def _eclipse_co2mass(
 
 def _pflotran_co2_molar_volume(
     source_data: SourceData,
-    water_density: Union[float, np.ndarray] = DEFAULT_WATER_DENSITY,
+    water_density: np.ndarray,  # Union[float, np.ndarray] = DEFAULT_WATER_DENSITY,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ) -> Dict:
@@ -544,8 +544,6 @@ def _pflotran_co2_molar_volume(
       Dict
 
     """
-    if type(water_density) != np.ndarray:  # NBNB-AS: Not the best way to do this
-        water_density = [water_density for i in range(len(amfg[dates[0]]))]
     dates = source_data.DATES
     dgas = source_data.get_dgas()
     dwat = source_data.get_dwat()
@@ -590,7 +588,7 @@ def _pflotran_co2_molar_volume(
 
 def _eclipse_co2_molar_volume(
     source_data: SourceData,
-    water_density: Union[float, np.ndarray] = DEFAULT_WATER_DENSITY,
+    water_density: np.ndarray,  # Union[float, np.ndarray] = DEFAULT_WATER_DENSITY
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ) -> Dict:
     """
@@ -607,8 +605,6 @@ def _eclipse_co2_molar_volume(
       Dict
 
     """
-    if type(water_density) != np.ndarray:  # NBNB-AS: Not the best way to do this
-        water_density = [water_density for i in range(len(amfg[dates[0]]))]
     dates = source_data.DATES
     bgas = source_data.get_bgas()
     bwat = source_data.get_bwat()
