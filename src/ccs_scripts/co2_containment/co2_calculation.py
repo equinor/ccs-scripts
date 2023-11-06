@@ -10,7 +10,6 @@ from ecl.grid import EclGrid
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
-DEFAULT_WATER_DENSITY = 1000.0
 TRESHOLD_SGAS = 1e-16
 TRESHOLD_AMFG = 1e-16
 
@@ -526,7 +525,7 @@ def _eclipse_co2mass(
 
 def _pflotran_co2_molar_volume(
     source_data: SourceData,
-    water_density: np.ndarray,  # Union[float, np.ndarray] = DEFAULT_WATER_DENSITY,
+    water_density: np.ndarray,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ) -> Dict:
@@ -588,7 +587,7 @@ def _pflotran_co2_molar_volume(
 
 def _eclipse_co2_molar_volume(
     source_data: SourceData,
-    water_density: np.ndarray,  # Union[float, np.ndarray] = DEFAULT_WATER_DENSITY
+    water_density: np.ndarray,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ) -> Dict:
     """
