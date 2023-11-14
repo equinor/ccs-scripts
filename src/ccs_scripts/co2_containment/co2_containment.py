@@ -47,8 +47,7 @@ def calculate_out_of_bounds_co2(
         unrst_file (str): Path to UNRST-file
         init_file (str): Path to INIT-file
         compact (bool): Write the output to a single file as compact as possible
-        calc_type_input (str): Choose mass / cell_volume / actual_volume /
-            actual_volume_simplified
+        calc_type_input (str): Choose mass / cell_volume / actual_volume
         file_containment_polygon (str): Path to polygon defining the
             containment area
         file_hazardous_polygon (str): Path to polygon defining the
@@ -93,8 +92,7 @@ def calculate_from_co2_data(
         hazardous_polygon (shapely.geometry.Polygon): Polygon defining the
             hazardous area
         compact (bool):
-        calc_type_input (str): Choose mass / cell_volume / actual_volume /
-            actual_volume_simplified
+        calc_type_input (str): Choose mass / cell_volume / actual_volume
 
     Returns:
         pd.DataFrame
@@ -153,7 +151,7 @@ def _merge_date_rows(
     Args:
         data_frame (pd.DataFrame): Input data frame
         calc_type (CalculationType): Choose mass / cell_volume /
-            actual_volume / actual_volume_simplified from enum CalculationType
+            actual_volume from enum CalculationType
 
     Returns:
         pd.DataFrame: Output data frame

@@ -36,7 +36,6 @@ class CalculationType(Enum):
     MASS = 0
     CELL_VOLUME = 1
     ACTUAL_VOLUME = 2
-    ACTUAL_VOLUME_SIMPLIFIED = 3
 
     @classmethod
     def check_for_key(cls, key: str):
@@ -698,14 +697,14 @@ def _calculate_co2_data_from_source_data(
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ) -> Co2Data:
     """
-    Calculates a given calc_type (mass/volume_extent/volume_actual/volume_actual_simple)
+    Calculates a given calc_type (mass/volume_extent/volume_actual)
     from properties in source_data.
 
     Args:
         source_data (SourceData): Data with the information of the necessary properties
                                   for the calculation of calc_type
         calc_type (CalculationType): Which amount is calculated (mass / cell_volume /
-                                     actual_volume / actual_volume_simpified)
+                                     actual_volume
         co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
         water_molar_mass (float): Water molar mass - Default is 18 g/mol
 

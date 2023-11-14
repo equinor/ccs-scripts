@@ -239,14 +239,14 @@ def test_reek_grid():
 
     volumes = _calculate_co2_data_from_source_data(
         source_data,
-        CalculationType.ACTUAL_VOLUME_SIMPLIFIED,
+        CalculationType.ACTUAL_VOLUME,
     )
     table2 = calculate_from_co2_data(
         co2_data=volumes,
         containment_polygon=reek_poly,
         hazardous_polygon=reek_poly_hazardous,
         compact=False,
-        calc_type_input="actual_volume_simplified",
+        calc_type_input="actual_volume",
     )
     assert table2.total.values[0] == pytest.approx(358.1699999999088)
     assert table2.total_gas.values[0] == pytest.approx(35.81700000000973)
