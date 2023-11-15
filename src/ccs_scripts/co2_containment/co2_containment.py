@@ -301,6 +301,19 @@ def check_input(arguments: argparse.Namespace):
         raise FileNotFoundError(error_text)
 
 
+def export_output_to_csv(outfile: str, calc_type_input: str, data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]]):
+    out_name = f"co2_containment_{calc_type_input}"
+    out_file = pathlib.Path(outfile)
+    if isinstance(data_frame, dict):
+        for key, _df in data_frame.items():
+            _df.to_csv(
+                out_file.with_name(f"{out_name}_{key}.csv"),
+                index=False,
+            )
+    else:
+        data_frame.to_csv(out_file.with_name(f"{out_name}.csv"), index=False)
+
+
 def main() -> None:
     """
     Takes input arguments and calculates total co2 mass or volume at each time
@@ -319,15 +332,7 @@ def main() -> None:
         arguments_processed.hazardous_polygon,
         arguments_processed.zonefile,
     )
-    if isinstance(data_frame, dict):
-        out_file = pathlib.Path(arguments_processed.outfile)
-        for key, _df in data_frame.items():
-            _df.to_csv(
-                out_file.with_name(f"{out_file.stem}_{key}{out_file.suffix}"),
-                index=False,
-            )
-    else:
-        data_frame.to_csv(arguments_processed.outfile, index=False)
+    export_output_to_csv(arguments_processed.outfile, arguments_processed.calc_type_input, data_frame)
 
 
 if __name__ == "__main__":
