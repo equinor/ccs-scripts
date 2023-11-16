@@ -301,7 +301,16 @@ def check_input(arguments: argparse.Namespace):
         raise FileNotFoundError(error_text)
 
 
-def export_output_to_csv(outfile: str, calc_type_input: str, data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]]):
+def export_output_to_csv(
+        outfile: str,
+        calc_type_input: str,
+        data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]]
+):
+    """
+    Exports the results to a csv file, named according to the calculation type
+    (mass / cell_volume / actual_volume)
+
+    """
     out_name = f"co2_containment_{calc_type_input}"
     out_file = pathlib.Path(outfile)
     if isinstance(data_frame, dict):
