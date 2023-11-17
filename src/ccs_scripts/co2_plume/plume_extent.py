@@ -7,8 +7,8 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from ecl.eclfile import EclFile
-from ecl.grid import EclGrid
+from resdata.resfile import ResdataFile
+from resdata.grid import Grid
 
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
@@ -62,8 +62,8 @@ def calc_plume_extents(
     """
     Find plume extents per date for SGAS and AMFG/XMF2.
     """
-    grid = EclGrid("{}.EGRID".format(case))
-    unrst = EclFile("{}.UNRST".format(case))
+    grid = Grid("{}.EGRID".format(case))
+    unrst = ResdataFile("{}.UNRST".format(case))
 
     # First calculate distance from injection point to center of all cells
     nactive = grid.get_num_active()
@@ -96,7 +96,7 @@ def calc_plume_extents(
 
 
 def __find_max_distances_per_time_step(
-    attribute_key: str, threshold: float, unrst: EclFile, dist: np.ndarray
+    attribute_key: str, threshold: float, unrst: ResdataFile, dist: np.ndarray
 ) -> List[List]:
     """
     Find max plume distance for each step
