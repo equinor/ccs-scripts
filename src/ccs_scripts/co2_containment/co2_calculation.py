@@ -5,8 +5,8 @@ from typing import Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import xtgeo
-from resdata.resfile import ResdataFile
 from resdata.grid import Grid
+from resdata.resfile import ResdataFile
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0

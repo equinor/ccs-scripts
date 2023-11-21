@@ -7,8 +7,8 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from resdata.resfile import ResdataFile
 from resdata.grid import Grid
+from resdata.resfile import ResdataFile
 
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
