@@ -22,7 +22,7 @@ def _simple_cube_grid():
         indexing="ij",
     )
     dates = [f"{d}0101" for d in range(2030, 2050)]
-    dists = np.sqrt(m_x ** 2 + m_y ** 2 + m_z ** 2)
+    dists = np.sqrt(m_x**2 + m_y**2 + m_z**2)
     gas_saturations = {}
     for count, date in enumerate(dates):
         gas_saturations[date] = np.maximum(
@@ -59,7 +59,7 @@ def _simple_cube_grid_eclipse():
         indexing="ij",
     )
     dates = [f"{d}0101" for d in range(2030, 2050)]
-    dists = np.sqrt(m_x ** 2 + m_y ** 2 + m_z ** 2)
+    dists = np.sqrt(m_x**2 + m_y**2 + m_z**2)
     gas_saturations = {}
     for count, date in enumerate(dates):
         gas_saturations[date] = np.maximum(
