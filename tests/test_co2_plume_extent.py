@@ -103,7 +103,6 @@ def test_plume_area(mocker):
         [
             "--case",
             case_path,
-            "--injection_point_info",
             "462500.0",
             "5933100.0",
             "--threshold_sgas",

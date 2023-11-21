@@ -165,7 +165,7 @@ def __calculate_well_coordinates(
 
     df = pd.read_csv(p2)
 
-    if well_name not in df["WELL"]:
+    if well_name not in list(df["WELL"]):
         print(f"No matches for well name {well_name}, input is either mistyped or well does not exist.")
         exit()
 
