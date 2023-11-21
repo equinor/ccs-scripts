@@ -16,10 +16,10 @@ def test_calculate_well_coordinates():
     well_picks_path = str(
         Path(__file__).parents[1] / "tests" / "testdata_co2_plume" / "well_picks.csv"
     )
-    x1, y1 = __calculate_well_coordinates("dummmy", "well1", well_picks_path)
+    x1, y1 = __calculate_well_coordinates("dummmy", ["well1"], well_picks_path)
     assert x1 == pytest.approx(4050.0)
     assert y1 == pytest.approx(4050.0)
-    x2, y2 = __calculate_well_coordinates("dummmy", "well2", well_picks_path)
+    x2, y2 = __calculate_well_coordinates("dummmy", ["well2"], well_picks_path)
     assert x2 == pytest.approx(3000.0)
     assert y2 == pytest.approx(3000.0)
 
@@ -103,9 +103,8 @@ def test_plume_area(mocker):
         [
             "--case",
             case_path,
-            "--x_coord",
+            "--injection_point_info",
             "462500.0",
-            "--y_coord",
             "5933100.0",
             "--threshold_sgas",
             "0.02",

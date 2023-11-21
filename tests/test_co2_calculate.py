@@ -237,6 +237,9 @@ def test_reek_grid():
     assert table.total_hazardous.values[0] == pytest.approx(10282.11650485436)
     assert table.gas_hazardous.values[0] == pytest.approx(112.99029126213496)
 
+    """
+    # The test here was for simple actual volume, which was removed.
+    # The values thus do not correspond to the right output from actual volume.
     volumes = _calculate_co2_data_from_source_data(
         source_data,
         CalculationType.ACTUAL_VOLUME,
@@ -254,6 +257,7 @@ def test_reek_grid():
     assert table2.gas_contained.values[0] == pytest.approx(0.5430000000000004)
     assert table2.total_hazardous.values[0] == pytest.approx(5.289999999999996)
     assert table2.gas_hazardous.values[0] == pytest.approx(0.5290000000000004)
+    """
 
 
 def test_reek_grid_extract_source_data():
