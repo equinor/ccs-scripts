@@ -136,9 +136,7 @@ def __export_to_csv(
 
 
 def __calculate_well_coordinates(
-    case: str,
-    injection_point_info: List[str],
-    well_picks_path: Optional[str] = None
+    case: str, injection_point_info: List[str], well_picks_path: Optional[str] = None
 ) -> Tuple[float, float]:
     """
     Find coordinates of injection point
@@ -147,14 +145,19 @@ def __calculate_well_coordinates(
         try:
             return (float(injection_point_info[0]), float(injection_point_info[1]))
         except ValueError:
-            print("Invalid input: When providing two arguments (x and y coordinates)\
-                    for injection point info they need to be floats.")
+            print(
+                "Invalid input: When providing two arguments (x and y coordinates)\
+                    for injection point info they need to be floats."
+            )
             exit()
     elif len(injection_point_info) == 1:
         well_name = injection_point_info[0]
     else:
         print("Invalid input: Too many arguments provided for injection_point_info.")
-        print("injection_point_info must be provided as one string (well name) or two floats (x and y coordinates).\n")
+        print(
+            "injection_point_info must be provided as one string (well name) \
+        or two floats (x and y coordinates).\n"
+        )
         exit()
 
     if well_picks_path is None:
@@ -166,7 +169,10 @@ def __calculate_well_coordinates(
     df = pd.read_csv(p2)
 
     if well_name not in list(df["WELL"]):
-        print(f"No matches for well name {well_name}, input is either mistyped or well does not exist.")
+        print(
+            f"No matches for well name {well_name}, input is either mistyped \
+        or well does not exist."
+        )
         exit()
 
     df = df[df["WELL"] == well_name]

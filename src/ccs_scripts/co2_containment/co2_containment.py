@@ -212,8 +212,9 @@ def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(path_name)
     parser.add_argument(
         "grid",
-        help="Path to EGRID, INIT and UNRST files (including base file name, but excluding the file extension \
-        (.EGRID, .INIT, .UNRST) from which maps are generated.",
+        help="Path to EGRID, INIT and UNRST files (including base file name, \
+        but excluding the file extension (.EGRID, .INIT, .UNRST) \
+        from which maps are generated.",
     )
     parser.add_argument(
         "calc_type_input",
@@ -221,13 +222,15 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--root_dir",
-        help="Path to root directory. The other paths can be provided relative to this or as absolute paths",
+        help="Path to root directory. The other paths can be provided relative \
+        to this or as absolute paths",
         default=None,
     )
     parser.add_argument(
         "--outdir",
-        help="Path to output directory (file name is set to 'co2_containment_<calculation type>.csv'). \
-                Required if root_dir is not provided. Defaults to root_dir/share/results/tables.",
+        help="Path to output directory (file name is set to \
+        'co2_containment_<calculation type>.csv'). Required if no root_dir is provided.\
+        Defaults to root_dir/share/results/tables.",
         default=None,
     )
     parser.add_argument(
@@ -257,9 +260,7 @@ def get_parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument(
-        "--zonefile",
-        help="Path to file containing zone information.",
-        default=None
+        "--zonefile", help="Path to file containing zone information.", default=None
     )
     parser.add_argument(
         "--compact",
@@ -284,18 +285,32 @@ def process_args() -> argparse.Namespace:
     """
     args = get_parser().parse_args()
     args.calc_type_input = args.calc_type_input.lower()
-    paths = ["grid", "outdir", "egrid", "unrst", "init", "zonefile", "containment_polygon", "hazardous_polygon"]
+    paths = [
+        "grid",
+        "outdir",
+        "egrid",
+        "unrst",
+        "init",
+        "zonefile",
+        "containment_polygon",
+        "hazardous_polygon",
+    ]
 
     if args.root_dir is None:
         error_text = ""
         if args.outdir is None:
             error_text += "* outdir must be provided if root_dir is not.\n"
-        argdict = vars(args)
+        adict = vars(args)
         for key in paths:
-            if argdict[key] is not None and not pathlib.Path(argdict[key]).is_absolute():
-                error_text += f"* path to {key} must be absolute if root_dir is not provided.\n"
+            if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
+                error_text += f"* path to {key} must be absolute if \
+                no root_dir is provided.\n"
         if len(error_text) > 0:
-            error_text = "Invalid input, caused by the following issue(s):\n" + error_text
+            error_text = (
+                "Invalid input, \
+            caused by the following issue(s):\n"
+                + error_text
+            )
             raise InputError(error_text)
     else:
         if not pathlib.Path(args.root_dir).is_absolute():
@@ -303,12 +318,10 @@ def process_args() -> argparse.Namespace:
             raise InputError(error_text)
         if args.outdir is None:
             args.outdir = os.path.join(args.root_dir, "share", "results", "tables")
-        argdict = vars(args)
+        adict = vars(args)
         for key in paths:
-            if argdict[key] is not None and not pathlib.Path(argdict[key]).is_absolute():
-                argdict[key] = os.path.join(args.root_dir, argdict[key])
-
-    pathlib.Path(args.outdir).mkdir(parents=True, exist_ok=True)
+            if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
+                adict[key] = os.path.join(args.root_dir, adict[key])
 
     if args.egrid is None:
         if args.grid.endswith(".EGRID"):
@@ -360,14 +373,15 @@ def check_input(arguments: argparse.Namespace):
 
 
 def export_output_to_csv(
-        outdir: str,
-        calc_type_input: str,
-        data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]]
+    outdir: str,
+    calc_type_input: str,
+    data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
 ):
     """
     Exports the results to a csv file, named according to the calculation type
     (mass / cell_volume / actual_volume)
     """
+    pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
     out_name = f"co2_containment_{calc_type_input}"
     if isinstance(data_frame, dict):
         for key, _df in data_frame.items():
@@ -397,7 +411,9 @@ def main() -> None:
         arguments_processed.hazardous_polygon,
         arguments_processed.zonefile,
     )
-    export_output_to_csv(arguments_processed.outdir, arguments_processed.calc_type_input, data_frame)
+    export_output_to_csv(
+        arguments_processed.outdir, arguments_processed.calc_type_input, data_frame
+    )
 
 
 if __name__ == "__main__":
