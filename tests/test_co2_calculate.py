@@ -177,7 +177,7 @@ def test_hazardous_poly_co2_containment():
 def test_reek_grid():
     """
     Test CO2 containment code, with eclipse Reek data.
-    Tests both mass and volume_actual calculations.
+    Tests both mass and actual_volume calculations.
     """
     reek_gridfile = (
         Path(__file__).absolute().parent
