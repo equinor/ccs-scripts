@@ -211,10 +211,9 @@ def get_parser() -> argparse.ArgumentParser:
     path_name = pathlib.Path(__file__).name
     parser = argparse.ArgumentParser(path_name)
     parser.add_argument(
-        "grid",
-        help="Path to EGRID, INIT and UNRST files (including base file name, \
-        but excluding the file extension (.EGRID, .INIT, .UNRST) \
-        from which maps are generated.",
+        "case",
+        help="Path to Eclipse case (EGRID, INIT and UNRST files), including base name,\
+        but excluding the file extension (.EGRID, .INIT, .UNRST)",
     )
     parser.add_argument(
         "calc_type_input",
@@ -223,14 +222,14 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--root_dir",
         help="Path to root directory. The other paths can be provided relative \
-        to this or as absolute paths",
+        to this or as absolute paths. Default is 2 levels up from Eclipse case.",
         default=None,
     )
     parser.add_argument(
-        "--outdir",
+        "--out_dir",
         help="Path to output directory (file name is set to \
-        'co2_containment_<calculation type>.csv'). Required if no root_dir is provided.\
-        Defaults to root_dir/share/results/tables.",
+        'co2_containment_<calculation type>.csv'). \
+        Defaults to <root_dir>/share/results/tables.",
         default=None,
     )
     parser.add_argument(
@@ -246,17 +245,17 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--egrid",
-        help="Path to EGRID file. Overwrites grid argument if provided.",
+        help="Path to EGRID file. Overwrites <case> if provided.",
         default=None,
     )
     parser.add_argument(
         "--unrst",
-        help="Path to UNRST file. Overwrites grid argument if provided.",
+        help="Path to UNRST file. Overwrites <case> if provided.",
         default=None,
     )
     parser.add_argument(
         "--init",
-        help="Path to INIT file. Overwrites grid argument if provided.",
+        help="Path to INIT file. Overwrites <case> if provided.",
         default=None,
     )
     parser.add_argument(
@@ -278,7 +277,7 @@ class InputError(Exception):
 def process_args() -> argparse.Namespace:
     """
     Process arguments and do some minor conversions.
-    Create absolute paths if root_dir and relative paths are provided.
+    Create absolute paths if relative paths are provided.
 
     Returns:
         argparse.Namespace
@@ -286,8 +285,8 @@ def process_args() -> argparse.Namespace:
     args = get_parser().parse_args()
     args.calc_type_input = args.calc_type_input.lower()
     paths = [
-        "grid",
-        "outdir",
+        "case",
+        "out_dir",
         "egrid",
         "unrst",
         "init",
@@ -297,37 +296,27 @@ def process_args() -> argparse.Namespace:
     ]
 
     if args.root_dir is None:
-        error_text = ""
-        if args.outdir is None:
-            error_text += "* outdir must be provided if root_dir is not.\n"
-        adict = vars(args)
-        for key in paths:
-            if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
-                error_text += f"* path to {key} must be absolute if \
-                no root_dir is provided.\n"
-        if len(error_text) > 0:
-            error_text = (
-                "Invalid input, \
-            caused by the following issue(s):\n"
-                + error_text
-            )
+        p = pathlib.Path(args.case).parents
+        if len(p) < 3 or not pathlib.Path(args.case).is_absolute():
+            error_text = "Invalid input, <case> must be an absolute path if \
+            <root_dir> is not provided (with at least 2 parent levels)."
             raise InputError(error_text)
-    else:
-        if not pathlib.Path(args.root_dir).is_absolute():
-            error_text = "Invalid input, root_dir must be absolute."
-            raise InputError(error_text)
-        if args.outdir is None:
-            args.outdir = os.path.join(args.root_dir, "share", "results", "tables")
-        adict = vars(args)
-        for key in paths:
-            if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
-                adict[key] = os.path.join(args.root_dir, adict[key])
+        args.root_dir = p[2]
+    elif not pathlib.Path(args.root_dir).is_absolute():
+        error_text = "Invalid input, <root_dir> must be an absolute path."
+        raise InputError(error_text)
+    if args.out_dir is None:
+        args.out_dir = os.path.join(args.root_dir, "share", "results", "tables")
+    adict = vars(args)
+    for key in paths:
+        if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
+            adict[key] = os.path.join(args.root_dir, adict[key])
 
     if args.egrid is None:
-        if args.grid.endswith(".EGRID"):
-            args.egrid = args.grid
+        if args.case.endswith(".EGRID"):
+            args.egrid = args.case
         else:
-            args.egrid = args.grid + ".EGRID"
+            args.egrid = args.case + ".EGRID"
     if args.unrst is None:
         args.unrst = args.egrid.replace(".EGRID", ".UNRST")
     if args.init is None:
@@ -373,7 +362,7 @@ def check_input(arguments: argparse.Namespace):
 
 
 def export_output_to_csv(
-    outdir: str,
+    out_dir: str,
     calc_type_input: str,
     data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
 ):
@@ -381,16 +370,16 @@ def export_output_to_csv(
     Exports the results to a csv file, named according to the calculation type
     (mass / cell_volume / actual_volume)
     """
-    pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
+    # pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
     out_name = f"co2_containment_{calc_type_input}"
     if isinstance(data_frame, dict):
         for key, _df in data_frame.items():
             _df.to_csv(
-                os.path.join(outdir, f"{out_name}_{key}.csv"),
+                os.path.join(out_dir, f"{out_name}_{key}.csv"),
                 index=False,
             )
     else:
-        data_frame.to_csv(os.path.join(outdir, f"{out_name}.csv"), index=False)
+        data_frame.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
 
 
 def main() -> None:
@@ -412,7 +401,7 @@ def main() -> None:
         arguments_processed.zonefile,
     )
     export_output_to_csv(
-        arguments_processed.outdir, arguments_processed.calc_type_input, data_frame
+        arguments_processed.out_dir, arguments_processed.calc_type_input, data_frame
     )
 
 

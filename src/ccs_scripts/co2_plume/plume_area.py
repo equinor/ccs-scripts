@@ -62,19 +62,24 @@ def __find_formations(search_path: str, rskey: str) -> Optional[Tuple[np.ndarray
     return np.array(formation_list), rskey_updated
 
 
-def __find_years(search_path: str, fm: np.ndarray, rskey: str) -> List[str]:
+def __find_years(
+    search_path: str, fm: np.ndarray, rskey: str
+) -> Tuple[List[str], List[str]]:
     years_list = []
+    date_list = []
 
     for file in glob.glob(search_path + fm[0] + "*max_" + rskey + "*.gri"):
         full_date = pathlib.Path(file).stem.split("--")[2]
         year = full_date[0:4]
+        date = f"{year}-{full_date[4:6]}-{full_date[6:8]}"
 
         if year in years_list:
             pass
         else:
             years_list.append(year)
+            date_list.append(date)
 
-    return years_list
+    return years_list, date_list
 
 
 def __neigh_nodes(x: Tuple[np.int64, np.int64]) -> set:
@@ -100,13 +105,13 @@ def calc_plume_area(path: str, rskey: str) -> Optional[List[List[float]]]:
         formations, rskey_updated = out
         print("Formations found: ", formations)
 
-    years = np.array(__find_years(path, formations, rskey_updated))
-    print("Dates found: ", years)
+    years, dates = np.array(__find_years(path, formations, rskey_updated))
+    print("Dates found: ", dates)
 
     var = "max_" + rskey_updated
     list_out = []
     for fm in formations:
-        for year in years:
+        for year, date in zip(years, dates):
             path_file = glob.glob(path + fm + "--" + var + "--" + year + "*.gri")
             mysurf = xtgeo.surface_from_file(path_file[0])
             use_nodes = np.ma.nonzero(mysurf.values)  # Indexes of the existing nodes
@@ -114,7 +119,7 @@ def calc_plume_area(path: str, rskey: str) -> Optional[List[List[float]]]:
             all_neigh_nodes = list(map(__neigh_nodes, use_nodes))
             test0 = [xx.issubset(use_nodes) for xx in all_neigh_nodes]
             list_out_temp = [
-                float(year),
+                date,
                 float(sum(t * mysurf.xinc * mysurf.yinc for t in test0)),
                 fm,
             ]

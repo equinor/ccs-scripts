@@ -21,7 +21,7 @@ def __make_parser() -> argparse.ArgumentParser:
         "injection_point_info",
         nargs="+",
         help="One or two arguments, either the name of the injection well (string) or \
-            the x and y coordinates (two floats) to calculate plume extent from",
+        the x and y coordinates (two floats) to calculate plume extent from",
     )
     parser.add_argument(
         "--output",
@@ -147,7 +147,7 @@ def __calculate_well_coordinates(
         except ValueError:
             print(
                 "Invalid input: When providing two arguments (x and y coordinates)\
-                    for injection point info they need to be floats."
+                for injection point info they need to be floats."
             )
             exit()
     elif len(injection_point_info) == 1:
@@ -156,7 +156,7 @@ def __calculate_well_coordinates(
         print("Invalid input: Too many arguments provided for injection_point_info.")
         print(
             "injection_point_info must be provided as one string (well name) \
-        or two floats (x and y coordinates).\n"
+            or two floats (x and y coordinates).\n"
         )
         exit()
 
@@ -171,7 +171,7 @@ def __calculate_well_coordinates(
     if well_name not in list(df["WELL"]):
         print(
             f"No matches for well name {well_name}, input is either mistyped \
-        or well does not exist."
+            or well does not exist."
         )
         exit()
 
