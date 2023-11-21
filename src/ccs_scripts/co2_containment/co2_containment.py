@@ -211,12 +211,13 @@ def get_parser() -> argparse.ArgumentParser:
     path_name = pathlib.Path(__file__).name
     parser = argparse.ArgumentParser(path_name)
     parser.add_argument(
-        "gridfile",
-        help="Path (including file name) to grid file (.EGRID) from which maps are generated",
+        "grid",
+        help="Path to EGRID, INIT and UNRST files (including base file name, but excluding the file extension \
+        (.EGRID, .INIT, .UNRST) from which maps are generated.",
     )
     parser.add_argument(
         "calc_type_input",
-        help="CO2 calculation options: mass / cell_volume / actual_volume",
+        help="CO2 calculation options: mass / cell_volume / actual_volume.",
     )
     parser.add_argument(
         "--root_dir",
@@ -233,28 +234,36 @@ def get_parser() -> argparse.ArgumentParser:
         "--containment_polygon",
         help="Path to polygon that determines the bounds of the containment area. \
         Count all CO2 as contained if polygon is not provided.",
+        default=None,
     )
     parser.add_argument(
         "--hazardous_polygon",
-        help="Path to polygon that determines the bounds of the hazardous area",
+        help="Path to polygon that determines the bounds of the hazardous area.",
+        default=None,
+    )
+    parser.add_argument(
+        "--egrid",
+        help="Path to EGRID file. Overwrites grid argument if provided.",
         default=None,
     )
     parser.add_argument(
         "--unrst",
-        help="Path to UNRST file. Will assume same base name as grid if not provided",
+        help="Path to UNRST file. Overwrites grid argument if provided.",
         default=None,
     )
     parser.add_argument(
         "--init",
-        help="Path to INIT file. Will assume same base name as grid if not provided",
+        help="Path to INIT file. Overwrites grid argument if provided.",
         default=None,
     )
     parser.add_argument(
-        "--zonefile", help="Path to file containing zone information", default=None
+        "--zonefile",
+        help="Path to file containing zone information.",
+        default=None
     )
     parser.add_argument(
         "--compact",
-        help="Write the output to a single file as compact as possible",
+        help="Write the output to a single file as compact as possible.",
         action="store_true",
     )
 
@@ -275,7 +284,7 @@ def process_args() -> argparse.Namespace:
     """
     args = get_parser().parse_args()
     args.calc_type_input = args.calc_type_input.lower()
-    paths = ["gridfile", "outdir", "unrst", "init", "zonefile", "containment_polygon", "hazardous_polygon"]
+    paths = ["grid", "outdir", "egrid", "unrst", "init", "zonefile", "containment_polygon", "hazardous_polygon"]
 
     if args.root_dir is None:
         error_text = ""
@@ -301,10 +310,15 @@ def process_args() -> argparse.Namespace:
 
     pathlib.Path(args.outdir).mkdir(parents=True, exist_ok=True)
 
+    if args.egrid is None:
+        if args.grid.endswith(".EGRID"):
+            args.egrid = args.grid
+        else:
+            args.egrid = args.grid + ".EGRID"
     if args.unrst is None:
-        args.unrst = args.gridfile.replace(".EGRID", ".UNRST")
+        args.unrst = args.egrid.replace(".EGRID", ".UNRST")
     if args.init is None:
-        args.init = args.gridfile.replace(".EGRID", ".INIT")
+        args.init = args.egrid.replace(".EGRID", ".INIT")
     return args
 
 
@@ -322,8 +336,8 @@ def check_input(arguments: argparse.Namespace):
     CalculationType.check_for_key(arguments.calc_type_input.upper())
 
     files_not_found = []
-    if not os.path.isfile(arguments.gridfile):
-        files_not_found.append(arguments.gridfile)
+    if not os.path.isfile(arguments.egrid):
+        files_not_found.append(arguments.egrid)
     if not os.path.isfile(arguments.unrst):
         files_not_found.append(arguments.unrst)
     if not os.path.isfile(arguments.init):
@@ -374,7 +388,7 @@ def main() -> None:
     arguments_processed = process_args()
     check_input(arguments_processed)
     data_frame = calculate_out_of_bounds_co2(
-        arguments_processed.gridfile,
+        arguments_processed.egrid,
         arguments_processed.unrst,
         arguments_processed.init,
         arguments_processed.compact,
