@@ -228,7 +228,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--out_dir",
         help="Path to output directory (file name is set to \
-        'co2_containment_<calculation type>.csv'). \
+        'plume_<calculation type>.csv'). \
         Defaults to <root_dir>/share/results/tables.",
         default=None,
     )
@@ -371,7 +371,7 @@ def export_output_to_csv(
     (mass / cell_volume / actual_volume)
     """
     # pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
-    out_name = f"co2_containment_{calc_type_input}"
+    out_name = f"plume_{calc_type_input}"
     if isinstance(data_frame, dict):
         for key, _df in data_frame.items():
             _df.to_csv(
