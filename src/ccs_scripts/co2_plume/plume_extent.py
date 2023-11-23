@@ -18,19 +18,10 @@ def __make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Calculate plume extent (distance)")
     parser.add_argument("case", help="Name of Eclipse case")
     parser.add_argument(
-        "--well_name",
-        help="Name of injection well to calculate plume extent from",
-        default=None,
-    )
-    parser.add_argument(
-        "--x_coord",
-        help="Value of x coordinate to calculate plume extent from. \
-            Can be used instead of --well_name.",
-    )
-    parser.add_argument(
-        "--y_coord",
-        help="Value of y coordinate to calculate plume extent from. \
-            Can be used instead of --well_name.",
+        "injection_point_info",
+        nargs="+",
+        help="One or two arguments, either the name of the injection well (string) or \
+        the x and y coordinates (two floats) to calculate plume extent from",
     )
     parser.add_argument(
         "--output",
@@ -128,15 +119,15 @@ def __export_to_csv(
 ):
     # Convert into Pandas DataFrames
     sgas_df = pd.DataFrame.from_records(
-        sgas_results, columns=["DATE", "MAX_DISTANCE_SGAS"]
+        sgas_results, columns=["date", "MAX_DISTANCE_SGAS"]
     )
     if amfg_results is not None:
         amfg_df = pd.DataFrame.from_records(
-            amfg_results, columns=["DATE", "MAX_DISTANCE_" + amfg_key]
+            amfg_results, columns=["date", "MAX_DISTANCE_" + amfg_key]
         )
 
         # Merge them together
-        df = pd.merge(sgas_df, amfg_df, on="DATE")
+        df = pd.merge(sgas_df, amfg_df, on="date")
     else:
         df = sgas_df
 
@@ -145,11 +136,30 @@ def __export_to_csv(
 
 
 def __calculate_well_coordinates(
-    case: str, well_name: str, well_picks_path: Optional[str] = None
+    case: str, injection_point_info: List[str], well_picks_path: Optional[str] = None
 ) -> Tuple[float, float]:
     """
     Find coordinates of injection point
     """
+    if len(injection_point_info) == 2:
+        try:
+            return (float(injection_point_info[0]), float(injection_point_info[1]))
+        except ValueError:
+            print(
+                "Invalid input: When providing two arguments (x and y coordinates)\
+                for injection point info they need to be floats."
+            )
+            exit()
+    elif len(injection_point_info) == 1:
+        well_name = injection_point_info[0]
+    else:
+        print("Invalid input: Too many arguments provided for injection_point_info.")
+        print(
+            "Provide injection_point_info as one string (well name) \
+            or two floats (x and y coordinates).\n"
+        )
+        exit()
+
     if well_picks_path is None:
         p = Path(case).parents[2]
         p2 = p / "share" / "results" / "wells" / "well_picks.csv"
@@ -157,6 +167,13 @@ def __calculate_well_coordinates(
         p2 = Path(well_picks_path)
 
     df = pd.read_csv(p2)
+
+    if well_name not in list(df["WELL"]):
+        print(
+            f"No matches for well name {well_name}, input is either mistyped \
+            or well does not exist."
+        )
+        exit()
 
     df = df[df["WELL"] == well_name]
 
@@ -178,20 +195,10 @@ def main():
     """
     args = __make_parser().parse_args()
 
-    if args.x_coord and args.y_coord:
-        injxy = (float(args.x_coord), float(args.y_coord))
-    elif args.well_name:
-        injxy = __calculate_well_coordinates(
-            args.case,
-            args.well_name,
-        )
-    else:
-        print(
-            "Invalid input. Specify either --well_name or \
-            provide both --x_coord and --y_coord."
-        )
-        exit()
-
+    injxy = __calculate_well_coordinates(
+        args.case,
+        args.injection_point_info,
+    )
     (sgas_results, amfg_results, amfg_key) = calc_plume_extents(
         args.case,
         injxy,

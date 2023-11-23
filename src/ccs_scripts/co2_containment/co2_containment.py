@@ -2,7 +2,7 @@
 """
 Calculates the amount of CO2 inside and outside a given perimeter,
 and separates the result per formation and phase (gas/dissolved).
-Output is a table on CSV format.
+Output is a table in CSV format.
 """
 import argparse
 import dataclasses
@@ -47,8 +47,7 @@ def calculate_out_of_bounds_co2(
         unrst_file (str): Path to UNRST-file
         init_file (str): Path to INIT-file
         compact (bool): Write the output to a single file as compact as possible
-        calc_type_input (str): Choose mass / cell_volume / actual_volume /
-            actual_volume_simplified
+        calc_type_input (str): Choose mass / cell_volume / actual_volume
         file_containment_polygon (str): Path to polygon defining the
             containment area
         file_hazardous_polygon (str): Path to polygon defining the
@@ -93,8 +92,7 @@ def calculate_from_co2_data(
         hazardous_polygon (shapely.geometry.Polygon): Polygon defining the
             hazardous area
         compact (bool):
-        calc_type_input (str): Choose mass / cell_volume / actual_volume /
-            actual_volume_simplified
+        calc_type_input (str): Choose mass / cell_volume / actual_volume
 
     Returns:
         pd.DataFrame
@@ -153,7 +151,7 @@ def _merge_date_rows(
     Args:
         data_frame (pd.DataFrame): Input data frame
         calc_type (CalculationType): Choose mass / cell_volume /
-            actual_volume / actual_volume_simplified from enum CalculationType
+            actual_volume from enum CalculationType
 
     Returns:
         pd.DataFrame: Output data frame
@@ -212,57 +210,117 @@ def get_parser() -> argparse.ArgumentParser:
     """
     path_name = pathlib.Path(__file__).name
     parser = argparse.ArgumentParser(path_name)
-    parser.add_argument("grid", help="Grid (.EGRID) from which maps are generated")
-    parser.add_argument("outfile", help="Output filename")
+    parser.add_argument(
+        "case",
+        help="Path to Eclipse case (EGRID, INIT and UNRST files), including base name,\
+        but excluding the file extension (.EGRID, .INIT, .UNRST)",
+    )
     parser.add_argument(
         "calc_type_input",
-        help="CO2 calculation options: mass / cell_volume / actual_volume",
+        help="CO2 calculation options: mass / cell_volume / actual_volume.",
+    )
+    parser.add_argument(
+        "--root_dir",
+        help="Path to root directory. The other paths can be provided relative \
+        to this or as absolute paths. Default is 2 levels up from Eclipse case.",
+        default=None,
+    )
+    parser.add_argument(
+        "--out_dir",
+        help="Path to output directory (file name is set to \
+        'plume_<calculation type>.csv'). \
+        Defaults to <root_dir>/share/results/tables.",
+        default=None,
     )
     parser.add_argument(
         "--containment_polygon",
-        help="Polygon that determines the bounds of the containment area."
-        "Count all CO2 as contained if polygon is not provided.",
+        help="Path to polygon that determines the bounds of the containment area. \
+        Count all CO2 as contained if polygon is not provided.",
+        default=None,
+    )
+    parser.add_argument(
+        "--hazardous_polygon",
+        help="Path to polygon that determines the bounds of the hazardous area.",
+        default=None,
+    )
+    parser.add_argument(
+        "--egrid",
+        help="Path to EGRID file. Overwrites <case> if provided.",
+        default=None,
     )
     parser.add_argument(
         "--unrst",
-        help="Path to UNRST file. Will assume same base name as grid if not provided",
+        help="Path to UNRST file. Overwrites <case> if provided.",
         default=None,
     )
     parser.add_argument(
         "--init",
-        help="Path to INIT file. Will assume same base name as grid if not provided",
+        help="Path to INIT file. Overwrites <case> if provided.",
         default=None,
     )
     parser.add_argument(
-        "--zonefile", help="Path to file containing zone information", default=None
+        "--zonefile", help="Path to file containing zone information.", default=None
     )
     parser.add_argument(
         "--compact",
-        help="Write the output to a single file as compact as possible",
+        help="Write the output to a single file as compact as possible.",
         action="store_true",
-    )
-    parser.add_argument(
-        "--hazardous_polygon",
-        help="Polygon that determines the bounds of the hazardous area",
-        default=None,
     )
 
     return parser
 
 
+class InputError(Exception):
+    """Raised when relative paths are provided when absolute ones are expected"""
+
+
 def process_args() -> argparse.Namespace:
     """
     Process arguments and do some minor conversions.
+    Create absolute paths if relative paths are provided.
 
     Returns:
         argparse.Namespace
     """
     args = get_parser().parse_args()
-    if args.unrst is None:
-        args.unrst = args.grid.replace(".EGRID", ".UNRST")
-    if args.init is None:
-        args.init = args.grid.replace(".EGRID", ".INIT")
     args.calc_type_input = args.calc_type_input.lower()
+    paths = [
+        "case",
+        "out_dir",
+        "egrid",
+        "unrst",
+        "init",
+        "zonefile",
+        "containment_polygon",
+        "hazardous_polygon",
+    ]
+
+    if args.root_dir is None:
+        p = pathlib.Path(args.case).parents
+        if len(p) < 3 or not pathlib.Path(args.case).is_absolute():
+            error_text = "Invalid input, <case> must be an absolute path if \
+            <root_dir> is not provided (with at least 2 parent levels)."
+            raise InputError(error_text)
+        args.root_dir = p[2]
+    elif not pathlib.Path(args.root_dir).is_absolute():
+        error_text = "Invalid input, <root_dir> must be an absolute path."
+        raise InputError(error_text)
+    if args.out_dir is None:
+        args.out_dir = os.path.join(args.root_dir, "share", "results", "tables")
+    adict = vars(args)
+    for key in paths:
+        if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
+            adict[key] = os.path.join(args.root_dir, adict[key])
+
+    if args.egrid is None:
+        if args.case.endswith(".EGRID"):
+            args.egrid = args.case
+        else:
+            args.egrid = args.case + ".EGRID"
+    if args.unrst is None:
+        args.unrst = args.egrid.replace(".EGRID", ".UNRST")
+    if args.init is None:
+        args.init = args.egrid.replace(".EGRID", ".INIT")
     return args
 
 
@@ -280,8 +338,8 @@ def check_input(arguments: argparse.Namespace):
     CalculationType.check_for_key(arguments.calc_type_input.upper())
 
     files_not_found = []
-    if not os.path.isfile(arguments.grid):
-        files_not_found.append(arguments.grid)
+    if not os.path.isfile(arguments.egrid):
+        files_not_found.append(arguments.egrid)
     if not os.path.isfile(arguments.unrst):
         files_not_found.append(arguments.unrst)
     if not os.path.isfile(arguments.init):
@@ -303,6 +361,27 @@ def check_input(arguments: argparse.Namespace):
         raise FileNotFoundError(error_text)
 
 
+def export_output_to_csv(
+    out_dir: str,
+    calc_type_input: str,
+    data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+):
+    """
+    Exports the results to a csv file, named according to the calculation type
+    (mass / cell_volume / actual_volume)
+    """
+    # pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
+    out_name = f"plume_{calc_type_input}"
+    if isinstance(data_frame, dict):
+        for key, _df in data_frame.items():
+            _df.to_csv(
+                os.path.join(out_dir, f"{out_name}_{key}.csv"),
+                index=False,
+            )
+    else:
+        data_frame.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
+
+
 def main() -> None:
     """
     Takes input arguments and calculates total co2 mass or volume at each time
@@ -312,7 +391,7 @@ def main() -> None:
     arguments_processed = process_args()
     check_input(arguments_processed)
     data_frame = calculate_out_of_bounds_co2(
-        arguments_processed.grid,
+        arguments_processed.egrid,
         arguments_processed.unrst,
         arguments_processed.init,
         arguments_processed.compact,
@@ -321,15 +400,9 @@ def main() -> None:
         arguments_processed.hazardous_polygon,
         arguments_processed.zonefile,
     )
-    if isinstance(data_frame, dict):
-        out_file = pathlib.Path(arguments_processed.outfile)
-        for key, _df in data_frame.items():
-            _df.to_csv(
-                out_file.with_name(f"{out_file.stem}_{key}{out_file.suffix}"),
-                index=False,
-            )
-    else:
-        data_frame.to_csv(arguments_processed.outfile, index=False)
+    export_output_to_csv(
+        arguments_processed.out_dir, arguments_processed.calc_type_input, data_frame
+    )
 
 
 if __name__ == "__main__":

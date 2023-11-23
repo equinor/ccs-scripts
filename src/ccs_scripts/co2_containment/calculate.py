@@ -60,7 +60,7 @@ def calculate_co2_containment(
         hazardous_polygon (Union[Polygon,Multipolygon]): The polygon that defines
              the hazardous area
         calc_type (CalculationType): Which calculation is to be performed
-             (mass / cell_volume / actual_volume / actual_volume_simplified)
+             (mass / cell_volume / actual_volume)
 
     Returns:
         List[ContainedCo2]
