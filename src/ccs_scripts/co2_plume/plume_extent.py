@@ -155,7 +155,7 @@ def __calculate_well_coordinates(
     else:
         print("Invalid input: Too many arguments provided for injection_point_info.")
         print(
-            "injection_point_info must be provided as one string (well name) \
+            "Provide injection_point_info as one string (well name) \
             or two floats (x and y coordinates).\n"
         )
         exit()
