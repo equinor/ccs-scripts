@@ -139,12 +139,12 @@ def __read_args() -> Tuple[str, str]:
 def __convert_to_data_frame(results: List[List[float]], rskey: str) -> pd.DataFrame:
     # Convert into Pandas DataFrame
     df = pd.DataFrame.from_records(
-        results, columns=["DATE", "AREA_" + rskey, "FORMATION_" + rskey]
+        results, columns=["date", "AREA_" + rskey, "FORMATION_" + rskey]
     )
-    df = df.pivot(index="DATE", columns="FORMATION_" + rskey, values="AREA_" + rskey)
+    df = df.pivot(index="date", columns="FORMATION_" + rskey, values="AREA_" + rskey)
     df.reset_index(inplace=True)
     df.columns.name = None
-    df.columns = [x + "_" + rskey if x != "DATE" else x for x in df.columns]
+    df.columns = [x + "_" + rskey if x != "date" else x for x in df.columns]
     return df
 
 

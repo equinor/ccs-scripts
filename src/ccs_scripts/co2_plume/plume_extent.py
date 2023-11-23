@@ -119,15 +119,15 @@ def __export_to_csv(
 ):
     # Convert into Pandas DataFrames
     sgas_df = pd.DataFrame.from_records(
-        sgas_results, columns=["DATE", "MAX_DISTANCE_SGAS"]
+        sgas_results, columns=["date", "MAX_DISTANCE_SGAS"]
     )
     if amfg_results is not None:
         amfg_df = pd.DataFrame.from_records(
-            amfg_results, columns=["DATE", "MAX_DISTANCE_" + amfg_key]
+            amfg_results, columns=["date", "MAX_DISTANCE_" + amfg_key]
         )
 
         # Merge them together
-        df = pd.merge(sgas_df, amfg_df, on="DATE")
+        df = pd.merge(sgas_df, amfg_df, on="date")
     else:
         df = sgas_df
 
