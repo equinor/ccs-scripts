@@ -72,8 +72,8 @@ class SourceData:
       YMF2 (Dict): Gaseous mole fraction of gas for each grid cell at each date
       DWAT (Dict): Water density (kg/m3) for each grid cell at each date
       DGAS (Dict): Gas density (kg/m3) for each grid cell at each date
-      BWAT (Dict): Water density (kg-mol/mol) for each grid cell at each date
-      BGAS (Dict): Gas density (kg-mol/mol) for each grid cell at each date
+      BWAT (Dict): Molar water density (kg-mol/m3) for each grid cell at each date
+      BGAS (Dict): Molar gas density (kg-mol/m3) for each grid cell at each date
       zone (np.ndarray):
 
     """
@@ -705,23 +705,17 @@ def _calculate_co2_data_from_source_data(
         )
         if calc_type != CalculationType.MASS:
             if source == "PFlotran":
+                y = source_data.get_amfg()[source_data.DATES[0]]
+                min_y = np.min(y)
+                where_min_amfg = np.where(np.isclose(y, min_y))[0]
+                # Where amfg is 0, or the closest approximation available
+                dwat = source_data.get_dwat()[source_data.DATES[0]]
                 water_density = np.array(
                     [
                         x[1]
-                        if 1 - (source_data.get_amfg()[source_data.DATES[0]][x[0]]) == 1
-                        else np.mean(
-                            source_data.get_dwat()[source_data.DATES[0]][
-                                np.where(
-                                    [
-                                        y == 0
-                                        for y in source_data.get_amfg()[
-                                            source_data.DATES[0]
-                                        ]
-                                    ]
-                                )[0]
-                            ]
-                        )
-                        for x in enumerate(source_data.get_dwat()[source_data.DATES[0]])
+                        if np.isclose((y[x[0]]), 0)
+                        else np.mean(dwat[where_min_amfg])
+                        for x in enumerate(dwat)
                     ]
                 )
                 molar_vols_co2 = _pflotran_co2_molar_volume(
@@ -731,23 +725,17 @@ def _calculate_co2_data_from_source_data(
                     water_molar_mass,
                 )
             else:
+                y = source_data.get_xmf2()[source_data.DATES[0]]
+                min_y = np.min(y)
+                where_min_xmf2 = np.where(np.isclose(y, min_y))[0]
+                # Where xmf2 is 0, or the closest approximation available
+                bwat = source_data.get_bwat()[source_data.DATES[0]]
                 water_density = np.array(
                     [
                         water_molar_mass * x[1]
-                        if 1 - (source_data.get_xmf2()[source_data.DATES[0]][x[0]]) == 1
-                        else np.mean(
-                            source_data.get_bwat()[source_data.DATES[0]][
-                                np.where(
-                                    [
-                                        y == 0
-                                        for y in source_data.get_xmf2()[
-                                            source_data.DATES[0]
-                                        ]
-                                    ]
-                                )[0]
-                            ]
-                        )
-                        for x in enumerate(source_data.get_bwat()[source_data.DATES[0]])
+                        if np.isclose((y[x[0]]), 0)
+                        else water_molar_mass * np.mean(bwat[where_min_xmf2])
+                        for x in enumerate(bwat)
                     ]
                 )
                 molar_vols_co2 = _eclipse_co2_molar_volume(

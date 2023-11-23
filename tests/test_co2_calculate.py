@@ -237,9 +237,6 @@ def test_reek_grid():
     assert table.total_hazardous.values[0] == pytest.approx(10282.11650485436)
     assert table.gas_hazardous.values[0] == pytest.approx(112.99029126213496)
 
-    """
-    # The test here was for simple actual volume, which was removed.
-    # The values thus do not correspond to the right output from actual volume.
     volumes = _calculate_co2_data_from_source_data(
         source_data,
         CalculationType.ACTUAL_VOLUME,
@@ -251,19 +248,18 @@ def test_reek_grid():
         compact=False,
         calc_type_input="actual_volume",
     )
-    assert table2.total.values[0] == pytest.approx(358.1699999999088)
-    assert table2.total_gas.values[0] == pytest.approx(35.81700000000973)
-    assert table2.total_aqueous.values[0] == pytest.approx(322.3529999998991)
-    assert table2.gas_contained.values[0] == pytest.approx(0.5430000000000004)
-    assert table2.total_hazardous.values[0] == pytest.approx(5.289999999999996)
-    assert table2.gas_hazardous.values[0] == pytest.approx(0.5290000000000004)
-    """
+    assert table2.total.values[0] == pytest.approx(1018.524203883313)
+    assert table2.total_gas.values[0] == pytest.approx(330.0032330095245)
+    assert table2.total_aqueous.values[0] == pytest.approx(688.5209708737885)
+    assert table2.gas_contained.values[0] == pytest.approx(5.002980582524296)
+    assert table2.total_hazardous.values[0] == pytest.approx(15.043116504854423)
+    assert table2.gas_hazardous.values[0] == pytest.approx(4.873990291262155)
 
 
 def test_reek_grid_extract_source_data():
     """
     Test CO2 containment code, with eclipse Reek data.
-    Test extracing source data. Example does not have the
+    Test extracting source data. Example does not have the
     required properties, so should get a RuntimeError
     """
     reek_gridfile = (
