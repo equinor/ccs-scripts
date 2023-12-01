@@ -414,11 +414,11 @@ def export_output_to_csv(
     out_name = f"plume_{calc_type_input}"
     if isinstance(data_frame, dict):
         keys = data_frame.keys() if not isinstance(zone, Dict) else list(zone.keys())
+        combined_df = pd.DataFrame()
         for key, _df in zip(keys, data_frame.values()):
-            _df.to_csv(
-                os.path.join(out_dir, f"{out_name}_{key}.csv"),
-                index=False,
-            )
+            _df["zone"] = [key] * _df.shape[0]
+            combined_df = pd.concat([combined_df, _df])
+        combined_df.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
     else:
         data_frame.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
 
