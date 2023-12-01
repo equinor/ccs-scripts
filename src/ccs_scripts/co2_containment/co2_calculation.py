@@ -1,7 +1,7 @@
 """Methods for CO2 containment calculations"""
 from dataclasses import dataclass, fields
 from enum import Enum
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import xtgeo
@@ -356,7 +356,7 @@ def _extract_source_data(
     unrst_file: str,
     properties_to_extract: List[str],
     init_file: Optional[str] = None,
-    zone_file: Optional[str] = None,
+    zone_file: Optional[Union[str, Dict[str, List[int]]]] = None,
 ) -> SourceData:
     # pylint: disable-msg=too-many-locals
     """
@@ -400,9 +400,16 @@ def _extract_source_data(
     cells_y = np.array([coord[1] for coord in xyz])
     zone = None
     if zone_file is not None:
-        xtg_grid = xtgeo.grid_from_file(grid_file)
-        zone = xtgeo.gridproperty_from_file(zone_file, grid=xtg_grid)
-        zone = zone.values.data.flatten(order="F")[global_active_idx]
+        if isinstance(zone_file, Dict):
+            zone_array = np.zeros((grid.get_nx(), grid.get_ny(), grid.get_nz()))
+            zonevals = [int(x+1) for x in range(len(zone_file))]
+            for zv, zr in zip(zonevals, list(zone_file.values())):
+                zone_array[:, :, zr[0]-1:zr[1]] = zv
+            zone = zone_array.flatten(order="F")[global_active_idx]
+        else:
+            xtg_grid = xtgeo.grid_from_file(grid_file)
+            zone = xtgeo.gridproperty_from_file(zone_file, grid=xtg_grid)
+            zone = zone.values.data.flatten(order="F")[global_active_idx]
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
     properties_reduced["VOL"] = {d: vol0 for d in dates}
     try:

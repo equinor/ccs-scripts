@@ -8,6 +8,7 @@ import argparse
 import dataclasses
 import os
 import pathlib
+import yaml
 from typing import Dict, List, Optional, Union
 
 import numpy as np
@@ -361,10 +362,49 @@ def check_input(arguments: argparse.Namespace):
         raise FileNotFoundError(error_text)
 
 
+def process_zonefile_if_yaml(zone_file):
+    """
+        Processes zone_file if it is provided as a yaml file, ex:
+        zranges:
+            - Zone1: [1, 5]
+            - Zone2: [6, 10]
+            - Zone3: [11, 14]
+
+        Returns:
+            Dictionary connecting names of zones to their layers:
+        {
+            "Zone1": [1,5]
+            "Zone2": [6,10]
+            "Zone3": [11,14]
+        }
+        """
+    if zone_file.split('.')[-1] in ["yml", "yaml"]:
+        with open(zone_file, "r", encoding="utf8") as stream:
+            try:
+                zfile = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+                exit()
+        if 'zranges' not in zfile:
+            error_text = ("The yaml zone file must be in the format:\nzranges:\
+            \n    - Zone1: [1, 5]\n    - Zone2: [6, 10]\n    - Zone3: [11, 14])")
+            raise InputError(error_text)
+        zranges = zfile['zranges']
+        if len(zranges) > 1:
+            zranges_ = zranges[0]
+            for zr in zranges[1:]:
+                zranges_.update(zr)
+            zranges = zranges_
+        return zranges
+    else:
+        return zone_file
+
+
 def export_output_to_csv(
     out_dir: str,
     calc_type_input: str,
     data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    zone: Optional[Union[str, Dict[str, List[int]]]] = None,
 ):
     """
     Exports the results to a csv file, named according to the calculation type
@@ -373,7 +413,8 @@ def export_output_to_csv(
     # pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
     out_name = f"plume_{calc_type_input}"
     if isinstance(data_frame, dict):
-        for key, _df in data_frame.items():
+        keys = data_frame.keys() if not isinstance(zone, Dict) else list(zone.keys())
+        for key, _df in zip(keys, data_frame.values()):
             _df.to_csv(
                 os.path.join(out_dir, f"{out_name}_{key}.csv"),
                 index=False,
@@ -390,6 +431,7 @@ def main() -> None:
     """
     arguments_processed = process_args()
     check_input(arguments_processed)
+    arguments_processed.zonefile = process_zonefile_if_yaml(arguments_processed.zonefile)
     data_frame = calculate_out_of_bounds_co2(
         arguments_processed.egrid,
         arguments_processed.unrst,
@@ -401,7 +443,10 @@ def main() -> None:
         arguments_processed.zonefile,
     )
     export_output_to_csv(
-        arguments_processed.out_dir, arguments_processed.calc_type_input, data_frame
+        arguments_processed.out_dir,
+        arguments_processed.calc_type_input,
+        data_frame,
+        arguments_processed.zonefile
     )
 
 
