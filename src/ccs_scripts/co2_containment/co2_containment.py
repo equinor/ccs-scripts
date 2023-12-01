@@ -431,7 +431,8 @@ def main() -> None:
     """
     arguments_processed = process_args()
     check_input(arguments_processed)
-    arguments_processed.zonefile = process_zonefile_if_yaml(arguments_processed.zonefile)
+    if arguments_processed.zonefile is not None:
+        arguments_processed.zonefile = process_zonefile_if_yaml(arguments_processed.zonefile)
     data_frame = calculate_out_of_bounds_co2(
         arguments_processed.egrid,
         arguments_processed.unrst,
