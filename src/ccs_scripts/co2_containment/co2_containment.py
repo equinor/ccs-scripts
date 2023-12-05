@@ -418,6 +418,9 @@ def export_output_to_csv(
         for key, _df in zip(keys, data_frame.values()):
             _df["zone"] = [key] * _df.shape[0]
             combined_df = pd.concat([combined_df, _df])
+        summed_part = combined_df.groupby("date").sum(numeric_only=True).reset_index()
+        summed_part["zone"] = ["all"] * summed_part.shape[0]
+        combined_df = pd.concat([summed_part, combined_df])
         combined_df.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
     else:
         data_frame.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
