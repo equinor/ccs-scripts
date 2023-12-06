@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas
 import pytest
 
-from ccs_scripts.co2_plume.plume_extent import (
+from ccs_scripts.co2_plume_extent.co2_plume_extent import (
     __calculate_well_coordinates,
     __export_to_csv,
     calc_plume_extents,
