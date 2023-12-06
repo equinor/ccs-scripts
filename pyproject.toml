@@ -79,7 +79,7 @@ co2_containment = "ccs_scripts.co2_containment.co2_containment:main"
 co2_plume_area = "ccs_scripts.co2_plume.plume_area:main"
 co2_plume_extent = "ccs_scripts.co2_plume.plume_extent:main"
 
-# [project.entry-points.ert]
+[project.entry-points.ert]
 ccs_scripts_jobs = "ccs_scripts.hook_implementations.jobs"
 
 [tool.black]
