@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas
 import pytest
 
-from ccs_scripts.co2_plume.plume_area import calc_plume_area, main
+from ccs_scripts.co2_plume_area.co2_plume_area import calc_plume_area, main
 
 
 def test_calc_plume_area():
