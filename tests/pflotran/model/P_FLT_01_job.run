@@ -1,0 +1,26 @@
+#!/bin/sh
+        
+WORKDIR="/private/mnaki/ccs_models/model"
+CASE="P_FLT_01"
+EXE="/project/res/x86_64_RH_7/share/pflotran/pflotran1.8/bin/pflotran"
+MPIRUN="/project/res/x86_64_RH_7/share/pflotran/pflotran1.8/bin/mpirun"
+
+
+export PETSC_DIR=/project/res/x86_64_RH_7/share/pflotran/pflotran1.8
+export PETSC_ARCH=arch-linux-c-opt
+
+pushd /private/mnaki/ccs_models/model
+
+MFILE=$CASE_mpi.$$
+MSTR=`/project/res/x86_64_RH_7/share/pflotran/pflotran1.8/../scripts/create_machinefile $MFILE 6`
+NP=6
+
+$MPIRUN -machinefile $MFILE -np $NP $EXE -pflotranin $CASE.in > $CASE.LOG 2> $CASE.ERR
+
+rm -f $MFILE
+
+cat $CASE-mas.dat | perl -pe 's/,/;/g' | perl -pe 's/^  //g' | perl -pe 's/  /;/g'  > $CASE-mas.csv
+
+popd 
+
+
