@@ -1,0 +1,9 @@
+EXECUTABLE   co2_containment
+
+DEFAULT <ROOT-DIR> <CASE>/../../
+DEFAULT <OUT-DIR> <ROOT-DIR>/share/results/tables
+
+ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--root-dir" <ROOT-DIR> "--out-dir" <OUT-DIR>
+
+MIN_ARG 2
+MAX_ARG 4

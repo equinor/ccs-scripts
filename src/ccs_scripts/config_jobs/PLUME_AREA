@@ -1,0 +1,8 @@
+EXECUTABLE plume_area
+
+DEFAULT <INPUT> share/results/maps/
+
+ARGLIST    <INPUT> "--output" <OUTPUT>
+
+MIN_ARG 1
+MAX_ARG 2
