@@ -1,0 +1,38 @@
+Sender: LSF System <f_lsf@st-rsv20-20-03>
+Subject: Job 629552: <RUNPFLOTRAN P_FLT_01_UK> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01_UK> was submitted from host <st-grid03> by user <mnaki> in cluster <STAVANGER>.
+Job was executed on host(s) <6*st-rsv20-20-03>, in queue <bigmem>, as user <mnaki> in cluster <STAVANGER>.
+</private/mnaki> was used as the home directory.
+</private/mnaki/ccs_models/model> was used as the working directory.
+Started at Tue Dec  5 10:30:39 2023
+Results reported on Tue Dec  5 10:32:34 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/private/mnaki/ccs_models/model/P_FLT_01_UK_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               676.72 sec.
+    Max Memory :             3017 MB
+    Average Memory :         3002.50 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          10
+    Max Threads :            27
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+~/ccs_models/model ~/ccs_models/model
+~/ccs_models/model

@@ -1,0 +1,635 @@
+Sender: LSF System <f_lsf@st-rsv21-21-18>
+Subject: Job 471292: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <24*st-rsv21-21-18>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model> was used as the working directory.
+Started at Thu Sep  8 10:09:01 2022
+Results reported on Thu Sep  8 10:09:40 2022
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               885.70 sec.
+    Max Memory :             10400 MB
+    Average Memory :         10388.00 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          28
+    Max Threads :            81
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model /project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+Sender: LSF System <f_lsf@st-rsv21-21-17>
+Subject: Job 473845: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <23*st-rsv21-21-17>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model> was used as the working directory.
+Started at Thu Sep  8 11:31:02 2022
+Results reported on Thu Sep  8 11:31:42 2022
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               876.29 sec.
+    Max Memory :             316 MB
+    Average Memory :         304.50 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          27
+    Max Threads :            78
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model /project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+Sender: LSF System <f_lsf@st-rsv21-21-09>
+Subject: Job 488920: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <8*st-rsv21-21-09>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+                            <8*st-rsv21-21-01>
+                            <8*st-rsv21-21-03>
+                            <8*st-rsv21-21-05>
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model> was used as the working directory.
+Started at Fri Sep  9 14:37:41 2022
+Results reported on Fri Sep  9 14:40:41 2022
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               5893.00 sec.
+    Max Memory :             730 MB
+    Average Memory :         525.83 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Swap :               11051 MB
+    Max Processes :          39
+    Max Threads :            117
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model /project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+Sender: LSF System <f_lsf@st-rsv21-21-15>
+Subject: Job 489126: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <8*st-rsv21-21-15>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+                            <8*st-rsv21-21-05>
+                            <8*st-rsv21-21-01>
+                            <8*st-rsv21-21-06>
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model> was used as the working directory.
+Started at Fri Sep  9 14:47:13 2022
+Results reported on Fri Sep  9 14:50:02 2022
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               5318.00 sec.
+    Max Memory :             480 MB
+    Average Memory :         151.60 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Swap :               11051 MB
+    Max Processes :          39
+    Max Threads :            117
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model /project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+Sender: LSF System <f_lsf@st-rsv21-21-15>
+Subject: Job 489130: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <8*st-rsv21-21-15>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+                            <8*st-rsv21-21-03>
+                            <8*st-rsv21-21-07>
+                            <8*st-rsv21-21-11>
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model> was used as the working directory.
+Started at Fri Sep  9 14:51:08 2022
+Results reported on Fri Sep  9 14:54:19 2022
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               6206.00 sec.
+    Max Memory :             483 MB
+    Average Memory :         280.83 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Swap :               11052 MB
+    Max Processes :          39
+    Max Threads :            117
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model /project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+Sender: LSF System <f_lsf@st-rsv21-21-01>
+Subject: Job 489156: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <8*st-rsv21-21-01>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+                            <8*st-rsv21-21-03>
+                            <8*st-rsv21-21-05>
+                            <8*st-rsv21-21-06>
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model> was used as the working directory.
+Started at Fri Sep  9 14:58:18 2022
+Results reported on Fri Sep  9 15:01:17 2022
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               5904.00 sec.
+    Max Memory :             2324 MB
+    Average Memory :         2040.80 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Swap :               11051 MB
+    Max Processes :          39
+    Max Threads :            117
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model /project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+/project/SCS/projects/Code_Verification/resmod/ff/22.0.0/model/fault/model
+Sender: LSF System <f_lsf@st-rsv21-21-09>
+Subject: Job 210298: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <24*st-rsv21-21-09>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+                            <24*st-rsv21-21-10>
+                            <24*st-rsv21-21-13>
+                            <24*st-rsv21-21-20>
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model> was used as the working directory.
+Started at Fri May  5 12:41:42 2023
+Results reported on Fri May  5 12:41:52 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               3.85 sec.
+    Max Memory :             142 MB
+    Average Memory :         19.00 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          7
+    Max Threads :            12
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model /project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model
+Sender: LSF System <f_lsf@st-rsv21-21-09>
+Subject: Job 210305: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <24*st-rsv21-21-09>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+                            <24*st-rsv21-21-10>
+                            <24*st-rsv21-21-13>
+                            <24*st-rsv21-21-20>
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model> was used as the working directory.
+Started at Fri May  5 12:49:36 2023
+Results reported on Fri May  5 12:49:39 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               3.23 sec.
+    Max Memory :             146 MB
+    Average Memory :         62.00 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          7
+    Max Threads :            12
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model /project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model
+Sender: LSF System <f_lsf@st-rsv21-21-09>
+Subject: Job 210306: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <24*st-rsv21-21-09>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+                            <24*st-rsv21-21-10>
+                            <24*st-rsv21-21-13>
+                            <24*st-rsv21-21-20>
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model> was used as the working directory.
+Started at Fri May  5 12:50:32 2023
+Results reported on Fri May  5 12:50:35 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               3.43 sec.
+    Max Memory :             146 MB
+    Average Memory :         64.00 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          7
+    Max Threads :            12
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model /project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model
+Sender: LSF System <f_lsf@st-rsv21-21-07>
+Subject: Job 210308: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <24*st-rsv21-21-07>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+                            <24*st-rsv21-21-13>
+                            <24*st-rsv21-21-09>
+                            <24*st-rsv21-21-10>
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model> was used as the working directory.
+Started at Fri May  5 12:53:25 2023
+Results reported on Fri May  5 12:59:26 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               15207.88 sec.
+    Max Memory :             24001 MB
+    Average Memory :         23980.17 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          31
+    Max Threads :            84
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model /project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model
+Sender: LSF System <f_lsf@st-rsv21-21-07>
+Subject: Job 210681: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <bna> in cluster <STAVANGER>.
+Job was executed on host(s) <24*st-rsv21-21-07>, in queue <bigmem>, as user <bna> in cluster <STAVANGER>.
+                            <24*st-rsv21-21-09>
+                            <24*st-rsv21-21-10>
+                            <24*st-rsv21-21-12>
+</private/bna> was used as the home directory.
+</project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model> was used as the working directory.
+Started at Fri May  5 13:10:18 2023
+Results reported on Fri May  5 13:16:34 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               16196.59 sec.
+    Max Memory :             24157 MB
+    Average Memory :         24134.31 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          31
+    Max Threads :            84
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model /project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model
+/project/SCS/projects/Code_Verification/resmod/ff/23.0.0/Synthetic/model
+Sender: LSF System <f_lsf@st-rsv20-20-20>
+Subject: Job 592796: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <mnaki> in cluster <STAVANGER>.
+Job was executed on host(s) <6*st-rsv20-20-20>, in queue <bigmem>, as user <mnaki> in cluster <STAVANGER>.
+</private/mnaki> was used as the home directory.
+</private/mnaki/ccs_models/model> was used as the working directory.
+Started at Fri Dec  1 14:49:48 2023
+Results reported on Fri Dec  1 14:49:51 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/private/mnaki/ccs_models/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               2.06 sec.
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+~/ccs_models/model ~/ccs_models/model
+~/ccs_models/model
+Sender: LSF System <f_lsf@st-rsv20-20-15>
+Subject: Job 593032: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <mnaki> in cluster <STAVANGER>.
+Job was executed on host(s) <6*st-rsv20-20-15>, in queue <bigmem>, as user <mnaki> in cluster <STAVANGER>.
+</private/mnaki> was used as the home directory.
+</private/mnaki/ccs_models/model> was used as the working directory.
+Started at Fri Dec  1 14:54:48 2023
+Results reported on Fri Dec  1 14:56:23 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/private/mnaki/ccs_models/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               558.64 sec.
+    Max Memory :             161 MB
+    Average Memory :         148.67 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          10
+    Max Threads :            27
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+~/ccs_models/model ~/ccs_models/model
+~/ccs_models/model
+Sender: LSF System <f_lsf@st-rsv21-21-07>
+Subject: Job 613180: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <mnaki> in cluster <STAVANGER>.
+Job was executed on host(s) <6*st-rsv21-21-07>, in queue <bigmem>, as user <mnaki> in cluster <STAVANGER>.
+</private/mnaki> was used as the home directory.
+</private/mnaki/ccs_models/model> was used as the working directory.
+Started at Mon Dec  4 10:21:39 2023
+Results reported on Mon Dec  4 10:23:07 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/private/mnaki/ccs_models/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               518.36 sec.
+    Max Memory :             542 MB
+    Average Memory :         529.33 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          10
+    Max Threads :            27
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+~/ccs_models/model ~/ccs_models/model
+~/ccs_models/model
+Sender: LSF System <f_lsf@st-rsv21-21-07>
+Subject: Job 629561: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <mnaki> in cluster <STAVANGER>.
+Job was executed on host(s) <6*st-rsv21-21-07>, in queue <bigmem>, as user <mnaki> in cluster <STAVANGER>.
+</private/mnaki> was used as the home directory.
+</private/mnaki/ccs_models/model> was used as the working directory.
+Started at Tue Dec  5 10:31:58 2023
+Results reported on Tue Dec  5 10:33:28 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/private/mnaki/ccs_models/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               534.58 sec.
+    Max Memory :             3878 MB
+    Average Memory :         3865.67 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          10
+    Max Threads :            27
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+~/ccs_models/model ~/ccs_models/model
+~/ccs_models/model
+Sender: LSF System <f_lsf@st-rsv21-21-09>
+Subject: Job 648662: <RUNPFLOTRAN P_FLT_01> in cluster <STAVANGER> Done
+
+Job <RUNPFLOTRAN P_FLT_01> was submitted from host <st-grid03> by user <mnaki> in cluster <STAVANGER>.
+Job was executed on host(s) <6*st-rsv21-21-09>, in queue <bigmem>, as user <mnaki> in cluster <STAVANGER>.
+</private/mnaki> was used as the home directory.
+</private/mnaki/ccs_models/model> was used as the working directory.
+Started at Wed Dec  6 08:54:37 2023
+Results reported on Wed Dec  6 08:56:46 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/private/mnaki/ccs_models/model/P_FLT_01_job.run
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               765.03 sec.
+    Max Memory :             48994 MB
+    Average Memory :         48978.60 MB
+    Total Requested Memory : -
+    Delta Memory :           -
+    (Delta: the difference between Total Requested Memory and Max Memory.)
+    Max Processes :          10
+    Max Threads :            27
+
+The output (if any) follows:
+
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+~/ccs_models/model ~/ccs_models/model
+~/ccs_models/model
