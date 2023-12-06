@@ -80,11 +80,7 @@ co2_plume_area = "ccs_scripts.co2_plume.plume_area:main"
 co2_plume_extent = "ccs_scripts.co2_plume.plume_extent:main"
 
 # [project.entry-points.ert]
-# subscript_jobs = "subscript.hook_implementations.jobs"
-# CsvMerge = "subscript.csv_merge.csv_merge"
-# CsvStack = "subscript.csv_stack.csv_stack"
-# FmuObs = "subscript.fmuobs.fmuobs"
-# Params2Csv = "subscript.params2csv.params2csv"
+ccs_scripts_jobs = "ccs_scripts.hook_implementations.jobs"
 
 [tool.black]
 line-length = 88
