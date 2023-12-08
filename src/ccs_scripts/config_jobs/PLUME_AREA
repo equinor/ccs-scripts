@@ -1,4 +1,4 @@
-EXECUTABLE plume_area
+EXECUTABLE co2_plume_area
 
 DEFAULT <INPUT> share/results/maps/
 
