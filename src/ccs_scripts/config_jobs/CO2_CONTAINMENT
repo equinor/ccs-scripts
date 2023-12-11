@@ -1,17 +1,7 @@
 EXECUTABLE   co2_containment
 
-DEFAULT <ROOT_DIR> __NONE__
-DEFAULT <OUT_DIR> __NONE__
-DEFAULT <CONTAINMENT_POLYGON> __NONE__
-DEFAULT <HAZARDOUS_POLYGON> __NONE__
-DEFAULT <ZONEFILE> __NONE__
-DEFAULT <EGRID> __NONE__
-DEFAULT <UNRST> __NONE__
-DEFAULT <INIT> __NONE__
 
-
-
-ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--root_dir" <ROOT_DIR> "--out_dir" <OUT_DIR> "--containment_polygon" <CONTAINMENT_POLYGON> "--hazardous_polygon" <HAZARDOUS_POLYGON> "--zonefile" <ZONEFILE>  "--egrid"  <EGRID>  "--unrst"  <UNRST> "--init" <INIT>
+ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--containment_polygon" <CONTAINMENT_POLYGON> "--hazardous_polygon" <HAZARDOUS_POLYGON> "--zonefile" <ZONEFILE>  
 
 MIN_ARG 2
 MAX_ARG 10
