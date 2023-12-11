@@ -1,6 +1,6 @@
 EXECUTABLE co2_plume_area
 
-DEFAULT <OUTPUT> share/results/maps/
+DEFAULT <OUTPUT> share/results/tables/plume_area.csv
 
 ARGLIST    <INPUT> "--output" <OUTPUT>
 
