@@ -288,6 +288,7 @@ def _replace_default_dummies_from_ert(args):
     if args.hazardous_polygon == "-1":
         args.hazardous_polygon = None
 
+
 class InputError(Exception):
     """Raised when relative paths are provided when absolute ones are expected"""
 
