@@ -3,7 +3,7 @@ CO2_PLUME - PLUME AREA
 ======================
 
 .. argparse::
-   :module: ccs_scripts.co2_plume.plume_area
+   :module: ccs_scripts.co2_plume_area.co2_plume_area
    :func: get_parser
    :prog: plume_area
 
@@ -54,7 +54,7 @@ CO2_PLUME - PLUME EXTENT
 ========================
 
 .. argparse::
-   :module: ccs_scripts.co2_plume.plume_extent
+   :module: ccs_scripts.co2_plume_extent.co2_plume_extent
    :func: get_parser
    :prog: plume_extent
 
