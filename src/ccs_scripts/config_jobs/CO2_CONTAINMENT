@@ -1,7 +1,12 @@
 EXECUTABLE   co2_containment
 
+DEFAULT <ROOT_DIR> None
 
-ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--containment_polygon" <CONTAINMENT_POLYGON> "--hazardous_polygon" <HAZARDOUS_POLYGON> "--zonefile" <ZONEFILE>  
+ARG_TYPE 0 STRING
+ARG_TYPE 1 STRING
+ARG_TYPE 2 STRING
+
+ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--root_dir" <ROOT_DIR>  
 
 MIN_ARG 2
 MAX_ARG 10
