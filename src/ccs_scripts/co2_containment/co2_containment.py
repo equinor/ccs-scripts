@@ -297,14 +297,11 @@ def process_args() -> argparse.Namespace:
 
     if args.root_dir is None:
         p = pathlib.Path(args.case).parents
-        if len(p) < 3 or not pathlib.Path(args.case).is_absolute():
-            error_text = "Invalid input, <case> must be an absolute path if \
-            <root_dir> is not provided (with at least 2 parent levels)."
+        if len(p) < 3:
+            error_text = "Invalid input, <case> must have at least two parent levels if \
+            <root_dir> is not provided."
             raise InputError(error_text)
         args.root_dir = p[2]
-    elif not pathlib.Path(args.root_dir).is_absolute():
-        error_text = "Invalid input, <root_dir> must be an absolute path."
-        raise InputError(error_text)
     if args.out_dir is None:
         args.out_dir = os.path.join(args.root_dir, "share", "results", "tables")
     adict = vars(args)
