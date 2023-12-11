@@ -295,6 +295,17 @@ def process_args() -> argparse.Namespace:
         "hazardous_polygon",
     ]
 
+    print("case:")
+    print(args.case)
+    print("root_dir:")
+    print(args.root_dir)
+    print("egrid:")
+    print(args.egrid)
+    print("unrst:")
+    print(args.unrst)
+    print("init:")
+    print(args.init)
+
     if args.root_dir is None:
         p = pathlib.Path(args.case).parents
         if len(p) < 3:
