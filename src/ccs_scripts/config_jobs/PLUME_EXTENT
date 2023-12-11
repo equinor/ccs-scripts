@@ -5,7 +5,7 @@ ARG_TYPE 1 STRING
 ARG_TYPE 2 STRING 
 ARG_TYPE 4 STRING 
 
-ARGLIST   <CASE> <INJECTION_POINT_INFO>  "--output" <OUTPUT> "--threshold_sgas" <THRESHOLD_GAS> "--threshold_amfg" <THRESHOLD_AMFG> 	 
+ARGLIST   <CASE> <INJECTION_POINT_INFO>  "--output" <OUTPUT> "--threshold_sgas" <THRESHOLD_SGAS> "--threshold_amfg" <THRESHOLD_AMFG> 	 
 
 MIN_ARG 1
 MAX_ARG 4
