@@ -270,6 +270,24 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _replace_default_dummies_from_ert(args):
+    if args.root_dir == "-1":
+        args.root_dir = None
+    if args.egrid == "-1":
+        args.egrid = None
+    if args.unrst == "-1":
+        args.unrst = None
+    if args.init == "-1":
+        args.init = None
+    if args.out_dir == "-1":
+        args.out_dir = None
+    if args.zonefile == "-1":
+        args.zonefile = None
+    if args.containment_polygon == "-1":
+        args.containment_polygon = None
+    if args.hazardous_polygon == "-1":
+        args.hazardous_polygon = None
+
 class InputError(Exception):
     """Raised when relative paths are provided when absolute ones are expected"""
 
@@ -295,44 +313,7 @@ def process_args() -> argparse.Namespace:
         "hazardous_polygon",
     ]
 
-    print("Before changing -1 to None:")
-    print("case:")
-    print(args.case)
-    print("root_dir:")
-    print(args.root_dir)
-    print("egrid:")
-    print(args.egrid)
-    print("unrst:")
-    print(args.unrst)
-    print("init:")
-    print(args.init)
-    if args.root_dir == "-1":
-        args.root_dir = None
-    if args.egrid == "-1":
-        args.egrid = None
-    if args.unrst == "-1":
-        args.unrst = None
-    if args.init == "-1":
-        args.init = None
-    if args.out_dir == "-1":
-        args.out_dir = None
-    if args.zonefile == "-1":
-        args.zonefile = None
-    if args.containment_polygon == "-1":
-        args.containment_polygon = None
-    if args.hazardous_polygon == "-1":
-        args.hazardous_polygon = None
-    print("After changing -1 to None:")
-    print("case:")
-    print(args.case)
-    print("root_dir:")
-    print(args.root_dir)
-    print("egrid:")
-    print(args.egrid)
-    print("unrst:")
-    print(args.unrst)
-    print("init:")
-    print(args.init)
+    _replace_default_dummies_from_ert(args)
 
     if args.root_dir is None:
         p = pathlib.Path(args.case).parents
