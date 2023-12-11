@@ -1,5 +1,8 @@
 EXECUTABLE   co2_plume_extent
 
+DEFAULT <THRESHOLD_SGAS> 0.2
+DEFAULT <THRESHOLD_AMFG> 0.0005
+
 ARGLIST   <CASE> <INJECTION_POINT_INFO>  "--output" <OUTPUT> "--threshold_sgas" <THRESHOLD_SGAS> "--threshold_amfg" <THRESHOLD_AMFG> 	 
 
 MIN_ARG 2
