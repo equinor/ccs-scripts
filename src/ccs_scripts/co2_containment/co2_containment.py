@@ -298,8 +298,8 @@ def process_args() -> argparse.Namespace:
     if args.root_dir is None:
         p = pathlib.Path(args.case).parents
         if len(p) < 3:
-            error_text = "Invalid input, <case> must have at least two parent levels if \
-            <root_dir> is not provided."
+            error_text = "Invalid input, <case> must have at least two parent levels \
+            if <root_dir> is not provided."
             raise InputError(error_text)
         args.root_dir = p[2]
     if args.out_dir is None:
