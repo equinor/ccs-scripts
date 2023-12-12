@@ -8,25 +8,36 @@
 ---
 ## Functionnalities
 
-The following functionnalities are available on the repository:
-- **plume_extent**
-  
-Calculates the maximum extent of the plume from a selected injector well. 
+### Available in the repositoy
 
-- **plume_area**
+- **plume_extent:** Calculates the maximum extent of the plume from a selected injector well. 
 
-Calculates the plume area for CO2 as free gas and dissolved in water.
+- **plume_area:** Calculates the plume area for CO2 as free gas and dissolved in water.
 
-- **co2_containment**
+- **co2_containment:** This scripts can output several different information: the plume mass, plume volume and returns volumes of CO2 inside/outside a boundary when 1 or 2 polygons are provided. 
 
-This scripts can output several different information: the plume mass, plume volume and returns volumes of CO2 inside/outside a boundary when 1 or 2 polygons are provided. 
+### Additional functionalities
+Additional fonctionnalities are available to post-process CO2 storage modeling data. They have also been developed by the Dig CCS Sub team but are located in other repositories. More information below: 
+
+- **maps:** 3 maps are available
+
+Migration time map: This script outputs a map where the plume is displayed in terms of time it takes to travel from the injection point. 
+
+Aggregate map: Returns a map of maximum aggregation through all layers ("worse" case scenario).
+
+Mass map: Displays mass of CO2 as a map. Mass maps can be exported per formation and time step. 
+
+Documentation: [link](https://fmu-docs.equinor.com/docs/ert/reference/configuration/forward_model.html#GRID3D_MIGRATION_TIME)
+
+- **plugin:** The CO2 leakage plugin can be used on Webviz to visualize the CO2 plume, quantities inside / outside a boundary / region, etc. 
+
+Documentation: [link](https://equinor.github.io/webviz-subsurface/#/webviz-subsurface?id=co2leakage)
 
 
->Note: Outputs from these scripts can be visualized on Webviz using existing plugins and a specialized CCS plugin called "CO2Leakage".
 
 ## Installation 
 
-ccs-scripts can be installed via pip with the following line:
+This repository is currently beeing linked to Komodo and ERT. In the meantime, ccs-scripts can be cloned and installed on your local komodo environment using pip install:
 
 ```sh
 pip install ccs-scripts

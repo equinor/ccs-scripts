@@ -35,7 +35,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "ecl",
+    "resdata",
     "numpy<2",
     "pandas",
     "scipy",
