@@ -5,7 +5,8 @@ DEFAULT <THRESHOLD_AMFG> 0.0005
 DEFAULT <OUTPUT>  share/results/tables/plume_extent.csv
 DEFAULT <INJECTION_POINT_INFO> " "
 
-ARG_TYPE 1 INT
+ARG_TYPE 0 STRING
+ARG_TYPE 1 STRING
 
 ARGLIST   <CASE> <INJECTION_POINT_INFO>  "--output" <OUTPUT> "--threshold_sgas" <THRESHOLD_SGAS> "--threshold_amfg" <THRESHOLD_AMFG> 	 
 
