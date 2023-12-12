@@ -19,9 +19,9 @@ def __make_parser() -> argparse.ArgumentParser:
     parser.add_argument("case", help="Name of Eclipse case")
     parser.add_argument(
         "injection_point_info",
-        nargs="+",
-        help="One or two arguments, either the name of the injection well (string) or \
-        the x and y coordinates (two floats) to calculate plume extent from",
+        help="Either the name of the injection well (string) or \
+        the x and y coordinates (two floats) to calculate plume extent from "
+        "(format: [x,y]).",
     )
     parser.add_argument(
         "--output",
@@ -136,29 +136,27 @@ def __export_to_csv(
 
 
 def __calculate_well_coordinates(
-    case: str, injection_point_info: List[str], well_picks_path: Optional[str] = None
+    case: str, injection_point_info: str, well_picks_path: Optional[str] = None
 ) -> Tuple[float, float]:
     """
     Find coordinates of injection point
     """
-    if len(injection_point_info) == 2:
-        try:
-            return (float(injection_point_info[0]), float(injection_point_info[1]))
-        except ValueError:
-            print(
-                "Invalid input: When providing two arguments (x and y coordinates)\
-                for injection point info they need to be floats."
-            )
-            exit()
-    elif len(injection_point_info) == 1:
-        well_name = injection_point_info[0]
-    else:
-        print("Invalid input: Too many arguments provided for injection_point_info.")
-        print(
-            "Provide injection_point_info as one string (well name) \
-            or two floats (x and y coordinates).\n"
-        )
-        exit()
+    if (
+        len(injection_point_info) > 0
+        and injection_point_info[0] == "["
+        and injection_point_info[-1] == "]"
+    ):
+        coords = injection_point_info[1:-1].split(",")
+        if len(coords) == 2:
+            try:
+                return (float(coords[0]), float(coords[1]))
+            except ValueError:
+                print(
+                    "Invalid input: When providing two arguments (x and y coordinates)\
+                    for injection point info they need to be floats."
+                )
+                exit()
+    well_name = injection_point_info
 
     if well_picks_path is None:
         p = Path(case).parents[2]
