@@ -8,7 +8,7 @@ import argparse
 import dataclasses
 import os
 import pathlib
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -406,7 +406,7 @@ def export_output_to_csv(
     out_dir: str,
     calc_type_input: str,
     data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
-    zone_info: Dict[str, Dict[str, List[int]]] = None,
+    zone_info: Optional[Dict[str, Any]] = None,
 ):
     """
     Exports the results to a csv file, named according to the calculation type
