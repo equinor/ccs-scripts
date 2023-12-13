@@ -402,9 +402,9 @@ def _extract_source_data(
     if zone_info is not None:
         if zone_info["zranges"] is not None:
             zone_array = np.zeros((grid.get_nx(), grid.get_ny(), grid.get_nz()))
-            zonevals = [int(x+1) for x in range(len(zone_info["zranges"]))]
+            zonevals = [int(x + 1) for x in range(len(zone_info["zranges"]))]
             for zv, zr in zip(zonevals, list(zone_info["zranges"].values())):
-                zone_array[:, :, zr[0]-1:zr[1]] = zv
+                zone_array[:, :, zr[0] - 1:zr[1]] = zv
             zone = zone_array.flatten(order="F")[global_active_idx]
         else:
             xtg_grid = xtgeo.grid_from_file(grid_file)

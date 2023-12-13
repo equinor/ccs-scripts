@@ -8,12 +8,12 @@ import argparse
 import dataclasses
 import os
 import pathlib
-import yaml
 from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 import shapely.geometry
+import yaml
 
 from ccs_scripts.co2_containment.calculate import (
     ContainedCo2,
@@ -366,32 +366,32 @@ def check_input(arguments: argparse.Namespace):
 
 def process_zonefile_if_yaml(zone_info: Dict):
     """
-        Processes zone_file if it is provided as a yaml file, ex:
-        zranges:
-            - Zone1: [1, 5]
-            - Zone2: [6, 10]
-            - Zone3: [11, 14]
+    Processes zone_file if it is provided as a yaml file, ex:
+    zranges:
+        - Zone1: [1, 5]
+        - Zone2: [6, 10]
+        - Zone3: [11, 14]
 
-        Returns:
-            Dictionary connecting names of zones to their layers:
-        {
-            "Zone1": [1,5]
-            "Zone2": [6,10]
-            "Zone3": [11,14]
-        }
-        """
-    if zone_info["source"].split('.')[-1] in ["yml", "yaml"]:
+    Returns:
+        Dictionary connecting names of zones to their layers:
+    {
+        "Zone1": [1,5]
+        "Zone2": [6,10]
+        "Zone3": [11,14]
+    }
+    """
+    if zone_info["source"].split(".")[-1] in ["yml", "yaml"]:
         with open(zone_info["source"], "r", encoding="utf8") as stream:
             try:
                 zfile = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
                 exit()
-        if 'zranges' not in zfile:
-            error_text = ("The yaml zone file must be in the format:\nzranges:\
-            \n    - Zone1: [1, 5]\n    - Zone2: [6, 10]\n    - Zone3: [11, 14])")
+        if "zranges" not in zfile:
+            error_text = "The yaml zone file must be in the format:\nzranges:\
+            \n    - Zone1: [1, 5]\n    - Zone2: [6, 10]\n    - Zone3: [11, 14])"
             raise InputError(error_text)
-        zranges = zfile['zranges']
+        zranges = zfile["zranges"]
         if len(zranges) > 1:
             zranges_ = zranges[0]
             for zr in zranges[1:]:
@@ -406,7 +406,7 @@ def export_output_to_csv(
     out_dir: str,
     calc_type_input: str,
     data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
-    zone_info: Dict = None,
+    zone_info: Dict[str, Dict[str, List[int]]] = None,
 ):
     """
     Exports the results to a csv file, named according to the calculation type
@@ -415,7 +415,12 @@ def export_output_to_csv(
     # pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
     out_name = f"plume_{calc_type_input}"
     if isinstance(data_frame, dict):
-        keys = data_frame.keys() if zone_info["zranges"] is None else list(zone_info["zranges"].keys())
+        assert zone_info is not None
+        keys = (
+            data_frame.keys()
+            if zone_info["zranges"] is None
+            else list(zone_info["zranges"].keys())
+        )
         combined_df = pd.DataFrame()
         for key, _df in zip(keys, data_frame.values()):
             _df["zone"] = [key] * _df.shape[0]
@@ -455,7 +460,7 @@ def main() -> None:
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,
         data_frame,
-        zone_info
+        zone_info,
     )
 
 
