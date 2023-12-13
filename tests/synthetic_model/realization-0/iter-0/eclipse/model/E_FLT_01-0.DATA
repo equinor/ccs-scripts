@@ -1,0 +1,383 @@
+-- 
+-- CO2STORE example. Comparative case for testing fault and
+-- hysteresis in Pflotran
+
+RUNSPEC
+ 
+TITLE
+ 
+START
+ 1 'JAN' 2025 /
+ 
+METRIC
+
+CO2STORE
+--THERMAL
+
+-- Include diffusion
+DIFFUSE
+
+ENDSCALE
+ NODIR  REVERS /
+
+COMPS
+3
+/
+
+FULLIMP
+
+HWELLS
+
+DIMENS
+30 30 12  /
+
+
+UNIFOUT
+--FMTOUT
+EQLDIMS
+ 1 100 20 1 20 /
+ 
+REGDIMS
+ 10 1 0 1 0 /   
+
+WELLDIMS
+2 30/
+
+ 
+TABDIMS
+ 2 1 50 20 1 20 20 1 1 1 1 1 1 0 0 /
+
+AQUDIMS
+ /
+
+SATOPTS
+ HYSTER /
+
+
+GRID    ================================================
+INIT
+
+INCLUDE
+ '../include/e300_ccs_3df_geom.grdecl' /
+
+INCLUDE
+ '../include/e300_ccs_3df_prop.grdecl' /
+
+EQUALS
+ ACTNUM 0 7 7 15 15 1 1     /
+ ACTNUM 0 30 30 29 29 12 12 /
+/
+
+EDIT    ================================================
+
+
+
+PROPS    ======================================================
+
+INCLUDE
+ '../include/e300_relperm.inc' /
+
+
+EHYSTR
+ 1 4 /
+
+ROCK
+ 1.0 4.35E-05 /
+
+ISGCR
+ 10800*0.4 /
+
+ISWCR
+ 10800*0.15 /
+
+
+RTEMP
+--
+-- Constant Reservoir Temp
+--
+         80 
+/
+
+
+NCOMPS
+--
+-- Number of Component--
+       3
+/
+
+CNAMES
+ 'H2O' 'CO2' 'NACL' /
+
+ZI
+--h2o co2 NACL
+ 1.0 0.0 0.0 /
+
+--ZMFVD
+--###
+--  depth    CO2          H2O    
+--  1000      0.0           1.0   
+--  3619      0.0           1.0       /
+
+-- depth  h20  co2  nacl
+--  1000   1.0  0.0  0.0  /
+--  3619   1.0  0.0   0.0 /
+
+
+--TEMPVD
+--1000   40
+--2650   40
+--2739   40
+--3019   40
+--3619   40
+--/
+
+DENSITY
+-- Fluid Densities At Surface Conditions
+--    OIL      WATER       GAS
+-- --------  ----------  --------
+   1026.0302  1000.000   1.87 /
+
+
+---- Molecular Diffusion -------------------------------------------------
+DIFFCWAT -- Water diffusion coefficients; m2/day
+-- H2O      CO2   NACL
+   0.0002   0.0002   0.002 / 2.0d-9 m2/sec
+
+DIFFCGAS -- Gas diffusion coefficients; m2/day
+-- H2O      CO2
+   1.72     1.72   / 2.0d-5 m2/sec
+
+--DIFFCWG  -- Water-gas diffusion coefficients; m2/day
+---- H2O      CO2
+--   0.002    0.002  /
+
+--DIFFCGW  -- Gas-Water diffusion coefficients; m2/day
+---- H2O      CO2
+--   1.72     1.72   /
+
+
+RPTPROPS
+PVTO PVTW /
+
+REGIONS  ===============================================================
+EQUALS
+FIPNUM    1     1 30    1 30    1  2  /  overburden
+FIPNUM    2     1 30    1 30    1  6  /  	       
+FIPNUM    3     1 30    1 30    1  4   / 
+/ 	    
+
+
+EQUALS
+SATNUM 1      /
+IMBNUM 2     /
+/
+
+SOLUTION ===============================================================
+
+EQUIL
+-- 
+-- Equilibration Data Specification
+-- 
+-- Datum   Datum   WOC     WOC     GOC      GOC   
+-- Depth   Press   Depth   PCOW    Depth    PCOW
+--   2500    250.0   500     0       500      0    1*   1*   1*   1*  1* 
+   4000    250.0   3500     0       3500      0    1*   1*   1*   1*  1* 
+/
+
+
+RPTRST
+ RESTART ALLPROPS FIP PRESSURE SGAS SWAT TEMP ENERGY AMF DENG DENW DENS VGAS VWAT
+  XMF YMF ZMF RPORV / AQSP AQPH  RPORV  /
+
+RPTSOL
+ PRESSURE SGAS SWAT DENG DENW VGAS VWAT XMF YMF TEMP XFW YFW AMF ZMF / AQSP AQPH
+
+FIELDSEP
+ 1 15.56 0.1 /
+/
+
+SUMMARY  ===========================================================
+
+--RPTONLY
+
+ALL
+FPR
+FPRP
+FPRH
+FVIR
+FVIT
+FGIR
+FGIT
+FGIP
+FGIPR
+FGIPL
+FGIPG
+FWIP
+FWIPR
+FWPR
+FWPT
+
+-- Molar amount of specified component dissolved in water
+FCWM
+  1 /
+-- Molar amount of specified component trapped in gas
+FCGMI
+  1 /
+-- Molar amount of specified component mobile in gas
+FCGMM
+  1 /
+
+WBHP
+/
+WWPR
+/
+
+-- Pore Volume at Reservoir conditions
+FRPV
+FWPV
+FGPV
+-- Gas Density at Surface Conditions
+FGDN
+-- Gas Reservoir Volume in Place
+FGIPR
+-- Gas In Place (Aqueous phase) (compatible with CO2SOL, H2SSOL and GASSOL)
+FAGIP
+-- CO2 dissolved in water (CO2STORE option only)
+FWCD
+-- CO2 trapped (immobile) in gas phase (CO2STORE option only)
+FGCDI
+-- CO2 mobile in gas phase (CO2STORE option only) = FCGMM 2/
+FGCDM
+
+--Field component molar prodution/injection rate and Total
+FCMPR 
+/
+FCMPT 
+/
+FCMIR 
+/
+FCMIT 
+/
+FCMIP
+/
+--Region Data
+RWCD 
+/
+RGCDI
+/
+RGCDM
+/
+
+PERFORMA
+RUNSUM
+
+SEPARATE
+
+SCHEDULE  ===============================================
+RPTSCHED
+ AMF XMF YMF ZMF DENG DENW VOIL VGAS  HGAS HOIL HSOL HWAT FIP /
+
+TUNING
+ 1* 10 /
+ /
+ /
+
+--SKIP300
+-- molar composition
+WELLSTRE
+'C02FEED' 0.0 1.0  /
+/
+
+WELSPECS
+ injg  G1  21  21  1*  GAS /
+ prod  G2   1   1  1*  WATER / 
+/
+
+COMPDAT 
+ injg   21 21 11 11  OPEN 2* 0.1524 1* 1* 1* 'X'/
+ injg   22 22 11 11  OPEN 2* 0.1524 1* 1* 1* 'X'/
+ injg   23 23 11 11  OPEN 2* 0.1524 1* 1* 1* 'X'/
+ injg   24 24 11 11  OPEN 2* 0.1524 1* 1* 1* 'X'/
+-- injg   24 25 11 11  OPEN 2* 0.1524 1* 1* 1* 'X'/
+ injg   25 25 11 11  OPEN 2* 0.1524 1* 1* 1* 'X'/
+-- injg   25 26 11 11  OPEN 2* 0.1524 1* 1* 1* 'X'/
+ injg   26 26 11 11  OPEN 2* 0.1524 1* 1* 1* 'X'/
+ prod    1  1  1 12  OPEN 2* 0.1524 1* 1* 1* 'Z'/  
+/
+
+WINJGAS
+ injg STREAM C02FEED /
+/
+
+WCONINJE
+  injg GAS SHUT RATE 1001176 1* 400 / 
+/
+
+
+--WINJTEMP
+-- injg 1* 35.0 300.0 /
+--/
+
+WCONPROD
+--WELL      OP/SH  CTL      Rate        
+ 'prod*'     OPEN    WRAT  1*  1000  3* 150 /  
+/
+
+DATES
+1 'JAN' 2027 /
+/
+
+--Open the CO2 injector
+WELOPEN
+ injg OPEN /
+/
+
+DATES
+1 'JAN' 2031 /
+/
+
+-- Shut the CO2 injector
+WELOPEN
+ injg SHUT /
+/
+
+DATES
+1 'JAN' 2033 /
+/
+
+-- Shut the producer
+WELOPEN
+ prod SHUT /
+/
+
+DATES
+1 'JAN' 2225 /
+/
+
+DATES
+1 'JAN' 2250 /
+/
+
+DATES
+1 'JAN' 2300 /
+/
+
+DATES
+1 'JAN' 2350 /
+/
+
+DATES
+1 'JAN' 2400 /
+/
+
+DATES
+1 'JAN' 2450 /
+/
+
+DATES
+1 'JAN' 2500 /
+/
+END
+
+
+
