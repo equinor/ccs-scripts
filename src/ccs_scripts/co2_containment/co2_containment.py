@@ -8,11 +8,12 @@ import argparse
 import dataclasses
 import os
 import pathlib
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 import shapely.geometry
+import yaml
 
 from ccs_scripts.co2_containment.calculate import (
     ContainedCo2,
@@ -35,7 +36,7 @@ def calculate_out_of_bounds_co2(
     calc_type_input: str,
     file_containment_polygon: Optional[str] = None,
     file_hazardous_polygon: Optional[str] = None,
-    zone_file: Optional[str] = None,
+    zone_info: Optional[Dict] = None,
 ) -> pd.DataFrame:
     """
     Calculates sum of co2 mass or volume at each time step. Use polygons
@@ -52,13 +53,15 @@ def calculate_out_of_bounds_co2(
             containment area
         file_hazardous_polygon (str): Path to polygon defining the
             hazardous area
-        zone_file (str):
+        zone_info (Dict): Dictionary containing path to zone-file and
+            potentially zranges (if the zone-file is provided as a YAML-file
+            with zones defined through intervals in depth)
 
     Returns:
         pd.DataFrame
     """
     co2_data = calculate_co2(
-        grid_file, unrst_file, calc_type_input, init_file, zone_file
+        grid_file, unrst_file, calc_type_input, init_file, zone_info
     )
     print("Done calculating CO2 data for all active grid cells")
     if file_containment_polygon is not None:
@@ -379,10 +382,49 @@ def check_input(arguments: argparse.Namespace):
         raise FileNotFoundError(error_text)
 
 
+def process_zonefile_if_yaml(zone_info: Dict) -> Optional[Dict[str, List[int]]]:
+    """
+    Processes zone_file if it is provided as a yaml file, ex:
+    zranges:
+        - Zone1: [1, 5]
+        - Zone2: [6, 10]
+        - Zone3: [11, 14]
+
+    Returns:
+        Dictionary connecting names of zones to their layers:
+    {
+        "Zone1": [1,5]
+        "Zone2": [6,10]
+        "Zone3": [11,14]
+    }
+    """
+    if zone_info["source"].split(".")[-1] in ["yml", "yaml"]:
+        with open(zone_info["source"], "r", encoding="utf8") as stream:
+            try:
+                zfile = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+                exit()
+        if "zranges" not in zfile:
+            error_text = "The yaml zone file must be in the format:\nzranges:\
+            \n    - Zone1: [1, 5]\n    - Zone2: [6, 10]\n    - Zone3: [11, 14])"
+            raise InputError(error_text)
+        zranges = zfile["zranges"]
+        if len(zranges) > 1:
+            zranges_ = zranges[0]
+            for zr in zranges[1:]:
+                zranges_.update(zr)
+            zranges = zranges_
+        return zranges
+    else:
+        return None
+
+
 def export_output_to_csv(
     out_dir: str,
     calc_type_input: str,
     data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    zone_info: Optional[Dict[str, Any]] = None,
 ):
     """
     Exports the results to a csv file, named according to the calculation type
@@ -391,11 +433,20 @@ def export_output_to_csv(
     # pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
     out_name = f"plume_{calc_type_input}"
     if isinstance(data_frame, dict):
-        for key, _df in data_frame.items():
-            _df.to_csv(
-                os.path.join(out_dir, f"{out_name}_{key}.csv"),
-                index=False,
-            )
+        assert zone_info is not None
+        keys = (
+            data_frame.keys()
+            if zone_info["zranges"] is None
+            else list(zone_info["zranges"].keys())
+        )
+        combined_df = pd.DataFrame()
+        for key, _df in zip(keys, data_frame.values()):
+            _df["zone"] = [key] * _df.shape[0]
+            combined_df = pd.concat([combined_df, _df])
+        summed_part = combined_df.groupby("date").sum(numeric_only=True).reset_index()
+        summed_part["zone"] = ["all"] * summed_part.shape[0]
+        combined_df = pd.concat([summed_part, combined_df])
+        combined_df.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
     else:
         data_frame.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
 
@@ -408,6 +459,11 @@ def main() -> None:
     """
     arguments_processed = process_args()
     check_input(arguments_processed)
+    if arguments_processed.zonefile is not None:
+        zone_info = dict({"source": arguments_processed.zonefile, "zranges": None})
+        zone_info["zranges"] = process_zonefile_if_yaml(zone_info)
+    else:
+        zone_info = None
     data_frame = calculate_out_of_bounds_co2(
         arguments_processed.egrid,
         arguments_processed.unrst,
@@ -416,10 +472,13 @@ def main() -> None:
         arguments_processed.calc_type_input,
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
-        arguments_processed.zonefile,
+        zone_info,
     )
     export_output_to_csv(
-        arguments_processed.out_dir, arguments_processed.calc_type_input, data_frame
+        arguments_processed.out_dir,
+        arguments_processed.calc_type_input,
+        data_frame,
+        zone_info,
     )
 
 

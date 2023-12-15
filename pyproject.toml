@@ -41,6 +41,7 @@ dependencies = [
     "scipy",
     "shapely",
     "xtgeo",
+    "pyyaml",
 ]
 
 [project.optional-dependencies]

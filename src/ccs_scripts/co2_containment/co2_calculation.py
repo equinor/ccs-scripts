@@ -356,7 +356,7 @@ def _extract_source_data(
     unrst_file: str,
     properties_to_extract: List[str],
     init_file: Optional[str] = None,
-    zone_file: Optional[str] = None,
+    zone_info: Optional[Dict] = None,
 ) -> SourceData:
     # pylint: disable-msg=too-many-locals
     """
@@ -367,7 +367,7 @@ def _extract_source_data(
       unrst_file (str): Path to UNRST-file
       properties_to_extract (List): Names of the properties to be extracted
       init_file (str): Path to INIT-file
-      zone_file (str):
+      zone_info (Dict): Dictionary containing zone information
 
     Returns:
       SourceData
@@ -399,10 +399,17 @@ def _extract_source_data(
     cells_x = np.array([coord[0] for coord in xyz])
     cells_y = np.array([coord[1] for coord in xyz])
     zone = None
-    if zone_file is not None:
-        xtg_grid = xtgeo.grid_from_file(grid_file)
-        zone = xtgeo.gridproperty_from_file(zone_file, grid=xtg_grid)
-        zone = zone.values.data.flatten(order="F")[global_active_idx]
+    if zone_info is not None:
+        if zone_info["zranges"] is not None:
+            zone_array = np.zeros((grid.get_nx(), grid.get_ny(), grid.get_nz()))
+            zonevals = [int(x + 1) for x in range(len(zone_info["zranges"]))]
+            for zv, zr in zip(zonevals, list(zone_info["zranges"].values())):
+                zone_array[:, :, zr[0] - 1 : zr[1]] = zv
+            zone = zone_array.flatten(order="F")[global_active_idx]
+        else:
+            xtg_grid = xtgeo.grid_from_file(grid_file)
+            zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
+            zone = zone.values.data.flatten(order="F")[global_active_idx]
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
     properties_reduced["VOL"] = {d: vol0 for d in dates}
     try:
@@ -825,7 +832,7 @@ def calculate_co2(
     unrst_file: str,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
-    zone_file: Optional[str] = None,
+    zone_info: Optional[Dict] = None,
 ) -> Co2Data:
     """
     Calculates the desired amount (calc_type_input) of CO2
@@ -835,14 +842,14 @@ def calculate_co2(
       unrst_file (str): Path to UNRST-file
       calc_type_input (str): Input string with calculation type to perform
       init_file (str): Path to INIT-file
-      zone_file (str):
+      zone_info (Dict): Dictionary with zone information
 
     Returns:
       CO2Data
 
     """
     source_data = _extract_source_data(
-        grid_file, unrst_file, PROPERTIES_TO_EXTRACT, init_file, zone_file
+        grid_file, unrst_file, PROPERTIES_TO_EXTRACT, init_file, zone_info
     )
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     co2_data = _calculate_co2_data_from_source_data(source_data, calc_type=calc_type)
