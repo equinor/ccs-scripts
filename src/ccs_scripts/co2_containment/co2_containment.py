@@ -364,7 +364,7 @@ def check_input(arguments: argparse.Namespace):
         raise FileNotFoundError(error_text)
 
 
-def process_zonefile_if_yaml(zone_info: Dict):
+def process_zonefile_if_yaml(zone_info: Dict) -> Optional[Dict[str, List[int]]]:
     """
     Processes zone_file if it is provided as a yaml file, ex:
     zranges:
