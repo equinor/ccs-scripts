@@ -28,8 +28,8 @@ TIME
   START_DATE 1 JAN 2025
   FINAL_DATE 1 JAN 2500  ! 475 years simulation
   INITIAL_TIMESTEP_SIZE 1 d
-  MAXIMUM_TIMESTEP_SIZE 30 d at 0. d
-  MAXIMUM_TIMESTEP_SIZE 1 y at 10 y
+!  MAXIMUM_TIMESTEP_SIZE 30 d at 0. d
+  MAXIMUM_TIMESTEP_SIZE 1 y 
 END
 
 #=========================== output options ===================================
@@ -39,13 +39,16 @@ OUTPUT
    PERIODIC TIMESTEP 1  
   END
   ECLIPSE_FILE
-    PERIOD_SUM TIMESTEP 5
-    PERIOD_RST TIMESTEP 20
+    PERIOD_SUM TIME 10 y
+    PERIOD_RST TIME 25 y
     WRITE_DENSITY
     WRITE_RELPERM
+    DATES 1 JAN 2025
     DATES 1 JAN 2027 ! CO2 injection starts
+    DATES 1 JAN 2029 
     DATES 1 JAN 2031 ! CO2 injection stops 
     DATES 1 JAN 2033 ! Production stops
+    DATES 1 JAN 2035  1 JAN 2225  1 JAN 2250   1 JAN 2300  1 JAN 2400  1 JAN 2450   
     DATES 1 JAN 2500 ! Simulation ends
     OUTFILE
     SUMMARY_D
