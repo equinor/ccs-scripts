@@ -20,7 +20,7 @@ SUBSURFACE
 #=========================== discretization ===================================
 
 GRID
-  TYPE grdecl ../include/ccs_3df.grdecl
+  TYPE grdecl ../../../../include/ccs_3df.grdecl
 END
 
 #=========================== times ============================================
@@ -86,12 +86,12 @@ CHARACTERISTIC_CURVES drainage
 
  TABLE swfn_table
    PRESSURE_UNITS Bar
-   external_file ../include/SWFN_drain.dat
+   external_file ../../../../include/SWFN_drain.dat
  END
 
  TABLE sgfn_table
   PRESSURE_UNITS Bar
-   external_file ../include/SGFN_drain.dat
+   external_file ../../../../include/SGFN_drain.dat
  END
 
 /
@@ -102,12 +102,12 @@ CHARACTERISTIC_CURVES imbibition
 
  TABLE swfn_table
    PRESSURE_UNITS Bar
-   external_file ../include/SWFN_imb.dat
+   external_file ../../../../include/SWFN_imb.dat
  END
 
  TABLE sgfn_table
   PRESSURE_UNITS Bar
-   external_file ../include/SGFN_imb.dat
+   external_file ../../../../include/SGFN_imb.dat
  END
 
 /
@@ -133,7 +133,7 @@ END
 
 EOS GAS
   SURFACE_DENSITY 1.8577210734 kg/m^3
-  CO2_DATABASE ../include/co2_dbase.dat
+  CO2_DATABASE ../../../../include/co2_dbase.dat
 END
 
 #=========================== wells ==================================
