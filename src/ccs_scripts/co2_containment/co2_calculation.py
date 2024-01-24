@@ -699,18 +699,26 @@ def _calculate_co2_data_from_source_data(
             source = "PFlotran"
         elif _is_subset(["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"], active_props):
             source = "Eclipse"
-        elif any(prop in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
-                 for prop in active_props):
-            missing_props = [x for x in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
-                             if x not in active_props]
+        elif any(
+            prop in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"] for prop in active_props
+        ):
+            missing_props = [
+                x
+                for x in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
+                if x not in active_props
+            ]
             error_text = "Lacking some required properties to compute CO2 mass/volume"
             error_text += "\nMissing: "
             error_text += ", ".join([property for property in missing_props])
             raise RuntimeError(error_text)
-        elif any(prop in ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
-                 for prop in active_props):
-            missing_props = [x for x in ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
-                             if x not in active_props]
+        elif any(
+            prop in ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"] for prop in active_props
+        ):
+            missing_props = [
+                x
+                for x in ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
+                if x not in active_props
+            ]
             error_text = "Lacking some required properties to compute CO2 mass/volume"
             error_text += "\nMissing: "
             error_text += ", ".join([property for property in missing_props])
