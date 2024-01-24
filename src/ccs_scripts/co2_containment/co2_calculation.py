@@ -699,7 +699,7 @@ def _calculate_co2_data_from_source_data(
             source = "PFlotran"
         elif _is_subset(["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"], active_props):
             source = "Eclipse"
-        elif any(prop in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"] 
+        elif any(prop in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
                  for prop in active_props):
             missing_props = [x for x in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
                              if x not in active_props]
