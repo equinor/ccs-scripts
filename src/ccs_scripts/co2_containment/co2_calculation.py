@@ -1,4 +1,5 @@
 """Methods for CO2 containment calculations"""
+
 from dataclasses import dataclass, fields
 from enum import Enum
 from typing import Dict, List, Literal, Optional, Tuple
@@ -558,27 +559,36 @@ def _pflotran_co2_molar_volume(
     for date in dates:
         co2_molar_vol[date] = [
             [
-                (1 / amfg[date][x])
-                * (
-                    -water_molar_mass * (1 - amfg[date][x]) / (1000 * water_density[x])
-                    + (
-                        co2_molar_mass * amfg[date][x]
-                        + water_molar_mass * (1 - amfg[date][x])
+                (
+                    (1 / amfg[date][x])
+                    * (
+                        -water_molar_mass
+                        * (1 - amfg[date][x])
+                        / (1000 * water_density[x])
+                        + (
+                            co2_molar_mass * amfg[date][x]
+                            + water_molar_mass * (1 - amfg[date][x])
+                        )
+                        / (1000 * dwat[date][x])
                     )
-                    / (1000 * dwat[date][x])
+                    if not amfg[date][x] == 0
+                    else 0
                 )
-                if not amfg[date][x] == 0
-                else 0
                 for x in range(len(amfg[date]))
             ],
-            (1 / ymfg[date])
-            * (
-                -water_molar_mass * (1 - ymfg[date]) / (1000 * water_density)
-                + (co2_molar_mass * ymfg[date] + water_molar_mass * (1 - ymfg[date]))
-                / (1000 * dgas[date])
-            )
-            if not all(ymfg[date]) == 0
-            else ymfg[date],
+            (
+                (1 / ymfg[date])
+                * (
+                    -water_molar_mass * (1 - ymfg[date]) / (1000 * water_density)
+                    + (
+                        co2_molar_mass * ymfg[date]
+                        + water_molar_mass * (1 - ymfg[date])
+                    )
+                    / (1000 * dgas[date])
+                )
+                if not all(ymfg[date]) == 0
+                else ymfg[date]
+            ),
         ]
         co2_molar_vol[date][0] = [
             0 if x < 0 or y == 0 else x
@@ -619,13 +629,17 @@ def _eclipse_co2_molar_volume(
     for date in dates:
         co2_molar_vol[date] = [
             [
-                (1 / xmf2[date][x])
-                * (
-                    -water_molar_mass * (1 - xmf2[date][x]) / (1000 * water_density[x])
-                    + 1 / (1000 * bwat[date][x])
+                (
+                    (1 / xmf2[date][x])
+                    * (
+                        -water_molar_mass
+                        * (1 - xmf2[date][x])
+                        / (1000 * water_density[x])
+                        + 1 / (1000 * bwat[date][x])
+                    )
+                    if not xmf2[date][x] == 0
+                    else 0
                 )
-                if not xmf2[date][x] == 0
-                else 0
                 for x in range(len(xmf2[date]))
             ],
             (1 / ymf2[date])
@@ -719,9 +733,11 @@ def _calculate_co2_data_from_source_data(
                 dwat = source_data.get_dwat()[source_data.DATES[0]]
                 water_density = np.array(
                     [
-                        x[1]
-                        if np.isclose((y[x[0]]), 0)
-                        else np.mean(dwat[where_min_amfg])
+                        (
+                            x[1]
+                            if np.isclose((y[x[0]]), 0)
+                            else np.mean(dwat[where_min_amfg])
+                        )
                         for x in enumerate(dwat)
                     ]
                 )
@@ -739,9 +755,11 @@ def _calculate_co2_data_from_source_data(
                 bwat = source_data.get_bwat()[source_data.DATES[0]]
                 water_density = np.array(
                     [
-                        water_molar_mass * x[1]
-                        if np.isclose((y[x[0]]), 0)
-                        else water_molar_mass * np.mean(bwat[where_min_xmf2])
+                        (
+                            water_molar_mass * x[1]
+                            if np.isclose((y[x[0]]), 0)
+                            else water_molar_mass * np.mean(bwat[where_min_xmf2])
+                        )
                         for x in enumerate(bwat)
                     ]
                 )

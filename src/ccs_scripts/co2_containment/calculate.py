@@ -1,4 +1,5 @@
 """CO2 calculation methods"""
+
 from dataclasses import dataclass
 from typing import List, Literal, Optional, Union
 
