@@ -50,7 +50,7 @@ class CalculationType(Enum):
             error_text = "Illegal calculation type: " + key
             error_text += "\nValid options:"
             for calc_type in CalculationType:
-                error_text += "\n  * " + calc_type.name
+                error_text += "\n  * " + calc_type.name.lower()
             error_text += "\nExiting"
             raise ValueError(error_text)
 

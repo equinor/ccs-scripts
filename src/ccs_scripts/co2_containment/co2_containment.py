@@ -474,6 +474,30 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     )
 
 
+def log_summary_of_results(df: pd.DataFrame) -> None:
+    logging.info("\nSummary of results:")
+    logging.info("===================")
+    logging.info(f"Number of dates     : {len(df)}")
+    logging.info(f"First date          : {df['date'].iloc[0]}")
+    logging.info(f"Last date           : {df['date'].iloc[-1]}")
+    logging.info(f"End state total     : {df['total'].iloc[-1]:.1f}")
+    logging.info(
+        f"End state gaseous   : {df['total_gas'].iloc[-1]:.1f} ({(100.0 * df['total_gas'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+    )
+    logging.info(
+        f"End state aqueous   : {df['total_aqueous'].iloc[-1]:.1f} ({(100.0 * df['total_aqueous'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+    )
+    logging.info(
+        f"End state contained : {df['total_contained'].iloc[-1]:.1f} ({(100.0 * df['total_contained'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+    )
+    logging.info(
+        f"End state outside   : {df['total_outside'].iloc[-1]:.1f} ({(100.0 * df['total_outside'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+    )
+    logging.info(
+        f"End state hazardous : {df['total_hazardous'].iloc[-1]:.1f} ({(100.0 * df['total_hazardous'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+    )
+
+
 def export_output_to_csv(
     out_dir: str,
     calc_type_input: str,
@@ -533,6 +557,7 @@ def main() -> None:
         arguments_processed.hazardous_polygon,
         zone_info,
     )
+    log_summary_of_results(data_frame)
     export_output_to_csv(
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,
