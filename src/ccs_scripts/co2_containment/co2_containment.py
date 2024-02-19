@@ -313,16 +313,6 @@ def process_args() -> argparse.Namespace:
     """
     args = get_parser().parse_args()
     args.calc_type_input = args.calc_type_input.lower()
-    paths = [
-        "case",
-        "out_dir",
-        "egrid",
-        "unrst",
-        "init",
-        "zonefile",
-        "containment_polygon",
-        "hazardous_polygon",
-    ]
 
     _replace_default_dummies_from_ert(args)
 
@@ -336,6 +326,16 @@ def process_args() -> argparse.Namespace:
     if args.out_dir is None:
         args.out_dir = os.path.join(args.root_dir, "share", "results", "tables")
     adict = vars(args)
+    paths = [
+        "case",
+        "out_dir",
+        "egrid",
+        "unrst",
+        "init",
+        "zonefile",
+        "containment_polygon",
+        "hazardous_polygon",
+    ]
     for key in paths:
         if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
             adict[key] = os.path.join(args.root_dir, adict[key])
@@ -388,6 +388,10 @@ def check_input(arguments: argparse.Namespace):
             error_text += "\n  * " + file
         raise FileNotFoundError(error_text)
 
+    if not os.path.isdir(arguments.out_dir):
+        logging.warning("Output directory doesn't exist. Creating a new folder.")
+        os.mkdir(arguments.out_dir)
+
 
 def process_zonefile_if_yaml(zone_info: Dict) -> Optional[Dict[str, List[int]]]:
     """
@@ -427,7 +431,7 @@ def process_zonefile_if_yaml(zone_info: Dict) -> Optional[Dict[str, List[int]]]:
         return None
 
 
-def log_input_configuration(arguments_processed: argparse.Namespace):
+def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     version = "v0.4.0"
 
     source_dir = os.path.dirname(os.path.abspath(__file__))
@@ -482,7 +486,6 @@ def export_output_to_csv(
     Exports the results to a csv file, named according to the calculation type
     (mass / cell_volume / actual_volume)
     """
-    # pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
     out_name = f"plume_{calc_type_input}"
     if isinstance(data_frame, dict):
         assert zone_info is not None
@@ -510,16 +513,17 @@ def main() -> None:
     then exports the data frame to a csv file.
     """
     arguments_processed = process_args()
-    # check_input(arguments_processed)
+    check_input(arguments_processed)
     if arguments_processed.zonefile is not None:
         zone_info = dict({"source": arguments_processed.zonefile, "zranges": None})
         zone_info["zranges"] = process_zonefile_if_yaml(zone_info)
     else:
         zone_info = None
+
     # Temp:
     logging.basicConfig(format="%(message)s", level=logging.INFO)
+
     log_input_configuration(arguments_processed)
-    exit()
     data_frame = calculate_out_of_bounds_co2(
         arguments_processed.egrid,
         arguments_processed.unrst,
