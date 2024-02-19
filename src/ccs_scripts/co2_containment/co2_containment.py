@@ -526,8 +526,12 @@ def export_output_to_csv(
     Exports the results to a csv file, named according to the calculation type
     (mass / cell_volume / actual_volume)
     """
-    logging.info("\nExport results to CSV file")
-    out_name = f"plume_{calc_type_input}"
+    file_name = f"plume_{calc_type_input}.csv"
+    logging.info(f"\nExport results to CSV file: {file_name}")
+    file_path = os.path.join(out_dir, file_name)
+    if os.path.isfile(file_path):
+        logging.info(f"Output CSV file already exists. Overwriting: {file_path}")
+
     if isinstance(data_frame, dict):
         assert zone_info is not None
         keys = (
@@ -542,9 +546,9 @@ def export_output_to_csv(
         summed_part = combined_df.groupby("date").sum(numeric_only=True).reset_index()
         summed_part["zone"] = ["all"] * summed_part.shape[0]
         combined_df = pd.concat([summed_part, combined_df])
-        combined_df.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
+        combined_df.to_csv(file_path, index=False)
     else:
-        data_frame.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
+        data_frame.to_csv(file_path, index=False)
 
 
 def main() -> None:
