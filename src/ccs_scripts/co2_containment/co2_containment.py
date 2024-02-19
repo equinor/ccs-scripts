@@ -274,6 +274,16 @@ def get_parser() -> argparse.ArgumentParser:
         help="Write the output to a single file as compact as possible.",
         action="store_true",
     )
+    parser.add_argument(
+        "--verbose",
+        help="Log information to screen",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--debug",
+        help="Log debug information to screen",
+        action="store_true",
+    )
 
     return parser
 
@@ -347,6 +357,14 @@ def process_args() -> argparse.Namespace:
         args.unrst = args.egrid.replace(".EGRID", ".UNRST")
     if args.init is None:
         args.init = args.egrid.replace(".EGRID", ".INIT")
+
+    if args.debug:
+        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+    elif args.verbose:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.WARNING)
+
     return args
 
 
@@ -542,9 +560,6 @@ def main() -> None:
         zone_info["zranges"] = process_zonefile_if_yaml(zone_info)
     else:
         zone_info = None
-
-    # Temp:
-    logging.basicConfig(format="%(message)s", level=logging.INFO)
 
     log_input_configuration(arguments_processed)
     data_frame = calculate_out_of_bounds_co2(
