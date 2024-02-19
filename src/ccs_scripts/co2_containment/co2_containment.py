@@ -70,7 +70,6 @@ def calculate_out_of_bounds_co2(
     co2_data = calculate_co2(
         grid_file, unrst_file, calc_type_input, init_file, zone_info
     )
-    print("Done calculating CO2 data for all active grid cells")
     if file_containment_polygon is not None:
         containment_polygon = _read_polygon(file_containment_polygon)
     else:
@@ -108,13 +107,13 @@ def calculate_from_co2_data(
         pd.DataFrame
     """
     calc_type = _set_calc_type_from_input_string(calc_type_input.lower())
-    print("Calculate contained CO2 using input polygons")
     contained_co2 = calculate_co2_containment(
         co2_data, containment_polygon, hazardous_polygon, calc_type=calc_type
     )
     data_frame = _construct_containment_table(contained_co2)
     if compact:
         return data_frame
+    logging.info("\nMerge data rows for data frame")
     if co2_data.zone is None:
         return _merge_date_rows(data_frame, calc_type)
     return {z: _merge_date_rows(g, calc_type) for z, g in data_frame.groupby("zone")}
@@ -166,7 +165,6 @@ def _merge_date_rows(
     Returns:
         pd.DataFrame: Output data frame
     """
-    print("Merging data rows for data frame")
     data_frame = data_frame.drop("zone", axis=1)
     # Total
     df1 = (
@@ -414,7 +412,7 @@ def process_zonefile_if_yaml(zone_info: Dict) -> Optional[Dict[str, List[int]]]:
             try:
                 zfile = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                print(exc)
+                logging.error(exc)
                 exit()
         if "zranges" not in zfile:
             error_text = "The yaml zone file must be in the format:\nzranges:\
@@ -472,7 +470,7 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     logging.info(f"INIT file           : {arguments_processed.init}")
     logging.info(f"Zone file           : {arguments_processed.zonefile}")
     logging.info(
-        f"Compact             : {'yes' if arguments_processed.compact else 'no'}"
+        f"Compact             : {'yes' if arguments_processed.compact else 'no'}\n"
     )
 
 
@@ -486,6 +484,7 @@ def export_output_to_csv(
     Exports the results to a csv file, named according to the calculation type
     (mass / cell_volume / actual_volume)
     """
+    logging.info("\nExport results to CSV file")
     out_name = f"plume_{calc_type_input}"
     if isinstance(data_frame, dict):
         assert zone_info is not None

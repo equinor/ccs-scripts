@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, fields
 from enum import Enum
+import logging
 from typing import Dict, List, Literal, Optional, Tuple
 
 import numpy as np
@@ -13,6 +14,8 @@ DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
 TRESHOLD_SGAS = 1e-16
 TRESHOLD_AMFG = 1e-16
+PROPERTIES_NEEDED_PFLOTRAN = ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
+PROPERTIES_NEEDED_ELCIPSE = ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
 
 PROPERTIES_TO_EXTRACT = [
     "RPORV",
@@ -374,15 +377,17 @@ def _extract_source_data(
       SourceData
 
     """
-    print("Start extracting source data")
+    logging.info("Start extracting source data")
     grid = Grid(grid_file)
     unrst = ResdataFile(unrst_file)
     init = ResdataFile(init_file)
     properties, dates = _fetch_properties(unrst, properties_to_extract)
-    print("Done fetching properties")
+    logging.info("Done fetching properties")
 
-    active = np.where(grid.export_actnum().numpy_copy() > 0)[0]
-    print("Number of active grid cells: " + str(len(active)))
+    act_num = grid.export_actnum().numpy_copy()
+    active = np.where(act_num > 0)[0]
+    logging.info(f"Number of grid cells                    : {str(len(act_num))}")
+    logging.info(f"Number of active grid cells             : {str(len(active))}")
     if _is_subset(["SGAS", "AMFG"], list(properties.keys())):
         gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
     elif _is_subset(["SGAS", "XMF2"], list(properties.keys())):
@@ -394,13 +399,20 @@ def _extract_source_data(
         error_text += "SGAS+AMFG or SGAS+XMF2."
         raise RuntimeError(error_text)
     global_active_idx = active[~gasless]
+    logging.info(
+        f"Number of active non-gasless grid cells : {str(len(global_active_idx))}"
+    )
+
     properties_reduced = _reduce_properties(properties, ~gasless)
     # Tuple with (x,y,z) for each cell:
     xyz = [grid.get_xyz(global_index=a) for a in global_active_idx]
     cells_x = np.array([coord[0] for coord in xyz])
     cells_y = np.array([coord[1] for coord in xyz])
     zone = None
-    if zone_info is not None:
+    if zone_info is None:
+        logging.info("No zone info specified")
+    else:
+        logging.info("Using zone info")
         if zone_info["zranges"] is not None:
             zone_array = np.zeros((grid.get_nx(), grid.get_ny(), grid.get_nz()))
             zonevals = [int(x + 1) for x in range(len(zone_info["zranges"]))]
@@ -423,6 +435,7 @@ def _extract_source_data(
     source_data = SourceData(
         cells_x, cells_y, dates, **dict(properties_reduced.items()), **{"zone": zone}
     )
+    logging.info("Done extracting source data\n")
     return source_data
 
 
@@ -683,6 +696,7 @@ def _calculate_co2_data_from_source_data(
     # pylint: disable-msg=too-many-locals
     # pylint: disable-msg=too-many-branches
     # pylint: disable-msg=too-many-statements
+    logging.info(f"Start calculating CO2 {calc_type.name.lower()} from source data")
     props_check = [
         x.name
         for x in fields(source_data)
@@ -692,40 +706,46 @@ def _calculate_co2_data_from_source_data(
         [getattr(source_data, x) is not None for x in props_check]
     )[0]
     active_props = [props_check[i] for i in active_props_idx]
+
     if _is_subset(["SGAS"], active_props):
         if _is_subset(["PORV", "RPORV"], active_props):
             active_props.remove("PORV")
-        if _is_subset(["PORV", "DGAS", "DWAT", "AMFG", "YMFG"], active_props):
+            logging.info("Using attribute RPORV instead of PORV")
+        if _is_subset(PROPERTIES_NEEDED_PFLOTRAN, active_props):
             source = "PFlotran"
-        elif _is_subset(["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"], active_props):
+        elif _is_subset(PROPERTIES_NEEDED_ELCIPSE, active_props):
             source = "Eclipse"
-        elif any(
-            prop in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"] for prop in active_props
-        ):
+        elif any(prop in PROPERTIES_NEEDED_PFLOTRAN for prop in active_props):
             missing_props = [
-                x
-                for x in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
-                if x not in active_props
+                x for x in PROPERTIES_NEEDED_PFLOTRAN if x not in active_props
             ]
-            error_text = "Lacking some required properties to compute CO2 mass/volume"
-            error_text += "\nMissing: "
+            error_text = "Lacking some required properties to compute CO2 mass/volume."
+            error_text += "\nAssumed source: PFlotran"
+            error_text += "\nMissing properties: "
             error_text += ", ".join([property for property in missing_props])
-            raise RuntimeError(error_text)
-        elif any(
-            prop in ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"] for prop in active_props
-        ):
+            raise ValueError(error_text)
+        elif any(prop in PROPERTIES_NEEDED_ELCIPSE for prop in active_props):
             missing_props = [
-                x
-                for x in ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
-                if x not in active_props
+                x for x in PROPERTIES_NEEDED_ELCIPSE if x not in active_props
             ]
-            error_text = "Lacking some required properties to compute CO2 mass/volume"
-            error_text += "\nMissing: "
+            error_text = "Lacking some required properties to compute CO2 mass/volume."
+            error_text += "\nAssumed source: Eclipse"
+            error_text += "\nMissing properties: "
             error_text += ", ".join([property for property in missing_props])
-            raise RuntimeError(error_text)
+            raise ValueError(error_text)
         else:
-            error_text = "Lacking all required properties to compute CO2 mass/volume"
-            raise RuntimeError(error_text)
+            error_text = "Lacking all required properties to compute CO2 mass/volume."
+            error_text += "\nNeed either:"
+            error_text += f"\n  PFlotran: {', '.join([property for property in PROPERTIES_NEEDED_PFLOTRAN])}"
+            error_text += f"\n  Eclipse : {', '.join([property for property in PROPERTIES_NEEDED_ELCIPSE])}"
+            raise ValueError(error_text)
+    else:
+        error_text = "Lacking required property SGAS to compute CO2 mass/volume."
+        raise ValueError(error_text)
+
+    logging.info("Found valid properties")
+    logging.info(f"Data source: {source}")
+    logging.info(f"Properties used in the calculations: {', '.join(active_props)}")
 
     if calc_type in (CalculationType.ACTUAL_VOLUME, CalculationType.MASS):
         if source == "PFlotran":
@@ -862,6 +882,8 @@ def _calculate_co2_data_from_source_data(
             error_text += "\n  * " + calculation_type.name
         error_text += "\nExiting"
         raise ValueError(error_text)
+
+    logging.info(f"Done calculating CO2 {calc_type.name.lower()} from source data\n")
     return co2_amount
 
 
