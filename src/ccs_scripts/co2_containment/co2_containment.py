@@ -6,10 +6,17 @@ Output is a table in CSV format.
 """
 import argparse
 import dataclasses
+from datetime import datetime
+import getpass
 import os
 import pathlib
+import platform
+import socket
+import subprocess
+import sys
 from typing import Any, Dict, List, Optional, Union
 
+import logging
 import numpy as np
 import pandas as pd
 import shapely.geometry
@@ -420,6 +427,51 @@ def process_zonefile_if_yaml(zone_info: Dict) -> Optional[Dict[str, List[int]]]:
         return None
 
 
+def log_input_configuration(arguments_processed: argparse.Namespace):
+    version = "v0.4.0"
+
+    source_dir = os.path.dirname(os.path.abspath(__file__))
+    is_dev_version = True
+    if is_dev_version:
+        version += "_dev"
+
+        short_hash = (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
+            )
+            .decode("ascii")
+            .strip()
+        )
+        version += " (latest git commit: " + short_hash + ")"
+
+    now = datetime.now()
+    d = now.strftime("%B %d, %Y %H:%M:%S")
+    logging.info("CCS-scripts - Containment calculations")
+    logging.info("======================================")
+    logging.info(f"Version             : {version}")
+    logging.info(f"Date and time       : {d}")
+    logging.info(f"User                : {getpass.getuser()}")
+    logging.info(f"Host                : {socket.gethostname()}")
+    logging.info(f"Platform            : {platform.system()} ({platform.release()})")
+    logging.info(
+        f"Python version      : {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
+
+    logging.info(f"\nCase                : {arguments_processed.case}")
+    logging.info(f"Calculation type    : {arguments_processed.calc_type_input}")
+    logging.info(f"Root directory      : {arguments_processed.root_dir}")
+    logging.info(f"Output directory    : {arguments_processed.out_dir}")
+    logging.info(f"Containment polygon : {arguments_processed.containment_polygon}")
+    logging.info(f"Hazardous polygon   : {arguments_processed.hazardous_polygon}")
+    logging.info(f"EGRID file          : {arguments_processed.egrid}")
+    logging.info(f"UNRST file          : {arguments_processed.unrst}")
+    logging.info(f"INIT file           : {arguments_processed.init}")
+    logging.info(f"Zone file           : {arguments_processed.zonefile}")
+    logging.info(
+        f"Compact             : {'yes' if arguments_processed.compact else 'no'}"
+    )
+
+
 def export_output_to_csv(
     out_dir: str,
     calc_type_input: str,
@@ -458,12 +510,16 @@ def main() -> None:
     then exports the data frame to a csv file.
     """
     arguments_processed = process_args()
-    check_input(arguments_processed)
+    # check_input(arguments_processed)
     if arguments_processed.zonefile is not None:
         zone_info = dict({"source": arguments_processed.zonefile, "zranges": None})
         zone_info["zranges"] = process_zonefile_if_yaml(zone_info)
     else:
         zone_info = None
+    # Temp:
+    logging.basicConfig(format="%(message)s", level=logging.INFO)
+    log_input_configuration(arguments_processed)
+    exit()
     data_frame = calculate_out_of_bounds_co2(
         arguments_processed.egrid,
         arguments_processed.unrst,
