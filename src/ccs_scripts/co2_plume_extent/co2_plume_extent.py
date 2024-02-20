@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 
 import argparse
+from datetime import datetime
+import getpass
+import logging
+import os
+import platform
+import socket
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -40,8 +47,64 @@ def __make_parser() -> argparse.ArgumentParser:
         type=float,
         help="Threshold for AMFG",
     )
+    parser.add_argument(
+        "--verbose",
+        help="Log information to screen",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--debug",
+        help="Log debug information to screen",
+        action="store_true",
+    )
 
     return parser
+
+
+def _setup_logging_config(arguments: argparse.Namespace) -> None:
+    if arguments.debug:
+        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+    elif arguments.verbose:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.WARNING)
+
+
+def _log_input_configuration(arguments: argparse.Namespace) -> None:
+    version = "v0.4.0"
+
+    source_dir = os.path.dirname(os.path.abspath(__file__))
+    is_dev_version = True
+    if is_dev_version:
+        version += "_dev"
+
+        short_hash = (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
+            )
+            .decode("ascii")
+            .strip()
+        )
+        version += " (latest git commit: " + short_hash + ")"
+
+    now = datetime.now()
+    d = now.strftime("%B %d, %Y %H:%M:%S")
+    logging.info("CCS-scripts - Plume extent calculations")
+    logging.info("=======================================")
+    logging.info(f"Version             : {version}")
+    logging.info(f"Date and time       : {d}")
+    logging.info(f"User                : {getpass.getuser()}")
+    logging.info(f"Host                : {socket.gethostname()}")
+    logging.info(f"Platform            : {platform.system()} ({platform.release()})")
+    logging.info(
+        f"Python version      : {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
+
+    logging.info(f"\nCase                 : {arguments.case}")
+    logging.info(f"Injection point info : {arguments.injection_point_info}")
+    logging.info(f"Output CSV file      : {arguments.output}")
+    logging.info(f"Threshold SGAS       : {arguments.threshold_sgas}")
+    logging.info(f"Threshold AMFG       : {arguments.threshold_amfg}")
 
 
 def calc_plume_extents(
@@ -192,6 +255,8 @@ def main():
     and AMFG/XMF2. Output is plume extent per date written to a CSV file.
     """
     args = __make_parser().parse_args()
+    _setup_logging_config(args)
+    _log_input_configuration(args)
 
     injxy = __calculate_well_coordinates(
         args.case,
