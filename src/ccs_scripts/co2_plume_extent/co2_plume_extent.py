@@ -21,7 +21,7 @@ DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
 
 
-def __make_parser() -> argparse.ArgumentParser:
+def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Calculate plume extent (distance)")
     parser.add_argument("case", help="Name of Eclipse case")
     parser.add_argument(
@@ -61,7 +61,7 @@ def __make_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _setup_logging_config(arguments: argparse.Namespace) -> None:
+def _setup_log_configuration(arguments: argparse.Namespace) -> None:
     if arguments.debug:
         logging.basicConfig(format="%(message)s", level=logging.DEBUG)
     elif arguments.verbose:
@@ -104,10 +104,10 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     logging.info(f"Injection point info : {arguments.injection_point_info}")
     logging.info(f"Output CSV file      : {arguments.output}")
     logging.info(f"Threshold SGAS       : {arguments.threshold_sgas}")
-    logging.info(f"Threshold AMFG       : {arguments.threshold_amfg}")
+    logging.info(f"Threshold AMFG       : {arguments.threshold_amfg}\n")
 
 
-def calc_plume_extents(
+def calculate_plume_extents(
     case: str,
     injxy: Tuple[float, float],
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
@@ -116,40 +116,49 @@ def calc_plume_extents(
     """
     Find plume extents per date for SGAS and AMFG/XMF2.
     """
+    logging.info("\nStart calculating plume extent")
     grid = Grid("{}.EGRID".format(case))
     unrst = ResdataFile("{}.UNRST".format(case))
 
     # First calculate distance from injection point to center of all cells
     nactive = grid.get_num_active()
+    logging.info(f"Number of active grid cells                    : {nactive:>10}")
     dist = np.zeros(shape=(nactive,))
     for i in range(nactive):
         center = grid.get_xyz(active_index=i)
         dist[i] = np.sqrt((center[0] - injxy[0]) ** 2 + (center[1] - injxy[1]) ** 2)
+    logging.info(f"Smallest distance grid cell to injection point : {min(dist):>10.1f}")
+    logging.info(f"Largest distance grid cell to injection point  : {max(dist):>10.1f}")
+    logging.info(
+        f"Average distance grid cell to injection point  : {sum(dist)/len(dist):>10.1f}"
+    )
 
-    sgas_results = __find_max_distances_per_time_step(
+    sgas_results = _find_max_distances_per_time_step(
         "SGAS", threshold_sgas, unrst, dist
     )
-    print(sgas_results)
+    logging.info("Done calculating plume extent for SGAS.")
 
     if "AMFG" in unrst:
-        amfg_results = __find_max_distances_per_time_step(
+        amfg_results = _find_max_distances_per_time_step(
             "AMFG", threshold_amfg, unrst, dist
         )
         amfg_key = "AMFG"
+        logging.info("Done calculating plume extent for AMFG.")
     elif "XMF2" in unrst:
-        amfg_results = __find_max_distances_per_time_step(
+        amfg_results = _find_max_distances_per_time_step(
             "XMF2", threshold_amfg, unrst, dist
         )
         amfg_key = "XMF2"
+        logging.info("Done calculating plume extent for XMF2.")
     else:
         amfg_results = None
         amfg_key = "-"
-    print(amfg_results)
+        logging.warning("WARNING: Neither AMFG nor XMF2 exists as properties.")
 
     return (sgas_results, amfg_results, amfg_key)
 
 
-def __find_max_distances_per_time_step(
+def _find_max_distances_per_time_step(
     attribute_key: str, threshold: float, unrst: ResdataFile, dist: np.ndarray
 ) -> List[List]:
     """
@@ -174,13 +183,25 @@ def __find_max_distances_per_time_step(
     return output
 
 
-def __export_to_csv(
+def _log_results(df: pd.DataFrame, amfg_key: str):
+    logging.info("\nSummary of results:")
+    logging.info("===================")
+    logging.info(f"Number of dates             : {len(df):>11}")
+    logging.info(f"First date                  : {df['date'].iloc[0]:>11}")
+    logging.info(f"Last date                   : {df['date'].iloc[-1]:>11}")
+    logging.info(
+        f"End state max distance SGAS : {df['MAX_DISTANCE_SGAS'].iloc[-1]:>11.1f}"
+    )
+    logging.info(
+        f"End state max distance {amfg_key} : {df['MAX_DISTANCE_' + amfg_key].iloc[-1]:>11.1f}"
+    )
+
+
+def _collect_results_into_dataframe(
     sgas_results: List[List],
     amfg_results: Optional[List[List]],
     amfg_key: str,
-    output_file: str,
-):
-    # Convert into Pandas DataFrames
+) -> pd.DataFrame:
     sgas_df = pd.DataFrame.from_records(
         sgas_results, columns=["date", "MAX_DISTANCE_SGAS"]
     )
@@ -188,17 +209,13 @@ def __export_to_csv(
         amfg_df = pd.DataFrame.from_records(
             amfg_results, columns=["date", "MAX_DISTANCE_" + amfg_key]
         )
-
-        # Merge them together
         df = pd.merge(sgas_df, amfg_df, on="date")
     else:
         df = sgas_df
-
-    # Export to CSV
-    df.to_csv(output_file, index=False)
+    return df
 
 
-def __calculate_well_coordinates(
+def _calculate_well_coordinates(
     case: str, injection_point_info: str, well_picks_path: Optional[str] = None
 ) -> Tuple[float, float]:
     """
@@ -212,7 +229,11 @@ def __calculate_well_coordinates(
         coords = injection_point_info[1:-1].split(",")
         if len(coords) == 2:
             try:
-                return (float(coords[0]), float(coords[1]))
+                coordinates = (float(coords[0]), float(coords[1]))
+                logging.info(
+                    f"Using injection coordinates: [{coordinates[0]}, {coordinates[1]}]"
+                )
+                return coordinates
             except ValueError:
                 print(
                     "Invalid input: When providing two arguments (x and y coordinates)\
@@ -220,14 +241,19 @@ def __calculate_well_coordinates(
                 )
                 exit()
     well_name = injection_point_info
+    logging.info(f"Using well to find coordinates: {well_name}")
 
     if well_picks_path is None:
         p = Path(case).parents[2]
         p2 = p / "share" / "results" / "wells" / "well_picks.csv"
+        logging.info(f"Using default well picks path : {p2}")
     else:
         p2 = Path(well_picks_path)
 
     df = pd.read_csv(p2)
+    logging.info("Done reading well picks CSV file")
+    logging.debug("Well picks read from CSV file:")
+    logging.debug(df)
 
     if well_name not in list(df["WELL"]):
         print(
@@ -237,6 +263,8 @@ def __calculate_well_coordinates(
         exit()
 
     df = df[df["WELL"] == well_name]
+    logging.info(f"Number of well picks for well {well_name}: {len(df)}")
+    logging.info("Using the well pick with the largest measured depth.")
 
     df = df[df["X_UTME"].notna()]
     df = df[df["Y_UTMN"].notna()]
@@ -245,6 +273,11 @@ def __calculate_well_coordinates(
     max_md_row = df.loc[max_id]
     x = max_md_row["X_UTME"]
     y = max_md_row["Y_UTMN"]
+    md = max_md_row["MD"]
+    surface = max_md_row["HORIZON"]
+    logging.info(
+        f"Injection coordinates: [{x:.2f}, {y:.2f}] (surface: {surface}, MD: {md:.2f})"
+    )
 
     return (x, y)
 
@@ -254,15 +287,15 @@ def main():
     Calculate plume extent using EGRID and UNRST-files. Calculated for SGAS
     and AMFG/XMF2. Output is plume extent per date written to a CSV file.
     """
-    args = __make_parser().parse_args()
-    _setup_logging_config(args)
+    args = _make_parser().parse_args()
+    _setup_log_configuration(args)
     _log_input_configuration(args)
 
-    injxy = __calculate_well_coordinates(
+    injxy = _calculate_well_coordinates(
         args.case,
         args.injection_point_info,
     )
-    (sgas_results, amfg_results, amfg_key) = calc_plume_extents(
+    (sgas_results, amfg_results, amfg_key) = calculate_plume_extents(
         args.case,
         injxy,
         args.threshold_sgas,
@@ -276,7 +309,10 @@ def main():
     else:
         output_file = args.output
 
-    __export_to_csv(sgas_results, amfg_results, amfg_key, output_file)
+    df = _collect_results_into_dataframe(sgas_results, amfg_results, amfg_key)
+    _log_results(df, amfg_key)
+    df.to_csv(output_file, index=False)
+    logging.info("\nDone exporting results to CSV file.\n")
 
     return 0
 
