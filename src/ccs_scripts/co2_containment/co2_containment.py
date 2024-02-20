@@ -499,12 +499,14 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
     logging.info(f"First date          : {df['date'].iloc[0]}")
     logging.info(f"Last date           : {df['date'].iloc[-1]}")
     logging.info(f"End state total     : {df['total'].iloc[-1]:.1f}")
-    logging.info(
-        f"End state gaseous   : {df['total_gas'].iloc[-1]:.1f} ({(100.0 * df['total_gas'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
-    )
-    logging.info(
-        f"End state aqueous   : {df['total_aqueous'].iloc[-1]:.1f} ({(100.0 * df['total_aqueous'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
-    )
+    if "total_gas" in df:
+        logging.info(
+            f"End state gaseous   : {df['total_gas'].iloc[-1]:.1f} ({(100.0 * df['total_gas'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+        )
+    if "total_aqueous" in df:
+        logging.info(
+            f"End state aqueous   : {df['total_aqueous'].iloc[-1]:.1f} ({(100.0 * df['total_aqueous'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+        )
     logging.info(
         f"End state contained : {df['total_contained'].iloc[-1]:.1f} ({(100.0 * df['total_contained'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
     )

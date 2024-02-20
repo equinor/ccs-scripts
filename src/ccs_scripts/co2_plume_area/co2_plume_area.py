@@ -24,7 +24,7 @@ import xtgeo
 
 def __make_parser():
     parser = argparse.ArgumentParser(description="Calculate plume area")
-    parser.add_argument("input", help="Path to maps created through XTGeoapp")
+    parser.add_argument("input", help="Path to maps created through grid3d-maps")
     parser.add_argument(
         "--output",
         help="Path to output CSV file",
