@@ -75,7 +75,8 @@ class SourceData:
       DGAS (Dict): Gas density (kg/m3) for each grid cell at each date
       BWAT (Dict): Molar water density (kg-mol/m3) for each grid cell at each date
       BGAS (Dict): Molar gas density (kg-mol/m3) for each grid cell at each date
-      zone (np.ndarray):
+      zone (np.ndarray): Zone information
+      region (np.ndarray): Region information
 
     """
 
@@ -98,6 +99,7 @@ class SourceData:
     BWAT: Optional[Dict[str, np.ndarray]] = None
     BGAS: Optional[Dict[str, np.ndarray]] = None
     zone: Optional[np.ndarray] = None
+    region: Optional[np.ndarray] = None
     # pylint: enable=invalid-name
 
     def get_vol(self):
@@ -184,6 +186,12 @@ class SourceData:
             return self.zone
         return None
 
+    def get_region(self):
+        """Get region"""
+        if self.region is not None:
+            return self.region
+        return None
+
 
 @dataclass
 class Co2DataAtTimeStep:
@@ -195,7 +203,7 @@ class Co2DataAtTimeStep:
       date (str): The time step
       aqu_phase (np.ndarray): The amount of CO2 in aqueous phase
       gas_phase (np.ndarray): The amount of CO2 in gaseous phase
-      volume_covarage (np.ndarray): The volume of a cell (specific of
+      volume_coverage (np.ndarray): The volume of a cell (specific of
                                     calc_type_input = volume_extent)
     """
 
@@ -223,7 +231,8 @@ class Co2Data:
       data_list (List): List with CO2 amounts calculated
                         at multiple time steps
       units (Literal): Units of the calculated amount of CO2
-      zone (np.ndarray):
+      zone (np.ndarray): Zone information
+      region (np.ndarray): Region information
 
     """
 
@@ -232,6 +241,7 @@ class Co2Data:
     data_list: List[Co2DataAtTimeStep]
     units: Literal["kg", "m3"]
     zone: Optional[np.ndarray] = None
+    region: Optional[np.ndarray] = None
 
 
 def _try_prop(unrst: ResdataFile, prop_name: str):
@@ -356,10 +366,11 @@ def _extract_source_data(
     grid_file: str,
     unrst_file: str,
     properties_to_extract: List[str],
+    zone_info: Dict,
+    region_info: Dict,
     init_file: Optional[str] = None,
-    zone_info: Optional[Dict] = None,
 ) -> SourceData:
-    # pylint: disable-msg=too-many-locals
+    # pylint: disable=too-many-locals, too-many-statements
     """
     Extracts the properties in properties_to_extract from Grid files
 
@@ -369,6 +380,7 @@ def _extract_source_data(
       properties_to_extract (List): Names of the properties to be extracted
       init_file (str): Path to INIT-file
       zone_info (Dict): Dictionary containing zone information
+      region_info (Dict): Dictionary containing region information
 
     Returns:
       SourceData
@@ -400,17 +412,44 @@ def _extract_source_data(
     cells_x = np.array([coord[0] for coord in xyz])
     cells_y = np.array([coord[1] for coord in xyz])
     zone = None
-    if zone_info is not None:
+    if zone_info["source"] is not None:
         if zone_info["zranges"] is not None:
-            zone_array = np.zeros((grid.get_nx(), grid.get_ny(), grid.get_nz()))
+            zone_array = np.zeros(
+                (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
+            )
             zonevals = [int(x + 1) for x in range(len(zone_info["zranges"]))]
-            for zv, zr in zip(zonevals, list(zone_info["zranges"].values())):
+            zone_info["int_to_zone"] = [f"Zone_{x + 1}" for x in range(len(zonevals))]
+            for zv, zr, zn in zip(
+                zonevals,
+                list(zone_info["zranges"].values()),
+                zone_info["zranges"].keys(),
+            ):
                 zone_array[:, :, zr[0] - 1 : zr[1]] = zv
+                zone_info["int_to_zone"][zv - 1] = zn
             zone = zone_array.flatten(order="F")[global_active_idx]
         else:
             xtg_grid = xtgeo.grid_from_file(grid_file)
             zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
-            zone = zone.values.data.flatten(order="F")[global_active_idx]
+            zone = zone.values.data.flatten(order="F")
+            zone_info["int_to_zone"] = [f"Zone_{x}" for x in np.unique(zone)]
+            zone = zone[global_active_idx]
+    if region_info["source"] is not None:
+        xtg_grid = xtgeo.grid_from_file(grid_file)
+        region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
+        region = region.values.data.flatten(order="F")
+        region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
+        region = region[global_active_idx]
+    else:
+        try:
+            region = np.array(init["FIPREG"][0], dtype=int)
+            if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
+                region = region[active]
+            region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
+            region = region[~gasless]
+        except KeyError:
+            print("Region information not found in INIT-file (FIPREG property).")
+            region = None
+            region_info["int_to_region"] = None
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
     properties_reduced["VOL"] = {d: vol0 for d in dates}
     try:
@@ -421,7 +460,11 @@ def _extract_source_data(
     except KeyError:
         pass
     source_data = SourceData(
-        cells_x, cells_y, dates, **dict(properties_reduced.items()), **{"zone": zone}
+        cells_x,
+        cells_y,
+        dates,
+        **dict(properties_reduced.items()),
+        **{"zone": zone, "region": region},
     )
     return source_data
 
@@ -576,19 +619,24 @@ def _pflotran_co2_molar_volume(
                 )
                 for x in range(len(amfg[date]))
             ],
-            (
-                (1 / ymfg[date])
-                * (
-                    -water_molar_mass * (1 - ymfg[date]) / (1000 * water_density)
-                    + (
-                        co2_molar_mass * ymfg[date]
-                        + water_molar_mass * (1 - ymfg[date])
+            [
+                (
+                    (1 / ymfg[date][x])
+                    * (
+                        -water_molar_mass
+                        * (1 - ymfg[date][x])
+                        / (1000 * water_density[x])
+                        + (
+                            co2_molar_mass * ymfg[date][x]
+                            + water_molar_mass * (1 - ymfg[date][x])
+                        )
+                        / (1000 * dgas[date][x])
                     )
-                    / (1000 * dgas[date])
+                    if not ymfg[date][x] == 0
+                    else 0
                 )
-                if not all(ymfg[date]) == 0
-                else ymfg[date]
-            ),
+                for x in range(len(ymfg[date]))
+            ],
         ]
         co2_molar_vol[date][0] = [
             0 if x < 0 or y == 0 else x
@@ -642,11 +690,20 @@ def _eclipse_co2_molar_volume(
                 )
                 for x in range(len(xmf2[date]))
             ],
-            (1 / ymf2[date])
-            * (
-                -water_molar_mass * (1 - ymf2[date]) / (1000 * water_density)
-                + 1 / (1000 * bgas[date])
-            ),
+            [
+                (
+                    (1 / ymf2[date][x])
+                    * (
+                        -water_molar_mass
+                        * (1 - ymf2[date][x])
+                        / (1000 * water_density[x])
+                        + 1 / (1000 * bgas[date][x])
+                    )
+                    if not ymf2[date][x] == 0
+                    else 0
+                )
+                for x in range(len(ymf2[date]))
+            ],
         ]
         co2_molar_vol[date][0] = [
             0 if x < 0 or y == 0 else x
@@ -743,6 +800,7 @@ def _calculate_co2_data_from_source_data(
             ],
             "kg",
             source_data.get_zone(),
+            source_data.get_region(),
         )
         if calc_type != CalculationType.MASS:
             if source == "PFlotran":
@@ -816,6 +874,7 @@ def _calculate_co2_data_from_source_data(
                 ],
                 "m3",
                 source_data.get_zone(),
+                source_data.get_region(),
             )
         else:
             co2_amount = co2_mass_output
@@ -854,6 +913,7 @@ def _calculate_co2_data_from_source_data(
             ],
             "m3",
             source_data.get_zone(),
+            source_data.get_region(),
         )
     else:
         error_text = "Illegal calculation type: " + calc_type.name
@@ -868,9 +928,10 @@ def _calculate_co2_data_from_source_data(
 def calculate_co2(
     grid_file: str,
     unrst_file: str,
+    zone_info: Dict,
+    region_info: Dict,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
-    zone_info: Optional[Dict] = None,
 ) -> Co2Data:
     """
     Calculates the desired amount (calc_type_input) of CO2
@@ -881,13 +942,14 @@ def calculate_co2(
       calc_type_input (str): Input string with calculation type to perform
       init_file (str): Path to INIT-file
       zone_info (Dict): Dictionary with zone information
+      region_info (Dict): Dictionary with region information
 
     Returns:
       CO2Data
 
     """
     source_data = _extract_source_data(
-        grid_file, unrst_file, PROPERTIES_TO_EXTRACT, init_file, zone_info
+        grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_info, region_info, init_file
     )
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     co2_data = _calculate_co2_data_from_source_data(source_data, calc_type=calc_type)
