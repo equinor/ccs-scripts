@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import pandas
 from pathlib import Path
 import pytest
 import shapely.geometry
@@ -159,42 +161,23 @@ def test_zoned_simple_cube_grid():
 
 
 def test_synthetic_case_mass(mocker):
-    case_path = str(
+    main_path = (
         Path(__file__).parents[1]
         / "tests"
         / "synthetic_model"
         / "realization-0"
         / "iter-0"
-        / "eclipse"
-        / "model"
-        / "E_FLT_01-0"
     )
+    case_path = str(main_path / "eclipse" / "model" / "E_FLT_01-0")
     root_dir = "realization-0/iter-0"
-    CONTAINMENT_POLYGON = str(
-        Path(__file__).parents[1]
-        / "tests"
-        / "synthetic_model"
-        / "realization-0"
-        / "iter-0"
-        / "share"
-        / "results"
-        / "polygons"
-        / "containment--boundary.csv"
+    containment_polygon = str(
+        main_path / "share" / "results" / "polygons" / "containment--boundary.csv"
     )
-    HAZARDOUS_POLYGON = str(
-        Path(__file__).parents[1]
-        / "tests"
-        / "synthetic_model"
-        / "realization-0"
-        / "iter-0"
-        / "share"
-        / "results"
-        / "polygons"
-        / "hazardous--boundary.csv"
+    hazardous_polygon = str(
+        main_path / "share" / "results" / "polygons" / "hazardous--boundary.csv"
     )
-    output_path = str(
-        Path(__file__).parents[1] / "tests" / "testdata_co2_plume" / "plume_extent.csv"
-    )
+    output_dir = str(main_path / "share" / "results" / "tables")
+    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
 
     args = [
         "sys.argv",
@@ -203,35 +186,33 @@ def test_synthetic_case_mass(mocker):
         "--root_dir",
         root_dir,
         "--out_dir",
-        "share/results/tables",
+        output_dir,
         "--containment_polygon",
-        CONTAINMENT_POLYGON,
+        containment_polygon,
         "--hazardous_polygon",
-        HAZARDOUS_POLYGON,
-        # "--zonefile",
-        # "...",
+        hazardous_polygon,
     ]
     mocker.patch(
         "sys.argv",
         args,
     )
     main()
-    # mocker.patch(
-    #     "sys.argv",
-    #     [
-    #         "--case",
-    #         case_path,
-    #         "[462500.0,5933100.0]",
-    #         "--threshold_sgas",
-    #         "0.02",
-    #         "--output",
-    #         output_path,
-    #     ],
-    # )
 
-    # df = pandas.read_csv(output_path)
-    # assert "MAX_DISTANCE_SGAS" in df.keys()
-    # assert "MAX_DISTANCE_AMFG" not in df.keys()
-    # assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1915.5936794783647)
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
 
-    # os.remove(output_path)
+    assert len(df) == 11
+    assert df["date"].min() == "2025-01-01"
+    assert df["date"].max() == "2500-01-01"
+    assert df["total"].sum() == pytest.approx(17253002337.768658)
+    assert df["total_gas"].sum() == pytest.approx(13426268976.322)
+    assert df["total_aqueous"].sum() == pytest.approx(3826733361.4466577)
+    assert df["total_contained"].sum() == pytest.approx(8488162800.155235)
+    assert df["total_outside"].sum() == pytest.approx(7016268521.866909)
+    assert df["total_hazardous"].sum() == pytest.approx(1748571015.7465131)
+    assert df["gas_contained"].sum() == pytest.approx(6990346422.720001)
+    assert df["aqueous_contained"].sum() == pytest.approx(1497816377.435234)
+    assert df["gas_outside"].sum() == pytest.approx(5154504459.26111)
+    assert df["aqueous_outside"].sum() == pytest.approx(1861764062.6057913)
+    assert df["gas_hazardous"].sum() == pytest.approx(1281418094.3408813)
+    assert df["aqueous_hazardous"].sum() == pytest.approx(467152921.40563196)
