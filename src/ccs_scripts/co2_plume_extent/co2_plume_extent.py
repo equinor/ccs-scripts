@@ -152,7 +152,7 @@ def calculate_plume_extents(
         logging.info("Done calculating plume extent for XMF2.")
     else:
         amfg_results = None
-        amfg_key = "-"
+        amfg_key = None
         logging.warning("WARNING: Neither AMFG nor XMF2 exists as properties.")
 
     return (sgas_results, amfg_results, amfg_key)
@@ -192,9 +192,10 @@ def _log_results(df: pd.DataFrame, amfg_key: str) -> None:
     logging.info(
         f"End state max distance SGAS : {df['MAX_DISTANCE_SGAS'].iloc[-1]:>11.1f}"
     )
-    logging.info(
-        f"End state max distance {amfg_key} : {df['MAX_DISTANCE_' + amfg_key].iloc[-1]:>11.1f}"
-    )
+    if amfg_key is not None:
+        logging.info(
+            f"End state max distance {amfg_key} : {df['MAX_DISTANCE_' + amfg_key].iloc[-1]:>11.1f}"
+        )
 
 
 def _collect_results_into_dataframe(
@@ -274,7 +275,7 @@ def _calculate_well_coordinates(
     x = max_md_row["X_UTME"]
     y = max_md_row["Y_UTMN"]
     md = max_md_row["MD"]
-    surface = max_md_row["HORIZON"]
+    surface = max_md_row["HORIZON"] if "HORIZON" in max_md_row else "-"
     logging.info(
         f"Injection coordinates: [{x:.2f}, {y:.2f}] (surface: {surface}, MD: {md:.2f})"
     )

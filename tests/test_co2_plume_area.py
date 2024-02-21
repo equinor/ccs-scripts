@@ -4,14 +4,14 @@ from pathlib import Path
 import pandas
 import pytest
 
-from ccs_scripts.co2_plume_area.co2_plume_area import calc_plume_area, main
+from ccs_scripts.co2_plume_area.co2_plume_area import calculate_plume_area, main
 
 
 def test_calc_plume_area():
     input_path = str(
         Path(__file__).parents[1] / "tests" / "testdata_co2_plume" / "surfaces"
     )
-    out = calc_plume_area(input_path, "SGAS")
+    out = calculate_plume_area(input_path, "SGAS")
     assert len(out) == 3
     results = [x[1] for x in out]
     results.sort()
