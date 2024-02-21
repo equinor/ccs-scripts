@@ -183,7 +183,7 @@ def _find_max_distances_per_time_step(
     return output
 
 
-def _log_results(df: pd.DataFrame, amfg_key: str):
+def _log_results(df: pd.DataFrame, amfg_key: str) -> None:
     logging.info("\nSummary of results:")
     logging.info("===================")
     logging.info(f"Number of dates             : {len(df):>11}")

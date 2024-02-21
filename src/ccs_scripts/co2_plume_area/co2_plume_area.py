@@ -201,7 +201,7 @@ def _log_input_configuration(input_path: str, output_path: str) -> None:
 
 
 def _convert_to_data_frame(results: List[List[float]], rskey: str) -> pd.DataFrame:
-    # Convert into Pandas DataFrame
+    # Convert plume area results into a Pandas DataFrame
     df = pd.DataFrame.from_records(
         results, columns=["date", "AREA_" + rskey, "FORMATION_" + rskey]
     )
@@ -209,7 +209,21 @@ def _convert_to_data_frame(results: List[List[float]], rskey: str) -> pd.DataFra
     df.reset_index(inplace=True)
     df.columns.name = None
     df.columns = [x + "_" + rskey if x != "date" else x for x in df.columns]
+
     return df
+
+
+def _log_results(df: pd.DataFrame) -> None:
+    logging.info("\nSummary of results:")
+    logging.info("===================")
+    logging.info(f"Number of dates : {len(df):>11}")
+    logging.info(f"First date      : {df['date'].iloc[0]:>11}")
+    logging.info(f"Last date       : {df['date'].iloc[-1]:>11}")
+    columns = [c for c in df if c != "date"]
+    n = max(len(c) for c in columns)
+    logging.info(f"End state plume area:")
+    for c in columns:
+        logging.info(f"    * {c:<{n+1 }}: {df[c].iloc[-1]:>11}")
 
 
 def main():
@@ -228,31 +242,33 @@ def main():
     sgas_df, amfg_df, xmf2_df = None, None, None
     sgas_results = calculate_plume_area(input_path, "sgas")
     if sgas_results:
-        logging.info("\nSGAS plume areas sucessfully collected.")
+        logging.info("\nDone calculating SGAS plume areas.")
         sgas_df = _convert_to_data_frame(sgas_results, "SGAS")
 
     amfg_results = calculate_plume_area(input_path, "amfg")
     if amfg_results:
-        logging.info("\nAMFG plume areas sucessfully collected.")
+        logging.info("\nDone calculating AMFG plume areas.")
         amfg_df = _convert_to_data_frame(amfg_results, "AMFG")
 
     xmf2_results = calculate_plume_area(input_path, "xmf2")
     if xmf2_results:
-        logging.info("\nXMF2 plume areas sucessfully collected.")
+        logging.info("\nDone calculating XMF2 plume areas.")
         xmf2_df = _convert_to_data_frame(xmf2_results, "XMF2")
 
-    exit()
+    # Merge the data frames
+    df = None
+    for df_prop in [sgas_df, amfg_df, xmf2_df]:
+        if df_prop is not None:
+            if df is None:
+                df = df_prop
+            else:
+                df = pd.merge(df, df_prop)
 
-    # Merge them together
-    if sgas_df is not None:
-        if amfg_df is not None:
-            df = pd.merge(sgas_df, amfg_df)
-            df.to_csv(output_path, index=False)
-        elif xmf2_df is not None:
-            df = pd.merge(sgas_df, xmf2_df)
-            df.to_csv(output_path, index=False)
-        else:
-            sgas_df.to_csv(output_path, index=False)
+    _log_results(df)
+
+    if df is not None:
+        df.to_csv(output_path, index=False)
+        logging.info("\nDone exporting results to CSV file.\n")
 
     return 0
 
