@@ -48,7 +48,8 @@ def calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
     hazardous_polygon: Union[Polygon, MultiPolygon, None],
-    zone_and_region_info: Dict,
+    zone_info: Dict,
+    region_info: Dict,
     calc_type: CalculationType,
 ) -> List[ContainedCo2]:
     """
@@ -63,7 +64,8 @@ def calculate_co2_containment(
             the containment area
         hazardous_polygon (Union[Polygon,Multipolygon]): The polygon that defines
              the hazardous area
-        zone_and_region_info (Dict): Dictionary containing zone information
+        zone_info (Dict): Dictionary containing zone information
+        region_info (Dict): Dictionary containing region information
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
 
@@ -140,9 +142,9 @@ def calculate_co2_containment(
         if co2_data.zone is None
         else (
             {z: co2_data.zone == z for z in np.unique(co2_data.zone)}
-            if zone_and_region_info["int_to_zone"] is None
+            if zone_info["int_to_zone"] is None
             else {
-                zone_and_region_info["int_to_zone"][z - 1]: co2_data.zone == z
+                zone_info["int_to_zone"][z - 1]: co2_data.zone == z
                 for z in np.unique(co2_data.zone)
             }
         )
@@ -152,9 +154,9 @@ def calculate_co2_containment(
         if co2_data.region is None
         else (
             {r: co2_data.region == r for r in np.unique(co2_data.region)}
-            if zone_and_region_info["int_to_region"] is None
+            if region_info["int_to_region"] is None
             else {
-                zone_and_region_info["int_to_region"][r - 1]: co2_data.region == r
+                region_info["int_to_region"][r - 1]: co2_data.region == r
                 for r in np.unique(co2_data.region)
             }
         )

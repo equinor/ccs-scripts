@@ -35,7 +35,8 @@ def calculate_out_of_bounds_co2(
     init_file: str,
     compact: bool,
     calc_type_input: str,
-    zone_and_region_info: Dict,
+    zone_info: Dict,
+    region_info: Dict,
     file_containment_polygon: Optional[str] = None,
     file_hazardous_polygon: Optional[str] = None,
 ) -> pd.DataFrame:
@@ -54,15 +55,18 @@ def calculate_out_of_bounds_co2(
             containment area
         file_hazardous_polygon (str): Path to polygon defining the
             hazardous area
-        zone_and_region_info (Dict): Dictionary containing path to zone- and
-            region-file, or zranges (if the zone-file is provided as a YAML-file
+        zone_info (Dict): Dictionary containing path to zone-file,
+            or zranges (if the zone-file is provided as a YAML-file
             with zones defined through intervals in depth)
+            as well as a list connecting zone-numbers to names
+        region_info (Dict): Dictionary containing path to potential region-file,
+            and list connecting region-numbers to names, if available
 
     Returns:
         pd.DataFrame
     """
     co2_data = calculate_co2(
-        grid_file, unrst_file, zone_and_region_info, calc_type_input, init_file
+        grid_file, unrst_file, zone_info, region_info, calc_type_input, init_file
     )
     print("Done calculating CO2 data for all active grid cells")
     if file_containment_polygon is not None:
@@ -79,7 +83,8 @@ def calculate_out_of_bounds_co2(
         hazardous_polygon,
         compact,
         calc_type_input,
-        zone_and_region_info,
+        zone_info,
+        region_info
     )
 
 
@@ -89,7 +94,8 @@ def calculate_from_co2_data(
     hazardous_polygon: Union[shapely.geometry.Polygon, None],
     compact: bool,
     calc_type_input: str,
-    zone_and_region_info: Dict,
+    zone_info: Dict,
+    region_info: Dict,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
     Use polygons to divide co2 mass or volume into different categories
@@ -103,7 +109,8 @@ def calculate_from_co2_data(
             hazardous area
         compact (bool):
         calc_type_input (str): Choose mass / cell_volume / actual_volume
-        zone_and_region_info (Dict): Dictionary containing zone information
+        zone_info (Dict): Dictionary containing zone information
+        region_info (Dict): Dictionary containing region information
 
     Returns:
         pd.DataFrame
@@ -114,7 +121,8 @@ def calculate_from_co2_data(
         co2_data,
         containment_polygon,
         hazardous_polygon,
-        zone_and_region_info,
+        zone_info,
+        region_info,
         calc_type=calc_type,
     )
     data_frame = _construct_containment_table(contained_co2)
@@ -438,7 +446,7 @@ def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
         "Zone3": [11,14]
     }
     """
-    if zonefile.split(".")[-1] in ["yml", "yaml", "YML", "YAML"]:
+    if zonefile.split(".")[-1].lower() in ["yml", "yaml"]:
         with open(zonefile, "r", encoding="utf8") as stream:
             try:
                 zfile = yaml.safe_load(stream)
@@ -463,7 +471,8 @@ def export_output_to_csv(
     out_dir: str,
     calc_type_input: str,
     data_frame: Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]],
-    zone_and_region_info: Dict,
+    zone_info: Dict,
+    region_info: Dict,
 ):
     """
     Exports the results to a csv file, named according to the calculation type
@@ -472,8 +481,8 @@ def export_output_to_csv(
     # pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
     out_name = f"plume_{calc_type_input}"
     if (
-        zone_and_region_info["zone_source"] is None
-        and zone_and_region_info["region_source"] is None
+        zone_info["source"] is None
+        and region_info["source"] is None
     ):
         assert isinstance(data_frame, pd.DataFrame)
         data_frame.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
@@ -482,11 +491,11 @@ def export_output_to_csv(
         zone_df = pd.DataFrame()
         region_df = pd.DataFrame()
         summed_part = pd.DataFrame()
-        if zone_and_region_info["zone_source"] is not None:
+        if zone_info["source"] is not None:
             assert isinstance(data_frame["zone"], Dict)
-            assert zone_and_region_info["int_to_zone"] is not None
+            assert zone_info["int_to_zone"] is not None
             zone_keys = list(data_frame["zone"].keys())
-            for key in zone_and_region_info["int_to_zone"]:
+            for key in zone_info["int_to_zone"]:
                 if key in zone_keys:
                     _df = data_frame["zone"][key]
                 else:
@@ -495,14 +504,14 @@ def export_output_to_csv(
                     _df[numeric_cols] = 0
                 _df["zone"] = [key] * _df.shape[0]
                 zone_df = pd.concat([zone_df, _df])
-            if zone_and_region_info["int_to_region"] is not None:
+            if region_info["int_to_region"] is not None:
                 zone_df["region"] = ["all"] * zone_df.shape[0]
             summed_part = zone_df.groupby("date").sum(numeric_only=True).reset_index()
             summed_part["zone"] = ["all"] * summed_part.shape[0]
-        if zone_and_region_info["int_to_region"] is not None:
+        if region_info["int_to_region"] is not None:
             assert isinstance(data_frame["region"], Dict)
             region_keys = list(data_frame["region"].keys())
-            for key in zone_and_region_info["int_to_region"]:
+            for key in region_info["int_to_region"]:
                 if key in region_keys:
                     _df = data_frame["region"][key]
                 else:
@@ -511,7 +520,7 @@ def export_output_to_csv(
                     _df[numeric_cols] = 0
                 _df["region"] = [key] * _df.shape[0]
                 region_df = pd.concat([region_df, _df])
-            if zone_and_region_info["zone_source"] is None:
+            if zone_info["source"] is None:
                 summed_part = (
                     region_df.groupby("date").sum(numeric_only=True).reset_index()
                 )
@@ -530,17 +539,17 @@ def main() -> None:
     """
     arguments_processed = process_args()
     check_input(arguments_processed)
-    zone_and_region_info = {
-        "zone_source": arguments_processed.zonefile,
-        "region_source": arguments_processed.regionfile,
+    zone_info = {
+        "source": arguments_processed.zonefile,
         "zranges": None,
         "int_to_zone": None,
+    }
+    region_info = {
+        "source": arguments_processed.regionfile,
         "int_to_region": None,
     }
-    if zone_and_region_info["zone_source"] is not None:
-        zone_and_region_info["zranges"] = process_zonefile_if_yaml(
-            zone_and_region_info["zone_source"]
-        )
+    if zone_info["source"] is not None:
+        zone_info["zranges"] = process_zonefile_if_yaml(zone_info["source"])
 
     data_frame = calculate_out_of_bounds_co2(
         arguments_processed.egrid,
@@ -548,7 +557,8 @@ def main() -> None:
         arguments_processed.init,
         arguments_processed.compact,
         arguments_processed.calc_type_input,
-        zone_and_region_info,
+        zone_info,
+        region_info,
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
     )
@@ -556,7 +566,8 @@ def main() -> None:
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,
         data_frame,
-        zone_and_region_info,
+        zone_info,
+        region_info,
     )
 
 

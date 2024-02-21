@@ -187,7 +187,7 @@ class SourceData:
         return None
 
     def get_region(self):
-        """Get zone"""
+        """Get region"""
         if self.region is not None:
             return self.region
         return None
@@ -366,7 +366,8 @@ def _extract_source_data(
     grid_file: str,
     unrst_file: str,
     properties_to_extract: List[str],
-    zone_and_region_info: Dict,
+    zone_info: Dict,
+    region_info: Dict,
     init_file: Optional[str] = None,
 ) -> SourceData:
     # pylint: disable=too-many-locals, too-many-statements
@@ -378,7 +379,8 @@ def _extract_source_data(
       unrst_file (str): Path to UNRST-file
       properties_to_extract (List): Names of the properties to be extracted
       init_file (str): Path to INIT-file
-      zone_and_region_info (Dict): Dictionary containing zone information
+      zone_info (Dict): Dictionary containing zone information
+      region_info (Dict): Dictionary containing region information
 
     Returns:
       SourceData
@@ -410,38 +412,38 @@ def _extract_source_data(
     cells_x = np.array([coord[0] for coord in xyz])
     cells_y = np.array([coord[1] for coord in xyz])
     zone = None
-    if zone_and_region_info["zone_source"] is not None:
-        if zone_and_region_info["zranges"] is not None:
+    if zone_info["source"] is not None:
+        if zone_info["zranges"] is not None:
             zone_array = np.zeros(
                 (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
             )
-            zonevals = [int(x + 1) for x in range(len(zone_and_region_info["zranges"]))]
-            zone_and_region_info["int_to_zone"] = [
+            zonevals = [int(x + 1) for x in range(len(zone_info["zranges"]))]
+            zone_info["int_to_zone"] = [
                 f"Zone_{x + 1}" for x in range(len(zonevals))
             ]
             for zv, zr, zn in zip(
                 zonevals,
-                list(zone_and_region_info["zranges"].values()),
-                zone_and_region_info["zranges"].keys(),
+                list(zone_info["zranges"].values()),
+                zone_info["zranges"].keys(),
             ):
                 zone_array[:, :, zr[0] - 1 : zr[1]] = zv
-                zone_and_region_info["int_to_zone"][zv - 1] = zn
+                zone_info["int_to_zone"][zv - 1] = zn
             zone = zone_array.flatten(order="F")[global_active_idx]
         else:
             xtg_grid = xtgeo.grid_from_file(grid_file)
             zone = xtgeo.gridproperty_from_file(
-                zone_and_region_info["zone_source"], grid=xtg_grid
+                zone_info["source"], grid=xtg_grid
             )
             zone = zone.values.data.flatten(order="F")
-            zone_and_region_info["int_to_zone"] = [f"Zone_{x}" for x in np.unique(zone)]
+            zone_info["int_to_zone"] = [f"Zone_{x}" for x in np.unique(zone)]
             zone = zone[global_active_idx]
-    if zone_and_region_info["region_source"] is not None:
+    if region_info["source"] is not None:
         xtg_grid = xtgeo.grid_from_file(grid_file)
         region = xtgeo.gridproperty_from_file(
-            zone_and_region_info["region_source"], grid=xtg_grid
+            region_info["source"], grid=xtg_grid
         )
         region = region.values.data.flatten(order="F")
-        zone_and_region_info["int_to_region"] = [
+        region_info["int_to_region"] = [
             f"Region_{x}" for x in np.unique(region)
         ]
         region = region[global_active_idx]
@@ -450,14 +452,14 @@ def _extract_source_data(
             region = np.array(init["FIPREG"][0], dtype=int)
             if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
                 region = region[active]
-            zone_and_region_info["int_to_region"] = [
+            region_info["int_to_region"] = [
                 f"Region_{x}" for x in np.unique(region)
             ]
             region = region[~gasless]
         except KeyError:
             print("Region information not found in INIT-file (FIPREG property).")
             region = None
-            zone_and_region_info["int_to_region"] = None
+            region_info["int_to_region"] = None
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
     properties_reduced["VOL"] = {d: vol0 for d in dates}
     try:
@@ -936,7 +938,8 @@ def _calculate_co2_data_from_source_data(
 def calculate_co2(
     grid_file: str,
     unrst_file: str,
-    zone_and_region_info: Dict,
+    zone_info: Dict,
+    region_info: Dict,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
 ) -> Co2Data:
@@ -948,14 +951,15 @@ def calculate_co2(
       unrst_file (str): Path to UNRST-file
       calc_type_input (str): Input string with calculation type to perform
       init_file (str): Path to INIT-file
-      zone_and_region_info (Dict): Dictionary with zone information
+      zone_info (Dict): Dictionary with zone information
+      region_info (Dict): Dictionary with region information
 
     Returns:
       CO2Data
 
     """
     source_data = _extract_source_data(
-        grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_and_region_info, init_file
+        grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_info, region_info, init_file
     )
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     co2_data = _calculate_co2_data_from_source_data(source_data, calc_type=calc_type)
