@@ -302,6 +302,7 @@ def test_reek_grid_extract_source_data():
             str(reek_gridfile),
             str(reek_unrstfile),
             PROPERTIES_TO_EXTRACT,
+            zone_and_region_info,
             str(reek_initfile),
         )
 
