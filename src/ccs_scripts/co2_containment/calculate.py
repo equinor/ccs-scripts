@@ -138,16 +138,26 @@ def calculate_co2_containment(
     zone_map = (
         {"all": np.array([True] * len(co2_data.x_coord))}
         if co2_data.zone is None
-        else {z: co2_data.zone == z for z in np.unique(co2_data.zone)}
-        if zone_and_region_info["int_to_zone"] is None
-        else {zone_and_region_info["int_to_zone"][z - 1]: co2_data.zone == z for z in np.unique(co2_data.zone)}
+        else (
+            {z: co2_data.zone == z for z in np.unique(co2_data.zone)}
+            if zone_and_region_info["int_to_zone"] is None
+            else {
+                zone_and_region_info["int_to_zone"][z - 1]: co2_data.zone == z
+                for z in np.unique(co2_data.zone)
+            }
+        )
     )
     region_map = (
         {"all": np.array([True] * len(co2_data.x_coord))}
         if co2_data.region is None
-        else {r: co2_data.region == r for r in np.unique(co2_data.region)}
-        if zone_and_region_info["int_to_region"] is None
-        else {zone_and_region_info["int_to_region"][r - 1]: co2_data.region == r for r in np.unique(co2_data.region)}
+        else (
+            {r: co2_data.region == r for r in np.unique(co2_data.region)}
+            if zone_and_region_info["int_to_region"] is None
+            else {
+                zone_and_region_info["int_to_region"][r - 1]: co2_data.region == r
+                for r in np.unique(co2_data.region)
+            }
+        )
     )
     if calc_type == CalculationType.CELL_VOLUME:
         return [

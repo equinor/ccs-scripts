@@ -412,10 +412,18 @@ def _extract_source_data(
     zone = None
     if zone_and_region_info["zone_source"] is not None:
         if zone_and_region_info["zranges"] is not None:
-            zone_array = np.zeros((grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int)
+            zone_array = np.zeros(
+                (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
+            )
             zonevals = [int(x + 1) for x in range(len(zone_and_region_info["zranges"]))]
-            zone_and_region_info["int_to_zone"] = [f"Zone_{x + 1}" for x in range(len(zonevals))]
-            for zv, zr, zn in zip(zonevals, list(zone_and_region_info["zranges"].values()), zone_and_region_info["zranges"].keys()):
+            zone_and_region_info["int_to_zone"] = [
+                f"Zone_{x + 1}" for x in range(len(zonevals))
+            ]
+            for zv, zr, zn in zip(
+                zonevals,
+                list(zone_and_region_info["zranges"].values()),
+                zone_and_region_info["zranges"].keys(),
+            ):
                 zone_array[:, :, zr[0] - 1 : zr[1]] = zv
                 zone_and_region_info["int_to_zone"][zv - 1] = zn
             zone = zone_array.flatten(order="F")[global_active_idx]
@@ -433,14 +441,18 @@ def _extract_source_data(
             zone_and_region_info["region_source"], grid=xtg_grid
         )
         region = region.values.data.flatten(order="F")
-        zone_and_region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
+        zone_and_region_info["int_to_region"] = [
+            f"Region_{x}" for x in np.unique(region)
+        ]
         region = region[global_active_idx]
     else:
         try:
             region = np.array(init["FIPREG"][0], dtype=int)
             if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
                 region = region[active]
-            zone_and_region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
+            zone_and_region_info["int_to_region"] = [
+                f"Region_{x}" for x in np.unique(region)
+            ]
             region = region[~gasless]
         except KeyError:
             print("Region information not found in INIT-file (FIPREG property).")

@@ -74,7 +74,12 @@ def calculate_out_of_bounds_co2(
     else:
         hazardous_polygon = None
     return calculate_from_co2_data(
-        co2_data, containment_polygon, hazardous_polygon, compact, calc_type_input, zone_and_region_info
+        co2_data,
+        containment_polygon,
+        hazardous_polygon,
+        compact,
+        calc_type_input,
+        zone_and_region_info,
     )
 
 
@@ -106,7 +111,11 @@ def calculate_from_co2_data(
     calc_type = _set_calc_type_from_input_string(calc_type_input.lower())
     print("Calculate contained CO2 using input polygons")
     contained_co2 = calculate_co2_containment(
-        co2_data, containment_polygon, hazardous_polygon, zone_and_region_info, calc_type=calc_type
+        co2_data,
+        containment_polygon,
+        hazardous_polygon,
+        zone_and_region_info,
+        calc_type=calc_type,
     )
     data_frame = _construct_containment_table(contained_co2)
     if compact:
@@ -413,9 +422,7 @@ def check_input(arguments: argparse.Namespace):
         raise FileNotFoundError(error_text)
 
 
-def process_zonefile_if_yaml(
-    zonefile: str
-) -> Optional[Dict[str, List[int]]]:
+def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
     """
     Processes zone_file if it is provided as a yaml file, ex:
     zranges:
@@ -484,7 +491,7 @@ def export_output_to_csv(
                     _df = data_frame["zone"][key]
                 else:
                     _df = data_frame["zone"][zone_keys[0]]
-                    numeric_cols = _df.select_dtypes(include=['number']).columns
+                    numeric_cols = _df.select_dtypes(include=["number"]).columns
                     _df[numeric_cols] = 0
                 _df["zone"] = [key] * _df.shape[0]
                 zone_df = pd.concat([zone_df, _df])
@@ -500,7 +507,7 @@ def export_output_to_csv(
                     _df = data_frame["region"][key]
                 else:
                     _df = data_frame["region"][region_keys[0]]
-                    numeric_cols = _df.select_dtypes(include=['number']).columns
+                    numeric_cols = _df.select_dtypes(include=["number"]).columns
                     _df[numeric_cols] = 0
                 _df["region"] = [key] * _df.shape[0]
                 region_df = pd.concat([region_df, _df])
@@ -531,7 +538,9 @@ def main() -> None:
         "int_to_region": None,
     }
     if zone_and_region_info["zone_source"] is not None:
-        zone_and_region_info["zranges"] = process_zonefile_if_yaml(zone_and_region_info["zone_source"])
+        zone_and_region_info["zranges"] = process_zonefile_if_yaml(
+            zone_and_region_info["zone_source"]
+        )
 
     data_frame = calculate_out_of_bounds_co2(
         arguments_processed.egrid,
