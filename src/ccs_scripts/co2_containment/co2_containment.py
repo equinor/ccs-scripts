@@ -84,7 +84,7 @@ def calculate_out_of_bounds_co2(
         compact,
         calc_type_input,
         zone_info,
-        region_info
+        region_info,
     )
 
 
@@ -480,10 +480,7 @@ def export_output_to_csv(
     """
     # pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
     out_name = f"plume_{calc_type_input}"
-    if (
-        zone_info["source"] is None
-        and region_info["source"] is None
-    ):
+    if zone_info["source"] is None and region_info["source"] is None:
         assert isinstance(data_frame, pd.DataFrame)
         data_frame.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
     else:
