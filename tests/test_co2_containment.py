@@ -3,6 +3,9 @@ from pathlib import Path
 import pytest
 import shapely.geometry
 
+from ccs_scripts.co2_containment.co2_containment import (
+    main,
+)
 from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
@@ -153,3 +156,82 @@ def test_zoned_simple_cube_grid():
     assert co2_data.data_list[-1].date == "20490101"
     assert co2_data.data_list[-1].gas_phase.sum() == pytest.approx(9585.032869548137)
     assert co2_data.data_list[-1].aqu_phase.sum() == pytest.approx(2834.956447728449)
+
+
+def test_synthetic_case_mass(mocker):
+    case_path = str(
+        Path(__file__).parents[1]
+        / "tests"
+        / "synthetic_model"
+        / "realization-0"
+        / "iter-0"
+        / "eclipse"
+        / "model"
+        / "E_FLT_01-0"
+    )
+    root_dir = "realization-0/iter-0"
+    CONTAINMENT_POLYGON = str(
+        Path(__file__).parents[1]
+        / "tests"
+        / "synthetic_model"
+        / "realization-0"
+        / "iter-0"
+        / "share"
+        / "results"
+        / "polygons"
+        / "containment--boundary.csv"
+    )
+    HAZARDOUS_POLYGON = str(
+        Path(__file__).parents[1]
+        / "tests"
+        / "synthetic_model"
+        / "realization-0"
+        / "iter-0"
+        / "share"
+        / "results"
+        / "polygons"
+        / "hazardous--boundary.csv"
+    )
+    output_path = str(
+        Path(__file__).parents[1] / "tests" / "testdata_co2_plume" / "plume_extent.csv"
+    )
+
+    args = [
+        "sys.argv",
+        case_path,
+        "mass",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        "share/results/tables",
+        "--containment_polygon",
+        CONTAINMENT_POLYGON,
+        "--hazardous_polygon",
+        HAZARDOUS_POLYGON,
+        # "--zonefile",
+        # "...",
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+    # mocker.patch(
+    #     "sys.argv",
+    #     [
+    #         "--case",
+    #         case_path,
+    #         "[462500.0,5933100.0]",
+    #         "--threshold_sgas",
+    #         "0.02",
+    #         "--output",
+    #         output_path,
+    #     ],
+    # )
+
+    # df = pandas.read_csv(output_path)
+    # assert "MAX_DISTANCE_SGAS" in df.keys()
+    # assert "MAX_DISTANCE_AMFG" not in df.keys()
+    # assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1915.5936794783647)
+
+    # os.remove(output_path)
