@@ -216,3 +216,115 @@ def test_synthetic_case_mass(mocker):
     assert df["aqueous_outside"].sum() == pytest.approx(1861764062.6057913)
     assert df["gas_hazardous"].sum() == pytest.approx(1281418094.3408813)
     assert df["aqueous_hazardous"].sum() == pytest.approx(467152921.40563196)
+
+
+def test_synthetic_case_actual_volume(mocker):
+    main_path = (
+        Path(__file__).parents[1]
+        / "tests"
+        / "synthetic_model"
+        / "realization-0"
+        / "iter-0"
+    )
+    case_path = str(main_path / "eclipse" / "model" / "E_FLT_01-0")
+    root_dir = "realization-0/iter-0"
+    containment_polygon = str(
+        main_path / "share" / "results" / "polygons" / "containment--boundary.csv"
+    )
+    hazardous_polygon = str(
+        main_path / "share" / "results" / "polygons" / "hazardous--boundary.csv"
+    )
+    output_dir = str(main_path / "share" / "results" / "tables")
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_actual_volume.csv"
+    )
+
+    args = [
+        "sys.argv",
+        case_path,
+        "actual_volume",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    assert len(df) == 11
+    assert df["date"].min() == "2025-01-01"
+    assert df["date"].max() == "2500-01-01"
+    assert df["total"].sum() == pytest.approx(22071879.550792538)
+    assert df["total_gas"].sum() == pytest.approx(19033465.136888713)
+    assert df["total_aqueous"].sum() == pytest.approx(3038414.4139038236)
+    assert df["total_contained"].sum() == pytest.approx(11046790.6125475)
+    assert df["total_outside"].sum() == pytest.approx(8799634.69523845)
+    assert df["total_hazardous"].sum() == pytest.approx(2225454.2430065842)
+    assert df["gas_contained"].sum() == pytest.approx(9851596.627884675)
+    assert df["aqueous_contained"].sum() == pytest.approx(1195193.9846628257)
+    assert df["gas_outside"].sum() == pytest.approx(7328181.264653008)
+    assert df["aqueous_outside"].sum() == pytest.approx(1471453.4305854416)
+    assert df["gas_hazardous"].sum() == pytest.approx(1853687.2443510273)
+    assert df["aqueous_hazardous"].sum() == pytest.approx(371766.9986555566)
+
+
+def test_synthetic_case_cell_volume(mocker):
+    main_path = (
+        Path(__file__).parents[1]
+        / "tests"
+        / "synthetic_model"
+        / "realization-0"
+        / "iter-0"
+    )
+    case_path = str(main_path / "eclipse" / "model" / "E_FLT_01-0")
+    root_dir = "realization-0/iter-0"
+    containment_polygon = str(
+        main_path / "share" / "results" / "polygons" / "containment--boundary.csv"
+    )
+    hazardous_polygon = str(
+        main_path / "share" / "results" / "polygons" / "hazardous--boundary.csv"
+    )
+    output_dir = str(main_path / "share" / "results" / "tables")
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_cell_volume.csv"
+    )
+
+    args = [
+        "sys.argv",
+        case_path,
+        "cell_volume",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    assert len(df) == 11
+    assert df["date"].min() == "2025-01-01"
+    assert df["date"].max() == "2500-01-01"
+    assert df["total"].sum() == pytest.approx(2322814736)
+    assert df["total_contained"].sum() == pytest.approx(270128250)
+    assert df["total_outside"].sum() == pytest.approx(1817996448)
+    assert df["total_hazardous"].sum() == pytest.approx(234690038)
