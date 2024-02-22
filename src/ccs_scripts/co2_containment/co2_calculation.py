@@ -419,7 +419,11 @@ def _extract_source_data(
     cells_x = np.array([coord[0] for coord in xyz])
     cells_y = np.array([coord[1] for coord in xyz])
     zone = None
-    if zone_info["source"] is not None:
+
+    if zone_info["source"] is None:
+        logging.info("No zone info specified")
+    else:
+        logging.info("Using zone info")
         if zone_info["zranges"] is not None:
             zone_array = np.zeros(
                 (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
@@ -441,6 +445,7 @@ def _extract_source_data(
             zone_info["int_to_zone"] = [f"Zone_{x}" for x in np.unique(zone)]
             zone = zone[global_active_idx]
     if region_info["source"] is not None:
+        logging.info("Using regions info")
         xtg_grid = xtgeo.grid_from_file(grid_file)
         region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
         region = region.values.data.flatten(order="F")
@@ -448,13 +453,17 @@ def _extract_source_data(
         region = region[global_active_idx]
     else:
         try:
+            logging.info(
+                "Try reading region information (FIPREG property) from INIT-file."
+            )
             region = np.array(init["FIPREG"][0], dtype=int)
             if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
                 region = region[active]
             region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
             region = region[~gasless]
+            logging.info("Region information successfully read from INIT-file")
         except KeyError:
-            print("Region information not found in INIT-file (FIPREG property).")
+            logging.info("Region information not found in INIT-file.")
             region = None
             region_info["int_to_region"] = None
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]

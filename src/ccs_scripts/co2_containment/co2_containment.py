@@ -580,7 +580,7 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
             else len(unique_regions)
         )
         logging.info(f"Number of regions   : {n_regions}")
-        logging.info(f"Zones               : {', '.join(unique_regions)}")
+        logging.info(f"Regions             : {', '.join(unique_regions)}")
     else:
         logging.info("Split into regions? : no")
 
