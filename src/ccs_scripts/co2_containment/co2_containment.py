@@ -518,16 +518,22 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
     )
     if "zone" in df:
         logging.info("Split into zones?   : yes")
-        unique_zones = df['zone'].unique()
-        n_zones = len(unique_zones) - 1 if "all" in df["zone"].values else len(unique_zones)
+        unique_zones = df["zone"].unique()
+        n_zones = (
+            len(unique_zones) - 1 if "all" in df["zone"].values else len(unique_zones)
+        )
         logging.info(f"Number of zones     : {n_zones}")
         logging.info(f"Zones               : {', '.join(unique_zones)}")
     else:
         logging.info("Split into zones?   : no")
     if "region" in df:
         logging.info("Split into regions? : yes")
-        unique_regions = df['region'].unique()
-        n_regions = len(unique_regions) - 1 if "all" in df["region"].values else len(unique_regions)
+        unique_regions = df["region"].unique()
+        n_regions = (
+            len(unique_regions) - 1
+            if "all" in df["region"].values
+            else len(unique_regions)
+        )
         logging.info(f"Number of regions   : {n_regions}")
         logging.info(f"Zones               : {', '.join(unique_regions)}")
     else:
