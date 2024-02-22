@@ -232,12 +232,12 @@ def test_synthetic_case_eclipse_mass(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 44
+    assert len(df) == 66
     assert len(df["date"].unique()) == 11
     assert df["date"].min() == "2025-01-01"
     assert df["date"].max() == "2500-01-01"
 
-    df_all = df[df["zone"] == "all"]
+    df_all = df[(df["zone"] == "all") & (df["region"] == "all")]
     assert df_all["total"].sum() == pytest.approx(17253002337.768658)
     assert df_all["total_gas"].sum() == pytest.approx(13426268976.322)
     assert df_all["total_aqueous"].sum() == pytest.approx(3826733361.4466577)
@@ -298,12 +298,12 @@ def test_synthetic_case_eclipse_actual_volume(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 44
+    assert len(df) == 66
     assert len(df["date"].unique()) == 11
     assert df["date"].min() == "2025-01-01"
     assert df["date"].max() == "2500-01-01"
 
-    df_all = df[df["zone"] == "all"]
+    df_all = df[(df["zone"] == "all") & (df["region"] == "all")]
     assert df_all["total"].sum() == pytest.approx(22071879.550792538)
     assert df_all["total_gas"].sum() == pytest.approx(19033465.136888713)
     assert df_all["total_aqueous"].sum() == pytest.approx(3038414.4139038236)
@@ -364,12 +364,12 @@ def test_synthetic_case_eclipse_cell_volume(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 44
+    assert len(df) == 66
     assert len(df["date"].unique()) == 11
     assert df["date"].min() == "2025-01-01"
     assert df["date"].max() == "2500-01-01"
 
-    df_all = df[df["zone"] == "all"]
+    df_all = df[(df["zone"] == "all") & (df["region"] == "all")]
     assert df_all["total"].sum() == pytest.approx(2322814736)
     assert df_all["total_contained"].sum() == pytest.approx(270128250)
     assert df_all["total_outside"].sum() == pytest.approx(1817996448)
@@ -417,10 +417,10 @@ def test_synthetic_case_pflotran_mass(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 124
+    assert len(df) == 186
     assert len(df["date"].unique()) == 31
 
-    df_all = df[df["zone"] == "all"]
+    df_all = df[(df["zone"] == "all") & (df["region"] == "all")]
     assert df_all["date"].min() == "2025-01-01"
     assert df_all["date"].max() == "2500-01-01"
     assert df_all["total"].sum() == pytest.approx(53558117131.70304)
@@ -482,10 +482,10 @@ def test_synthetic_case_pflotran_actual_volume(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 124
+    assert len(df) == 186
     assert len(df["date"].unique()) == 31
 
-    df_all = df[df["zone"] == "all"]
+    df_all = df[(df["zone"] == "all") & (df["region"] == "all")]
     assert df_all["date"].min() == "2025-01-01"
     assert df_all["date"].max() == "2500-01-01"
     assert df_all["total"].sum() == pytest.approx(75595526.20184366)
@@ -547,10 +547,10 @@ def test_synthetic_case_pflotran_cell_volume(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 124
+    assert len(df) == 186
     assert len(df["date"].unique()) == 31
 
-    df_all = df[df["zone"] == "all"]
+    df_all = df[(df["zone"] == "all") & (df["region"] == "all")]
     assert df_all["date"].min() == "2025-01-01"
     assert df_all["date"].max() == "2500-01-01"
     assert df_all["total"].sum() == pytest.approx(7837753267)
