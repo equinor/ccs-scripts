@@ -593,23 +593,52 @@ def _combine_data_frame(
     """
     Combine data frames from different zones into one single data frame
     """
-    if isinstance(data_frame, dict):
-        assert zone_info is not None
-        keys = (
-            data_frame.keys()
-            if zone_info["zranges"] is None
-            else list(zone_info["zranges"].keys())
-        )
-        combined_df = pd.DataFrame()
-        for key, _df in zip(keys, data_frame.values()):
-            _df["zone"] = [key] * _df.shape[0]
-            combined_df = pd.concat([combined_df, _df])
-        summed_part = combined_df.groupby("date").sum(numeric_only=True).reset_index()
-        summed_part["zone"] = ["all"] * summed_part.shape[0]
-        combined_df = pd.concat([summed_part, combined_df])
-        return combined_df
-    else:
+    if zone_info["source"] is None and region_info["source"] is None:
+        assert isinstance(data_frame, pd.DataFrame)
         return data_frame
+    else:
+        assert isinstance(data_frame, Dict)
+        zone_df = pd.DataFrame()
+        region_df = pd.DataFrame()
+        summed_part = pd.DataFrame()
+        if zone_info["source"] is not None:
+            assert isinstance(data_frame["zone"], Dict)
+            assert zone_info["int_to_zone"] is not None
+            zone_keys = list(data_frame["zone"].keys())
+            for key in zone_info["int_to_zone"]:
+                if key in zone_keys:
+                    _df = data_frame["zone"][key]
+                else:
+                    _df = data_frame["zone"][zone_keys[0]]
+                    numeric_cols = _df.select_dtypes(include=["number"]).columns
+                    _df[numeric_cols] = 0
+                _df["zone"] = [key] * _df.shape[0]
+                zone_df = pd.concat([zone_df, _df])
+            if region_info["int_to_region"] is not None:
+                zone_df["region"] = ["all"] * zone_df.shape[0]
+            summed_part = zone_df.groupby("date").sum(numeric_only=True).reset_index()
+            summed_part["zone"] = ["all"] * summed_part.shape[0]
+        if region_info["int_to_region"] is not None:
+            assert isinstance(data_frame["region"], Dict)
+            region_keys = list(data_frame["region"].keys())
+            for key in region_info["int_to_region"]:
+                if key in region_keys:
+                    _df = data_frame["region"][key]
+                else:
+                    _df = data_frame["region"][region_keys[0]]
+                    numeric_cols = _df.select_dtypes(include=["number"]).columns
+                    _df[numeric_cols] = 0
+                _df["region"] = [key] * _df.shape[0]
+                region_df = pd.concat([region_df, _df])
+            if zone_info["source"] is None:
+                summed_part = (
+                    region_df.groupby("date").sum(numeric_only=True).reset_index()
+                )
+            else:
+                region_df["zone"] = ["all"] * region_df.shape[0]
+            summed_part["region"] = ["all"] * summed_part.shape[0]
+        combined_df = pd.concat([summed_part, zone_df, region_df])
+        return combined_df
 
 
 def export_output_to_csv(
