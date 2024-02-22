@@ -163,14 +163,14 @@ def test_plume_extent_eclipse_using_well_name(mocker):
     main()
 
     df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
     assert len(df) == 11
     assert "MAX_DISTANCE_SGAS" in df.keys()
     assert "MAX_DISTANCE_AMFG" not in df.keys()
     assert "MAX_DISTANCE_XMF2" in df.keys()
     assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2444069574049)
     assert df["MAX_DISTANCE_XMF2"].iloc[-1] == pytest.approx(1981.2444069574049)
-
-    os.remove(output_path)
 
 
 def test_plume_extent_eclipse_using_coordinates(mocker):
@@ -192,14 +192,14 @@ def test_plume_extent_eclipse_using_coordinates(mocker):
     main()
 
     df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
     assert len(df) == 11
     assert "MAX_DISTANCE_SGAS" in df.keys()
     assert "MAX_DISTANCE_AMFG" not in df.keys()
     assert "MAX_DISTANCE_XMF2" in df.keys()
     assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2444069574049)
     assert df["MAX_DISTANCE_XMF2"].iloc[-1] == pytest.approx(1981.2444069574049)
-
-    os.remove(output_path)
 
 
 def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
@@ -221,14 +221,14 @@ def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
     main()
 
     df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
     assert len(df) == 11
     assert "MAX_DISTANCE_SGAS" in df.keys()
     assert "MAX_DISTANCE_AMFG" not in df.keys()
     assert "MAX_DISTANCE_XMF2" in df.keys()
     assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2444069574049)
     assert df["MAX_DISTANCE_XMF2"].iloc[-1] == pytest.approx(2361.8974152363176)
-
-    os.remove(output_path)
 
 
 def test_plume_extent_pflotran_using_well_name(mocker):
@@ -250,14 +250,14 @@ def test_plume_extent_pflotran_using_well_name(mocker):
     main()
 
     df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
     assert len(df) == 31
     assert "MAX_DISTANCE_SGAS" in df.keys()
     assert "MAX_DISTANCE_AMFG" in df.keys()
     assert "MAX_DISTANCE_XMF2" not in df.keys()
     assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2792332480549)
     assert df["MAX_DISTANCE_AMFG"].iloc[-1] == pytest.approx(2105.647976300882)
-
-    os.remove(output_path)
 
 
 def test_plume_extent_pflotran_using_coordinates(mocker):
@@ -279,11 +279,11 @@ def test_plume_extent_pflotran_using_coordinates(mocker):
     main()
 
     df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
     assert len(df) == 31
     assert "MAX_DISTANCE_SGAS" in df.keys()
     assert "MAX_DISTANCE_AMFG" in df.keys()
     assert "MAX_DISTANCE_XMF2" not in df.keys()
     assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2792332480549)
     assert df["MAX_DISTANCE_AMFG"].iloc[-1] == pytest.approx(2105.647976300882)
-
-    os.remove(output_path)
