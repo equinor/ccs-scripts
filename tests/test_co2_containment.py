@@ -160,7 +160,7 @@ def test_zoned_simple_cube_grid():
     assert co2_data.data_list[-1].aqu_phase.sum() == pytest.approx(2834.956447728449)
 
 
-def test_synthetic_case_mass(mocker):
+def _get_synthetic_case_paths():
     main_path = (
         Path(__file__).parents[1]
         / "tests"
@@ -177,8 +177,25 @@ def test_synthetic_case_mass(mocker):
         main_path / "share" / "results" / "polygons" / "hazardous--boundary.csv"
     )
     output_dir = str(main_path / "share" / "results" / "tables")
-    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    return (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+    )
 
+
+def test_synthetic_case_mass(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+    ) = _get_synthetic_case_paths()
     args = [
         "sys.argv",
         case_path,
@@ -198,6 +215,7 @@ def test_synthetic_case_mass(mocker):
     )
     main()
 
+    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
@@ -219,25 +237,14 @@ def test_synthetic_case_mass(mocker):
 
 
 def test_synthetic_case_actual_volume(mocker):
-    main_path = (
-        Path(__file__).parents[1]
-        / "tests"
-        / "synthetic_model"
-        / "realization-0"
-        / "iter-0"
-    )
-    case_path = str(main_path / "eclipse" / "model" / "E_FLT_01-0")
-    root_dir = "realization-0/iter-0"
-    containment_polygon = str(
-        main_path / "share" / "results" / "polygons" / "containment--boundary.csv"
-    )
-    hazardous_polygon = str(
-        main_path / "share" / "results" / "polygons" / "hazardous--boundary.csv"
-    )
-    output_dir = str(main_path / "share" / "results" / "tables")
-    output_path = str(
-        main_path / "share" / "results" / "tables" / "plume_actual_volume.csv"
-    )
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+    ) = _get_synthetic_case_paths()
 
     args = [
         "sys.argv",
@@ -258,6 +265,9 @@ def test_synthetic_case_actual_volume(mocker):
     )
     main()
 
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_actual_volume.csv"
+    )
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
@@ -279,25 +289,14 @@ def test_synthetic_case_actual_volume(mocker):
 
 
 def test_synthetic_case_cell_volume(mocker):
-    main_path = (
-        Path(__file__).parents[1]
-        / "tests"
-        / "synthetic_model"
-        / "realization-0"
-        / "iter-0"
-    )
-    case_path = str(main_path / "eclipse" / "model" / "E_FLT_01-0")
-    root_dir = "realization-0/iter-0"
-    containment_polygon = str(
-        main_path / "share" / "results" / "polygons" / "containment--boundary.csv"
-    )
-    hazardous_polygon = str(
-        main_path / "share" / "results" / "polygons" / "hazardous--boundary.csv"
-    )
-    output_dir = str(main_path / "share" / "results" / "tables")
-    output_path = str(
-        main_path / "share" / "results" / "tables" / "plume_cell_volume.csv"
-    )
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+    ) = _get_synthetic_case_paths()
 
     args = [
         "sys.argv",
@@ -318,6 +317,9 @@ def test_synthetic_case_cell_volume(mocker):
     )
     main()
 
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_cell_volume.csv"
+    )
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
