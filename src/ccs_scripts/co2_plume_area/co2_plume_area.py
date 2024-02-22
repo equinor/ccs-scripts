@@ -216,7 +216,7 @@ def _convert_to_data_frame(results: List[List[float]], rskey: str) -> pd.DataFra
 def _log_results(df: pd.DataFrame) -> None:
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates : {len(df):>11}")
+    logging.info(f"Number of dates : {len(df['date'].unique()):>11}")
     logging.info(f"First date      : {df['date'].iloc[0]:>11}")
     logging.info(f"Last date       : {df['date'].iloc[-1]:>11}")
     columns = [c for c in df if c != "date"]

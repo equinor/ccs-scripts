@@ -495,7 +495,7 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
 def log_summary_of_results(df: pd.DataFrame) -> None:
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates     : {len(df)}")
+    logging.info(f"Number of dates     : {len(df['date'].unique())}")
     logging.info(f"First date          : {df['date'].iloc[0]}")
     logging.info(f"Last date           : {df['date'].iloc[-1]}")
     logging.info(f"End state total     : {df['total'].iloc[-1]:.1f}")
@@ -516,24 +516,31 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
     logging.info(
         f"End state hazardous : {df['total_hazardous'].iloc[-1]:.1f} ({(100.0 * df['total_hazardous'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
     )
+    if "zone" in df:
+        logging.info("Split into zones?   : yes")
+        unique_zones = df['zone'].unique()
+        n_zones = len(unique_zones) - 1 if "all" in df["zone"].values else len(unique_zones)
+        logging.info(f"Number of zones     : {n_zones}")
+        logging.info(f"Zones               : {', '.join(unique_zones)}")
+    else:
+        logging.info("Split into zones?   : no")
+    if "region" in df:
+        logging.info("Split into regions? : yes")
+        unique_regions = df['region'].unique()
+        n_regions = len(unique_regions) - 1 if "all" in df["region"].values else len(unique_regions)
+        logging.info(f"Number of regions   : {n_regions}")
+        logging.info(f"Zones               : {', '.join(unique_regions)}")
+    else:
+        logging.info("Split into regions? : no")
 
 
-def export_output_to_csv(
-    out_dir: str,
-    calc_type_input: str,
+def _combine_data_frame(
     data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
     zone_info: Optional[Dict[str, Any]] = None,
-):
+) -> pd.DataFrame:
     """
-    Exports the results to a csv file, named according to the calculation type
-    (mass / cell_volume / actual_volume)
+    Combine data frames from different zones into one single data frame
     """
-    file_name = f"plume_{calc_type_input}.csv"
-    logging.info(f"\nExport results to CSV file: {file_name}")
-    file_path = os.path.join(out_dir, file_name)
-    if os.path.isfile(file_path):
-        logging.info(f"Output CSV file already exists. Overwriting: {file_path}")
-
     if isinstance(data_frame, dict):
         assert zone_info is not None
         keys = (
@@ -548,9 +555,27 @@ def export_output_to_csv(
         summed_part = combined_df.groupby("date").sum(numeric_only=True).reset_index()
         summed_part["zone"] = ["all"] * summed_part.shape[0]
         combined_df = pd.concat([summed_part, combined_df])
-        combined_df.to_csv(file_path, index=False)
+        return combined_df
     else:
-        data_frame.to_csv(file_path, index=False)
+        return data_frame
+
+
+def export_output_to_csv(
+    out_dir: str,
+    calc_type_input: str,
+    data_frame: pd.DataFrame,
+):
+    """
+    Exports the results to a csv file, named according to the calculation type
+    (mass / cell_volume / actual_volume)
+    """
+    file_name = f"plume_{calc_type_input}.csv"
+    logging.info(f"\nExport results to CSV file: {file_name}")
+    file_path = os.path.join(out_dir, file_name)
+    if os.path.isfile(file_path):
+        logging.info(f"Output CSV file already exists. Overwriting: {file_path}")
+
+    data_frame.to_csv(file_path, index=False)
 
 
 def main() -> None:
@@ -578,12 +603,12 @@ def main() -> None:
         arguments_processed.hazardous_polygon,
         zone_info,
     )
-    log_summary_of_results(data_frame)
+    df_combined = _combine_data_frame(data_frame, zone_info)
+    log_summary_of_results(df_combined)
     export_output_to_csv(
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,
-        data_frame,
-        zone_info,
+        df_combined,
     )
 
 
