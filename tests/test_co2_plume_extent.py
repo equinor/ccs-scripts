@@ -120,3 +120,170 @@ def test_plume_extent(mocker):
     assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1915.5936794783647)
 
     os.remove(output_path)
+
+
+def _get_synthetic_case_paths(case: str):
+    file_name = ""
+    if case == "eclipse":
+        file_name = "E_FLT_01-0"
+    elif case == "pflotran":
+        file_name = "P_FLT_01-0"
+    case_path = str(
+        Path(__file__).parents[1]
+        / "tests"
+        / "synthetic_model"
+        / "realization-0"
+        / "iter-0"
+        / case
+        / "model"
+        / file_name
+    )
+    output_path = str(
+        Path(__file__).parents[1] / "tests" / "testdata_co2_plume" / "plume_extent.csv"
+    )
+    return (case_path, output_path)
+
+
+def test_plume_extent_eclipse_using_well_name(mocker):
+    (case_path, output_path) = _get_synthetic_case_paths("eclipse")
+    mocker.patch(
+        "sys.argv",
+        [
+            "--case",
+            case_path,
+            "INJ",
+            "--threshold_sgas",
+            "0.015",
+            "--threshold_amfg",
+            "0.0004",
+            "--output",
+            output_path,
+        ],
+    )
+    main()
+
+    df = pandas.read_csv(output_path)
+    assert len(df) == 11
+    assert "MAX_DISTANCE_SGAS" in df.keys()
+    assert "MAX_DISTANCE_AMFG" not in df.keys()
+    assert "MAX_DISTANCE_XMF2" in df.keys()
+    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2444069574049)
+    assert df["MAX_DISTANCE_XMF2"].iloc[-1] == pytest.approx(1981.2444069574049)
+
+    os.remove(output_path)
+
+
+def test_plume_extent_eclipse_using_coordinates(mocker):
+    (case_path, output_path) = _get_synthetic_case_paths("eclipse")
+    mocker.patch(
+        "sys.argv",
+        [
+            "--case",
+            case_path,
+            "[2124.95, 2108.24]",
+            "--threshold_sgas",
+            "0.015",
+            "--threshold_amfg",
+            "0.0004",
+            "--output",
+            output_path,
+        ],
+    )
+    main()
+
+    df = pandas.read_csv(output_path)
+    assert len(df) == 11
+    assert "MAX_DISTANCE_SGAS" in df.keys()
+    assert "MAX_DISTANCE_AMFG" not in df.keys()
+    assert "MAX_DISTANCE_XMF2" in df.keys()
+    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2444069574049)
+    assert df["MAX_DISTANCE_XMF2"].iloc[-1] == pytest.approx(1981.2444069574049)
+
+    os.remove(output_path)
+
+
+def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
+    (case_path, output_path) = _get_synthetic_case_paths("eclipse")
+    mocker.patch(
+        "sys.argv",
+        [
+            "--case",
+            case_path,
+            "[2124.95, 2108.24]",
+            "--threshold_sgas",
+            "0.000000001",
+            "--threshold_amfg",
+            "0.000000001",
+            "--output",
+            output_path,
+        ],
+    )
+    main()
+
+    df = pandas.read_csv(output_path)
+    assert len(df) == 11
+    assert "MAX_DISTANCE_SGAS" in df.keys()
+    assert "MAX_DISTANCE_AMFG" not in df.keys()
+    assert "MAX_DISTANCE_XMF2" in df.keys()
+    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2444069574049)
+    assert df["MAX_DISTANCE_XMF2"].iloc[-1] == pytest.approx(2361.8974152363176)
+
+    os.remove(output_path)
+
+
+def test_plume_extent_pflotran_using_well_name(mocker):
+    (case_path, output_path) = _get_synthetic_case_paths("pflotran")
+    mocker.patch(
+        "sys.argv",
+        [
+            "--case",
+            case_path,
+            "INJ",
+            "--threshold_sgas",
+            "0.015",
+            "--threshold_amfg",
+            "0.0004",
+            "--output",
+            output_path,
+        ],
+    )
+    main()
+
+    df = pandas.read_csv(output_path)
+    assert len(df) == 31
+    assert "MAX_DISTANCE_SGAS" in df.keys()
+    assert "MAX_DISTANCE_AMFG" in df.keys()
+    assert "MAX_DISTANCE_XMF2" not in df.keys()
+    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2792332480549)
+    assert df["MAX_DISTANCE_AMFG"].iloc[-1] == pytest.approx(2105.647976300882)
+
+    os.remove(output_path)
+
+
+def test_plume_extent_pflotran_using_coordinates(mocker):
+    (case_path, output_path) = _get_synthetic_case_paths("pflotran")
+    mocker.patch(
+        "sys.argv",
+        [
+            "--case",
+            case_path,
+            "[2124.95, 2108.24]",
+            "--threshold_sgas",
+            "0.015",
+            "--threshold_amfg",
+            "0.0004",
+            "--output",
+            output_path,
+        ],
+    )
+    main()
+
+    df = pandas.read_csv(output_path)
+    assert len(df) == 31
+    assert "MAX_DISTANCE_SGAS" in df.keys()
+    assert "MAX_DISTANCE_AMFG" in df.keys()
+    assert "MAX_DISTANCE_XMF2" not in df.keys()
+    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2792332480549)
+    assert df["MAX_DISTANCE_AMFG"].iloc[-1] == pytest.approx(2105.647976300882)
+
+    os.remove(output_path)
