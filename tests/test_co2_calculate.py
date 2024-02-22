@@ -16,6 +16,16 @@ from ccs_scripts.co2_containment.co2_calculation import (
 )
 from ccs_scripts.co2_containment.co2_containment import calculate_from_co2_data
 
+zone_info = {
+    "source": None,
+    "zranges": None,
+    "int_to_zone": None,
+}
+region_info = {
+    "source": None,
+    "int_to_region": None,
+}
+
 
 def _random_prop(
     dims: Tuple,
@@ -80,6 +90,8 @@ def _calc_and_compare(poly, masses, poly_hazardous=None):
         hazardous_polygon=poly_hazardous,
         compact=False,
         calc_type_input="mass",
+        zone_info=zone_info,
+        region_info=region_info,
     )
     difference = np.sum(
         [x - y for x, y in zip(contained.total.values, list(totals.values()))]
@@ -229,6 +241,8 @@ def test_reek_grid():
         hazardous_polygon=reek_poly_hazardous,
         compact=False,
         calc_type_input="mass",
+        zone_info=zone_info,
+        region_info=region_info,
     )
     assert table.total.values[0] == pytest.approx(696171.20388324)
     assert table.total_gas.values[0] == pytest.approx(7650.233009712884)
@@ -247,6 +261,8 @@ def test_reek_grid():
         hazardous_polygon=reek_poly_hazardous,
         compact=False,
         calc_type_input="actual_volume",
+        zone_info=zone_info,
+        region_info=region_info,
     )
     assert table2.total.values[0] == pytest.approx(1018.524203883313)
     assert table2.total_gas.values[0] == pytest.approx(330.0032330095245)
@@ -291,6 +307,8 @@ def test_reek_grid_extract_source_data():
             str(reek_gridfile),
             str(reek_unrstfile),
             PROPERTIES_TO_EXTRACT,
+            zone_info,
+            region_info,
             str(reek_initfile),
         )
 

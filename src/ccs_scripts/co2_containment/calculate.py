@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import logging
-from typing import List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import numpy as np
 from shapely.geometry import MultiPolygon, Point, Polygon
@@ -23,6 +23,7 @@ class ContainedCo2:
         location (Literal): One of contained/outside/hazardous. The location
             that "amount" corresponds to.
         zone (str):
+        region (str):
 
     """
 
@@ -31,6 +32,7 @@ class ContainedCo2:
     phase: Literal["gas", "aqueous", "undefined"]
     location: Literal["contained", "outside", "hazardous"]
     zone: Optional[str] = None
+    region: Optional[str] = None
 
     def __post_init__(self):
         """
@@ -47,6 +49,8 @@ def calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
     hazardous_polygon: Union[Polygon, MultiPolygon, None],
+    zone_info: Dict,
+    region_info: Dict,
     calc_type: CalculationType,
 ) -> List[ContainedCo2]:
     """
@@ -61,6 +65,8 @@ def calculate_co2_containment(
             the containment area
         hazardous_polygon (Union[Polygon,Multipolygon]): The polygon that defines
              the hazardous area
+        zone_info (Dict): Dictionary containing zone information
+        region_info (Dict): Dictionary containing region information
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
 
@@ -106,7 +112,7 @@ def calculate_co2_containment(
         f"  * Total                                             : {len(is_inside)}"
     )
 
-    if co2_data.zone is None:
+    if co2_data.zone is None and co2_data.region is None:
         if calc_type == CalculationType.CELL_VOLUME:
             return [
                 c
@@ -152,33 +158,60 @@ def calculate_co2_containment(
                 ),
             ]
         ]
-    zone_map = {z: co2_data.zone == z for z in np.unique(co2_data.zone)}
+    zone_map = (
+        {"all": np.array([True] * len(co2_data.x_coord))}
+        if co2_data.zone is None
+        else (
+            {z: co2_data.zone == z for z in np.unique(co2_data.zone)}
+            if zone_info["int_to_zone"] is None
+            else {
+                zone_info["int_to_zone"][z - 1]: co2_data.zone == z
+                for z in np.unique(co2_data.zone)
+            }
+        )
+    )
+    region_map = (
+        {"all": np.array([True] * len(co2_data.x_coord))}
+        if co2_data.region is None
+        else (
+            {r: co2_data.region == r for r in np.unique(co2_data.region)}
+            if region_info["int_to_region"] is None
+            else {
+                region_info["int_to_region"][r - 1]: co2_data.region == r
+                for r in np.unique(co2_data.region)
+            }
+        )
+    )
     if calc_type == CalculationType.CELL_VOLUME:
         return [
             c
             for w in co2_data.data_list
             for zn, zm in zone_map.items()
+            for rn, rm in region_map.items()
             for c in [
                 ContainedCo2(
                     w.date,
-                    sum(w.volume_coverage[is_inside & zm]),
+                    sum(w.volume_coverage[is_inside & zm & rm]),
                     "gas",
                     "contained",
                     zn,
+                    rn,
                 ),
                 ContainedCo2(
                     w.date,
-                    sum(w.volume_coverage[is_outside & zm]),
+                    sum(w.volume_coverage[is_outside & zm & rm]),
                     "gas",
                     "outside",
                     zn,
+                    rn,
                 ),
                 ContainedCo2(
                     w.date,
-                    sum(w.volume_coverage[is_hazardous & zm]),
+                    sum(w.volume_coverage[is_hazardous & zm & rm]),
                     "gas",
                     "hazardous",
                     zn,
+                    rn,
                 ),
             ]
         ]
@@ -189,24 +222,50 @@ def calculate_co2_containment(
         c
         for w in co2_data.data_list
         for zn, zm in zone_map.items()
+        for rn, rm in region_map.items()
         for c in [
             ContainedCo2(
-                w.date, sum(w.gas_phase[is_inside & zm]), "gas", "contained", zn
+                w.date,
+                sum(w.gas_phase[is_inside & zm & rm]),
+                "gas",
+                "contained",
+                zn,
+                rn,
             ),
             ContainedCo2(
-                w.date, sum(w.gas_phase[is_outside & zm]), "gas", "outside", zn
+                w.date, sum(w.gas_phase[is_outside & zm & rm]), "gas", "outside", zn, rn
             ),
             ContainedCo2(
-                w.date, sum(w.gas_phase[is_hazardous & zm]), "gas", "hazardous", zn
+                w.date,
+                sum(w.gas_phase[is_hazardous & zm & rm]),
+                "gas",
+                "hazardous",
+                zn,
+                rn,
             ),
             ContainedCo2(
-                w.date, sum(w.aqu_phase[is_inside & zm]), "aqueous", "contained", zn
+                w.date,
+                sum(w.aqu_phase[is_inside & zm & rm]),
+                "aqueous",
+                "contained",
+                zn,
+                rn,
             ),
             ContainedCo2(
-                w.date, sum(w.aqu_phase[is_outside & zm]), "aqueous", "outside", zn
+                w.date,
+                sum(w.aqu_phase[is_outside & zm & rm]),
+                "aqueous",
+                "outside",
+                zn,
+                rn,
             ),
             ContainedCo2(
-                w.date, sum(w.aqu_phase[is_hazardous & zm]), "aqueous", "hazardous", zn
+                w.date,
+                sum(w.aqu_phase[is_hazardous & zm & rm]),
+                "aqueous",
+                "hazardous",
+                zn,
+                rn,
             ),
         ]
     ]
