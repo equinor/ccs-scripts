@@ -11,7 +11,6 @@
 ################################################################################
 
 import argparse
-from datetime import datetime
 import getpass
 import glob
 import logging
@@ -21,6 +20,7 @@ import platform
 import socket
 import subprocess
 import sys
+from datetime import datetime
 from typing import List, Optional, Tuple
 
 import numpy as np

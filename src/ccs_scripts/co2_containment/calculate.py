@@ -1,7 +1,7 @@
 """CO2 calculation methods"""
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from typing import Dict, List, Literal, Optional, Union
 
 import numpy as np

@@ -6,17 +6,17 @@ Output is a table in CSV format.
 """
 import argparse
 import dataclasses
-from datetime import datetime
 import getpass
+import logging
 import os
 import pathlib
 import platform
 import socket
 import subprocess
 import sys
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-import logging
 import numpy as np
 import pandas as pd
 import shapely.geometry

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import argparse
-from datetime import datetime
 import getpass
 import logging
 import os
@@ -9,6 +8,7 @@ import platform
 import socket
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
 

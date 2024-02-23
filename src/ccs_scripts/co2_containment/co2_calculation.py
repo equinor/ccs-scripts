@@ -1,8 +1,8 @@
 """Methods for CO2 containment calculations"""
 
+import logging
 from dataclasses import dataclass, fields
 from enum import Enum
-import logging
 from typing import Dict, List, Literal, Optional, Tuple
 
 import numpy as np

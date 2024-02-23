@@ -1,19 +1,18 @@
-import numpy as np
 import os
-import pandas
 from pathlib import Path
+
+import numpy as np
+import pandas
 import pytest
 import shapely.geometry
 
-from ccs_scripts.co2_containment.co2_containment import (
-    main,
-)
 from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
     SourceData,
     _calculate_co2_data_from_source_data,
 )
+from ccs_scripts.co2_containment.co2_containment import main
 
 
 def _simple_cube_grid():
