@@ -15,6 +15,9 @@ from ccs_scripts.co2_containment.co2_calculation import (
 from ccs_scripts.co2_containment.co2_containment import main
 
 
+REGION_PROPERTY = "FIPREG"
+
+
 def _simple_cube_grid():
     """
     Create simple cube grid
@@ -229,6 +232,8 @@ def test_synthetic_case_eclipse_mass(mocker):
         hazardous_polygon,
         "--zonefile",
         zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
     ]
     mocker.patch(
         "sys.argv",
@@ -275,6 +280,8 @@ def test_synthetic_case_eclipse_actual_volume(mocker):
         hazardous_polygon,
         "--zonefile",
         zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
     ]
     mocker.patch(
         "sys.argv",
@@ -326,6 +333,8 @@ def test_synthetic_case_eclipse_cell_volume(mocker):
         hazardous_polygon,
         "--zonefile",
         zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
     ]
     mocker.patch(
         "sys.argv",
@@ -374,6 +383,8 @@ def test_synthetic_case_eclipse_mass_no_zones(mocker):
         containment_polygon,
         "--hazardous_polygon",
         hazardous_polygon,
+        "--region_property",
+        REGION_PROPERTY,
     ]
     mocker.patch(
         "sys.argv",
@@ -422,6 +433,8 @@ def test_synthetic_case_pflotran_mass(mocker):
         hazardous_polygon,
         "--zonefile",
         zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
     ]
     mocker.patch(
         "sys.argv",
@@ -470,6 +483,8 @@ def test_synthetic_case_pflotran_actual_volume(mocker):
         hazardous_polygon,
         "--zonefile",
         zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
     ]
     mocker.patch(
         "sys.argv",
@@ -520,6 +535,8 @@ def test_synthetic_case_pflotran_cell_volume(mocker):
         hazardous_polygon,
         "--zonefile",
         zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
     ]
     mocker.patch(
         "sys.argv",
