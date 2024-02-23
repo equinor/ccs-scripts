@@ -587,9 +587,7 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
         logging.info("Split into zones?   : no")
     if "region" in df:
         logging.info("Split into regions? : yes")
-        unique_regions = [
-            reg if reg is not None else "-" for reg in df["region"].unique()
-        ]
+        unique_regions = df["region"].unique()
         n_regions = (
             len(unique_regions) - 1
             if "all" in df["region"].values
