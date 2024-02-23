@@ -447,8 +447,8 @@ def _process_zones(
     zone_info: Dict,
     grid: Grid,
     grid_file: str,
-    global_active_idx: np.array,
-) -> np.array:
+    global_active_idx: np.ndarray,
+) -> np.ndarray:
     zone = None
     if zone_info["source"] is None:
         logging.info("No zone info specified")
@@ -475,7 +475,7 @@ def _process_zones(
             zonevals = np.unique(zone)
             intvals = np.array(zonevals, dtype=int)
             if sum(intvals == zonevals) != len(zonevals):
-                print(
+                logging.info(
                     "Warning: Grid provided in zone file contains non-integer values. "
                     "This might cause problems with the calculations for "
                     "containment in different zones."
@@ -485,7 +485,7 @@ def _process_zones(
                 if zv >= 0:
                     zone_info["int_to_zone"][zv] = f"Zone_{zv}"
                 else:
-                    print("Ignoring negative value in grid provided in zone file.")
+                    logging.info("Ignoring negative value in grid from zone file.")
             zone = np.array(zone[global_active_idx], dtype=int)
     return zone
 
@@ -495,9 +495,9 @@ def _process_regions(
     grid: Grid,
     grid_file: str,
     init: ResdataFile,
-    active: np.array,
-    gasless: np.array,
-) -> np.array:
+    active: np.ndarray,
+    gasless: np.ndarray,
+) -> np.ndarray:
     region = None
     if region_info["source"] is not None:
         logging.info("Using regions info")
@@ -507,7 +507,7 @@ def _process_regions(
         regvals = np.unique(region)
         intvals = np.array(regvals, dtype=int)
         if sum(intvals == regvals) != len(regvals):
-            print(
+            logging.info(
                 "Warning: Grid provided in region file contains non-integer values. "
                 "This might cause problems with the calculations for "
                 "containment in different regions."
@@ -517,7 +517,7 @@ def _process_regions(
             if rv >= 0:
                 region_info["int_to_region"][rv] = f"Region_{rv}"
             else:
-                print("Ignoring negative value in grid provided in region file.")
+                logging.info("Ignoring negative value in grid from region file.")
         region = np.array(region[active[~gasless]], dtype=int)
     elif region_info["property_name"] is not None:
         try:

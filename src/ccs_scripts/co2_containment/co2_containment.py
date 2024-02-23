@@ -392,6 +392,7 @@ def process_args() -> argparse.Namespace:
         "unrst",
         "init",
         "zonefile",
+        "regionfile",
         "containment_polygon",
         "hazardous_polygon",
     ]
