@@ -797,8 +797,10 @@ def _calculate_co2_data_from_source_data(
         else:
             error_text = "Lacking all required properties to compute CO2 mass/volume."
             error_text += "\nNeed either:"
-            error_text += f"\n  PFlotran: {', '.join([property for property in PROPERTIES_NEEDED_PFLOTRAN])}"
-            error_text += f"\n  Eclipse : {', '.join([property for property in PROPERTIES_NEEDED_ELCIPSE])}"
+            error_text += f"\n  PFlotran: \
+                {', '.join([property for property in PROPERTIES_NEEDED_PFLOTRAN])}"
+            error_text += f"\n  Eclipse : \
+                {', '.join([property for property in PROPERTIES_NEEDED_ELCIPSE])}"
             raise ValueError(error_text)
     else:
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."

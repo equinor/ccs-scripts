@@ -97,7 +97,8 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     logging.info(f"Host                : {socket.gethostname()}")
     logging.info(f"Platform            : {platform.system()} ({platform.release()})")
     logging.info(
-        f"Python version      : {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        f"Python version      : \
+        {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
 
     logging.info(f"\nCase                 : {arguments.case}")
@@ -194,7 +195,8 @@ def _log_results(df: pd.DataFrame, amfg_key: str) -> None:
     )
     if amfg_key is not None:
         logging.info(
-            f"End state max distance {amfg_key} : {df['MAX_DISTANCE_' + amfg_key].iloc[-1]:>11.1f}"
+            f"End state max distance {amfg_key} : \
+            {df['MAX_DISTANCE_' + amfg_key].iloc[-1]:>11.1f}"
         )
 
 

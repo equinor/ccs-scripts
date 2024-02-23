@@ -98,18 +98,22 @@ def calculate_co2_containment(
     # Count as hazardous if the two boundaries overlap:
     is_inside = [x if not y else False for x, y in zip(is_contained, is_hazardous)]
     is_outside = [not x and not y for x, y in zip(is_contained, is_hazardous)]
-    logging.info(f"Number of grid nodes:")
+    logging.info("Number of grid nodes:")
     logging.info(
-        f"  * Inside containment polygon                        : {is_inside.count(True)}"
+        f"  * Inside containment polygon                        :\
+        {is_inside.count(True)}"
     )
     logging.info(
-        f"  * Inside hazardous polygon                          : {list(is_hazardous).count(True)}"
+        f"  * Inside hazardous polygon                          :\
+        {list(is_hazardous).count(True)}"
     )
     logging.info(
-        f"  * Outside containment polygon and hazardous polygon : {is_outside.count(True)}"
+        f"  * Outside containment polygon and hazardous polygon :\
+        {is_outside.count(True)}"
     )
     logging.info(
-        f"  * Total                                             : {len(is_inside)}"
+        f"  * Total                                             :\
+        {len(is_inside)}"
     )
 
     if co2_data.zone is None and co2_data.region is None:

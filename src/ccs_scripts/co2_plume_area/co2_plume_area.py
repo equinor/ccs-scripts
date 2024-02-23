@@ -193,7 +193,8 @@ def _log_input_configuration(input_path: str, output_path: str) -> None:
     logging.info(f"Host                : {socket.gethostname()}")
     logging.info(f"Platform            : {platform.system()} ({platform.release()})")
     logging.info(
-        f"Python version      : {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        f"Python version      : \
+        {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
 
     logging.info(f"\nInput path  : {input_path}")
@@ -221,7 +222,7 @@ def _log_results(df: pd.DataFrame) -> None:
     logging.info(f"Last date       : {df['date'].iloc[-1]:>11}")
     columns = [c for c in df if c != "date"]
     n = max(len(c) for c in columns)
-    logging.info(f"End state plume area:")
+    logging.info("End state plume area:")
     for c in columns:
         logging.info(f"    * {c:<{n+1 }}: {df[c].iloc[-1]:>11}")
 
