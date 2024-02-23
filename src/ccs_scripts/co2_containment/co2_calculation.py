@@ -448,7 +448,7 @@ def _process_zones(
     grid: Grid,
     grid_file: str,
     global_active_idx: np.ndarray,
-) -> np.ndarray:
+) -> Optional[np.ndarray]:
     zone = None
     if zone_info["source"] is None:
         logging.info("No zone info specified")
@@ -497,7 +497,7 @@ def _process_regions(
     init: ResdataFile,
     active: np.ndarray,
     gasless: np.ndarray,
-) -> np.ndarray:
+) -> Optional[np.ndarray]:
     region = None
     if region_info["source"] is not None:
         logging.info("Using regions info")
