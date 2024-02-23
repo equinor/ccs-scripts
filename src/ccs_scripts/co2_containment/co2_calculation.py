@@ -783,7 +783,7 @@ def _calculate_co2_data_from_source_data(
             error_text = "Lacking some required properties to compute CO2 mass/volume."
             error_text += "\nAssumed source: PFlotran"
             error_text += "\nMissing properties: "
-            error_text += ", ".join([property for property in missing_props])
+            error_text += ", ".join(missing_props)
             raise ValueError(error_text)
         elif any(prop in PROPERTIES_NEEDED_ELCIPSE for prop in active_props):
             missing_props = [
@@ -792,15 +792,15 @@ def _calculate_co2_data_from_source_data(
             error_text = "Lacking some required properties to compute CO2 mass/volume."
             error_text += "\nAssumed source: Eclipse"
             error_text += "\nMissing properties: "
-            error_text += ", ".join([property for property in missing_props])
+            error_text += ", ".join(missing_props)
             raise ValueError(error_text)
         else:
             error_text = "Lacking all required properties to compute CO2 mass/volume."
             error_text += "\nNeed either:"
             error_text += f"\n  PFlotran: \
-                {', '.join([property for property in PROPERTIES_NEEDED_PFLOTRAN])}"
+                {', '.join(PROPERTIES_NEEDED_PFLOTRAN)}"
             error_text += f"\n  Eclipse : \
-                {', '.join([property for property in PROPERTIES_NEEDED_ELCIPSE])}"
+                {', '.join(PROPERTIES_NEEDED_ELCIPSE)}"
             raise ValueError(error_text)
     else:
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."

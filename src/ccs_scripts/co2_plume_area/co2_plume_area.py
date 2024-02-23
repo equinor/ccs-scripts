@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-
-
+"""
+Script calculating the area extent of the plume depending on which map / date
+are present in the share/results/maps folder
+"""
 ################################################################################
-# Script calculating the area extent of the plume depending on which map / date
-# are present in the share/results/maps folder
 #
 # Created by : Jorge Sicacha (NR), Oct 2022
 # Modified by: Floriane Mortier (fmmo), Nov 2022 - To fit FMU workflow
@@ -121,9 +121,9 @@ def calculate_plume_area(path: str, rskey: str) -> Optional[List[List[float]]]:
     out = _find_formations(path, rskey)
     if not out:
         return None
-    else:
-        formations, rskey_updated = out
-        logging.info(f"Formations extracted from input maps : {', '.join(formations)}")
+
+    formations, rskey_updated = out
+    logging.info(f"Formations extracted from input maps : {', '.join(formations)}")
 
     dates = np.array(_find_dates(path, formations, rskey_updated))
     logging.info(f"Number of dates                      : {len(dates)}")
@@ -185,11 +185,11 @@ def _log_input_configuration(input_path: str, output_path: str) -> None:
         version += " (latest git commit: " + short_hash + ")"
 
     now = datetime.now()
-    d = now.strftime("%B %d, %Y %H:%M:%S")
+    date_time = now.strftime("%B %d, %Y %H:%M:%S")
     logging.info("CCS-scripts - Plume area calculations")
     logging.info("=====================================")
     logging.info(f"Version             : {version}")
-    logging.info(f"Date and time       : {d}")
+    logging.info(f"Date and time       : {date_time}")
     logging.info(f"User                : {getpass.getuser()}")
     logging.info(f"Host                : {socket.gethostname()}")
     logging.info(f"Platform            : {platform.system()} ({platform.release()})")

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-
+"""
+Calculates the plume extent from a given coordinate, or well point,
+using SGAS and AMFG/XMF2.
+"""
 import argparse
 import getpass
 import logging
@@ -89,11 +92,11 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
         version += " (latest git commit: " + short_hash + ")"
 
     now = datetime.now()
-    d = now.strftime("%B %d, %Y %H:%M:%S")
+    date_time = now.strftime("%B %d, %Y %H:%M:%S")
     logging.info("CCS-scripts - Plume extent calculations")
     logging.info("=======================================")
     logging.info(f"Version             : {version}")
-    logging.info(f"Date and time       : {d}")
+    logging.info(f"Date and time       : {date_time}")
     logging.info(f"User                : {getpass.getuser()}")
     logging.info(f"Host                : {socket.gethostname()}")
     logging.info(f"Platform            : {platform.system()} ({platform.release()})")
@@ -119,8 +122,8 @@ def calculate_plume_extents(
     Find plume extents per date for SGAS and AMFG/XMF2.
     """
     logging.info("\nStart calculating plume extent")
-    grid = Grid("{}.EGRID".format(case))
-    unrst = ResdataFile("{}.UNRST".format(case))
+    grid = Grid(f"{case}.EGRID")
+    unrst = ResdataFile(f"{case}.UNRST")
 
     # First calculate distance from injection point to center of all cells
     nactive = grid.get_num_active()
@@ -243,7 +246,7 @@ def _calculate_well_coordinates(
                     "Invalid input: When providing two arguments (x and y coordinates)\
                     for injection point info they need to be floats."
                 )
-                exit()
+                sys.exit(1)
     well_name = injection_point_info
     logging.info(f"Using well to find coordinates: {well_name}")
 
@@ -264,7 +267,7 @@ def _calculate_well_coordinates(
             f"No matches for well name {well_name}, input is either mistyped \
             or well does not exist."
         )
-        exit()
+        sys.exit(1)
 
     df = df[df["WELL"] == well_name]
     logging.info(f"Number of well picks for well {well_name}: {len(df)}")
