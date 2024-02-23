@@ -14,7 +14,6 @@ from ccs_scripts.co2_containment.co2_calculation import (
 )
 from ccs_scripts.co2_containment.co2_containment import main
 
-
 REGION_PROPERTY = "FIPREG"
 
 
