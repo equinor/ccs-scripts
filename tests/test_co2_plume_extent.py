@@ -329,7 +329,7 @@ def test_plume_extent_pflotran_using_coordinates_default_thresholds(mocker):
     main()
 
     df = pandas.read_csv(output_path)
-    # os.remove(output_path)
+    os.remove(output_path)
 
     answer_file = str(
         Path(__file__).parents[0]
