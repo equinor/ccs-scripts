@@ -312,6 +312,11 @@ def get_parser() -> argparse.ArgumentParser:
         "--regionfile", help="Path to file containing region information.", default=None
     )
     parser.add_argument(
+        "--region_property",
+        help="Property in INIT file containing integer grid of regions.",
+        default=None,
+    )
+    parser.add_argument(
         "--compact",
         help="Write the output to a single file as compact as possible.",
         action="store_true",
@@ -345,6 +350,8 @@ def _replace_default_dummies_from_ert(args):
         args.zonefile = None
     if args.regionfile == "-1":
         args.regionfile = None
+    if args.region_property == "-1":
+        args.region_property = None
     if args.containment_polygon == "-1":
         args.containment_polygon = None
     if args.hazardous_polygon == "-1":
@@ -613,14 +620,15 @@ def _combine_data_frame(
         assert zone_info["int_to_zone"] is not None
         zone_keys = list(data_frame["zone"].keys())
         for key in zone_info["int_to_zone"]:
-            if key in zone_keys:
-                _df = data_frame["zone"][key]
-            else:
-                _df = data_frame["zone"][zone_keys[0]]
-                numeric_cols = _df.select_dtypes(include=["number"]).columns
-                _df[numeric_cols] = 0
-            _df["zone"] = [key] * _df.shape[0]
-            zone_df = pd.concat([zone_df, _df])
+            if key is not None:
+                if key in zone_keys:
+                    _df = data_frame["zone"][key]
+                else:
+                    _df = data_frame["zone"][zone_keys[0]]
+                    numeric_cols = _df.select_dtypes(include=["number"]).columns
+                    _df[numeric_cols] = 0
+                _df["zone"] = [key] * _df.shape[0]
+                zone_df = pd.concat([zone_df, _df])
         if region_info["int_to_region"] is not None:
             zone_df["region"] = ["all"] * zone_df.shape[0]
         summed_part = zone_df.groupby("date").sum(numeric_only=True).reset_index()
@@ -680,6 +688,7 @@ def main() -> None:
     region_info = {
         "source": arguments_processed.regionfile,
         "int_to_region": None,
+        "property_name": arguments_processed.region_property,
     }
     if zone_info["source"] is not None:
         zone_info["zranges"] = process_zonefile_if_yaml(zone_info["source"])

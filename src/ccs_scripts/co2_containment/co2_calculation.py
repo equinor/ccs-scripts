@@ -365,6 +365,7 @@ def _is_subset(first: List[str], second: List[str]) -> bool:
     return all(x in second for x in first)
 
 
+# pylint: disable=too-many-arguments
 def _extract_source_data(
     grid_file: str,
     unrst_file: str,
@@ -418,54 +419,10 @@ def _extract_source_data(
     xyz = [grid.get_xyz(global_index=a) for a in global_active_idx]
     cells_x = np.array([coord[0] for coord in xyz])
     cells_y = np.array([coord[1] for coord in xyz])
-    zone = None
 
-    if zone_info["source"] is None:
-        logging.info("No zone info specified")
-    else:
-        logging.info("Using zone info")
-        if zone_info["zranges"] is not None:
-            zone_array = np.zeros(
-                (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
-            )
-            zonevals = [int(x + 1) for x in range(len(zone_info["zranges"]))]
-            zone_info["int_to_zone"] = [f"Zone_{x + 1}" for x in range(len(zonevals))]
-            for zv, zr, zn in zip(
-                zonevals,
-                list(zone_info["zranges"].values()),
-                zone_info["zranges"].keys(),
-            ):
-                zone_array[:, :, zr[0] - 1 : zr[1]] = zv
-                zone_info["int_to_zone"][zv - 1] = zn
-            zone = zone_array.flatten(order="F")[global_active_idx]
-        else:
-            xtg_grid = xtgeo.grid_from_file(grid_file)
-            zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
-            zone = zone.values.data.flatten(order="F")
-            zone_info["int_to_zone"] = [f"Zone_{x}" for x in np.unique(zone)]
-            zone = zone[global_active_idx]
-    if region_info["source"] is not None:
-        logging.info("Using regions info")
-        xtg_grid = xtgeo.grid_from_file(grid_file)
-        region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
-        region = region.values.data.flatten(order="F")
-        region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
-        region = region[global_active_idx]
-    else:
-        try:
-            logging.info(
-                "Try reading region information (FIPREG property) from INIT-file."
-            )
-            region = np.array(init["FIPREG"][0], dtype=int)
-            if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
-                region = region[active]
-            region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
-            region = region[~gasless]
-            logging.info("Region information successfully read from INIT-file")
-        except KeyError:
-            logging.info("Region information not found in INIT-file.")
-            region = None
-            region_info["int_to_region"] = None
+    zone = _process_zones(zone_info, grid, grid_file, global_active_idx)
+    region = _process_regions(region_info, grid, grid_file, init, active, gasless)
+
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
     properties_reduced["VOL"] = {d: vol0 for d in dates}
     try:
@@ -484,6 +441,107 @@ def _extract_source_data(
     )
     logging.info("Done extracting source data\n")
     return source_data
+
+
+def _process_zones(
+    zone_info: Dict,
+    grid: Grid,
+    grid_file: str,
+    global_active_idx: np.array,
+) -> np.array:
+    zone = None
+    if zone_info["source"] is None:
+        logging.info("No zone info specified")
+    if zone_info["source"] is not None:
+        logging.info("Using zone info")
+        if zone_info["zranges"] is not None:
+            zone_array = np.zeros(
+                (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
+            )
+            zonevals = [int(x) for x in range(len(zone_info["zranges"]))]
+            zone_info["int_to_zone"] = [f"Zone_{x}" for x in range(len(zonevals))]
+            for zv, zr, zn in zip(
+                zonevals,
+                list(zone_info["zranges"].values()),
+                zone_info["zranges"].keys(),
+            ):
+                zone_array[:, :, zr[0] - 1 : zr[1]] = zv
+                zone_info["int_to_zone"][zv] = zn
+            zone = zone_array.flatten(order="F")[global_active_idx]
+        else:
+            xtg_grid = xtgeo.grid_from_file(grid_file)
+            zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
+            zone = zone.values.data.flatten(order="F")
+            zonevals = np.unique(zone)
+            intvals = np.array(zonevals, dtype=int)
+            if sum(intvals == zonevals) != len(zonevals):
+                print(
+                    "Warning: Grid provided in zone file contains non-integer values. "
+                    "This might cause problems with the calculations for "
+                    "containment in different zones."
+                )
+            zone_info["int_to_zone"] = [None] * (np.max(intvals) + 1)
+            for zv in intvals:
+                if zv >= 0:
+                    zone_info["int_to_zone"][zv] = f"Zone_{zv}"
+                else:
+                    print("Ignoring negative value in grid provided in zone file.")
+            zone = np.array(zone[global_active_idx], dtype=int)
+    return zone
+
+
+def _process_regions(
+    region_info: Dict,
+    grid: Grid,
+    grid_file: str,
+    init: ResdataFile,
+    active: np.array,
+    gasless: np.array,
+) -> np.array:
+    region = None
+    if region_info["source"] is not None:
+        logging.info("Using regions info")
+        xtg_grid = xtgeo.grid_from_file(grid_file)
+        region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
+        region = region.values.data.flatten(order="F")
+        regvals = np.unique(region)
+        intvals = np.array(regvals, dtype=int)
+        if sum(intvals == regvals) != len(regvals):
+            print(
+                "Warning: Grid provided in region file contains non-integer values. "
+                "This might cause problems with the calculations for "
+                "containment in different regions."
+            )
+        region_info["int_to_region"] = [None] * (np.max(intvals) + 1)
+        for rv in intvals:
+            if rv >= 0:
+                region_info["int_to_region"][rv] = f"Region_{rv}"
+            else:
+                print("Ignoring negative value in grid provided in region file.")
+        region = np.array(region[active[~gasless]], dtype=int)
+    elif region_info["property_name"] is not None:
+        try:
+            logging.info(
+                f"Try reading region information ({region_info['property_name']} \
+                property) from INIT-file."
+            )
+            region = np.array(init[region_info["property_name"]][0], dtype=int)
+            if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
+                region = region[active]
+            regvals = np.unique(region)
+            region_info["int_to_region"] = [None] * (np.max(regvals) + 1)
+            for rv in regvals:
+                if rv >= 0:
+                    region_info["int_to_region"][rv] = f"Region_{rv}"
+                else:
+                    logging.info(f"Ignoring negative value in {region_info['property_name']}.")
+            logging.info("Region information successfully read from INIT-file")
+            region = region[~gasless]
+        except KeyError:
+            logging.info("Region information not found in INIT-file.")
+            region = None
+            region_info["int_to_region"] = None
+    return region
 
 
 def _mole_to_mass_fraction(prop: np.ndarray, m_co2: float, m_h20: float) -> np.ndarray:

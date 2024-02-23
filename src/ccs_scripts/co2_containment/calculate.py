@@ -45,6 +45,7 @@ class ContainedCo2:
             self.date = f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
 
+# pylint: disable = too-many-arguments
 def calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
@@ -169,8 +170,9 @@ def calculate_co2_containment(
             {z: co2_data.zone == z for z in np.unique(co2_data.zone)}
             if zone_info["int_to_zone"] is None
             else {
-                zone_info["int_to_zone"][z - 1]: co2_data.zone == z
+                zone_info["int_to_zone"][z]: co2_data.zone == z
                 for z in np.unique(co2_data.zone)
+                if z >= 0 and zone_info["int_to_zone"][z] is not None
             }
         )
     )
@@ -181,8 +183,9 @@ def calculate_co2_containment(
             {r: co2_data.region == r for r in np.unique(co2_data.region)}
             if region_info["int_to_region"] is None
             else {
-                region_info["int_to_region"][r - 1]: co2_data.region == r
+                region_info["int_to_region"][r]: co2_data.region == r
                 for r in np.unique(co2_data.region)
+                if r >= 0 and region_info["int_to_region"][r] is not None
             }
         )
     )
