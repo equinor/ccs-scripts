@@ -534,7 +534,9 @@ def _process_regions(
                 if rv >= 0:
                     region_info["int_to_region"][rv] = f"Region_{rv}"
                 else:
-                    logging.info(f"Ignoring negative value in {region_info['property_name']}.")
+                    logging.info(
+                        f"Ignoring negative value in {region_info['property_name']}."
+                    )
             logging.info("Region information successfully read from INIT-file")
             region = region[~gasless]
         except KeyError:
