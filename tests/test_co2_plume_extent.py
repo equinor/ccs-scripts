@@ -165,12 +165,17 @@ def test_plume_extent_eclipse_using_well_name(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 11
-    assert "MAX_DISTANCE_SGAS" in df.keys()
-    assert "MAX_DISTANCE_AMFG" not in df.keys()
-    assert "MAX_DISTANCE_XMF2" in df.keys()
-    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2444069574049)
-    assert df["MAX_DISTANCE_XMF2"].iloc[-1] == pytest.approx(1981.2444069574049)
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "plume_extent"
+        / "plume_extent_eclipse.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = df.sort_values("date")
+    df_answer = df_answer.sort_values("date")
+    pandas.testing.assert_frame_equal(df, df_answer)
 
 
 def test_plume_extent_eclipse_using_coordinates(mocker):
@@ -194,12 +199,17 @@ def test_plume_extent_eclipse_using_coordinates(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 11
-    assert "MAX_DISTANCE_SGAS" in df.keys()
-    assert "MAX_DISTANCE_AMFG" not in df.keys()
-    assert "MAX_DISTANCE_XMF2" in df.keys()
-    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2444069574049)
-    assert df["MAX_DISTANCE_XMF2"].iloc[-1] == pytest.approx(1981.2444069574049)
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "plume_extent"
+        / "plume_extent_eclipse.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = df.sort_values("date")
+    df_answer = df_answer.sort_values("date")
+    pandas.testing.assert_frame_equal(df, df_answer)
 
 
 def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
@@ -223,12 +233,17 @@ def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 11
-    assert "MAX_DISTANCE_SGAS" in df.keys()
-    assert "MAX_DISTANCE_AMFG" not in df.keys()
-    assert "MAX_DISTANCE_XMF2" in df.keys()
-    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2444069574049)
-    assert df["MAX_DISTANCE_XMF2"].iloc[-1] == pytest.approx(2361.8974152363176)
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "plume_extent"
+        / "plume_extent_eclipse_small_thresholds.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = df.sort_values("date")
+    df_answer = df_answer.sort_values("date")
+    pandas.testing.assert_frame_equal(df, df_answer)
 
 
 def test_plume_extent_pflotran_using_well_name(mocker):
@@ -252,12 +267,17 @@ def test_plume_extent_pflotran_using_well_name(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 31
-    assert "MAX_DISTANCE_SGAS" in df.keys()
-    assert "MAX_DISTANCE_AMFG" in df.keys()
-    assert "MAX_DISTANCE_XMF2" not in df.keys()
-    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2792332480549)
-    assert df["MAX_DISTANCE_AMFG"].iloc[-1] == pytest.approx(2105.647976300882)
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "plume_extent"
+        / "plume_extent_pflotran.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = df.sort_values("date")
+    df_answer = df_answer.sort_values("date")
+    pandas.testing.assert_frame_equal(df, df_answer)
 
 
 def test_plume_extent_pflotran_using_coordinates(mocker):
@@ -281,9 +301,44 @@ def test_plume_extent_pflotran_using_coordinates(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert len(df) == 31
-    assert "MAX_DISTANCE_SGAS" in df.keys()
-    assert "MAX_DISTANCE_AMFG" in df.keys()
-    assert "MAX_DISTANCE_XMF2" not in df.keys()
-    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1981.2792332480549)
-    assert df["MAX_DISTANCE_AMFG"].iloc[-1] == pytest.approx(2105.647976300882)
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "plume_extent"
+        / "plume_extent_pflotran.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = df.sort_values("date")
+    df_answer = df_answer.sort_values("date")
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_plume_extent_pflotran_using_coordinates_default_thresholds(mocker):
+    (case_path, output_path) = _get_synthetic_case_paths("pflotran")
+    mocker.patch(
+        "sys.argv",
+        [
+            "--case",
+            case_path,
+            "[2124.95, 2108.24]",
+            "--output",
+            output_path,
+        ],
+    )
+    main()
+
+    df = pandas.read_csv(output_path)
+    # os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "plume_extent"
+        / "plume_extent_pflotran_default_thresholds.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = df.sort_values("date")
+    df_answer = df_answer.sort_values("date")
+    pandas.testing.assert_frame_equal(df, df_answer)
