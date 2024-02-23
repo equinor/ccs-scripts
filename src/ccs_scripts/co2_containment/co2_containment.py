@@ -593,8 +593,8 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
 
 def _combine_data_frame(
     data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
-    zone_info: Optional[Dict[str, Any]] = None,
-    region_info: Optional[Dict[str, Any]] = None,
+    zone_info: Dict[str, Any],
+    region_info: Dict[str, Any],
 ) -> pd.DataFrame:
     """
     Combine data frames from different zones into one single data frame

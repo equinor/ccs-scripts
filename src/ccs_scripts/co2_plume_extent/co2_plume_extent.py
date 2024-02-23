@@ -113,7 +113,7 @@ def calculate_plume_extents(
     injxy: Tuple[float, float],
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
-) -> Tuple[List[List], Optional[List[List]], str]:
+) -> Tuple[List[List], Optional[List[List]], Optional[str]]:
     """
     Find plume extents per date for SGAS and AMFG/XMF2.
     """
