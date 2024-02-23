@@ -437,7 +437,8 @@ def _extract_source_data(
         cells_y,
         dates,
         **dict(properties_reduced.items()),
-        **{"zone": zone, "region": region},
+        zone=zone,
+        region=region,
     )
     logging.info("Done extracting source data\n")
     return source_data
