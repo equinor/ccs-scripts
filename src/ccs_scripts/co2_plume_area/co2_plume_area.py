@@ -168,19 +168,20 @@ def _read_args() -> Tuple[str, str]:
 
 def _log_input_configuration(input_path: str, output_path: str) -> None:
     version = "v0.4.0"
-
-    source_dir = os.path.dirname(os.path.abspath(__file__))
     is_dev_version = True
     if is_dev_version:
         version += "_dev"
-
-        short_hash = (
-            subprocess.check_output(
-                ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
+        try:
+            source_dir = os.path.dirname(os.path.abspath(__file__))
+            short_hash = (
+                subprocess.check_output(
+                    ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
+                )
+                .decode("ascii")
+                .strip()
             )
-            .decode("ascii")
-            .strip()
-        )
+        except subprocess.CalledProcessError:
+            short_hash = "-"
         version += " (latest git commit: " + short_hash + ")"
 
     now = datetime.now()
