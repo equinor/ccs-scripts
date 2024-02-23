@@ -587,7 +587,9 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
         logging.info("Split into zones?   : no")
     if "region" in df:
         logging.info("Split into regions? : yes")
-        unique_regions = [reg if reg is not None else "-" for reg in df["region"].unique()]
+        unique_regions = [
+            reg if reg is not None else "-" for reg in df["region"].unique()
+        ]
         n_regions = (
             len(unique_regions) - 1
             if "all" in df["region"].values
@@ -637,14 +639,15 @@ def _combine_data_frame(
         assert isinstance(data_frame["region"], Dict)
         region_keys = list(data_frame["region"].keys())
         for key in region_info["int_to_region"]:
-            if key in region_keys:
-                _df = data_frame["region"][key]
-            else:
-                _df = data_frame["region"][region_keys[0]]
-                numeric_cols = _df.select_dtypes(include=["number"]).columns
-                _df[numeric_cols] = 0
-            _df["region"] = [key] * _df.shape[0]
-            region_df = pd.concat([region_df, _df])
+            if key is not None:
+                if key in region_keys:
+                    _df = data_frame["region"][key]
+                else:
+                    _df = data_frame["region"][region_keys[0]]
+                    numeric_cols = _df.select_dtypes(include=["number"]).columns
+                    _df[numeric_cols] = 0
+                _df["region"] = [key] * _df.shape[0]
+                region_df = pd.concat([region_df, _df])
         if zone_info["source"] is None:
             summed_part = region_df.groupby("date").sum(numeric_only=True).reset_index()
         else:
