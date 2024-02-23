@@ -1,5 +1,6 @@
 """Methods for CO2 containment calculations"""
 
+import logging
 from dataclasses import dataclass, fields
 from enum import Enum
 from typing import Dict, List, Literal, Optional, Tuple
@@ -13,6 +14,8 @@ DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
 TRESHOLD_SGAS = 1e-16
 TRESHOLD_AMFG = 1e-16
+PROPERTIES_NEEDED_PFLOTRAN = ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
+PROPERTIES_NEEDED_ELCIPSE = ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
 
 PROPERTIES_TO_EXTRACT = [
     "RPORV",
@@ -47,7 +50,7 @@ class CalculationType(Enum):
             error_text = "Illegal calculation type: " + key
             error_text += "\nValid options:"
             for calc_type in CalculationType:
-                error_text += "\n  * " + calc_type.name
+                error_text += "\n  * " + calc_type.name.lower()
             error_text += "\nExiting"
             raise ValueError(error_text)
 
@@ -362,6 +365,7 @@ def _is_subset(first: List[str], second: List[str]) -> bool:
     return all(x in second for x in first)
 
 
+# pylint: disable=too-many-arguments
 def _extract_source_data(
     grid_file: str,
     unrst_file: str,
@@ -386,15 +390,17 @@ def _extract_source_data(
       SourceData
 
     """
-    print("Start extracting source data")
+    logging.info("Start extracting source data")
     grid = Grid(grid_file)
     unrst = ResdataFile(unrst_file)
     init = ResdataFile(init_file)
     properties, dates = _fetch_properties(unrst, properties_to_extract)
-    print("Done fetching properties")
+    logging.info("Done fetching properties")
 
-    active = np.where(grid.export_actnum().numpy_copy() > 0)[0]
-    print("Number of active grid cells: " + str(len(active)))
+    act_num = grid.export_actnum().numpy_copy()
+    active = np.where(act_num > 0)[0]
+    logging.info(f"Number of grid cells                    : {len(act_num)}")
+    logging.info(f"Number of active grid cells             : {len(active)}")
     if _is_subset(["SGAS", "AMFG"], list(properties.keys())):
         gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
     elif _is_subset(["SGAS", "XMF2"], list(properties.keys())):
@@ -406,50 +412,17 @@ def _extract_source_data(
         error_text += "SGAS+AMFG or SGAS+XMF2."
         raise RuntimeError(error_text)
     global_active_idx = active[~gasless]
+    logging.info(f"Number of active non-gasless grid cells : {len(global_active_idx)}")
+
     properties_reduced = _reduce_properties(properties, ~gasless)
     # Tuple with (x,y,z) for each cell:
     xyz = [grid.get_xyz(global_index=a) for a in global_active_idx]
     cells_x = np.array([coord[0] for coord in xyz])
     cells_y = np.array([coord[1] for coord in xyz])
-    zone = None
-    if zone_info["source"] is not None:
-        if zone_info["zranges"] is not None:
-            zone_array = np.zeros(
-                (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
-            )
-            zonevals = [int(x + 1) for x in range(len(zone_info["zranges"]))]
-            zone_info["int_to_zone"] = [f"Zone_{x + 1}" for x in range(len(zonevals))]
-            for zv, zr, zn in zip(
-                zonevals,
-                list(zone_info["zranges"].values()),
-                zone_info["zranges"].keys(),
-            ):
-                zone_array[:, :, zr[0] - 1 : zr[1]] = zv
-                zone_info["int_to_zone"][zv - 1] = zn
-            zone = zone_array.flatten(order="F")[global_active_idx]
-        else:
-            xtg_grid = xtgeo.grid_from_file(grid_file)
-            zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
-            zone = zone.values.data.flatten(order="F")
-            zone_info["int_to_zone"] = [f"Zone_{x}" for x in np.unique(zone)]
-            zone = zone[global_active_idx]
-    if region_info["source"] is not None:
-        xtg_grid = xtgeo.grid_from_file(grid_file)
-        region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
-        region = region.values.data.flatten(order="F")
-        region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
-        region = region[global_active_idx]
-    else:
-        try:
-            region = np.array(init["FIPREG"][0], dtype=int)
-            if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
-                region = region[active]
-            region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
-            region = region[~gasless]
-        except KeyError:
-            print("Region information not found in INIT-file (FIPREG property).")
-            region = None
-            region_info["int_to_region"] = None
+
+    zone = _process_zones(zone_info, grid, grid_file, global_active_idx)
+    region = _process_regions(region_info, grid, grid_file, init, active, gasless)
+
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
     properties_reduced["VOL"] = {d: vol0 for d in dates}
     try:
@@ -464,9 +437,114 @@ def _extract_source_data(
         cells_y,
         dates,
         **dict(properties_reduced.items()),
-        **{"zone": zone, "region": region},
+        zone=zone,
+        region=region,
     )
+    logging.info("Done extracting source data\n")
     return source_data
+
+
+def _process_zones(
+    zone_info: Dict,
+    grid: Grid,
+    grid_file: str,
+    global_active_idx: np.ndarray,
+) -> Optional[np.ndarray]:
+    zone = None
+    if zone_info["source"] is None:
+        logging.info("No zone info specified")
+    if zone_info["source"] is not None:
+        logging.info("Using zone info")
+        if zone_info["zranges"] is not None:
+            zone_array = np.zeros(
+                (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
+            )
+            zonevals = [int(x) for x in range(len(zone_info["zranges"]))]
+            zone_info["int_to_zone"] = [f"Zone_{x}" for x in range(len(zonevals))]
+            for zv, zr, zn in zip(
+                zonevals,
+                list(zone_info["zranges"].values()),
+                zone_info["zranges"].keys(),
+            ):
+                zone_array[:, :, zr[0] - 1 : zr[1]] = zv
+                zone_info["int_to_zone"][zv] = zn
+            zone = zone_array.flatten(order="F")[global_active_idx]
+        else:
+            xtg_grid = xtgeo.grid_from_file(grid_file)
+            zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
+            zone = zone.values.data.flatten(order="F")
+            zonevals = np.unique(zone)
+            intvals = np.array(zonevals, dtype=int)
+            if sum(intvals == zonevals) != len(zonevals):
+                logging.info(
+                    "Warning: Grid provided in zone file contains non-integer values. "
+                    "This might cause problems with the calculations for "
+                    "containment in different zones."
+                )
+            zone_info["int_to_zone"] = [None] * (np.max(intvals) + 1)
+            for zv in intvals:
+                if zv >= 0:
+                    zone_info["int_to_zone"][zv] = f"Zone_{zv}"
+                else:
+                    logging.info("Ignoring negative value in grid from zone file.")
+            zone = np.array(zone[global_active_idx], dtype=int)
+    return zone
+
+
+def _process_regions(
+    region_info: Dict,
+    grid: Grid,
+    grid_file: str,
+    init: ResdataFile,
+    active: np.ndarray,
+    gasless: np.ndarray,
+) -> Optional[np.ndarray]:
+    region = None
+    if region_info["source"] is not None:
+        logging.info("Using regions info")
+        xtg_grid = xtgeo.grid_from_file(grid_file)
+        region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
+        region = region.values.data.flatten(order="F")
+        regvals = np.unique(region)
+        intvals = np.array(regvals, dtype=int)
+        if sum(intvals == regvals) != len(regvals):
+            logging.info(
+                "Warning: Grid provided in region file contains non-integer values. "
+                "This might cause problems with the calculations for "
+                "containment in different regions."
+            )
+        region_info["int_to_region"] = [None] * (np.max(intvals) + 1)
+        for rv in intvals:
+            if rv >= 0:
+                region_info["int_to_region"][rv] = f"Region_{rv}"
+            else:
+                logging.info("Ignoring negative value in grid from region file.")
+        region = np.array(region[active[~gasless]], dtype=int)
+    elif region_info["property_name"] is not None:
+        try:
+            logging.info(
+                f"Try reading region information ({region_info['property_name']} \
+                property) from INIT-file."
+            )
+            region = np.array(init[region_info["property_name"]][0], dtype=int)
+            if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
+                region = region[active]
+            regvals = np.unique(region)
+            region_info["int_to_region"] = [None] * (np.max(regvals) + 1)
+            for rv in regvals:
+                if rv >= 0:
+                    region_info["int_to_region"][rv] = f"Region_{rv}"
+                else:
+                    logging.info(
+                        f"Ignoring negative value in {region_info['property_name']}."
+                    )
+            logging.info("Region information successfully read from INIT-file")
+            region = region[~gasless]
+        except KeyError:
+            logging.info("Region information not found in INIT-file.")
+            region = None
+            region_info["int_to_region"] = None
+    return region
 
 
 def _mole_to_mass_fraction(prop: np.ndarray, m_co2: float, m_h20: float) -> np.ndarray:
@@ -740,6 +818,7 @@ def _calculate_co2_data_from_source_data(
     # pylint: disable-msg=too-many-locals
     # pylint: disable-msg=too-many-branches
     # pylint: disable-msg=too-many-statements
+    logging.info(f"Start calculating CO2 {calc_type.name.lower()} from source data")
     props_check = [
         x.name
         for x in fields(source_data)
@@ -749,40 +828,48 @@ def _calculate_co2_data_from_source_data(
         [getattr(source_data, x) is not None for x in props_check]
     )[0]
     active_props = [props_check[i] for i in active_props_idx]
+
     if _is_subset(["SGAS"], active_props):
         if _is_subset(["PORV", "RPORV"], active_props):
             active_props.remove("PORV")
-        if _is_subset(["PORV", "DGAS", "DWAT", "AMFG", "YMFG"], active_props):
+            logging.info("Using attribute RPORV instead of PORV")
+        if _is_subset(PROPERTIES_NEEDED_PFLOTRAN, active_props):
             source = "PFlotran"
-        elif _is_subset(["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"], active_props):
+        elif _is_subset(PROPERTIES_NEEDED_ELCIPSE, active_props):
             source = "Eclipse"
-        elif any(
-            prop in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"] for prop in active_props
-        ):
+        elif any(prop in PROPERTIES_NEEDED_PFLOTRAN for prop in active_props):
             missing_props = [
-                x
-                for x in ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
-                if x not in active_props
+                x for x in PROPERTIES_NEEDED_PFLOTRAN if x not in active_props
             ]
-            error_text = "Lacking some required properties to compute CO2 mass/volume"
-            error_text += "\nMissing: "
-            error_text += ", ".join([property for property in missing_props])
-            raise RuntimeError(error_text)
-        elif any(
-            prop in ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"] for prop in active_props
-        ):
+            error_text = "Lacking some required properties to compute CO2 mass/volume."
+            error_text += "\nAssumed source: PFlotran"
+            error_text += "\nMissing properties: "
+            error_text += ", ".join(missing_props)
+            raise ValueError(error_text)
+        elif any(prop in PROPERTIES_NEEDED_ELCIPSE for prop in active_props):
             missing_props = [
-                x
-                for x in ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
-                if x not in active_props
+                x for x in PROPERTIES_NEEDED_ELCIPSE if x not in active_props
             ]
-            error_text = "Lacking some required properties to compute CO2 mass/volume"
-            error_text += "\nMissing: "
-            error_text += ", ".join([property for property in missing_props])
-            raise RuntimeError(error_text)
+            error_text = "Lacking some required properties to compute CO2 mass/volume."
+            error_text += "\nAssumed source: Eclipse"
+            error_text += "\nMissing properties: "
+            error_text += ", ".join(missing_props)
+            raise ValueError(error_text)
         else:
-            error_text = "Lacking all required properties to compute CO2 mass/volume"
-            raise RuntimeError(error_text)
+            error_text = "Lacking all required properties to compute CO2 mass/volume."
+            error_text += "\nNeed either:"
+            error_text += f"\n  PFlotran: \
+                {', '.join(PROPERTIES_NEEDED_PFLOTRAN)}"
+            error_text += f"\n  Eclipse : \
+                {', '.join(PROPERTIES_NEEDED_ELCIPSE)}"
+            raise ValueError(error_text)
+    else:
+        error_text = "Lacking required property SGAS to compute CO2 mass/volume."
+        raise ValueError(error_text)
+
+    logging.info("Found valid properties")
+    logging.info(f"Data source: {source}")
+    logging.info(f"Properties used in the calculations: {', '.join(active_props)}")
 
     if calc_type in (CalculationType.ACTUAL_VOLUME, CalculationType.MASS):
         if source == "PFlotran":
@@ -922,6 +1009,8 @@ def _calculate_co2_data_from_source_data(
             error_text += "\n  * " + calculation_type.name
         error_text += "\nExiting"
         raise ValueError(error_text)
+
+    logging.info(f"Done calculating CO2 {calc_type.name.lower()} from source data\n")
     return co2_amount
 
 

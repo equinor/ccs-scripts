@@ -24,6 +24,7 @@ zone_info = {
 region_info = {
     "source": None,
     "int_to_region": None,
+    "property_name": None,
 }
 
 

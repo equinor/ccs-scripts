@@ -1,4 +1,8 @@
+import os
+from pathlib import Path
+
 import numpy as np
+import pandas
 import pytest
 import shapely.geometry
 
@@ -8,6 +12,9 @@ from ccs_scripts.co2_containment.co2_calculation import (
     SourceData,
     _calculate_co2_data_from_source_data,
 )
+from ccs_scripts.co2_containment.co2_containment import main
+
+REGION_PROPERTY = "FIPREG"
 
 
 def _simple_cube_grid():
@@ -152,3 +159,498 @@ def test_zoned_simple_cube_grid():
     assert co2_data.data_list[-1].date == "20490101"
     assert co2_data.data_list[-1].gas_phase.sum() == pytest.approx(9585.032869548137)
     assert co2_data.data_list[-1].aqu_phase.sum() == pytest.approx(2834.956447728449)
+
+
+def _get_synthetic_case_paths(case: str):
+    file_name = ""
+    if case == "eclipse":
+        file_name = "E_FLT_01-0"
+    elif case == "pflotran":
+        file_name = "P_FLT_01-0"
+    main_path = (
+        Path(__file__).parents[1]
+        / "tests"
+        / "synthetic_model"
+        / "realization-0"
+        / "iter-0"
+    )
+    case_path = str(main_path / case / "model" / file_name)
+    root_dir = "realization-0/iter-0"
+    containment_polygon = str(
+        main_path / "share" / "results" / "polygons" / "containment--boundary.csv"
+    )
+    hazardous_polygon = str(
+        main_path / "share" / "results" / "polygons" / "hazardous--boundary.csv"
+    )
+    output_dir = str(main_path / "share" / "results" / "tables")
+    zone_file_path = str(main_path / "rms" / "zone" / "zonation_ecl_map.yml")
+    return (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        zone_file_path,
+    )
+
+
+def _sort_dataframe(df: pandas.DataFrame):
+    if "zone" in df and "region" in df:
+        df = df.sort_values(["date", "zone", "region"])
+    elif "zone" in df:
+        df = df.sort_values(["date", "zone"])
+    elif "region" in df:
+        df = df.sort_values(["date", "region"])
+    else:
+        df = df.sort_values("date")
+    return df
+
+
+def test_synthetic_case_eclipse_mass(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        zone_file_path,
+    ) = _get_synthetic_case_paths("eclipse")
+    args = [
+        "sys.argv",
+        case_path,
+        "mass",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+        "--zonefile",
+        zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0] / "answers" / "containment" / "plume_mass_eclipse.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_synthetic_case_eclipse_actual_volume(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        zone_file_path,
+    ) = _get_synthetic_case_paths("eclipse")
+
+    args = [
+        "sys.argv",
+        case_path,
+        "actual_volume",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+        "--zonefile",
+        zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_actual_volume.csv"
+    )
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_actual_volume_eclipse.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_synthetic_case_eclipse_cell_volume(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        zone_file_path,
+    ) = _get_synthetic_case_paths("eclipse")
+
+    args = [
+        "sys.argv",
+        case_path,
+        "cell_volume",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+        "--zonefile",
+        zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_cell_volume.csv"
+    )
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_cell_volume_eclipse.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_synthetic_case_eclipse_mass_no_zones(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        dummy,
+    ) = _get_synthetic_case_paths("eclipse")
+    args = [
+        "sys.argv",
+        case_path,
+        "mass",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+        "--region_property",
+        REGION_PROPERTY,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_mass_eclipse_no_zones.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_synthetic_case_eclipse_mass_no_regions(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        zone_file_path,
+    ) = _get_synthetic_case_paths("eclipse")
+    args = [
+        "sys.argv",
+        case_path,
+        "mass",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+        "--zonefile",
+        zone_file_path,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_mass_eclipse_no_regions.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_synthetic_case_eclipse_mass_no_zones_no_regions(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        dummy,
+    ) = _get_synthetic_case_paths("eclipse")
+    args = [
+        "sys.argv",
+        case_path,
+        "mass",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_mass_eclipse_no_zones_no_regions.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_synthetic_case_pflotran_mass(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        zone_file_path,
+    ) = _get_synthetic_case_paths("pflotran")
+    args = [
+        "sys.argv",
+        case_path,
+        "mass",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+        "--zonefile",
+        zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_mass_pflotran.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_synthetic_case_pflotran_actual_volume(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        zone_file_path,
+    ) = _get_synthetic_case_paths("pflotran")
+    args = [
+        "sys.argv",
+        case_path,
+        "actual_volume",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+        "--zonefile",
+        zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_actual_volume.csv"
+    )
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_actual_volume_pflotran.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_synthetic_case_pflotran_cell_volume(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        zone_file_path,
+    ) = _get_synthetic_case_paths("pflotran")
+    args = [
+        "sys.argv",
+        case_path,
+        "cell_volume",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+        "--zonefile",
+        zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_cell_volume.csv"
+    )
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_cell_volume_pflotran.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)

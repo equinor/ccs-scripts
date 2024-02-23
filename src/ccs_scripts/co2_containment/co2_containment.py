@@ -6,10 +6,16 @@ Output is a table in CSV format.
 """
 import argparse
 import dataclasses
+import getpass
+import logging
 import os
 import pathlib
+import platform
+import socket
+import subprocess
 import sys
-from typing import Dict, List, Optional, Union
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -68,7 +74,6 @@ def calculate_out_of_bounds_co2(
     co2_data = calculate_co2(
         grid_file, unrst_file, zone_info, region_info, calc_type_input, init_file
     )
-    print("Done calculating CO2 data for all active grid cells")
     if file_containment_polygon is not None:
         containment_polygon = _read_polygon(file_containment_polygon)
     else:
@@ -116,7 +121,6 @@ def calculate_from_co2_data(
         pd.DataFrame
     """
     calc_type = _set_calc_type_from_input_string(calc_type_input.lower())
-    print("Calculate contained CO2 using input polygons")
     contained_co2 = calculate_co2_containment(
         co2_data,
         containment_polygon,
@@ -128,6 +132,7 @@ def calculate_from_co2_data(
     data_frame = _construct_containment_table(contained_co2)
     if compact:
         return data_frame
+    logging.info("\nMerge data rows for data frame")
     if co2_data.zone is None and co2_data.region is None:
         return _merge_date_rows(data_frame, calc_type)
     if co2_data.region is None:
@@ -199,7 +204,6 @@ def _merge_date_rows(
     Returns:
         pd.DataFrame: Output data frame
     """
-    print("Merging data rows for data frame")
     data_frame = data_frame.drop(columns=["zone", "region"], axis=1, errors="ignore")
     # Total
     df1 = (
@@ -308,8 +312,23 @@ def get_parser() -> argparse.ArgumentParser:
         "--regionfile", help="Path to file containing region information.", default=None
     )
     parser.add_argument(
+        "--region_property",
+        help="Property in INIT file containing integer grid of regions.",
+        default=None,
+    )
+    parser.add_argument(
         "--compact",
         help="Write the output to a single file as compact as possible.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--verbose",
+        help="Log information to screen",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--debug",
+        help="Log debug information to screen",
         action="store_true",
     )
 
@@ -331,6 +350,8 @@ def _replace_default_dummies_from_ert(args):
         args.zonefile = None
     if args.regionfile == "-1":
         args.regionfile = None
+    if args.region_property == "-1":
+        args.region_property = None
     if args.containment_polygon == "-1":
         args.containment_polygon = None
     if args.hazardous_polygon == "-1":
@@ -351,17 +372,6 @@ def process_args() -> argparse.Namespace:
     """
     args = get_parser().parse_args()
     args.calc_type_input = args.calc_type_input.lower()
-    paths = [
-        "case",
-        "out_dir",
-        "egrid",
-        "unrst",
-        "init",
-        "zonefile",
-        "regionfile",
-        "containment_polygon",
-        "hazardous_polygon",
-    ]
 
     _replace_default_dummies_from_ert(args)
 
@@ -375,6 +385,17 @@ def process_args() -> argparse.Namespace:
     if args.out_dir is None:
         args.out_dir = os.path.join(args.root_dir, "share", "results", "tables")
     adict = vars(args)
+    paths = [
+        "case",
+        "out_dir",
+        "egrid",
+        "unrst",
+        "init",
+        "zonefile",
+        "regionfile",
+        "containment_polygon",
+        "hazardous_polygon",
+    ]
     for key in paths:
         if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
             adict[key] = os.path.join(args.root_dir, adict[key])
@@ -388,6 +409,14 @@ def process_args() -> argparse.Namespace:
         args.unrst = args.egrid.replace(".EGRID", ".UNRST")
     if args.init is None:
         args.init = args.egrid.replace(".EGRID", ".INIT")
+
+    if args.debug:
+        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+    elif args.verbose:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.WARNING)
+
     return args
 
 
@@ -429,6 +458,10 @@ def check_input(arguments: argparse.Namespace):
             error_text += "\n  * " + file
         raise FileNotFoundError(error_text)
 
+    if not os.path.isdir(arguments.out_dir):
+        logging.warning("Output directory doesn't exist. Creating a new folder.")
+        os.mkdir(arguments.out_dir)
+
 
 def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
     """
@@ -451,7 +484,7 @@ def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
             try:
                 zfile = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                print(exc)
+                logging.error(exc)
                 sys.exit(1)
         if "zranges" not in zfile:
             error_text = "The yaml zone file must be in the format:\nzranges:\
@@ -467,32 +500,128 @@ def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
     return None
 
 
-def export_output_to_csv(
-    out_dir: str,
-    calc_type_input: str,
-    data_frame: Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]],
-    zone_info: Dict,
-    region_info: Dict,
-):
-    """
-    Exports the results to a csv file, named according to the calculation type
-    (mass / cell_volume / actual_volume)
-    """
-    # pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
-    out_name = f"plume_{calc_type_input}"
-    if zone_info["source"] is None and region_info["source"] is None:
-        assert isinstance(data_frame, pd.DataFrame)
-        data_frame.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
+def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
+    version = "v0.4.0"
+    is_dev_version = True
+    if is_dev_version:
+        version += "_dev"
+        try:
+            source_dir = os.path.dirname(os.path.abspath(__file__))
+            short_hash = (
+                subprocess.check_output(
+                    ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
+                )
+                .decode("ascii")
+                .strip()
+            )
+        except subprocess.CalledProcessError:
+            short_hash = "-"
+        version += " (latest git commit: " + short_hash + ")"
+
+    now = datetime.now()
+    date_time = now.strftime("%B %d, %Y %H:%M:%S")
+    logging.info("CCS-scripts - Containment calculations")
+    logging.info("======================================")
+    logging.info(f"Version             : {version}")
+    logging.info(f"Date and time       : {date_time}")
+    logging.info(f"User                : {getpass.getuser()}")
+    logging.info(f"Host                : {socket.gethostname()}")
+    logging.info(f"Platform            : {platform.system()} ({platform.release()})")
+    logging.info(
+        f"Python version      : {sys.version_info.major}.\
+        {sys.version_info.minor}.{sys.version_info.micro}"
+    )
+
+    logging.info(f"\nCase                : {arguments_processed.case}")
+    logging.info(f"Calculation type    : {arguments_processed.calc_type_input}")
+    logging.info(f"Root directory      : {arguments_processed.root_dir}")
+    logging.info(f"Output directory    : {arguments_processed.out_dir}")
+    logging.info(f"Containment polygon : {arguments_processed.containment_polygon}")
+    logging.info(f"Hazardous polygon   : {arguments_processed.hazardous_polygon}")
+    logging.info(f"EGRID file          : {arguments_processed.egrid}")
+    logging.info(f"UNRST file          : {arguments_processed.unrst}")
+    logging.info(f"INIT file           : {arguments_processed.init}")
+    logging.info(f"Zone file           : {arguments_processed.zonefile}")
+    logging.info(
+        f"Compact             : {'yes' if arguments_processed.compact else 'no'}\n"
+    )
+
+
+def log_summary_of_results(df: pd.DataFrame) -> None:
+    logging.info("\nSummary of results:")
+    logging.info("===================")
+    logging.info(f"Number of dates     : {len(df['date'].unique())}")
+    logging.info(f"First date          : {df['date'].iloc[0]}")
+    logging.info(f"Last date           : {df['date'].iloc[-1]}")
+    logging.info(f"End state total     : {df['total'].iloc[-1]:.1f}")
+    if "total_gas" in df:
+        logging.info(
+            f"End state gaseous   : {df['total_gas'].iloc[-1]:.1f} \
+            ({(100.0 * df['total_gas'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+        )
+    if "total_aqueous" in df:
+        logging.info(
+            f"End state aqueous   : {df['total_aqueous'].iloc[-1]:.1f} \
+            ({(100.0 * df['total_aqueous'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+        )
+    logging.info(
+        f"End state contained : {df['total_contained'].iloc[-1]:.1f} \
+        ({(100.0 * df['total_contained'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+    )
+    logging.info(
+        f"End state outside   : {df['total_outside'].iloc[-1]:.1f} \
+        ({(100.0 * df['total_outside'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+    )
+    logging.info(
+        f"End state hazardous : {df['total_hazardous'].iloc[-1]:.1f} \
+        ({(100.0 * df['total_hazardous'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
+    )
+    if "zone" in df:
+        logging.info("Split into zones?   : yes")
+        unique_zones = df["zone"].unique()
+        n_zones = (
+            len(unique_zones) - 1 if "all" in df["zone"].values else len(unique_zones)
+        )
+        logging.info(f"Number of zones     : {n_zones}")
+        logging.info(f"Zones               : {', '.join(unique_zones)}")
     else:
-        assert isinstance(data_frame, Dict)
-        zone_df = pd.DataFrame()
-        region_df = pd.DataFrame()
-        summed_part = pd.DataFrame()
-        if zone_info["source"] is not None:
-            assert isinstance(data_frame["zone"], Dict)
-            assert zone_info["int_to_zone"] is not None
-            zone_keys = list(data_frame["zone"].keys())
-            for key in zone_info["int_to_zone"]:
+        logging.info("Split into zones?   : no")
+    if "region" in df:
+        logging.info("Split into regions? : yes")
+        unique_regions = df["region"].unique()
+        n_regions = (
+            len(unique_regions) - 1
+            if "all" in df["region"].values
+            else len(unique_regions)
+        )
+        logging.info(f"Number of regions   : {n_regions}")
+        logging.info(f"Regions             : {', '.join(unique_regions)}")
+    else:
+        logging.info("Split into regions? : no")
+
+
+def _combine_data_frame(
+    data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    zone_info: Dict[str, Any],
+    region_info: Dict[str, Any],
+) -> pd.DataFrame:
+    """
+    Combine data frames from different zones into one single data frame
+    """
+    if zone_info["source"] is None and region_info["int_to_region"] is None:
+        assert isinstance(data_frame, pd.DataFrame)
+        return data_frame
+
+    assert isinstance(data_frame, Dict)
+    zone_df = pd.DataFrame()
+    region_df = pd.DataFrame()
+    summed_part = pd.DataFrame()
+    if zone_info["source"] is not None:
+        assert isinstance(data_frame["zone"], Dict)
+        assert zone_info["int_to_zone"] is not None
+        zone_keys = list(data_frame["zone"].keys())
+        for key in zone_info["int_to_zone"]:
+            if key is not None:
                 if key in zone_keys:
                     _df = data_frame["zone"][key]
                 else:
@@ -501,14 +630,15 @@ def export_output_to_csv(
                     _df[numeric_cols] = 0
                 _df["zone"] = [key] * _df.shape[0]
                 zone_df = pd.concat([zone_df, _df])
-            if region_info["int_to_region"] is not None:
-                zone_df["region"] = ["all"] * zone_df.shape[0]
-            summed_part = zone_df.groupby("date").sum(numeric_only=True).reset_index()
-            summed_part["zone"] = ["all"] * summed_part.shape[0]
         if region_info["int_to_region"] is not None:
-            assert isinstance(data_frame["region"], Dict)
-            region_keys = list(data_frame["region"].keys())
-            for key in region_info["int_to_region"]:
+            zone_df["region"] = ["all"] * zone_df.shape[0]
+        summed_part = zone_df.groupby("date").sum(numeric_only=True).reset_index()
+        summed_part["zone"] = ["all"] * summed_part.shape[0]
+    if region_info["int_to_region"] is not None:
+        assert isinstance(data_frame["region"], Dict)
+        region_keys = list(data_frame["region"].keys())
+        for key in region_info["int_to_region"]:
+            if key is not None:
                 if key in region_keys:
                     _df = data_frame["region"][key]
                 else:
@@ -517,15 +647,31 @@ def export_output_to_csv(
                     _df[numeric_cols] = 0
                 _df["region"] = [key] * _df.shape[0]
                 region_df = pd.concat([region_df, _df])
-            if zone_info["source"] is None:
-                summed_part = (
-                    region_df.groupby("date").sum(numeric_only=True).reset_index()
-                )
-            else:
-                region_df["zone"] = ["all"] * region_df.shape[0]
-            summed_part["region"] = ["all"] * summed_part.shape[0]
-        combined_df = pd.concat([summed_part, zone_df, region_df])
-        combined_df.to_csv(os.path.join(out_dir, f"{out_name}.csv"), index=False)
+        if zone_info["source"] is None:
+            summed_part = region_df.groupby("date").sum(numeric_only=True).reset_index()
+        else:
+            region_df["zone"] = ["all"] * region_df.shape[0]
+        summed_part["region"] = ["all"] * summed_part.shape[0]
+    combined_df = pd.concat([summed_part, zone_df, region_df])
+    return combined_df
+
+
+def export_output_to_csv(
+    out_dir: str,
+    calc_type_input: str,
+    data_frame: pd.DataFrame,
+):
+    """
+    Exports the results to a csv file, named according to the calculation type
+    (mass / cell_volume / actual_volume)
+    """
+    file_name = f"plume_{calc_type_input}.csv"
+    logging.info(f"\nExport results to CSV file: {file_name}")
+    file_path = os.path.join(out_dir, file_name)
+    if os.path.isfile(file_path):
+        logging.info(f"Output CSV file already exists. Overwriting: {file_path}")
+
+    data_frame.to_csv(file_path, index=False)
 
 
 def main() -> None:
@@ -544,9 +690,12 @@ def main() -> None:
     region_info = {
         "source": arguments_processed.regionfile,
         "int_to_region": None,
+        "property_name": arguments_processed.region_property,
     }
     if zone_info["source"] is not None:
         zone_info["zranges"] = process_zonefile_if_yaml(zone_info["source"])
+
+    log_input_configuration(arguments_processed)
 
     data_frame = calculate_out_of_bounds_co2(
         arguments_processed.egrid,
@@ -559,12 +708,12 @@ def main() -> None:
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
     )
+    df_combined = _combine_data_frame(data_frame, zone_info, region_info)
+    log_summary_of_results(df_combined)
     export_output_to_csv(
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,
-        data_frame,
-        zone_info,
-        region_info,
+        df_combined,
     )
 
 

@@ -1,5 +1,6 @@
 """CO2 calculation methods"""
 
+import logging
 from dataclasses import dataclass
 from typing import Dict, List, Literal, Optional, Union
 
@@ -44,6 +45,7 @@ class ContainedCo2:
             self.date = f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
 
+# pylint: disable = too-many-arguments
 def calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
@@ -72,6 +74,9 @@ def calculate_co2_containment(
     Returns:
         List[ContainedCo2]
     """
+    logging.info(
+        f"Calculate contained CO2 {calc_type.name.lower()} using input polygons"
+    )
     if containment_polygon is not None:
         is_contained = _calculate_containment(
             co2_data.x_coord,
@@ -80,6 +85,7 @@ def calculate_co2_containment(
         )
     else:
         is_contained = np.array([True] * len(co2_data.x_coord))
+        logging.info("No containment polygon specified.")
     if hazardous_polygon is not None:
         is_hazardous = _calculate_containment(
             co2_data.x_coord,
@@ -88,9 +94,29 @@ def calculate_co2_containment(
         )
     else:
         is_hazardous = np.array([False] * len(co2_data.x_coord))
+        logging.info("No hazardous polygon specified.")
+
     # Count as hazardous if the two boundaries overlap:
     is_inside = [x if not y else False for x, y in zip(is_contained, is_hazardous)]
     is_outside = [not x and not y for x, y in zip(is_contained, is_hazardous)]
+    logging.info("Number of grid nodes:")
+    logging.info(
+        f"  * Inside containment polygon                        :\
+        {is_inside.count(True)}"
+    )
+    logging.info(
+        f"  * Inside hazardous polygon                          :\
+        {list(is_hazardous).count(True)}"
+    )
+    logging.info(
+        f"  * Outside containment polygon and hazardous polygon :\
+        {is_outside.count(True)}"
+    )
+    logging.info(
+        f"  * Total                                             :\
+        {len(is_inside)}"
+    )
+
     if co2_data.zone is None and co2_data.region is None:
         if calc_type == CalculationType.CELL_VOLUME:
             return [
@@ -144,8 +170,9 @@ def calculate_co2_containment(
             {z: co2_data.zone == z for z in np.unique(co2_data.zone)}
             if zone_info["int_to_zone"] is None
             else {
-                zone_info["int_to_zone"][z - 1]: co2_data.zone == z
+                zone_info["int_to_zone"][z]: co2_data.zone == z
                 for z in np.unique(co2_data.zone)
+                if z >= 0 and zone_info["int_to_zone"][z] is not None
             }
         )
     )
@@ -156,8 +183,9 @@ def calculate_co2_containment(
             {r: co2_data.region == r for r in np.unique(co2_data.region)}
             if region_info["int_to_region"] is None
             else {
-                region_info["int_to_region"][r - 1]: co2_data.region == r
+                region_info["int_to_region"][r]: co2_data.region == r
                 for r in np.unique(co2_data.region)
+                if r >= 0 and region_info["int_to_region"][r] is not None
             }
         )
     )
@@ -194,6 +222,9 @@ def calculate_co2_containment(
                 ),
             ]
         ]
+    logging.info(
+        f"Done calculating contained CO2 {calc_type.name.lower()} using input polygons"
+    )
     return [
         c
         for w in co2_data.data_list
