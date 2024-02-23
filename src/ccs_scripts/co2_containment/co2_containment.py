@@ -593,7 +593,7 @@ def _combine_data_frame(
     """
     Combine data frames from different zones into one single data frame
     """
-    if zone_info["source"] is None and region_info["source"] is None:
+    if zone_info["source"] is None and region_info["int_to_region"] is None:
         assert isinstance(data_frame, pd.DataFrame)
         return data_frame
     else:

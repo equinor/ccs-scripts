@@ -197,6 +197,18 @@ def _get_synthetic_case_paths(case: str):
     )
 
 
+def _sort_dataframe(df: pandas.DataFrame):
+    if "zone" and "region" in df:
+        df = df.sort_values(["date", "zone", "region"])
+    elif "zone" in df:
+        df = df.sort_values(["date", "zone"])
+    elif "region" in df:
+        df = df.sort_values(["date", "region"])
+    else:
+        df = df.sort_values("date")
+    return df
+
+
 def test_synthetic_case_eclipse_mass(mocker):
     (
         main_path,
@@ -231,6 +243,15 @@ def test_synthetic_case_eclipse_mass(mocker):
     output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
     df = pandas.read_csv(output_path)
     os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "plume_mass_eclipse.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    pandas.testing.assert_frame_equal(df, df_answer)
 
     assert len(df) == 66
     assert len(df["date"].unique()) == 11
@@ -296,7 +317,7 @@ def test_synthetic_case_eclipse_actual_volume(mocker):
         main_path / "share" / "results" / "tables" / "plume_actual_volume.csv"
     )
     df = pandas.read_csv(output_path)
-    os.remove(output_path)
+    # os.remove(output_path)
 
     assert len(df) == 66
     assert len(df["date"].unique()) == 11
@@ -362,7 +383,7 @@ def test_synthetic_case_eclipse_cell_volume(mocker):
         main_path / "share" / "results" / "tables" / "plume_cell_volume.csv"
     )
     df = pandas.read_csv(output_path)
-    os.remove(output_path)
+    # os.remove(output_path)
 
     assert len(df) == 66
     assert len(df["date"].unique()) == 11
@@ -380,6 +401,67 @@ def test_synthetic_case_eclipse_cell_volume(mocker):
     assert df[df["zone"] == "Amethyst"]["total"].sum() == pytest.approx(932432446)
     assert df[df["zone"] == "Ruby"]["total"].sum() == pytest.approx(440557772)
     assert df[df["zone"] == "Topaz"]["total"].sum() == pytest.approx(949824518)
+
+
+def test_synthetic_case_eclipse_mass_no_zones(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        dummy,
+    ) = _get_synthetic_case_paths("eclipse")
+    args = [
+        "sys.argv",
+        case_path,
+        "mass",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    # assert len(df) == 66
+    # assert len(df["date"].unique()) == 11
+    # assert df["date"].min() == "2025-01-01"
+    # assert df["date"].max() == "2500-01-01"
+    #
+    # df_all = df[(df["zone"] == "all") & (df["region"] == "all")]
+    # assert df_all["total"].sum() == pytest.approx(17253002337.768658)
+    # assert df_all["total_gas"].sum() == pytest.approx(13426268976.322)
+    # assert df_all["total_aqueous"].sum() == pytest.approx(3826733361.4466577)
+    # assert df_all["total_contained"].sum() == pytest.approx(8488162800.155235)
+    # assert df_all["total_outside"].sum() == pytest.approx(7016268521.866909)
+    # assert df_all["total_hazardous"].sum() == pytest.approx(1748571015.7465131)
+    # assert df_all["gas_contained"].sum() == pytest.approx(6990346422.720001)
+    # assert df_all["aqueous_contained"].sum() == pytest.approx(1497816377.435234)
+    # assert df_all["gas_outside"].sum() == pytest.approx(5154504459.26111)
+    # assert df_all["aqueous_outside"].sum() == pytest.approx(1861764062.6057913)
+    # assert df_all["gas_hazardous"].sum() == pytest.approx(1281418094.3408813)
+    # assert df_all["aqueous_hazardous"].sum() == pytest.approx(467152921.40563196)
+    #
+    # for zone in ZONES_SYNTHETIC_CASE:
+    #     assert zone in df["zone"].unique()
+    # assert df[df["zone"] == "Amethyst"]["total"].sum() == pytest.approx(
+    #     10654885273.532726
+    # )
+    # assert df[df["zone"] == "Ruby"]["total"].sum() == pytest.approx(2849437334.620893)
+    # assert df[df["zone"] == "Topaz"]["total"].sum() == pytest.approx(3748679729.6150413)
 
 
 def test_synthetic_case_pflotran_mass(mocker):
@@ -415,7 +497,7 @@ def test_synthetic_case_pflotran_mass(mocker):
 
     output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
     df = pandas.read_csv(output_path)
-    os.remove(output_path)
+    # os.remove(output_path)
 
     assert len(df) == 186
     assert len(df["date"].unique()) == 31
@@ -480,7 +562,7 @@ def test_synthetic_case_pflotran_actual_volume(mocker):
         main_path / "share" / "results" / "tables" / "plume_actual_volume.csv"
     )
     df = pandas.read_csv(output_path)
-    os.remove(output_path)
+    # os.remove(output_path)
 
     assert len(df) == 186
     assert len(df["date"].unique()) == 31
@@ -545,7 +627,7 @@ def test_synthetic_case_pflotran_cell_volume(mocker):
         main_path / "share" / "results" / "tables" / "plume_cell_volume.csv"
     )
     df = pandas.read_csv(output_path)
-    os.remove(output_path)
+    # os.remove(output_path)
 
     assert len(df) == 186
     assert len(df["date"].unique()) == 31
