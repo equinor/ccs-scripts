@@ -44,6 +44,7 @@ class ContainedCo2:
             self.date = f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
 
+# pylint: disable = too-many-arguments
 def calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],

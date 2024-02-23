@@ -362,6 +362,7 @@ def _is_subset(first: List[str], second: List[str]) -> bool:
     return all(x in second for x in first)
 
 
+# pylint: disable=too-many-arguments
 def _extract_source_data(
     grid_file: str,
     unrst_file: str,
@@ -411,6 +412,35 @@ def _extract_source_data(
     xyz = [grid.get_xyz(global_index=a) for a in global_active_idx]
     cells_x = np.array([coord[0] for coord in xyz])
     cells_y = np.array([coord[1] for coord in xyz])
+
+    zone = _process_zones(zone_info, grid, grid_file, global_active_idx)
+    region = _process_regions(region_info, grid, grid_file, init, active, gasless)
+
+    vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
+    properties_reduced["VOL"] = {d: vol0 for d in dates}
+    try:
+        porv = init["PORV"]
+        properties_reduced["PORV"] = {
+            d: porv[0].numpy_copy()[global_active_idx] for d in dates
+        }
+    except KeyError:
+        pass
+    source_data = SourceData(
+        cells_x,
+        cells_y,
+        dates,
+        **dict(properties_reduced.items()),
+        **{"zone": zone, "region": region},
+    )
+    return source_data
+
+
+def _process_zones(
+    zone_info: Dict,
+    grid: Grid,
+    grid_file: str,
+    global_active_idx: np.array,
+) -> np.array:
     zone = None
     if zone_info["source"] is not None:
         if zone_info["zranges"] is not None:
@@ -434,9 +464,11 @@ def _extract_source_data(
             zonevals = np.unique(zone)
             intvals = np.array(zonevals, dtype=int)
             if sum(intvals == zonevals) != len(zonevals):
-                print("Warning: Grid provided in zone file contains non-integer values. "
-                      "This might cause problems with the calculations for "
-                      "containment in different zones.")
+                print(
+                    "Warning: Grid provided in zone file contains non-integer values. "
+                    "This might cause problems with the calculations for "
+                    "containment in different zones."
+                )
             zone_info["int_to_zone"] = [None] * (np.max(intvals) + 1)
             for zv in intvals:
                 if zv >= 0:
@@ -444,6 +476,17 @@ def _extract_source_data(
                 else:
                     print("Ignoring negative value in grid provided in zone file.")
             zone = np.array(zone[global_active_idx], dtype=int)
+    return zone
+
+
+def _process_regions(
+    region_info: Dict,
+    grid: Grid,
+    grid_file: str,
+    init: ResdataFile,
+    active: np.array,
+    gasless: np.array,
+) -> np.array:
     region = None
     if region_info["source"] is not None:
         xtg_grid = xtgeo.grid_from_file(grid_file)
@@ -452,16 +495,18 @@ def _extract_source_data(
         regvals = np.unique(region)
         intvals = np.array(regvals, dtype=int)
         if sum(intvals == regvals) != len(regvals):
-            print("Warning: Grid provided in region file contains non-integer values. "
-                  "This might cause problems with the calculations for "
-                  "containment in different regions.")
+            print(
+                "Warning: Grid provided in region file contains non-integer values. "
+                "This might cause problems with the calculations for "
+                "containment in different regions."
+            )
         region_info["int_to_region"] = [None] * (np.max(intvals) + 1)
         for rv in intvals:
             if rv >= 0:
                 region_info["int_to_region"][rv] = f"Region_{rv}"
             else:
                 print("Ignoring negative value in grid provided in region file.")
-        region = np.array(region[global_active_idx], dtype=int)
+        region = np.array(region[active[~gasless]], dtype=int)
     elif region_info["property_name"] is not None:
         try:
             region = np.array(init[region_info["property_name"]][0], dtype=int)
@@ -482,23 +527,7 @@ def _extract_source_data(
             )
             region = None
             region_info["int_to_region"] = None
-    vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
-    properties_reduced["VOL"] = {d: vol0 for d in dates}
-    try:
-        porv = init["PORV"]
-        properties_reduced["PORV"] = {
-            d: porv[0].numpy_copy()[global_active_idx] for d in dates
-        }
-    except KeyError:
-        pass
-    source_data = SourceData(
-        cells_x,
-        cells_y,
-        dates,
-        **dict(properties_reduced.items()),
-        **{"zone": zone, "region": region},
-    )
-    return source_data
+    return region
 
 
 def _mole_to_mass_fraction(prop: np.ndarray, m_co2: float, m_h20: float) -> np.ndarray:
@@ -798,7 +827,7 @@ def _calculate_co2_data_from_source_data(
             ]
             error_text = "Lacking some required properties to compute CO2 mass/volume"
             error_text += "\nMissing: "
-            error_text += ", ".join([property for property in missing_props])
+            error_text += ", ".join(missing_props)
             raise RuntimeError(error_text)
         elif any(
             prop in ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"] for prop in active_props
@@ -810,7 +839,7 @@ def _calculate_co2_data_from_source_data(
             ]
             error_text = "Lacking some required properties to compute CO2 mass/volume"
             error_text += "\nMissing: "
-            error_text += ", ".join([property for property in missing_props])
+            error_text += ", ".join(missing_props)
             raise RuntimeError(error_text)
         else:
             error_text = "Lacking all required properties to compute CO2 mass/volume"

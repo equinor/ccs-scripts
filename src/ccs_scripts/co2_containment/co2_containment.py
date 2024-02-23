@@ -310,7 +310,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--region_property",
         help="Property in INIT file containing integer grid of regions.",
-        default=None
+        default=None,
     )
     parser.add_argument(
         "--compact",
@@ -474,6 +474,7 @@ def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
     return None
 
 
+# pylint: disable=too-many-branches
 def export_output_to_csv(
     out_dir: str,
     calc_type_input: str,
