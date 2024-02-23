@@ -417,37 +417,69 @@ def _extract_source_data(
             zone_array = np.zeros(
                 (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
             )
-            zonevals = [int(x + 1) for x in range(len(zone_info["zranges"]))]
-            zone_info["int_to_zone"] = [f"Zone_{x + 1}" for x in range(len(zonevals))]
+            zonevals = [int(x) for x in range(len(zone_info["zranges"]))]
+            zone_info["int_to_zone"] = [f"Zone_{x}" for x in range(len(zonevals))]
             for zv, zr, zn in zip(
                 zonevals,
                 list(zone_info["zranges"].values()),
                 zone_info["zranges"].keys(),
             ):
                 zone_array[:, :, zr[0] - 1 : zr[1]] = zv
-                zone_info["int_to_zone"][zv - 1] = zn
+                zone_info["int_to_zone"][zv] = zn
             zone = zone_array.flatten(order="F")[global_active_idx]
         else:
             xtg_grid = xtgeo.grid_from_file(grid_file)
             zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
             zone = zone.values.data.flatten(order="F")
-            zone_info["int_to_zone"] = [f"Zone_{x}" for x in np.unique(zone)]
-            zone = zone[global_active_idx]
+            zonevals = np.unique(zone)
+            intvals = np.array(zonevals, dtype=int)
+            if sum(intvals == zonevals) != len(zonevals):
+                print("Warning: Grid provided in zone file contains non-integer values. "
+                      "This might cause problems with the calculations for "
+                      "containment in different zones.")
+            zone_info["int_to_zone"] = [None] * (np.max(intvals) + 1)
+            for zv in intvals:
+                if zv >= 0:
+                    zone_info["int_to_zone"][zv] = f"Zone_{zv}"
+                else:
+                    print("Ignoring negative value in grid provided in zone file.")
+            zone = np.array(zone[global_active_idx], dtype=int)
+    region = None
     if region_info["source"] is not None:
         xtg_grid = xtgeo.grid_from_file(grid_file)
         region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
         region = region.values.data.flatten(order="F")
-        region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
-        region = region[global_active_idx]
-    else:
+        regvals = np.unique(region)
+        intvals = np.array(regvals, dtype=int)
+        if sum(intvals == regvals) != len(regvals):
+            print("Warning: Grid provided in region file contains non-integer values. "
+                  "This might cause problems with the calculations for "
+                  "containment in different regions.")
+        region_info["int_to_region"] = [None] * (np.max(intvals) + 1)
+        for rv in intvals:
+            if rv >= 0:
+                region_info["int_to_region"][rv] = f"Region_{rv}"
+            else:
+                print("Ignoring negative value in grid provided in region file.")
+        region = np.array(region[global_active_idx], dtype=int)
+    elif region_info["property_name"] is not None:
         try:
-            region = np.array(init["FIPREG"][0], dtype=int)
+            region = np.array(init[region_info["property_name"]][0], dtype=int)
             if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
                 region = region[active]
-            region_info["int_to_region"] = [f"Region_{x}" for x in np.unique(region)]
+            regvals = np.unique(region)
+            region_info["int_to_region"] = [None] * (np.max(regvals) + 1)
+            for rv in regvals:
+                if rv >= 0:
+                    region_info["int_to_region"][rv] = f"Region_{rv}"
+                else:
+                    print(f"Ignoring negative value in {region_info['property_name']}.")
             region = region[~gasless]
         except KeyError:
-            print("Region information not found in INIT-file (FIPREG property).")
+            print(
+                f"Region information not found in INIT-file "
+                f"({region_info['property_name']} property not found)."
+            )
             region = None
             region_info["int_to_region"] = None
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
