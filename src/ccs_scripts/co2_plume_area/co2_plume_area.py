@@ -27,7 +27,6 @@ import numpy as np
 import pandas as pd
 import xtgeo
 
-
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
 
