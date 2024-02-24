@@ -28,6 +28,10 @@ import pandas as pd
 import xtgeo
 
 
+xtgeo_logger = logging.getLogger("xtgeo")
+xtgeo_logger.setLevel(logging.WARNING)
+
+
 def _make_parser():
     parser = argparse.ArgumentParser(description="Calculate plume area")
     parser.add_argument("input", help="Path to maps created through grid3d-maps")
