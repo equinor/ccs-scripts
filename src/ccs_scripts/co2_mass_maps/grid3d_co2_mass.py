@@ -5,14 +5,14 @@ import tempfile
 import xtgeo
 import yaml
 from typing import List, Optional, Dict, Tuple
-from xtgeoapp_grd3dmaps.aggregate import (
-    _co2_mass,
-    _config,
-    _parser,
+from grid3d_maps.aggregate import (
     grid3d_aggregate_map,
 )
-from xtgeoapp_grd3dmaps.aggregate._config import (CO2MassSettings,Zonation)
+from ccs_scripts.co2_mass_maps._config import (CO2MassSettings,Zonation)
+from ccs_scripts.co2_mass_maps import (_config,_parser,_co2_mass)
+from grid3d_maps.aggregate._config import AggregationMethod
 from ccs_scripts.co2_containment.co2_calculation import calculate_co2
+from ccs_scripts.co2_mass_maps._co2_mass import (translate_co2data_to_property)
 
 PROPERTIES_TO_EXTRACT = [
     "RPORV",
@@ -70,7 +70,7 @@ def generate_co2_mass_maps(config_) :
     dates = config_.input.dates
     if len(dates)>0:
         co2_data.data_list = [x for x in co2_data.data_list if x.date in dates]
-    out_property_list = _co2_mass.translate_co2data_to_property(
+    out_property_list = translate_co2data_to_property(
         co2_data,
         grid_file,
         co2_mass_settings,
@@ -102,7 +102,7 @@ def co2_mass_property_to_map(
 
     """
     config_.input.properties = []
-    config_.computesettings.aggregation = _config.AggregationMethod.SUM
+    config_.computesettings.aggregation = AggregationMethod.SUM
     config_.output.aggregation_tag = False
     for props in property_list:
         if len(props)>0 :

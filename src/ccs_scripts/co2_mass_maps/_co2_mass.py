@@ -9,7 +9,7 @@ from ccs_scripts.co2_containment.co2_calculation import (_fetch_properties,
                                                          _is_subset,
                                                          Co2Data,
                                                          Co2DataAtTimeStep)
-from xtgeoapp_grd3dmaps.aggregate._config import CO2MassSettings
+from ccs_scripts.co2_mass_maps._config import CO2MassSettings
 
 CO2_MASS_PNAME = "CO2Mass"
 
