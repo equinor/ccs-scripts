@@ -1,0 +1,8 @@
+EXECUTABLE co2_plume_area
+
+DEFAULT <OUTPUT> share/results/tables/plume_area.csv
+
+ARGLIST    <INPUT> "--output" <OUTPUT>
+
+MIN_ARG 1
+MAX_ARG 2

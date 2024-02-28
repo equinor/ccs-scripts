@@ -16,6 +16,17 @@ from ccs_scripts.co2_containment.co2_calculation import (
 )
 from ccs_scripts.co2_containment.co2_containment import calculate_from_co2_data
 
+zone_info = {
+    "source": None,
+    "zranges": None,
+    "int_to_zone": None,
+}
+region_info = {
+    "source": None,
+    "int_to_region": None,
+    "property_name": None,
+}
+
 
 def _random_prop(
     dims: Tuple,
@@ -80,6 +91,8 @@ def _calc_and_compare(poly, masses, poly_hazardous=None):
         hazardous_polygon=poly_hazardous,
         compact=False,
         calc_type_input="mass",
+        zone_info=zone_info,
+        region_info=region_info,
     )
     difference = np.sum(
         [x - y for x, y in zip(contained.total.values, list(totals.values()))]
@@ -177,7 +190,7 @@ def test_hazardous_poly_co2_containment():
 def test_reek_grid():
     """
     Test CO2 containment code, with eclipse Reek data.
-    Tests both mass and volume_actual calculations.
+    Tests both mass and actual_volume calculations.
     """
     reek_gridfile = (
         Path(__file__).absolute().parent
@@ -229,6 +242,8 @@ def test_reek_grid():
         hazardous_polygon=reek_poly_hazardous,
         compact=False,
         calc_type_input="mass",
+        zone_info=zone_info,
+        region_info=region_info,
     )
     assert table.total.values[0] == pytest.approx(696171.20388324)
     assert table.total_gas.values[0] == pytest.approx(7650.233009712884)
@@ -239,27 +254,29 @@ def test_reek_grid():
 
     volumes = _calculate_co2_data_from_source_data(
         source_data,
-        CalculationType.ACTUAL_VOLUME_SIMPLIFIED,
+        CalculationType.ACTUAL_VOLUME,
     )
     table2 = calculate_from_co2_data(
         co2_data=volumes,
         containment_polygon=reek_poly,
         hazardous_polygon=reek_poly_hazardous,
         compact=False,
-        calc_type_input="actual_volume_simplified",
+        calc_type_input="actual_volume",
+        zone_info=zone_info,
+        region_info=region_info,
     )
-    assert table2.total.values[0] == pytest.approx(358.1699999999088)
-    assert table2.total_gas.values[0] == pytest.approx(35.81700000000973)
-    assert table2.total_aqueous.values[0] == pytest.approx(322.3529999998991)
-    assert table2.gas_contained.values[0] == pytest.approx(0.5430000000000004)
-    assert table2.total_hazardous.values[0] == pytest.approx(5.289999999999996)
-    assert table2.gas_hazardous.values[0] == pytest.approx(0.5290000000000004)
+    assert table2.total.values[0] == pytest.approx(1018.524203883313)
+    assert table2.total_gas.values[0] == pytest.approx(330.0032330095245)
+    assert table2.total_aqueous.values[0] == pytest.approx(688.5209708737885)
+    assert table2.gas_contained.values[0] == pytest.approx(5.002980582524296)
+    assert table2.total_hazardous.values[0] == pytest.approx(15.043116504854423)
+    assert table2.gas_hazardous.values[0] == pytest.approx(4.873990291262155)
 
 
 def test_reek_grid_extract_source_data():
     """
     Test CO2 containment code, with eclipse Reek data.
-    Test extracing source data. Example does not have the
+    Test extracting source data. Example does not have the
     required properties, so should get a RuntimeError
     """
     reek_gridfile = (
@@ -291,6 +308,8 @@ def test_reek_grid_extract_source_data():
             str(reek_gridfile),
             str(reek_unrstfile),
             PROPERTIES_TO_EXTRACT,
+            zone_info,
+            region_info,
             str(reek_initfile),
         )
 

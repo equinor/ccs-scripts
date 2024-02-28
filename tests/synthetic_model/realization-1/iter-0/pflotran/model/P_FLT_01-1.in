@@ -1,0 +1,182 @@
+# Generic carbon starage case - Gas Water Module
+
+SIMULATION
+  SIMULATION_TYPE SUBSURFACE
+  PROCESS_MODELS
+    SUBSURFACE_FLOW Flow
+      MODE GAS_WATER
+      OPTIONS
+       RESERVOIR_DEFAULTS
+       ISOTHERMAL
+       HYSTERESIS
+       STRAND
+      /
+    / ! end of subsurface_flow
+  /
+END  !! end simulation block
+
+SUBSURFACE
+
+#=========================== discretization ===================================
+
+GRID
+  TYPE grdecl ../../../../include/ccs_3df.grdecl
+END
+
+#=========================== times ============================================
+TIME
+  START_DATE 1 JAN 2025
+  FINAL_DATE 1 JAN 2500  ! 475 years simulation
+  INITIAL_TIMESTEP_SIZE 1 d
+!  MAXIMUM_TIMESTEP_SIZE 30 d at 0. d
+  MAXIMUM_TIMESTEP_SIZE 1 y 
+END
+
+#=========================== output options ===================================
+
+OUTPUT
+  MASS_BALANCE_FILE
+   PERIODIC TIMESTEP 1  
+  END
+  ECLIPSE_FILE
+    PERIOD_SUM TIME 10 y
+    PERIOD_RST TIME 25 y
+    WRITE_DENSITY
+    WRITE_RELPERM
+    DATES 1 JAN 2025
+    DATES 1 JAN 2027 ! CO2 injection starts
+    DATES 1 JAN 2029 
+    DATES 1 JAN 2031 ! CO2 injection stops 
+    DATES 1 JAN 2033 ! Production stops
+    DATES 1 JAN 2035  1 JAN 2225  1 JAN 2250   1 JAN 2300  1 JAN 2400  1 JAN 2450   
+    DATES 1 JAN 2500 ! Simulation ends
+    OUTFILE
+    SUMMARY_D
+      BPR     20 21 9
+      BGSAT   20 21 9
+      BWSAT   20 21 9
+      BDENG   20 21 9
+      BDENW   20 21 9
+      BVGAS   20 21 9
+      BVWAT   20 21 9
+      BPR     20 21 10
+      BGSAT   20 21 10
+      BWSAT   20 21 10
+      BDENG   20 21 10
+      BDENW   20 21 10
+      BVGAS   20 21 10
+      BVWAT   20 21 10
+    END_SUMMARY_D
+  END
+  LINEREPT
+END
+
+#=========================== material properties ==============================
+
+MATERIAL_PROPERTY formation
+  ID 1
+  ROCK_COMPRESSIBILITY    4.35d-5 1/Bar
+  ROCK_REFERENCE_PRESSURE 1.0     Bar
+/
+
+#=========================== saturation functions =============================
+
+!id=1
+CHARACTERISTIC_CURVES drainage
+
+ TABLE swfn_table
+   PRESSURE_UNITS Bar
+   external_file ../../../../include/SWFN_drain.dat
+ END
+
+ TABLE sgfn_table
+  PRESSURE_UNITS Bar
+   external_file ../../../../include/SGFN_drain.dat
+ END
+
+/
+
+
+!id=2
+CHARACTERISTIC_CURVES imbibition
+
+ TABLE swfn_table
+   PRESSURE_UNITS Bar
+   external_file ../../../../include/SWFN_imb.dat
+ END
+
+ TABLE sgfn_table
+  PRESSURE_UNITS Bar
+   external_file ../../../../include/SGFN_imb.dat
+ END
+
+/
+
+
+#=========================== fluid properties =================================
+
+FLUID_PROPERTY
+  PHASE LIQUID
+  DIFFUSION_COEFFICIENT 2.0d-9
+/
+FLUID_PROPERTY
+  PHASE GAS
+  DIFFUSION_COEFFICIENT 2.0d-5
+/
+
+BRINE 0.0525 MASS
+
+EOS WATER
+ SURFACE_DENSITY 1000.00 kg/m^3
+ DENSITY IF97
+END
+
+EOS GAS
+  SURFACE_DENSITY 1.8577210734 kg/m^3
+  CO2_DATABASE ../../../../include/co2_dbase.dat
+END
+
+#=========================== wells ==================================
+
+WELL_DATA injg
+  CIJK_D 21 21 11 11    
+  CIJK_D 22 22 11 11    
+  CIJK_D 23 23 11 11
+  CIJK_D 24 24 11 11
+  CIJK_D 24 25 11 11    
+  CIJK_D 25 25 11 11    
+  CIJK_D 25 26 11 11
+  CIJK_D 26 26 11 11
+  CONST_DRILL_DIR DIR_X
+  DIAMETER 0.1524 m
+  WELL_TYPE GAS_INJECTOR
+  BHPL     400    Bar
+  SHUT 
+  DATE 1 JAN 2027            ! Open injector 2 years after simulation starts
+  OPEN
+  TARG_GM 0.682 Mt/y
+  DATE 1 JAN 2031            ! Shut well 4 years after injection started
+  SHUT
+END
+
+WELL_DATA prod
+  CIJK_D 1 1 1 12 
+  DIAMETER 0.1524 m
+  WELL_TYPE PRODUCER
+  BHPL      150 Bar
+  TARG_WSV  1000 m^3/day
+  DATE 1 JAN 2033            ! Close producer 8 years after simulation starts
+  SHUT
+END
+
+#=========================== equilibration ==================================
+EQUILIBRATION
+
+  PRESSURE 250.0 Bar 
+  DATUM_D  2500 m
+
+  RTEMP 80.0 C
+/
+
+END_SUBSURFACE
+

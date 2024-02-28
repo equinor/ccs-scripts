@@ -30,17 +30,19 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Natural Language :: English",
     # "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
 ]
 dynamic = ["version"]
 dependencies = [
-    "ecl",
+    "resdata",
     "numpy<2",
     "pandas",
     "scipy",
     "shapely",
     "xtgeo",
+    "pyyaml",
 ]
 
 [project.optional-dependencies]
@@ -76,15 +78,11 @@ Repository = "https://github.com/equinor/ccs_scripts"
 
 [project.scripts]
 co2_containment = "ccs_scripts.co2_containment.co2_containment:main"
-co2_plume_area = "ccs_scripts.co2_plume.plume_area:main"
-co2_plume_extent = "ccs_scripts.co2_plume.plume_extent:main"
+co2_plume_area = "ccs_scripts.co2_plume_area.co2_plume_area:main"
+co2_plume_extent = "ccs_scripts.co2_plume_extent.co2_plume_extent:main"
 
-# [project.entry-points.ert]
-# subscript_jobs = "subscript.hook_implementations.jobs"
-# CsvMerge = "subscript.csv_merge.csv_merge"
-# CsvStack = "subscript.csv_stack.csv_stack"
-# FmuObs = "subscript.fmuobs.fmuobs"
-# Params2Csv = "subscript.params2csv.params2csv"
+[project.entry-points.ert]
+ccs_scripts_jobs = "ccs_scripts.hook_implementations.jobs"
 
 [tool.black]
 line-length = 88
