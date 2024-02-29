@@ -189,16 +189,17 @@ def _find_max_distances_per_time_step(
 
 
 def _log_results(df: pd.DataFrame, amfg_key: str) -> None:
+    dfs = df.sort_values("date")
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates             : {len(df['date'].unique()):>11}")
-    logging.info(f"First date                  : {df['date'].iloc[0]:>11}")
-    logging.info(f"Last date                   : {df['date'].iloc[-1]:>11}")
+    logging.info(f"Number of dates             : {len(dfs['date'].unique()):>11}")
+    logging.info(f"First date                  : {dfs['date'].iloc[0]:>11}")
+    logging.info(f"Last date                   : {dfs['date'].iloc[-1]:>11}")
     logging.info(
-        f"End state max distance SGAS : {df['MAX_DISTANCE_SGAS'].iloc[-1]:>11.1f}"
+        f"End state max distance SGAS : {dfs['MAX_DISTANCE_SGAS'].iloc[-1]:>11.1f}"
     )
     if amfg_key is not None:
-        value = df["MAX_DISTANCE_" + amfg_key].iloc[-1]
+        value = dfs["MAX_DISTANCE_" + amfg_key].iloc[-1]
         logging.info(f"End state max distance {amfg_key} : {value:>11.1f}")
 
 
