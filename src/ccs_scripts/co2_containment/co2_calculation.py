@@ -523,8 +523,8 @@ def _process_regions(
     elif region_info["property_name"] is not None:
         try:
             logging.info(
-                f"Try reading region information ({region_info['property_name']} \
-                property) from INIT-file."
+                f"Try reading region information ({region_info['property_name']}"
+                f" property) from INIT-file."
             )
             region = np.array(init[region_info["property_name"]][0], dtype=int)
             if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():

@@ -225,13 +225,14 @@ def _log_results(df: pd.DataFrame) -> None:
     logging.info(f"Number of dates : {len(dfs['date'].unique()):>11}")
     logging.info(f"First date      : {dfs['date'].iloc[0]:>11}")
     logging.info(f"Last date       : {dfs['date'].iloc[-1]:>11}")
+
     columns = [c for c in dfs if c != "date"]
     n1 = max(len(c) for c in columns) if len(columns) > 0 else 5
     df_subset = dfs.drop("date", axis=1)
-    n2 = len(f"{df_subset.max().max()}") if len(columns) > 0 else 5
+    n2 = len(f"{df_subset.max().max():.1f}") if len(columns) > 0 else 5
     logging.info("End state plume area:")
     for c in columns:
-        logging.info(f"    * {c:<{n1+1}}: {dfs[c].iloc[-1]:>{n2+1}}")
+        logging.info(f"    * {c:<{n1+1}}: {dfs[c].iloc[-1]:>{n2+1}.1f}")
 
 
 def main():
