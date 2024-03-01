@@ -9,12 +9,9 @@ on:
     branches:
       - main
       - develop
-  # release:
-  #   types:
-  #     - published
-  # schedule:
-    # Run nightly to check that tests are working with latest dependencies
-  #   - cron: "0 0 * * *"
+  schedule:
+  # Run nightly to check that tests are working with latest dependencies
+    - cron: "30 3 * * *"
 
 env:
   MPLBACKEND: Agg
