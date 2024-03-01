@@ -11,9 +11,7 @@ on:
       - develop
   schedule:
   # Run nightly to check that tests are working with latest dependencies
-  # Temp test every 5 min to check if it works:
-    - cron: "*/5 * * * *"
-    # - cron: "0 3 * * *"
+    - cron: "30 3 * * *"
 
 env:
   MPLBACKEND: Agg
