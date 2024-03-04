@@ -501,7 +501,7 @@ def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
 
 
 def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
-    version = "v0.4.0"
+    version = "v0.5.0"
     is_dev_version = True
     if is_dev_version:
         version += "_dev"
@@ -527,10 +527,10 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     logging.info(f"User                : {getpass.getuser()}")
     logging.info(f"Host                : {socket.gethostname()}")
     logging.info(f"Platform            : {platform.system()} ({platform.release()})")
-    logging.info(
-        f"Python version      : {sys.version_info.major}.\
-        {sys.version_info.minor}.{sys.version_info.micro}"
+    py_version = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
+    logging.info(f"Python version      : {py_version}")
 
     logging.info(f"\nCase                : {arguments_processed.case}")
     logging.info(f"Calculation type    : {arguments_processed.calc_type_input}")
@@ -548,50 +548,55 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
 
 
 def log_summary_of_results(df: pd.DataFrame) -> None:
+    dfs = df.sort_values("date")
+    last_date = max(df["date"])
+    df_subset = dfs[dfs["date"] == last_date]
+    if "zone" in df_subset and any(df_subset["zone"].str.contains("all", na=False)):
+        df_subset = df_subset[df_subset["zone"] == "all"]
+    if "region" in df_subset and any(df_subset["region"].str.contains("all", na=False)):
+        df_subset = df_subset[df_subset["region"] == "all"]
+    total = df_subset["total"].iloc[-1]
+    n = len(f"{total:.1f}")
+
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates     : {len(df['date'].unique())}")
-    logging.info(f"First date          : {df['date'].iloc[0]}")
-    logging.info(f"Last date           : {df['date'].iloc[-1]}")
-    logging.info(f"End state total     : {df['total'].iloc[-1]:.1f}")
-    if "total_gas" in df:
-        logging.info(
-            f"End state gaseous   : {df['total_gas'].iloc[-1]:.1f} \
-            ({(100.0 * df['total_gas'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
-        )
-    if "total_aqueous" in df:
-        logging.info(
-            f"End state aqueous   : {df['total_aqueous'].iloc[-1]:.1f} \
-            ({(100.0 * df['total_aqueous'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
-        )
-    logging.info(
-        f"End state contained : {df['total_contained'].iloc[-1]:.1f} \
-        ({(100.0 * df['total_contained'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
-    )
-    logging.info(
-        f"End state outside   : {df['total_outside'].iloc[-1]:.1f} \
-        ({(100.0 * df['total_outside'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
-    )
-    logging.info(
-        f"End state hazardous : {df['total_hazardous'].iloc[-1]:.1f} \
-        ({(100.0 * df['total_hazardous'].iloc[-1] / df['total'].iloc[-1]):.1f} %)"
-    )
-    if "zone" in df:
+    logging.info(f"Number of dates     : {len(dfs['date'].unique())}")
+    logging.info(f"First date          : {dfs['date'].iloc[0]}")
+    logging.info(f"Last date           : {dfs['date'].iloc[-1]}")
+    logging.info(f"End state total     : {total:{n+1}.1f}")
+    if "total_gas" in df_subset:
+        value = df_subset["total_gas"].iloc[-1]
+        percent = 100.0 * value / total if total > 0.0 else 0.0
+        logging.info(f"End state gaseous   : {value:{n+1}.1f}  ({percent:.1f} %)")
+    if "total_aqueous" in df_subset:
+        value = df_subset["total_aqueous"].iloc[-1]
+        percent = 100.0 * value / total if total > 0.0 else 0.0
+        logging.info(f"End state aqueous   : {value:{n+1}.1f}  ({percent:.1f} %)")
+    value = df_subset["total_contained"].iloc[-1]
+    percent = 100.0 * value / total if total > 0.0 else 0.0
+    logging.info(f"End state contained : {value:{n+1}.1f}  ({percent:.1f} %)")
+    value = df_subset["total_outside"].iloc[-1]
+    percent = 100.0 * value / total if total > 0.0 else 0.0
+    logging.info(f"End state outside   : {value:{n+1}.1f}  ({percent:.1f} %)")
+    value = df_subset["total_hazardous"].iloc[-1]
+    percent = 100.0 * value / total if total > 0.0 else 0.0
+    logging.info(f"End state hazardous : {value:{n+1}.1f}  ({percent:.1f} %)")
+    if "zone" in dfs:
         logging.info("Split into zones?   : yes")
-        unique_zones = df["zone"].unique()
+        unique_zones = dfs["zone"].unique()
         n_zones = (
-            len(unique_zones) - 1 if "all" in df["zone"].values else len(unique_zones)
+            len(unique_zones) - 1 if "all" in dfs["zone"].values else len(unique_zones)
         )
         logging.info(f"Number of zones     : {n_zones}")
         logging.info(f"Zones               : {', '.join(unique_zones)}")
     else:
         logging.info("Split into zones?   : no")
-    if "region" in df:
+    if "region" in dfs:
         logging.info("Split into regions? : yes")
-        unique_regions = df["region"].unique()
+        unique_regions = dfs["region"].unique()
         n_regions = (
             len(unique_regions) - 1
-            if "all" in df["region"].values
+            if "all" in dfs["region"].values
             else len(unique_regions)
         )
         logging.info(f"Number of regions   : {n_regions}")

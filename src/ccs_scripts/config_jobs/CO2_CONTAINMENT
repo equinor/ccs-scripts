@@ -13,7 +13,7 @@ DEFAULT <INIT> -1
 DEFAULT <VERBOSE> -1
 DEFAULT <DEBUG> -1
 
-ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--root_dir" <ROOT_DIR> "--out_dir" <OUT_DIR> "--containment_polygon" <CONTAINMENT_POLYGON> "--hazardous_polygon" <HAZARDOUS_POLYGON> "--zonefile" <ZONEFILE> "--regionfile" <REGIONFILE> "--region_property" <REGION_PROPERTY>  "--egrid"  <EGRID>  "--unrst"  <UNRST> "--init" <INIT> "--verbose" <VERBOSE> "--debug" <DEBUG>
+ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--root_dir" <ROOT_DIR> "--out_dir" <OUT_DIR> "--containment_polygon" <CONTAINMENT_POLYGON> "--hazardous_polygon" <HAZARDOUS_POLYGON> "--zonefile" <ZONEFILE> "--regionfile" <REGIONFILE> "--region_property" <REGION_PROPERTY>  "--egrid"  <EGRID>  "--unrst"  <UNRST> "--init" <INIT> "--verbose" "--debug"
 
 MIN_ARG 2
 MAX_ARG 14

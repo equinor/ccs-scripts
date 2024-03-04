@@ -74,7 +74,7 @@ def _setup_log_configuration(arguments: argparse.Namespace) -> None:
 
 
 def _log_input_configuration(arguments: argparse.Namespace) -> None:
-    version = "v0.4.0"
+    version = "v0.5.0"
     is_dev_version = True
     if is_dev_version:
         version += "_dev"
@@ -100,10 +100,10 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     logging.info(f"User                : {getpass.getuser()}")
     logging.info(f"Host                : {socket.gethostname()}")
     logging.info(f"Platform            : {platform.system()} ({platform.release()})")
-    logging.info(
-        f"Python version      : \
-        {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    py_version = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
+    logging.info(f"Python version      : {py_version}")
 
     logging.info(f"\nCase                 : {arguments.case}")
     logging.info(f"Injection point info : {arguments.injection_point_info}")
@@ -189,19 +189,18 @@ def _find_max_distances_per_time_step(
 
 
 def _log_results(df: pd.DataFrame, amfg_key: str) -> None:
+    dfs = df.sort_values("date")
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates             : {len(df['date'].unique()):>11}")
-    logging.info(f"First date                  : {df['date'].iloc[0]:>11}")
-    logging.info(f"Last date                   : {df['date'].iloc[-1]:>11}")
+    logging.info(f"Number of dates             : {len(dfs['date'].unique()):>11}")
+    logging.info(f"First date                  : {dfs['date'].iloc[0]:>11}")
+    logging.info(f"Last date                   : {dfs['date'].iloc[-1]:>11}")
     logging.info(
-        f"End state max distance SGAS : {df['MAX_DISTANCE_SGAS'].iloc[-1]:>11.1f}"
+        f"End state max distance SGAS : {dfs['MAX_DISTANCE_SGAS'].iloc[-1]:>11.1f}"
     )
     if amfg_key is not None:
-        logging.info(
-            f"End state max distance {amfg_key} : \
-            {df['MAX_DISTANCE_' + amfg_key].iloc[-1]:>11.1f}"
-        )
+        value = dfs["MAX_DISTANCE_" + amfg_key].iloc[-1]
+        logging.info(f"End state max distance {amfg_key} : {value:>11.1f}")
 
 
 def _collect_results_into_dataframe(

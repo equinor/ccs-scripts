@@ -8,7 +8,7 @@ DEFAULT <INJECTION_POINT_INFO> ""
 ARG_TYPE 0 STRING
 ARG_TYPE 1 STRING
 
-ARGLIST   <CASE> <INJECTION_POINT_INFO>  "--output" <OUTPUT> "--threshold_sgas" <THRESHOLD_SGAS> "--threshold_amfg" <THRESHOLD_AMFG> 	 
+ARGLIST   <CASE> <INJECTION_POINT_INFO>  "--output" <OUTPUT> "--threshold_sgas" <THRESHOLD_SGAS> "--threshold_amfg" <THRESHOLD_AMFG> "--verbose" "--debug"
 
 MIN_ARG 3
-MAX_ARG 5
+MAX_ARG 7

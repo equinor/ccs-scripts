@@ -170,7 +170,7 @@ def _read_args() -> Tuple[str, str]:
 
 
 def _log_input_configuration(input_path: str, output_path: str) -> None:
-    version = "v0.4.0"
+    version = "v0.5.0"
     is_dev_version = True
     if is_dev_version:
         version += "_dev"
@@ -196,10 +196,10 @@ def _log_input_configuration(input_path: str, output_path: str) -> None:
     logging.info(f"User                : {getpass.getuser()}")
     logging.info(f"Host                : {socket.gethostname()}")
     logging.info(f"Platform            : {platform.system()} ({platform.release()})")
-    logging.info(
-        f"Python version      : \
-        {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    py_version = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
+    logging.info(f"Python version      : {py_version}")
 
     logging.info(f"\nInput path  : {input_path}")
     logging.info(f"Output path : {output_path}\n")
@@ -219,16 +219,20 @@ def _convert_to_data_frame(results: List[List[float]], rskey: str) -> pd.DataFra
 
 
 def _log_results(df: pd.DataFrame) -> None:
+    dfs = df.sort_values("date")
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates : {len(df['date'].unique()):>11}")
-    logging.info(f"First date      : {df['date'].iloc[0]:>11}")
-    logging.info(f"Last date       : {df['date'].iloc[-1]:>11}")
-    columns = [c for c in df if c != "date"]
-    n = max(len(c) for c in columns)
+    logging.info(f"Number of dates : {len(dfs['date'].unique()):>11}")
+    logging.info(f"First date      : {dfs['date'].iloc[0]:>11}")
+    logging.info(f"Last date       : {dfs['date'].iloc[-1]:>11}")
+
+    columns = [c for c in dfs if c != "date"]
+    n1 = max(len(c) for c in columns) if len(columns) > 0 else 5
+    df_subset = dfs.drop("date", axis=1)
+    n2 = len(f"{df_subset.max().max():.1f}") if len(columns) > 0 else 5
     logging.info("End state plume area:")
     for c in columns:
-        logging.info(f"    * {c:<{n+1 }}: {df[c].iloc[-1]:>11}")
+        logging.info(f"    * {c:<{n1+1}}: {dfs[c].iloc[-1]:>{n2+1}.1f}")
 
 
 def main():
