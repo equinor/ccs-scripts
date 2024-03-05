@@ -1,0 +1,42 @@
+site_name: FMU for CCS
+
+#Repository
+repo_name: Access to GitHub repository
+repo_url: https://github.com/equinor/ccs-scripts
+
+#Configuration
+theme:
+  name: material
+  language: en
+  palette:
+    primary: blue
+  font:
+    text: Roboto
+    code: Roboto Mono
+  favicon: https://cdn.eds.equinor.com/logo/equinor-logo-primary.svg
+  logo: https://cdn.eds.equinor.com/logo/equinor-logo-primary.svg#white
+
+extra_css:
+  - https://cdn.eds.equinor.com/font/equinor-font.css
+
+nav:
+  - About:  about.md
+  - Running FMU on Azure:
+    - 1. Get started on Azure: azure/get-started.md
+    - 2. Modify ERT config file: azure/ert.md
+  - Ensemble visualization & analysis:
+    - Overview: webviz/overview.md
+    - Maps:
+      - Migration time map: webviz/maps/mig-time.md
+      - Aggregation map: webviz/maps/agg-map.md
+      - Mass map: webviz/maps/mass-map.md
+    - General scripts:
+      #- Test: co2_plume.md
+      - Plume extent: webviz/scripts/plume-extent.md
+      - Plume area: webviz/scripts/plume-area.md
+      - CO2 containment: webviz/scripts/co2-containment.md
+    - Plugin:
+      - CO2 leakage: webviz/plugin/co2-leakage.md
+  - Tutorials: tutorials.md
+  - Updates: updates.md
+  - Contact us: contact.md
