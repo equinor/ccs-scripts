@@ -5,8 +5,8 @@ FROM nginxinc/nginx-unprivileged:1-alpine
 #RUN apk add python3
 #RUN apk add py-pip
 
-RUN pip install mkdocs
-RUN pip install mkdocs-material
+#RUN pip install mkdocs
+#RUN pip install mkdocs-material
 
 WORKDIR /develop_floriane
 COPY . /develop_floriane
