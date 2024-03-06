@@ -1,0 +1,82 @@
+site_name: FMU for CCS
+
+#Repository
+repo_name: Access to GitHub repository
+repo_url: https://github.com/equinor/ccs-scripts
+
+#Configuration
+theme:
+  name: material
+  language: en
+  #font:
+  #  text: Roboto
+  #  code: Roboto Mono
+  favicon: https://cdn.eds.equinor.com/logo/equinor-logo-primary.svg
+  logo: https://cdn.eds.equinor.com/logo/equinor-logo-primary.svg#white
+  features:
+    - navigation.tracking
+    - content.action.edit
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: custom
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      primary: custom
+      scheme: default 
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+extra_css:
+  - https://cdn.eds.equinor.com/font/equinor-font.css
+  - _resources/mkdocs-eq.css
+  - _resources/neoteroi-cards.css
+
+
+markdown_extensions:
+  - pymdownx.magiclink:
+      repo_url_shortener: false
+      repo_url_shorthand: false
+      social_url_shorthand: false
+      social_url_shortener: false
+      user: facelessuser
+      repo: pymdown-extensions
+      normalize_issue_symbols: true
+  - toc:
+      toc_depth: 2
+
+nav:
+  - About:  about.md
+  - Running FMU on Azure:
+    - 1. Get started on Azure: azure/get-started.md
+    - 2. Modify ERT config file: azure/ert.md
+  - Ensemble visualization & analysis:
+    - Overview: webviz/overview.md
+    - Maps:
+      - Theory: webviz/maps/theory.md
+      - Migration time map: webviz/maps/mig-time.md
+      - Aggregation map: webviz/maps/agg-map.md
+      - Mass map: webviz/maps/mass-map.md
+    - General scripts:
+      #- Test: co2_plume.md
+      - Plume extent: webviz/scripts/plume-extent.md
+      - Plume area: webviz/scripts/plume-area.md
+      - CO2 containment: webviz/scripts/co2-containment.md
+    - Plugin:
+      - CO2 leakage: webviz/plugin/co2-leakage.md
+  - Tutorials: tutorials.md
+  - Updates: updates.md
+  - Contact us: contact.md

@@ -2,7 +2,7 @@ FROM nginxinc/nginx-unprivileged:1-alpine
 
 USER root
 
-RUN python -m apk update
+RUN apk update
 RUN apk upgrade
 RUN apk add python3
 RUN apk add py-pip
@@ -24,30 +24,30 @@ RUN mkdir /mkdocs/docs/azure/
 RUN mkdir /mkdocs/docs/webviz/
 RUN mkdir /mkdocs/site/
 
-WORKDIR /mkdocs/docs/
+WORKDIR /docs/
 COPY about.md .
 COPY contact.md .
 COPY tutorials.md .
 COPY updates.md .
 
-WORKDIR /mkdocs/docs/azure/
+WORKDIR /docs/azure/
 COPY ert.md .
 COPY get-started.md .
 
-WORKDIR /mkdocs/docs/webviz/
+WORKDIR /docs/webviz/
 COPY overview.md .
 
-WORKDIR /mkdocs/docs/webviz/maps/
+WORKDIR /docs/webviz/maps/
 COPY mig-time.md .
 COPY agg-map.md .
 COPY mass-map.md .
 COPY theory.md .
 
 
-WORKDIR /mkdocs/
+WORKDIR .
 COPY mkdocs.yml .
 RUN mkdocs build
-RUN rm -Rf /mkdocs/docs
+RUN rm -Rf /docs
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
