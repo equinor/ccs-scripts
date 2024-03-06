@@ -7,10 +7,6 @@ spec:
     - name: prod
       build:
         from: develop_floriane
-  dnsAlias:
-    - alias: fmu-for-ccs
-      component: develop_floriane
-      environment: prod
   components:
     - name: develop_floriane
       ports:
@@ -20,7 +16,7 @@ spec:
       publicPort: http
       authentication:
         oauth2:
-          clientId: 88209e7f-6df5-43f3-baeb-913f09a80635
+          clientId: a8fd01a5-73fd-410c-b003-72ff4aff9f36
           scope: openid profile email offline_access
           setXAuthRequestHeaders: true
           sessionStoreType: redis
@@ -50,4 +46,8 @@ spec:
       ports:
         - name: http
           port: 8000
+  dnsAlias:
+    - alias: fmu-for-ccs
+      environment: prod
+      component: develop_floriane
   
