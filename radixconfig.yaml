@@ -8,11 +8,10 @@ spec:
       build:
         from: develop_floriane
   components:
-    - name: develop_floriane
+    - name: main
       ports:
         - name: http
           port: 8000
-      public: false
       publicPort: http
       authentication:
         oauth2:
@@ -49,5 +48,5 @@ spec:
   dnsAlias:
     - alias: fmu-for-ccs
       environment: prod
-      component: develop_floriane
+      component: main
   
