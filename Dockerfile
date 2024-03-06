@@ -1,9 +1,9 @@
 FROM nginxinc/nginx-unprivileged:1-alpine
 
-RUN apk update
-RUN apk upgrade
-RUN apk add python3
-RUN apk add py-pip
+#RUN apk update
+#RUN apk upgrade
+#RUN apk add python3
+#RUN apk add py-pip
 
 RUN pip install mkdocs
 RUN pip install mkdocs-material
