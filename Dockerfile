@@ -18,25 +18,24 @@ COPY . /develop_floriane
 #RUN mkdir /mkdocs/docs/webviz/
 #RUN mkdir /mkdocs/site/
 
-WORKDIR /mkdocs/docs/
+#WORKDIR /mkdocs/docs/
+#COPY about.md .
+#COPY contact.md .
+#COPY tutorials.md .
+#COPY updates.md .
 
-COPY about.md .
-COPY contact.md .
-COPY tutorials.md .
-COPY updates.md .
+#WORKDIR /mkdocs/docs/azure/
+#COPY ert.md .
+#COPY get-started.md .
 
-WORKDIR /mkdocs/docs/azure/
-COPY ert.md .
-COPY get-started.md .
+#WORKDIR /mkdocs/docs/webviz/
+#COPY overview.md .
 
-WORKDIR /mkdocs/docs/webviz/
-COPY overview.md .
-
-WORKDIR /mkdocs/docs/webviz/maps/
-COPY mig-time.md .
-COPY agg-map.md .
-COPY mass-map.md .
-COPY theory.md .
+#WORKDIR /mkdocs/docs/webviz/maps/
+#COPY mig-time.md .
+#COPY agg-map.md .
+#COPY mass-map.md .
+#COPY theory.md .
 
 
 WORKDIR /mkdocs/
