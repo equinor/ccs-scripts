@@ -27,6 +27,7 @@ nav:
   - Ensemble visualization & analysis:
     - Overview: webviz/overview.md
     - Maps:
+      - Theory: webviz/maps/theory.md
       - Migration time map: webviz/maps/mig-time.md
       - Aggregation map: webviz/maps/agg-map.md
       - Mass map: webviz/maps/mass-map.md

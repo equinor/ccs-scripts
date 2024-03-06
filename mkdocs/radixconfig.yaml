@@ -1,0 +1,53 @@
+apiVersion: radix.equinor.com/v1
+kind: RadixApplication
+metadata:
+  name: FMU-for-CCS
+spec:
+  environments:
+    - name: prod
+      build:
+        from: develop_floriane
+  dnsAlias:
+    - alias: fmu-for-ccs
+      component: develop_floriane
+      environment: prod
+  components:
+    - name: develop_floriane
+      ports:
+        - name: http
+          port: 8000
+      public: false
+      publicPort: http
+      authentication:
+        oauth2:
+          clientId: 88209e7f-6df5-43f3-baeb-913f09a80635
+          scope: openid profile email offline_access
+          setXAuthRequestHeaders: true
+          sessionStoreType: redis
+          redisStore:
+            connectionUrl: redis://redis:6379
+      environmentConfig:
+        - environment: prod
+          runAsNonRoot: true
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "500m"
+            limits:
+              memory: "16Gi"
+              cpu: "800m"
+            variables: 
+              assets_folder: "http://assets:8000/css/" 
+    - name: auth-state
+      image: bitnami/redis:latest
+      secrets:
+        - REDIS_PASSWORD
+      ports:
+        - name: redis
+          port: 6379
+    - name: frontend
+      src: mkdocs/
+      ports:
+        - name: http
+          port: 8000
+  
