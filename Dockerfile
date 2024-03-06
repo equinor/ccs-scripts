@@ -17,7 +17,7 @@ RUN useradd -u 1001 mkdocs
 USER 1001
 
 WORKDIR /.
-RUN mkdir /mkdocs/
+RUN mkdir /mkdocs
 RUN mkdir /mkdocs/docs/
 RUN mkdir /mkdocs/docs/azure/
 RUN mkdir /mkdocs/docs/webviz/
