@@ -39,8 +39,8 @@ COPY . /develop_floriane
 #COPY theory.md .
 
 
-WORKDIR /mkdocs/
-COPY mkdocs.yml .
+#WORKDIR /mkdocs/
+COPY mkdocs.yml /mkdocs/
 RUN mkdocs build
 RUN rm -Rf /mkdocs/docs
 
