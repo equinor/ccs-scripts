@@ -11,12 +11,12 @@ FROM nginxinc/nginx-unprivileged:1-alpine
 WORKDIR /develop_floriane
 COPY . /develop_floriane
 
-WORKDIR /.
-RUN mkdir /mkdocs/
-RUN mkdir /mkdocs/docs/
-RUN mkdir /mkdocs/docs/azure/
-RUN mkdir /mkdocs/docs/webviz/
-RUN mkdir /mkdocs/site/
+#WORKDIR /.
+#RUN mkdir /mkdocs/
+#RUN mkdir /mkdocs/docs/
+#RUN mkdir /mkdocs/docs/azure/
+#RUN mkdir /mkdocs/docs/webviz/
+#RUN mkdir /mkdocs/site/
 
 WORKDIR /mkdocs/docs/
 
