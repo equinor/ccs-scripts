@@ -1,10 +1,10 @@
 FROM nginxinc/nginx-unprivileged:1-alpine
 FROM python:3.12-slim
 
-RUN apk update
-RUN apk upgrade
-RUN apk add python3
-RUN apk add py-pip
+#RUN apk update
+#RUN apk upgrade
+#RUN apk add python3
+#RUN apk add py-pip
 
 RUN python -m pip install mkdocs
 RUN python -m pip install mkdocs-material
