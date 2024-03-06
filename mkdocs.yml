@@ -42,8 +42,8 @@ theme:
 
 extra_css:
   - https://cdn.eds.equinor.com/font/equinor-font.css
-  - _resources/mkdocs-eq.css
-  - _resources/neoteroi-cards.css
+  - stylesheets/extra.css
+  - stylesheets/neoteroi-cards.css
 
 
 markdown_extensions:

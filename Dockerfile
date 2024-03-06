@@ -20,6 +20,7 @@ USER 1001
 WORKDIR /.
 RUN mkdir /mkdocs
 RUN mkdir /mkdocs/docs/
+RUN mkdir /mkdocs/docs/stylesheets/
 RUN mkdir /mkdocs/docs/azure/
 RUN mkdir /mkdocs/docs/webviz/
 RUN mkdir /mkdocs/site/
@@ -34,6 +35,10 @@ WORKDIR /docs/azure/
 COPY ert.md .
 COPY get-started.md .
 
+WORKDIR /docs/stylesheets/
+COPY extra.css .
+COPY neoteroi-cards.css .
+
 WORKDIR /docs/webviz/
 COPY overview.md .
 
@@ -44,7 +49,7 @@ COPY mass-map.md .
 COPY theory.md .
 
 
-WORKDIR .
+WORKDIR /.
 COPY mkdocs.yml .
 RUN mkdocs build
 RUN rm -Rf /docs
