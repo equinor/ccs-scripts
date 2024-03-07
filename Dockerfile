@@ -67,7 +67,7 @@ COPY /docs/webviz/maps/theory.md /docs/webviz/maps/theory.md
 COPY /docs/webviz/maps/agg-map.jpg /docs/webviz/maps/agg-map.jpg
 COPY /docs/webviz/maps/grid_aggregation.jpg /docs/webviz/maps/grid_aggregation.jpg
 COPY /docs/webviz/maps/mass-map.jpg /docs/webviz/maps/mass-map.jpg
-COPY /docs/webviz/maps/gridding_approach.jpg /docs/webviz/maps/gridding_approach.jpg
+COPY /docs/webviz/maps/gridding_approach.png /docs/webviz/maps/gridding_approach.png
 COPY /docs/webviz/maps/mig-time.jpg /docs/webviz/maps/mig-time.jpg
 
 
