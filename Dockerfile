@@ -74,8 +74,12 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 #RUN chown -R 1001:1001 /develop_floriane
 #USER 1001
 
-RUN useradd -u 8877 develop_floriane
-USER 8877
+RUN addgroup -S -g 1001 radix-non-root-group
+RUN adduser -S -u 1001 -G radix-non-root-group radix-non-root-user
+USER 1001
+
+#RUN useradd -u 8877 develop_floriane
+#USER 8877
 
 # Expose MkDocs development server port
 EXPOSE 8000

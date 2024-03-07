@@ -40,11 +40,11 @@ spec:
       ports:
         - name: redis
           port: 6379
-    - name: frontend
-      src: .
-      ports:
-        - name: http
-          port: 8000
+    #- name: frontend
+    #  src: .
+    #  ports:
+    #    - name: http
+    #      port: 8000
   dnsAlias:
     - alias: fmu-for-ccs
       environment: prod
