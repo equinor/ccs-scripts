@@ -89,7 +89,7 @@ RUN rm -Rf /docs
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-RUN chown -R 1001:1001 /mkdocs
+RUN chown -R 1001:1001 /develop_floriane
 USER 1001
 
 # Expose MkDocs development server port
