@@ -74,7 +74,7 @@ COPY /docs/webviz/maps/mig-time.jpg /docs/webviz/maps/mig-time.jpg
 
 
 #Webviz plugins
-COPY /docs/webviz/plugins/co2-leakage.md /docs/webviz/plugins/co2-leakage.md
+COPY /docs/webviz/plugin/co2-leakage.md /docs/webviz/plugin/co2-leakage.md
 
 #Webviz scripts
 COPY /docs/webviz/scripts/plume-extent.md /docs/webviz/scripts/plume-extent.md
