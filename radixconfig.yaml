@@ -29,11 +29,11 @@ spec:
           runAsNonRoot: true
           resources:
             requests:
-              memory: "4500Mi"
-              cpu: "500m"
+              memory: "5000Mi"
+              cpu: "1000m"
             limits:
               memory: "16000Mi"
-              cpu: "5000m"
+              cpu: "10000m"
             variables: 
               assets_folder: "http://assets:8000/css/" 
     - name: auth-state
