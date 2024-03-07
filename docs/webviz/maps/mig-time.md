@@ -1,17 +1,17 @@
-#Migration time maps
+# Migration time maps
 
-##Overview
+## Overview
 
-Image
+![Image](mig-time.jpg)
 
-##How to set it up?
+## How to set it up?
 
-###ERT
+### ERT
 
-``` yaml
+```yaml
 FORWARD_MODEL GRID3D_MIGRATION_TIME(<ECLROOT>=<ECLBASE>, <CONFIG_MIGTIME>=<CONFIG_PATH>/../input/config/grid3d_migration_time.yml)
 ```
 
-###Config file
+### Config file
 
 Steps and config file

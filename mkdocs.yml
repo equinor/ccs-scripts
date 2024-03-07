@@ -8,28 +8,23 @@ repo_url: https://github.com/equinor/ccs-scripts
 theme:
   name: material
   language: en
-  #font:
-  #  text: Roboto
-  #  code: Roboto Mono
-  favicon: https://cdn.eds.equinor.com/logo/equinor-logo-primary.svg
-  logo: https://cdn.eds.equinor.com/logo/equinor-logo-primary.svg#white
+  font:
+    text: Roboto
+    code: Roboto Mono
+  #favicon: https://cdn.eds.equinor.com/logo/equinor-logo-primary.svg
+  #logo: https://cdn.eds.equinor.com/logo/equinor-logo-primary.svg#white
+  favicon: stylesheets/Equinor_Symbol_Favicon_RED_32x32px.png
+  logo: stylesheets/Equinor_Symbol_Favicon_RED_64x64px.png
   features:
     - navigation.tracking
     - content.action.edit
   palette:
-    # Palette toggle for automatic mode
-    - media: "(prefers-color-scheme)"
-      primary: custom
-      toggle:
-        icon: material/brightness-auto
-        name: Switch to light mode
-
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
       primary: custom
-      scheme: default 
+      scheme: default
       toggle:
-        icon: material/brightness-7
+        icon: material/weather-night
         name: Switch to dark mode
 
     # Palette toggle for dark mode
@@ -37,9 +32,8 @@ theme:
       scheme: slate
       primary: custom
       toggle:
-        icon: material/brightness-4
-        name: Switch to system preference
-
+        icon: material/weather-sunny
+        name: Switch to light mode
 extra_css:
   - https://cdn.eds.equinor.com/font/equinor-font.css
   - stylesheets/extra.css

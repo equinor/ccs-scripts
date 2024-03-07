@@ -1,9 +1,34 @@
-#Modify ERT config file
+#FMU on Azure
 
-##Overview & context
+## 🎯 Overview & context
 
-Change queue system 
+In order to run FMU on your Azure subscription using Pflotran, a few modifications need to take place in your ERT config file:
 
-##Example
+- Change in queue system
+- Use of Pflotran instead of Eclipse
+- Opt: add post-processing scripts to analysis results on Webviz
 
-Screenshot or highlight and list differences and modifications to be done
+
+Other queues exist and will influence computational power & cost. ​Reach out to Hans Rune Bue to know more.
+
+
+## 📝 Set-by-step
+
+- Queue system: `hb120`, `d32ds`
+<br />
+<br />
+
+
+- Pflotran:
+
+    `FORWARD_MODEL RUN_PFLOTRAN(<queue>=<QUEUE>, <cpus_per_node>=<CPUS_PER_NODE>, <number_of_nodes>=<NUMBER_OF_NODES>, <model_file>=<RUNPATH>/pflotran/model/<ECLIPSE_NAME>-<IENS>.in)`
+
+- Post-processing scripts:
+To know more, visit the following section of the documentation. 
+
+
+## 📜 Example
+
+Example of ERT config file. Changes in queues have been highlighted:
+
+![](ert-config.jpg)

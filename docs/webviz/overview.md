@@ -2,7 +2,7 @@
 
 ## About Weviz
 
-Webviz is designed for analysing FMU model result.
+Webviz is designed for analysing FMU model results.
 
 More documentation on Webviz: [Drogon example](https://webviz-subsurface-example.azurewebsites.net/how-was-this-made)
 

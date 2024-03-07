@@ -1,14 +1,14 @@
-#Aggregation maps
+# Aggregation maps
 
-##Overview
+## Overview
 
-Image
+![Image](agg-map.jpg)
 
 ## How to set it up?
 
 ### ERT
 
-``` yaml
+```yaml
 FORWARD_MODEL GRID3D_AGGREGATE_MAP(<ECLROOT>=<ECLBASE>, <CONFIG_AGGREGATE>=<CONFIG_PATH>/../input/config/grid3d_aggregate_map.yml)
 ```
 
