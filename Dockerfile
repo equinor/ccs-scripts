@@ -1,11 +1,28 @@
-FROM nginxinc/nginx-unprivileged:1-alpine
+# Copyright (c) 2016-2024 Martin Donath <martin.donath@squidfunk.com>
 
-USER root
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 
-RUN apk update
-RUN apk upgrade
-RUN apk add python3
-RUN apk add py-pip
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+
+FROM python:3.11-alpine3.18
+
+# Environment variables
+ENV PACKAGES=/usr/local/lib/python3.11/site-packages
+ENV PYTHONDONTWRITEBYTECODE=1
 
 RUN python -m pip install mkdocs
 RUN python -m pip install mkdocs-material
@@ -13,52 +30,20 @@ RUN python -m pip install mkdocs-material
 WORKDIR /develop_floriane
 COPY . /develop_floriane
 
-# Creates a non-root user and adds permission to access the /app folder
-#RUN useradd -u 1001 mkdocs
-#USER 1001
-
-WORKDIR /.
-RUN mkdir /mkdocs
-RUN mkdir /mkdocs/docs/
-RUN mkdir /mkdocs/docs/stylesheets/
-RUN mkdir /mkdocs/docs/azure/
-RUN mkdir /mkdocs/docs/webviz/
-RUN mkdir /mkdocs/site/
-
-WORKDIR /mkdocs/docs/
-COPY about.md about.md
-COPY contact.md .
-COPY tutorials.md .
-COPY updates.md .
-
-WORKDIR /docs/azure/
-COPY ert.md .
-COPY get-started.md .
-
-WORKDIR /docs/stylesheets/
-COPY extra.css .
-COPY neoteroi-cards.css .
-
-WORKDIR /docs/webviz/
-COPY overview.md .
-
-WORKDIR /docs/webviz/maps/
-COPY mig-time.md .
-COPY agg-map.md .
-COPY mass-map.md .
-COPY theory.md .
+# Copy files necessary for build
+#COPY material material
+#COPY package.json package.json
+#COPY README.md README.md
+#COPY *requirements.txt ./
+#COPY pyproject.toml pyproject.toml
 
 
-WORKDIR /.
-COPY mkdocs.yml .
-RUN mkdocs build
-RUN rm -Rf /docs
+# Set working directory
+WORKDIR /docs
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-
-
-RUN chown -R 1001:1001 /mkdocs
-USER 1001
-
+# Expose MkDocs development server port
 EXPOSE 8000
+
+# Start development server by default
+ENTRYPOINT ["mkdocs"]
+CMD ["serve", "--dev-addr=0.0.0.0:8000"]
