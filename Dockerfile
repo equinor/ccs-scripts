@@ -44,6 +44,31 @@ COPY /docs/contact.md /docs/contact.md
 COPY /docs/tutorials.md /docs/tutorials.md
 COPY /docs/updates.md /docs/updates.md
 
+#Azure
+COPY /docs/azure/ert.md /docs/azure/ert.md
+COPY /docs/azure/get-started.md /docs/azure/get-started.md
+
+#Stylesheet
+COPY /docs/stylesheets/extra.css /docs/stylesheets/extra.css
+COPY /docs/stylesheets/neoteroi-cards.css /docs/stylesheets/neoteroi-cards.css
+
+#Webviz
+COPY /docs/webviz/overview.md /docs/webviz/overview.md
+
+#Webviz maps
+COPY /docs/webviz/maps/mig-time.md /docs/webviz/maps/mig-time.md
+COPY /docs/webviz/maps/agg-map.md /docs/webviz/maps/agg-map.md
+COPY /docs/webviz/maps/mass-map.md /docs/webviz/maps/mass-map.md
+COPY /docs/webviz/maps/theory.md /docs/webviz/maps/theory.md
+
+
+WORKDIR /.
+COPY mkdocs.yml .
+RUN mkdocs build
+RUN rm -Rf /docs
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # Expose MkDocs development server port
 EXPOSE 8000
 
