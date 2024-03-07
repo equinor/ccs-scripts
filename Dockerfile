@@ -89,9 +89,12 @@ RUN rm -Rf /docs
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+RUN chown -R 1001:1001 /mkdocs
+USER 1001
+
 # Expose MkDocs development server port
 EXPOSE 8000
 
 # Start development server by default
-ENTRYPOINT ["mkdocs"]
-CMD ["serve", "--dev-addr=0.0.0.0:8000"]
+#ENTRYPOINT ["mkdocs"]
+#CMD ["serve", "--dev-addr=0.0.0.0:8000"]
