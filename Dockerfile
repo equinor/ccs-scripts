@@ -1,4 +1,4 @@
-#FROM python:3.11-alpine3.18
+FROM python:3.11-alpine3.18
 FROM nginxinc/nginx-unprivileged:1-alpine
 
 # Environment variables
@@ -70,8 +70,11 @@ RUN rm -Rf /docs
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-RUN chown -R 1001:1001 /develop_floriane
-USER 1001
+#RUN chown -R 1001:1001 /develop_floriane
+#USER 1001
+
+RUN RUN useradd -u 8877 develop_floriane
+USER 8877
 
 # Expose MkDocs development server port
 EXPOSE 8000
