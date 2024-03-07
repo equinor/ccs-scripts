@@ -20,7 +20,7 @@ spec:
           setXAuthRequestHeaders: true
           sessionStoreType: redis
           redisStore:
-            connectionUrl: redis://redis:6379
+            connectionUrl: redis://auth-state:6379
       environmentConfig:
         - environment: prod
           runAsNonRoot: true
