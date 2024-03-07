@@ -29,10 +29,10 @@ spec:
           runAsNonRoot: true
           resources:
             requests:
-              memory: "4Gi"
+              memory: "4500Mi"
               cpu: "500m"
             limits:
-              memory: "16Gi"
+              memory: "16000Mi"
               cpu: "5000m"
             variables: 
               assets_folder: "http://assets:8000/css/" 
