@@ -47,7 +47,7 @@ COPY /docs/updates.md /docs/updates.md
 #Azure
 COPY /docs/azure/ert.md /docs/azure/ert.md
 COPY /docs/azure/get-started.md /docs/azure/get-started.md
-COPY /docs/azure/ert-config.md /docs/azure/ert-config.md
+COPY /docs/azure/ert-config.jpg /docs/azure/ert-config.jpg
 
 #Stylesheet
 COPY /docs/stylesheets/extra.css /docs/stylesheets/extra.css
