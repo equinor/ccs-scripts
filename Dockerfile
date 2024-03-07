@@ -26,7 +26,7 @@ RUN mkdir /mkdocs/docs/webviz/
 RUN mkdir /mkdocs/site/
 
 WORKDIR /mkdocs/docs/
-COPY about.md .
+COPY about.md /docs/
 COPY contact.md .
 COPY tutorials.md .
 COPY updates.md .
