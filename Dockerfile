@@ -39,8 +39,10 @@ COPY . /develop_floriane
 
 
 # Set working directory
-WORKDIR /docs
-COPY about.md /docs/about.md
+COPY /docs/about.md /docs/about.md
+COPY /docs/contact.md /docs/contact.md
+COPY /docs/tutorials.md /docs/tutorials.md
+COPY /docs/updates.md /docs/updates.md
 
 # Expose MkDocs development server port
 EXPOSE 8000
