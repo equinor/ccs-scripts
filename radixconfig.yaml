@@ -9,18 +9,21 @@ spec:
         from: develop_floriane
   components:
     - name: main
-      ports:
-        - name: http
-          port: 8000
-      publicPort: http
       authentication:
         oauth2:
           clientId: a8fd01a5-73fd-410c-b003-72ff4aff9f36
           scope: openid profile email offline_access
           setXAuthRequestHeaders: true
+          setAuthorizationHeader: true
           sessionStoreType: redis
           redisStore:
             connectionUrl: redis://auth-state:6379
+      src: "."
+      publicPort: http
+      ports:
+        - name: http
+          port: 8000
+      public: false
       environmentConfig:
         - environment: prod
           runAsNonRoot: true
