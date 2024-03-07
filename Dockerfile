@@ -47,10 +47,14 @@ COPY /docs/updates.md /docs/updates.md
 #Azure
 COPY /docs/azure/ert.md /docs/azure/ert.md
 COPY /docs/azure/get-started.md /docs/azure/get-started.md
+COPY /docs/azure/ert-config.md /docs/azure/ert-config.md
 
 #Stylesheet
 COPY /docs/stylesheets/extra.css /docs/stylesheets/extra.css
 COPY /docs/stylesheets/neoteroi-cards.css /docs/stylesheets/neoteroi-cards.css
+COPY /docs/stylesheets/Equinor_Symbol_Favicon_RED_32x32px.png /docs/stylesheets/Equinor_Symbol_Favicon_RED_32x32px.png
+COPY /docs/stylesheets/Equinor_Symbol_Favicon_RED_64x64px.png /docs/stylesheets/Equinor_Symbol_Favicon_RED_64x64px.png
+
 
 #Webviz
 COPY /docs/webviz/overview.md /docs/webviz/overview.md
@@ -60,6 +64,23 @@ COPY /docs/webviz/maps/mig-time.md /docs/webviz/maps/mig-time.md
 COPY /docs/webviz/maps/agg-map.md /docs/webviz/maps/agg-map.md
 COPY /docs/webviz/maps/mass-map.md /docs/webviz/maps/mass-map.md
 COPY /docs/webviz/maps/theory.md /docs/webviz/maps/theory.md
+COPY /docs/webviz/maps/agg-map.jpg /docs/webviz/maps/agg-map.jpg
+COPY /docs/webviz/maps/grid-aggregation.jpg /docs/webviz/maps/grid-aggregation.jpg
+COPY /docs/webviz/maps/grid-aggregation.jpg /docs/webviz/maps/grid-aggregation.jpg
+COPY /docs/webviz/maps/mass-map.jpg /docs/webviz/maps/mass-map.jpg
+COPY /docs/webviz/maps/gridding-approach.jpg /docs/webviz/maps/gridding-approach.jpg
+COPY /docs/webviz/maps/mig-time.jpg /docs/webviz/maps/mig-time.jpg
+
+
+
+
+#Webviz plugins
+COPY /docs/webviz/plugins/co2-leakage.md /docs/webviz/plugins/co2-leakage.md
+
+#Webviz scripts
+COPY /docs/webviz/scripts/plume-extent.md /docs/webviz/scripts/plume-extent.md
+COPY  /docs/webviz/scripts/plume-area.md /docs/webviz/scripts/plume-area.md
+COPY /docs/webviz/scripts/co2-containment.md /docs/webviz/scripts/co2-containment.md
 
 
 WORKDIR /.
