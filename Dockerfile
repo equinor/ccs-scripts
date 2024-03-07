@@ -25,7 +25,7 @@ RUN mkdir /mkdocs/docs/azure/
 RUN mkdir /mkdocs/docs/webviz/
 RUN mkdir /mkdocs/site/
 
-WORKDIR /docs/
+WORKDIR /mkdocs/docs/
 COPY about.md .
 COPY contact.md .
 COPY tutorials.md .
