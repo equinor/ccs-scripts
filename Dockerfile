@@ -1,5 +1,6 @@
-FROM python:3.11-alpine3.18
-FROM nginxinc/nginx-unprivileged:1-alpine
+#FROM python:3.11-alpine3.18
+#FROM nginxinc/nginx-unprivileged:1-alpine
+FROM python:3.12-slim
 
 # Environment variables
 ENV PACKAGES=/usr/local/lib/python3.11/site-packages
