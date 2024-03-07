@@ -40,10 +40,11 @@ COPY . /develop_floriane
 
 # Set working directory
 WORKDIR /docs
+COPY about.md /docs/about.md
 
 # Expose MkDocs development server port
-EXPOSE 8050
+EXPOSE 8000
 
 # Start development server by default
 ENTRYPOINT ["mkdocs"]
-CMD ["serve", "--dev-addr=0.0.0.0:8050"]
+CMD ["serve", "--dev-addr=0.0.0.0:8000"]
