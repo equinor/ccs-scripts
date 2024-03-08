@@ -572,18 +572,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#definition" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
-      Definition
+      Overview
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#implementation-in-ert" class="md-nav__link">
+  <a href="#how-to-set-it-up" class="md-nav__link">
     <span class="md-ellipsis">
-      Implementation in ERT
+      How to set it up?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Versions
     </span>
   </a>
   
@@ -806,18 +815,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#definition" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
-      Definition
+      Overview
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#implementation-in-ert" class="md-nav__link">
+  <a href="#how-to-set-it-up" class="md-nav__link">
     <span class="md-ellipsis">
-      Implementation in ERT
+      How to set it up?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Versions
     </span>
   </a>
   
@@ -847,11 +865,33 @@
 
 
 <h1 id="plume-extent">Plume extent</h1>
-<h2 id="definition">Definition</h2>
+<h2 id="overview">Overview</h2>
 <p>Calculates the maximum distance of the CO2 plume to the injector or another point (as gas or CO2 dissolved in water).</p>
-<h2 id="implementation-in-ert">Implementation in ERT</h2>
-<pre><code class="language-yaml">FORWARD_MODEL PLUME_EXTENT(&lt;CASE&gt;=&lt;ECLBASE&gt;, &lt;XARG1&gt;=&quot;--well_name&quot;, &lt;XARG2&gt;=S-J)
-</code></pre>
+<p><strong>Limitations</strong></p>
+<p>Only calculates the maximum distance from 1 injector. </p>
+<h2 id="how-to-set-it-up">How to set it up?</h2>
+<h3 id="ert">ERT</h3>
+<p>✅ Available on Komodo</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="l l-Scalar l-Scalar-Plain">FORWARD_MODEL PLUME_EXTENT(&lt;CASE&gt;=&lt;ECLBASE&gt;, &lt;XARG1&gt;=&quot;--well_name&quot;, &lt;XARG2&gt;=S-J)</span>
+</span></code></pre></div>
+<h3 id="examples">Examples</h3>
+<p><em>More to come</em></p>
+<h2 id="versions">Versions</h2>
+<p><strong>Future development</strong></p>
+<ul>
+<li>
+<p>Ensure 2+ injectors can be used. </p>
+</li>
+<li>
+<p>Evaluate adding script extentsion from Smeaheia in this code.
+<br />
+<br /></p>
+</li>
+</ul>
+<p><strong>Updates</strong></p>
+<ul>
+<li>Date - Insert changes</li>
+</ul>
 
 
 
@@ -898,7 +938,7 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tracking", "content.action.edit", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tracking", "content.action.edit", "content.code.copy", "content.code.select", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
       <script src="../../../assets/javascripts/bundle.c8d2eff1.min.js"></script>

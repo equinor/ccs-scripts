@@ -1,10 +1,10 @@
 # Migration time maps
 
-## Overview
+## 🎯 Overview
 
 ![image alt ><](mig-time.jpg)
 
-## How to set it up?
+## 📝 How to set it up?
 
 ### ERT
 
@@ -25,7 +25,7 @@ Template example:
 {% include "./config-file-examples/mig-time-template.yml" %}
 ~~~
 
-## Other config file example
+## 📚 Other config file example
 
 ~~~ yaml title="Example 1"
 {% include "./config-file-examples/migration-time1.yml" %}
@@ -35,5 +35,11 @@ Template example:
 {% include "./config-file-examples/migration-time2.yml" %}
 ~~~
 
-## Versions
+## 🔧 Versions & updates
 
+
+**Future development**
+<br />
+<br />
+
+**Updates**

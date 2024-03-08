@@ -1,6 +1,6 @@
 # Plume extent
 
-## Overview
+## 🎯 Overview
 
 Calculates the maximum distance of the CO2 plume to the injector or another point (as gas or CO2 dissolved in water).
 
@@ -10,20 +10,24 @@ Only calculates the maximum distance from 1 injector.
 
 
 
-## How to set it up?
+## 📝 How to set it up?
 
 ### ERT
 
 ✅ Available on Komodo
 
+
 ``` yaml
+FORWARD_MODEL PLUME_EXTENT(<CASE>=<ECLBASE>, <XARG1>="--well_name", <XARG2>=[WELL_NAME])
+```
+
+## 📚 Other examples
+
+``` yaml title="Calculates max extent for a well called S-J"
 FORWARD_MODEL PLUME_EXTENT(<CASE>=<ECLBASE>, <XARG1>="--well_name", <XARG2>=S-J)
 ```
 
-### Examples
-
-
-## Versions
+## 🔧 Versions & Updates
 
 **Future development**
 

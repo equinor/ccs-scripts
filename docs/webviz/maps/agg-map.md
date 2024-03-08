@@ -1,12 +1,12 @@
 # Aggregation maps
 
-## Overview
+## 🎯 Overview
 
 ![image alt ><](agg-map.jpg)
 
 
 
-## How to set it up?
+## 📝 How to set it up?
 
 ### ERT
 
@@ -27,7 +27,7 @@ Template example:
 ~~~
 
 
-## Other examples
+## 📚 Other config file example
 
 ~~~ yaml title="Example 1"
 {% include "./config-file-examples/aggregate1.yml" %}
@@ -54,7 +54,10 @@ Template example:
 ~~~
 
 
-## Versions & updates
+## 🔧 Versions & updates
 
-Updates are coming on Komodo bleeding soon! 
+**Future development**
+<br />
+<br />
 
+**Updates**

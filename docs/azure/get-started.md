@@ -15,7 +15,7 @@ A step-by-step guide is available below.
 <br />
 <br />
 
-2. To gain <span style="background-color: #DFF5FF">access to Azure</span> and <span style="background-color: #DFF5FF">create your project area</span>, send a request to Hans Rune Bue (TDI OG SUB HPC-team) with the following information. Content highlighted in bold need to be changed according to your needs:
+2. To gain <span style="background-color: #DFF5FF">access to Azure</span> and <span style="background-color: #DFF5FF">create your project area</span>, send a request to Hans Rune Bue (TDI OG SUB HPC-team) with the following information. Content highlighted in bold needs to be changed according to your needs:
 
     - Email title:
     >"Request for extra CCS project into the S268 subscription"
@@ -50,7 +50,7 @@ A step-by-step guide is available below.
 <br />
 <br />
 
-- How to synchronize folders between RGS node and Azure (change highlighted sections):​
+- How to synchronize folders between RGS nodes and Azure (change highlighted sections):​
 
 | Command line      | Description |
 | ----------- | ----------- |

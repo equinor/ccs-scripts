@@ -79,6 +79,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#co2-containment" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -569,6 +574,19 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    CO2 containment
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -579,6 +597,52 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-set-it-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to set it up?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Versions
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -741,6 +805,43 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-set-it-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to set it up?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Versions
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -763,9 +864,29 @@
   
 
 
-  <h1>CO2 containment</h1>
-
-
+<h1 id="co2-containment">CO2 containment</h1>
+<h2 id="overview">Overview</h2>
+<p>Calculates the amount of CO2 inside or outside a boundary (polygons, zones or regions) and returns it as a volume or mass. Multiple options are available.</p>
+<h2 id="how-to-set-it-up">How to set it up?</h2>
+<h3 id="ert">ERT</h3>
+<p>✅ Available on Komodo</p>
+<p><strong>Note:</strong> Remember to change the sections marked with <span style="background-color: #DFF5FF">[ ]</span> below:</p>
+<p><em>More to come</em></p>
+<h3 id="examples">Examples</h3>
+<div class="language-yaml highlight"><span class="filename">Calculates actual CO2 volume inside & outside your 2 polygons</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="l l-Scalar l-Scalar-Plain">FORWARD_MODEL CO2_CONTAINMENT(&lt;GRID&gt;=&lt;RUNPATH&gt;&lt;ECLBASE&gt;.EGRID, &lt;OUTFILE&gt;=&quot;share/results/tables/plume_actual_volume_test.csv&quot;, &lt;CALC_TYPE_INPUT&gt;=&quot;actual_volume&quot;, &lt;XARG1&gt;=&quot;--containment_polygon&quot;, &lt;XARG2&gt;=share/results/polygons/[1st_boundary_name]--boundary.csv, &lt;XARG3&gt;=&quot;--hazardous_polygon&quot;, &lt;XARG4&gt;=share/results/polygons/[2nd_boundary_name]--boundary.csv, &lt;XARG5&gt;=&quot;--zonefile&quot;, &lt;XARG6&gt;=&lt;RUNPATH&gt;rms/output/zone/layer_zone_table.csv)</span>
+</span></code></pre></div>
+<div class="language-yaml highlight"><span class="filename">Calculates cell volume inside & outside your 1 polygon</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="l l-Scalar l-Scalar-Plain">FORWARD_MODEL CO2_CONTAINMENT(&lt;GRID&gt;=&lt;RUNPATH&gt;&lt;ECLBASE&gt;.EGRID, &lt;OUTFILE&gt;=&quot;share/results/tables/plume_cell_volume.csv&quot;, &lt;CALC_TYPE_INPUT&gt;=&quot;cell_volume&quot;,&lt;XARG1&gt;=&quot;--containment_polygon&quot;, &lt;XARG2&gt;=share/results/polygons/[1st_boundary_name]--boundary.csv)</span>
+</span></code></pre></div>
+<div class="language-yaml highlight"><span class="filename">Calculates mass inside & outside your 2 polygons and per zone</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="l l-Scalar l-Scalar-Plain">FORWARD_MODEL CO2_CONTAINMENT(&lt;GRID&gt;=&lt;RUNPATH&gt;&lt;ECLBASE&gt;.EGRID, &lt;OUTFILE&gt;=&quot;share/results/tables/plume_mass.csv&quot;, &lt;CALC_TYPE_INPUT&gt;=&quot;mass&quot;, &lt;XARG1&gt;=&quot;--containment_polygon&quot;, &lt;XARG2&gt;=&quot;share/results/polygons/[1st_boundary_name]--boundary.csv&quot;, &lt;XARG3&gt;=&quot;--hazardous_polygon&quot;, &lt;XARG4&gt;=&quot;share/results/polygons/[2nd_boundary_name]--boundary.csv&quot;, &lt;XARG5&gt;=&quot;--zonefile&quot;, &lt;XARG6&gt;=&quot;&lt;RUNPATH&gt;rms/output/zone/layer_zone_table.csv&quot; )</span>
+</span></code></pre></div>
+<h2 id="versions">Versions</h2>
+<p><strong>Future development</strong>
+<br />
+<br /></p>
+<p><strong>Updates</strong></p>
+<ul>
+<li>Date - Insert changes</li>
+</ul>
 
 
 
@@ -812,7 +933,7 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tracking", "content.action.edit", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tracking", "content.action.edit", "content.code.copy", "content.code.select", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
       <script src="../../../assets/javascripts/bundle.c8d2eff1.min.js"></script>
