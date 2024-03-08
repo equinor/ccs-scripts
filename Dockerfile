@@ -8,6 +8,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 RUN python -m pip install mkdocs
 RUN python -m pip install mkdocs-material
+# To visualize files
+RUN python -m pip install mkdocs-include-markdown-plugin
 
 WORKDIR /develop_floriane
 COPY . /develop_floriane

@@ -14,7 +14,7 @@ Other queues exist and will influence computational power & cost. ​Reach out t
 
 ## 📝 Set-by-step
 
-- Queue system: `hb120`, `d32ds`
+- Queue system: `hb120e`, `d32ds`
 <br />
 <br />
 
@@ -24,7 +24,9 @@ Other queues exist and will influence computational power & cost. ​Reach out t
     `FORWARD_MODEL RUN_PFLOTRAN(<queue>=<QUEUE>, <cpus_per_node>=<CPUS_PER_NODE>, <number_of_nodes>=<NUMBER_OF_NODES>, <model_file>=<RUNPATH>/pflotran/model/<ECLIPSE_NAME>-<IENS>.in)`
 
 - Post-processing scripts:
-To know more, visit the following section of the documentation. 
+
+    ``
+    To know more, visit the following section of the documentation. 
 
 
 ## 📜 Example

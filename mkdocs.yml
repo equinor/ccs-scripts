@@ -18,6 +18,9 @@ theme:
   features:
     - navigation.tracking
     - content.action.edit
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
   palette:
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
@@ -37,8 +40,17 @@ theme:
 extra_css:
   - https://cdn.eds.equinor.com/font/equinor-font.css
   - stylesheets/extra.css
+  - stylesheets/extra-nonequinor.css
   - stylesheets/neoteroi-cards.css
 
+plugins:
+  - include-markdown:
+      preserve_includer_indent: false
+      dedent: false
+      trailing_newlines: true
+      comments: true
+      rewrite_relative_urls: true
+      heading_offset: 0
 
 markdown_extensions:
   - pymdownx.magiclink:
@@ -51,9 +63,14 @@ markdown_extensions:
       normalize_issue_symbols: true
   - toc:
       toc_depth: 2
-
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
 nav:
-  - About:  about.md
   - Running FMU on Azure:
     - 1. Get started on Azure: azure/get-started.md
     - 2. Modify ERT config file: azure/ert.md

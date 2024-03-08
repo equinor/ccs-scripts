@@ -1,6 +1,6 @@
 #Theory
 
-## Migration time & Aggregation map
+## Migration time & Aggregation maps
 
 *grid3d_aggregate_map* and *grid3d_migration_time* uses a different approach when aggregating values. In general, the main difference from *grid3d_hc_thickness* and *grid3d_average_map* is that the result will be less smooth. Secondly, gaps in the grid (typically caused by faults), will not be filled.
 

@@ -1,0 +1,23 @@
+input:
+  eclroot: pflotran/model/MODEL_NAME
+  grid: $eclroot.EGRID
+  
+  properties:    
+  - name: SGAS
+    lower_threshold: 1.0e-8
+    source: $eclroot.UNRST    
+
+mapsettings:
+  ncol: 430
+  nrow: 500
+  xinc: 40.0
+  xori: 552770
+  yinc: 40.0
+  yori: 6695125
+
+output:
+  mapfolder: share/results/maps
+
+zonation:
+  zproperty:
+    source: share/results/grids/main_grid--zone.roff
