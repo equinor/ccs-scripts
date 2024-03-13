@@ -14,7 +14,7 @@ Other queues exist and will influence computational power & cost. ​Reach out t
 
 ## 📝 Set-by-step
 
-- Queue system: `hb120e`, `d32ds`
+- Queue system: `hb120e`, `hb120`
 <br />
 <br />
 
@@ -25,8 +25,7 @@ Other queues exist and will influence computational power & cost. ​Reach out t
 
 - Post-processing scripts:
 
-    ``
-    To know more, visit the following section of the documentation. 
+    To know more, visit the following section of the documentation about [Webviz](https://fmu-for-ccs.radix.equinor.com/webviz/overview/).
 
 
 ## 📜 Example

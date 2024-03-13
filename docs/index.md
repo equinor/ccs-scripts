@@ -8,7 +8,7 @@ This documentation has been built to provide guidance to those wishing to implem
 **The project**
 
 - This documentation is part of the "FMU for CCS" project.
-- For more information, feel free to [contact us](emailto:fmmo@equinor.com). 
+- For more information, feel free to [contact us](mailto:fmmo@equinor.com). 
 <br />
 <br />
 

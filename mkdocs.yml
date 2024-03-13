@@ -11,8 +11,6 @@ theme:
   font:
     text: Roboto
     code: Roboto Mono
-  #favicon: https://cdn.eds.equinor.com/logo/equinor-logo-primary.svg
-  #logo: https://cdn.eds.equinor.com/logo/equinor-logo-primary.svg#white
   favicon: stylesheets/Equinor_Symbol_Favicon_RED_32x32px.png
   logo: stylesheets/Equinor_Symbol_Favicon_RED_64x64px.png
   features:
@@ -21,6 +19,7 @@ theme:
     - content.code.copy
     - content.code.select
     - content.code.annotate
+
   palette:
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
@@ -37,6 +36,7 @@ theme:
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
+
 extra_css:
   - https://cdn.eds.equinor.com/font/equinor-font.css
   - stylesheets/extra.css
@@ -44,6 +44,8 @@ extra_css:
   - stylesheets/neoteroi-cards.css
 
 plugins:
+  - search:
+      enable: true
   - include-markdown:
       preserve_includer_indent: false
       dedent: false
@@ -70,7 +72,9 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+
 nav:
+  - About: index.md
   - Running FMU on Azure:
     - 1. Get started on Azure: azure/get-started.md
     - 2. Modify ERT config file: azure/ert.md
@@ -82,7 +86,6 @@ nav:
       - Aggregation map: webviz/maps/agg-map.md
       - Mass map: webviz/maps/mass-map.md
     - General scripts:
-      #- Test: co2_plume.md
       - Plume extent: webviz/scripts/plume-extent.md
       - Plume area: webviz/scripts/plume-area.md
       - CO2 containment: webviz/scripts/co2-containment.md
