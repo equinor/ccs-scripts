@@ -2,17 +2,17 @@
 import os
 import sys
 import tempfile
+from typing import Dict, List, Optional, Tuple
+
 import xtgeo
 import yaml
-from typing import List, Optional, Dict, Tuple
-from grid3d_maps.aggregate import (
-    grid3d_aggregate_map,
-)
-from ccs_scripts.co2_mass_maps._config import (CO2MassSettings,Zonation)
-from ccs_scripts.co2_mass_maps import (_config,_parser,_co2_mass)
+from grid3d_maps.aggregate import grid3d_aggregate_map
 from grid3d_maps.aggregate._config import AggregationMethod
+
 from ccs_scripts.co2_containment.co2_calculation import calculate_co2
-from ccs_scripts.co2_mass_maps._co2_mass import (translate_co2data_to_property)
+from ccs_scripts.co2_mass_maps import _co2_mass, _config, _parser
+from ccs_scripts.co2_mass_maps._co2_mass import translate_co2data_to_property
+from ccs_scripts.co2_mass_maps._config import CO2MassSettings, Zonation
 
 PROPERTIES_TO_EXTRACT = [
     "RPORV",

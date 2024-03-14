@@ -4,11 +4,14 @@ from typing import Dict, List, Literal, Optional, Tuple
 import numpy as np
 import xtgeo
 from resdata.resfile import ResdataFile
-from ccs_scripts.co2_containment.co2_calculation import (_fetch_properties,
-                                                         _identify_gas_less_cells,
-                                                         _is_subset,
-                                                         Co2Data,
-                                                         Co2DataAtTimeStep)
+
+from ccs_scripts.co2_containment.co2_calculation import (
+    Co2Data,
+    Co2DataAtTimeStep,
+    _fetch_properties,
+    _identify_gas_less_cells,
+    _is_subset,
+)
 from ccs_scripts.co2_mass_maps._config import CO2MassSettings
 
 CO2_MASS_PNAME = "CO2Mass"
