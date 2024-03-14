@@ -4,7 +4,6 @@ from typing import Dict, List, Tuple
 
 import xtgeo
 import yaml
-
 from grid3d_maps.aggregate import grid3d_aggregate_map
 
 from ccs_scripts.co2_containment.co2_calculation import calculate_co2
