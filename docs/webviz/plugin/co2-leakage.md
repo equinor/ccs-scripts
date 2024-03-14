@@ -23,10 +23,15 @@ Plugin available on Webviz. Allows to visualize CO2 plume maps and see if / how 
 
 - Legend update on regions / zones options - icons between inside/outside will change.
 ![image ><](update.png)
+
+- Return % of co2 inside and outside.
 <br />
 <br />
 
 **Updates**
 
-- **12.03.24** - New CO2 leakage  layout available on Komodo bleeding. Allows for zones and regions filtering. 
+- **12.03.24**
+    
+    - New CO2 leakage  layout available on Komodo bleeding. Allows for zones and regions filtering. 
+    - A feedback button has been added. See an error? Let us know!
 
