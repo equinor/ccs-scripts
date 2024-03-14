@@ -120,6 +120,7 @@ def co2_mass_property_to_map(
                         None,
                     )
                 )
+    print(config_)
     grid3d_aggregate_map.generate_from_config(config_)
 
 
