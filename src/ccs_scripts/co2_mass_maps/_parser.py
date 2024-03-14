@@ -20,7 +20,7 @@ from _config import (
     ZProperty,
 )
 
-from ccs_scripts.co2_mass_maps import _config, _parser
+from ccs_scripts.co2_mass_maps import _config
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
