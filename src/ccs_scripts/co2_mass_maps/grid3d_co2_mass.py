@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-import os
 import sys
-import tempfile
 from typing import Dict, List, Optional, Tuple
 
 import xtgeo
@@ -10,9 +8,8 @@ from grid3d_maps.aggregate import grid3d_aggregate_map
 from grid3d_maps.aggregate._config import AggregationMethod
 
 from ccs_scripts.co2_containment.co2_calculation import calculate_co2
-from ccs_scripts.co2_mass_maps import _co2_mass, _config, _parser
+from ccs_scripts.co2_mass_maps import _config, _parser
 from ccs_scripts.co2_mass_maps._co2_mass import translate_co2data_to_property
-from ccs_scripts.co2_mass_maps._config import CO2MassSettings, Zonation
 
 PROPERTIES_TO_EXTRACT = [
     "RPORV",
@@ -165,7 +162,9 @@ def process_zonation(
             ]
             if len(zones_to_plot) == 0:
                 print(
-                    "The zones specified in CO2 mass settings are not part of the zonation provided \n maps will be exported for all the existing zones"
+                    "The zones specified in CO2 mass settings are not part of the "
+                    "zonation provided \n"
+                    " maps will be exported for all the existing zones"
                 )
                 return zonation.zranges, all_zrange
             else:
@@ -199,8 +198,8 @@ def read_yml_file(file_path: str) -> Dict[str, List]:
 
 def main(arguments=None):
     """
-    Takes input arguments and calculates co2 mass as a property and aggregates it to a 2D map
-    at each time step, divided into different phases and locations.
+    Takes input arguments and calculates co2 mass as a property and aggregates
+    it to a 2D map at each time step, divided into different phases and locations.
     """
     if arguments is None:
         arguments = sys.argv[1:]

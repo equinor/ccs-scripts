@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import xtgeo
@@ -157,9 +157,11 @@ def _convert_to_grid(
     Store the CO2 mass arrays in 3D GridProperties
 
     Args:
-        co2_at_date (Co2DataAtTimeStep): Amount of CO2 per phase at each cell at each time step
-        dimensions (Tuple[int,int,int]): Size of the 3D grid
-        triplets (List[Tuple[int, int, int]]): List of triplets with the (X,Y,Z) position of cells with CO2
+        co2_at_date (Co2DataAtTimeStep):       Amount of CO2 per phase at each cell
+                                               at each time step
+        dimensions (Tuple[int,int,int]):       Size of the 3D grid
+        triplets (List[Tuple[int, int, int]]): List of triplets with the (X,Y,Z)
+                                               position of cells with CO2
 
     Returns:
         Dict[str, xtgeo.GridProperty]
