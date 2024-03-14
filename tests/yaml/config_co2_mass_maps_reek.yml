@@ -3,7 +3,7 @@ input:
   grid: $eclroot.EGRID
 
 co2_mass_settings:
-  unrst_source: $eclroot.UNRST
+  unrst_source: $eclroot-mass-maps.UNRST
   init_source: $eclroot.INIT
 
 output:
