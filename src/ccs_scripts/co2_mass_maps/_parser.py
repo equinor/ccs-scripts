@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import xtgeo
 import yaml
-from ccs_scripts.co2_mass_maps import AggregationMethod, _config, _parser
 from _config import (
     CO2MassSettings,
     ComputeSettings,
@@ -20,6 +19,8 @@ from _config import (
     Zonation,
     ZProperty,
 )
+
+from ccs_scripts.co2_mass_maps import _config, _parser
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
