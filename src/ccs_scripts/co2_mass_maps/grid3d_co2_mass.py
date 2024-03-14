@@ -126,7 +126,7 @@ def co2_mass_property_to_map(
 def process_zonation(
     co2_mass_settings: _config.CO2MassSettings,
     grid_file: str,
-    zonation: Optional[_config.Zonation] = None,
+    zonation: _config.Zonation,
 ) -> Tuple[List, List]:
     """
     Processes a zonation file, if existing, and extracts both zranges per zone
