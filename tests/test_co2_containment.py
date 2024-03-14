@@ -253,7 +253,6 @@ def test_synthetic_case_eclipse_mass(mocker):
     df_answer = _sort_dataframe(df_answer)
     pandas.testing.assert_frame_equal(df, df_answer)
 
-
 def test_synthetic_case_eclipse_actual_volume(mocker):
     (
         main_path,

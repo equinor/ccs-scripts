@@ -1,10 +1,13 @@
+import shutil
 from pathlib import Path
+
 import numpy as np
 import pytest
 import xtgeo
-import shutil
-from resdata.resfile import ResdataFile,ResdataKW,openFortIO, FortIO
+from resdata.resfile import FortIO, ResdataFile, ResdataKW, openFortIO
+
 from ccs_scripts.co2_mass_maps import grid3d_co2_mass
+
 
 def adapt_reek_grid_for_co2_mass_maps_test():
     """
