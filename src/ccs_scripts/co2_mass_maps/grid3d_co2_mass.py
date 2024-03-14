@@ -152,8 +152,8 @@ def process_zonation(
         grid_pf = xtgeo.grid_from_file(grid_file)
         zranges_limits = [(1, grid_pf.nlay)]
         zone_names = None
-    max_zvalue = max(sublist[-1] for sublist in zranges_limits)
-    min_zvalue = min(sublist[0] for sublist in zranges_limits)
+    max_zvalue = max(zrange[-1] for zrange in zranges_limits)
+    min_zvalue = min(zrange[0] for zrange in zranges_limits)
     all_zrange = [min_zvalue, max_zvalue]
     if zone_names is not None:
         if co2_mass_settings.zones is not None:
