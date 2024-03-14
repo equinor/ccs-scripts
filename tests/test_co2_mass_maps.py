@@ -15,12 +15,12 @@ def adapt_reek_grid_for_co2_mass_maps_test():
     test_co2_mass_maps_reek_grid
     """
     reek_unrstfile = (
-            Path(__file__).absolute().parent
-            / "data"
-            / "reek"
-            / "eclipse"
-            / "model"
-            / "2_R001_REEK-0.UNRST"
+        Path(__file__).absolute().parent
+        / "data"
+        / "reek"
+        / "eclipse"
+        / "model"
+        / "2_R001_REEK-0.UNRST"
     )
     properties = ResdataFile(str(reek_unrstfile))
     SGAS = properties["SGAS"]
@@ -33,16 +33,16 @@ def adapt_reek_grid_for_co2_mass_maps_test():
         YMFG.append(x.copy())
         DGAS.append(x.copy())
         DWAT.append(x.copy())
-    new_unrst_file = str(Path(__file__).absolute().parent
-            / "data"
-            / "reek"
-            / "eclipse"
-            / "model"
-            / "2_R001_REEK-0-mass-maps.UNRST")
-    shutil.copy(str(reek_unrstfile),new_unrst_file)
-    with openFortIO(
-            new_unrst_file,
-            mode=FortIO.APPEND_MODE) as f:
+    new_unrst_file = str(
+        Path(__file__).absolute().parent
+        / "data"
+        / "reek"
+        / "eclipse"
+        / "model"
+        / "2_R001_REEK-0-mass-maps.UNRST"
+    )
+    shutil.copy(str(reek_unrstfile), new_unrst_file)
+    with openFortIO(new_unrst_file, mode=FortIO.APPEND_MODE) as f:
         for y in AMFG:
             y.name = "AMFG"
             a = y.numpy_view()
@@ -66,10 +66,11 @@ def adapt_reek_grid_for_co2_mass_maps_test():
                 a[i] = 1000
             y.fwrite(f)
 
+
 def test_co2_mass_maps_reek_grid(datatree):
     """
-        Test CO2 containment code, with eclipse Reek data.
-        Tests both mass and actual_volume calculations.
+    Test CO2 containment code, with eclipse Reek data.
+    Tests both mass and actual_volume calculations.
     """
     adapt_reek_grid_for_co2_mass_maps_test()
     result = datatree / "co2_mass_maps"
@@ -78,6 +79,6 @@ def test_co2_mass_maps_reek_grid(datatree):
             "--config",
             "tests/yaml/config_co2_mass_maps_reek.yml",
             "--mapfolder",
-            str(result)
+            str(result),
         ]
     )
