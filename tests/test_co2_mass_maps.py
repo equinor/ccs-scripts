@@ -64,13 +64,17 @@ def adapt_reek_grid_for_co2_mass_maps_test():
             y.fwrite(f)
 
 
-def test_co2_mass_maps_reek_grid(datatree):
+def test_co2_mass_maps_reek_grid():
     """
     Test CO2 containment code, with eclipse Reek data.
     Tests both mass and actual_volume calculations.
     """
     adapt_reek_grid_for_co2_mass_maps_test()
-    result = datatree / "co2_mass_maps"
+    result = str(
+        Path(__file__).absolute().parent \
+        / "answers"
+        / "mass_maps"
+    )
     grid3d_co2_mass.main(
         [
             "--config",
