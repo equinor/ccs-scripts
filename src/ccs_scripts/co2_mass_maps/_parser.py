@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import xtgeo
 import yaml
-from grid3d_maps.aggregate import _config
-from grid3d_maps.aggregate._config import (
+from ccs_scripts.co2_mass_maps import AggregationMethod, _config, _parser
+from _config import (
     CO2MassSettings,
     ComputeSettings,
     Input,
