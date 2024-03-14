@@ -47,9 +47,11 @@ def adapt_reek_grid_for_co2_mass_maps_test():
                 a[i] = a[i] * 0.02
             y.fwrite(f)
         for y in YMFG:
+            y.name = "YMFG"
             a = y.numpy_view()
             for i in range(0, len(a)):
                 a[i] = 0.99
+            y.fwrite(f)
         for y in DGAS:
             y.name = "DGAS"
             a = y.numpy_view()
