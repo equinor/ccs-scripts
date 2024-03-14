@@ -42,8 +42,7 @@ PROPERTIES_TO_EXTRACT = [
 # """
 
 
-def generate_co2_mass_maps(config_) :
-
+def generate_co2_mass_maps(config_):
     """
     Calculates and exports 2D and 3D CO2 mass properties from the provided config file
 
@@ -68,7 +67,7 @@ def generate_co2_mass_maps(config_) :
         region_info=region_info,
     )
     dates = config_.input.dates
-    if len(dates)>0:
+    if len(dates) > 0:
         co2_data.data_list = [x for x in co2_data.data_list if x.date in dates]
     out_property_list = translate_co2data_to_property(
         co2_data,
@@ -77,16 +76,21 @@ def generate_co2_mass_maps(config_) :
         PROPERTIES_TO_EXTRACT,
         config_.output.mapfolder + "/grid",
     )
-    config_.zonation.zranges, all_zrange = process_zonation(co2_mass_settings,grid_file,zonation)
-    if len(config_.zonation.zranges)>0:
+    config_.zonation.zranges, all_zrange = process_zonation(
+        co2_mass_settings, grid_file, zonation
+    )
+    if len(config_.zonation.zranges) > 0:
         config_.zonation.zproperty = None
     if config_.computesettings.all:
-        config_.zonation.zranges.append({'all':all_zrange})
+        config_.zonation.zranges.append({"all": all_zrange})
         config_.computesettings.all = False
         if not config_.computesettings.zone:
             config_.computesettings.zone = True
-            config_.zonation.zranges = [zrange for zrange in config_.zonation.zranges if 'all' in zrange]
-    co2_mass_property_to_map(config_,out_property_list)
+            config_.zonation.zranges = [
+                zrange for zrange in config_.zonation.zranges if "all" in zrange
+            ]
+    co2_mass_property_to_map(config_, out_property_list)
+
 
 def co2_mass_property_to_map(
     config_: _config.RootConfig,
@@ -105,17 +109,28 @@ def co2_mass_property_to_map(
     config_.computesettings.aggregation = AggregationMethod.SUM
     config_.output.aggregation_tag = False
     for props in property_list:
-        if len(props)>0 :
+        if len(props) > 0:
             for prop in props:
-                config_.input.properties.append(_config.Property(config_.output.mapfolder+
-                                                                 "/grid/"+prop.name+"--"+
-                                                                 prop.date+".roff", None, None))
+                config_.input.properties.append(
+                    _config.Property(
+                        config_.output.mapfolder
+                        + "/grid/"
+                        + prop.name
+                        + "--"
+                        + prop.date
+                        + ".roff",
+                        None,
+                        None,
+                    )
+                )
     grid3d_aggregate_map.generate_from_config(config_)
 
-def process_zonation(co2_mass_settings: _config.CO2MassSettings,
-                     grid_file: str,
-                     zonation: Optional[_config.Zonation]=None
-                     ) -> Tuple[List,List]:
+
+def process_zonation(
+    co2_mass_settings: _config.CO2MassSettings,
+    grid_file: str,
+    zonation: Optional[_config.Zonation] = None,
+) -> Tuple[List, List]:
     """
     Processes a zonation file, if existing, and extracts both zranges per zone
     and the complete range in the zaxis. Otherwise, uses the grid_file.
@@ -128,36 +143,44 @@ def process_zonation(co2_mass_settings: _config.CO2MassSettings,
     Returns:
         Tuple[List,List]
     """
-    if zonation.zproperty is not None or len(zonation.zranges)>0:
+    if zonation.zproperty is not None or len(zonation.zranges) > 0:
         if zonation.zproperty is not None:
             if zonation.zproperty.source.split(".")[-1] in ["yml", "yaml"]:
                 zfile = read_yml_file(zonation.zproperty.source)
-                zonation.zranges = zfile['zranges']
+                zonation.zranges = zfile["zranges"]
         if len(zonation.zranges) > 0:
             zone_names = [list(item.keys())[0] for item in zonation.zranges]
             zranges_limits = [list(d.values())[0] for d in zonation.zranges]
     else:
         grid_pf = xtgeo.grid_from_file(grid_file)
-        zranges_limits = [[1,grid_pf.nlay]]
+        zranges_limits = [[1, grid_pf.nlay]]
         zone_names = None
     max_zvalue = max(sublist[-1] for sublist in zranges_limits)
     min_zvalue = min(sublist[0] for sublist in zranges_limits)
     all_zrange = [min_zvalue, max_zvalue]
     if zone_names is not None:
         if co2_mass_settings.zones is not None:
-            zones_to_plot = [zone for zone in co2_mass_settings.zones if zone in zone_names]
+            zones_to_plot = [
+                zone for zone in co2_mass_settings.zones if zone in zone_names
+            ]
             if len(zones_to_plot) == 0:
                 print(
-                    "The zones specified in CO2 mass settings are not part of the zonation provided \n maps will be exported for all the existing zones")
-                return zonation.zranges,all_zrange
+                    "The zones specified in CO2 mass settings are not part of the zonation provided \n maps will be exported for all the existing zones"
+                )
+                return zonation.zranges, all_zrange
             else:
-                return [item for item in zonation.zranges if list(item.keys())[0] in zones_to_plot],all_zrange
+                return [
+                    item
+                    for item in zonation.zranges
+                    if list(item.keys())[0] in zones_to_plot
+                ], all_zrange
         else:
-            return zonation.zranges,all_zrange
+            return zonation.zranges, all_zrange
     else:
         return [], all_zrange
 
-def read_yml_file(file_path: str) -> Dict[str,List]:
+
+def read_yml_file(file_path: str) -> Dict[str, List]:
     """
     Reads a yml from a given path in file_path argument
     """
@@ -172,6 +195,7 @@ def read_yml_file(file_path: str) -> Dict[str,List]:
         \n    - Zone1: [1, 5]\n    - Zone2: [6, 10]\n    - Zone3: [11, 14])"
         raise Exception(error_text)
     return zfile
+
 
 def main(arguments=None):
     """

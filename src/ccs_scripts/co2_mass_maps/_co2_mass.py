@@ -18,6 +18,7 @@ CO2_MASS_PNAME = "CO2Mass"
 
 # pylint: disable=invalid-name,too-many-instance-attributes
 
+
 def _get_gasless(properties: Dict[str, Dict[str, List[np.ndarray]]]) -> np.ndarray:
     """
     Identifies global index for grid cells without CO2 based on Gas Saturation (SGAS)
@@ -40,6 +41,7 @@ def _get_gasless(properties: Dict[str, Dict[str, List[np.ndarray]]]) -> np.ndarr
         )
         raise RuntimeError(error_text)
     return gasless
+
 
 def translate_co2data_to_property(
     co2_data: Co2Data,
@@ -89,7 +91,8 @@ def translate_co2data_to_property(
         mass_as_grids = _convert_to_grid(co2_at_date, dimensions, triplets)
         if store_all or "total_co2" in maps:
             mass_as_grids["MASS-TOTAL"].to_file(
-                grid_out_dir + "/CO2-MASS-TOTAL--" + date + ".roff", fformat="roff",
+                grid_out_dir + "/CO2-MASS-TOTAL--" + date + ".roff",
+                fformat="roff",
             )
             total_mass_list.append(mass_as_grids["MASS-TOTAL"])
         if store_all or "dissolved_co2" in maps:

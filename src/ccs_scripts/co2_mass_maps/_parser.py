@@ -24,6 +24,7 @@ from xtgeoapp_grd3dmaps.aggregate._config import (
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
 
+
 def parse_arguments(arguments):
     """
     Uses argparse to parse arguments as expected from command line invocation
