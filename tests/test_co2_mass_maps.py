@@ -80,9 +80,8 @@ def test_co2_mass_maps_reek_grid():
             "--config",
             str(
                 Path(__file__).absolute().parent
-                / "tests"
-                /"yaml"
-                /"config_co2_mass_maps_reek.yml"
+                / "yaml"
+                / "config_co2_mass_maps_reek.yml"
             ),
             "--mapfolder",
             str(result),
