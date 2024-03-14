@@ -20,7 +20,6 @@ from _config import (
     ZProperty,
 )
 
-from ccs_scripts.co2_mass_maps import _config
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
@@ -254,7 +253,7 @@ def _zonation_from_zproperty(
 
 
 def create_map_template(
-    map_settings: _config.MapSettings,
+    map_settings: MapSettings,
 ) -> Union[xtgeo.RegularSurface, float]:
     """
     Creates the map template to use based on the provided settings. May instead return a
