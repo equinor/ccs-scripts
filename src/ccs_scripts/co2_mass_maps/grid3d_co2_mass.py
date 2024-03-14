@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import xtgeo
 import yaml
@@ -150,7 +150,7 @@ def process_zonation(
             zranges_limits = [list(d.values())[0] for d in zonation.zranges]
     else:
         grid_pf = xtgeo.grid_from_file(grid_file)
-        zranges_limits = [[1, grid_pf.nlay]]
+        zranges_limits = [(1, grid_pf.nlay)]
         zone_names = None
     max_zvalue = max(sublist[-1] for sublist in zranges_limits)
     min_zvalue = min(sublist[0] for sublist in zranges_limits)
