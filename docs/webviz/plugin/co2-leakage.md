@@ -1,4 +1,4 @@
-# Plume extent
+# CO2 leakage plugin
 
 ## 🎯 Overview
 
