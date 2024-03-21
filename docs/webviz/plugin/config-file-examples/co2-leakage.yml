@@ -1,0 +1,14 @@
+    - CO2Leakage:
+        ensembles:  # Required, type List[str].
+        file_containment_boundary:  # Optional, type Union[str, NoneType].
+        file_hazardous_boundary:  # Optional, type Union[str, NoneType].
+        well_pick_file:  # Optional, type Union[str, NoneType].
+        co2_containment_relpath:  # Optional, type str.
+        co2_containment_volume_actual_relpath:  # Optional, type str.
+        co2_containment_volume_actual_simple_relpath:  # Optional, type str.
+        unsmry_relpath:  # Optional, type str.
+        fault_polygon_attribute:  # Optional, type str.
+        initial_surface:  # Optional, type Union[str, NoneType].
+        map_attribute_names:  # Optional, type Union[typing.Dict[str, str], NoneType].
+        map_surface_names_to_well_pick_names:  # Optional, type Union[typing.Dict[str, str], NoneType].
+        map_surface_names_to_fault_polygons:  # Optional, type Union[typing.Dict[str, str], NoneType].
