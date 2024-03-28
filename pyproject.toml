@@ -1,75 +1,57 @@
-[build-system]
-requires = [
-    "setuptools>=45.0",
-    "setuptools_scm[toml]>=6.2",
-    "wheel>=0.38.1",
-]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
-write_to = "src/ccs_scripts/version.py"
-
-[project]
+[tool.poetry]
 name = "ccs-scripts"
+version = "0.5.0_dev"
 description = "Equinor's collection of scripts related to CCS"
+authors = ["Equinor <fmmo@equinor.com>"]
+# license = { file = "LICENSE" }
 readme = "README.md"
-requires-python = ">=3.8"
-license = { file = "LICENSE" }
-authors = [
-    { name = "Equinor", email = "fmmo@equinor.com" },
-]
+package-mode = false
 keywords = ["ccs", "subsurface", "reservoir", "scientific", "engineering"]
 classifiers = [
-    # "Development Status :: 5 - Production/Stable",
-    # "Intended Audience :: Science/Research",
-    # "Topic :: Scientific/Engineering",
-    # "Topic :: Scientific/Engineering :: Physics",
-    # "Topic :: Software Development :: Libraries",
-    # "Topic :: Utilities",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Natural Language :: English",
-    # "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-]
-dynamic = ["version"]
-dependencies = [
-    "resdata",
-    "numpy<2",
-    "pandas",
-    "scipy",
-    "shapely",
-    "xtgeo",
-    "pyyaml",
 ]
 
-[project.optional-dependencies]
-tests = [
-    "black",
-    "flake8",
-    "isort",
-    "mypy",
-    "pytest",
-    "pytest-cov",
-    "pytest-mock",
-    "pytest-xdist",
-    "rstcheck",
-    "rstcheck-core",
-    "types-Jinja2",
-    "types-PyYAML",
-    "types-pkg_resources",
-    "types-python-dateutil",
-]
-docs = [
-    "autoapi",
-    "sphinx",
-    "sphinx-argparse",
-    "sphinx-autodoc-typehints",
-    "sphinx-copybutton",
-    "sphinx_rtd_theme",
-]
+[tool.poetry.dependencies]
+python = ">=3.8.1"
+resdata = "^4.2.1"
+numpy = "<2"
+pandas = "^1.4.4"  # Cannot use "^2.2.1" for python=3.8
+shapely = "^2.0.3"
+xtgeo = "^3.8.0"
+PyYAML = "^6.0.1"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.3.0"
+flake8 = "^7.0.0"
+isort = "^5.13.2"
+mypy = "^1.9.0"
+pytest = "^8.1.1"
+pytest-cov = "^5.0.0"
+pytest-mock = "^3.14.0"
+pytest-xdist = "^3.5.0"
+scipy = "^1.7.1"  # Cannot use "^1.12.0" for python=3.8
+rstcheck = "^6.2.1"
+rstcheck-core = "^1.2.1"
+types-Jinja2 = "^2.11.9"
+types-PyYAML = "^6.0.12.20240311"
+types-pkg-resources = "^0.1.3"
+types-python-dateutil = "^2.9.0.20240316"
+autoapi = "^2.0.1"
+# Sphinx = "^7.2.6"
+# sphinx-argparse = "^0.4.0"
+# sphinx-autodoc-typehints = "^2.0.0"
+# sphinx-copybutton = "^0.5.2"
+# sphinx-rtd-theme = "^2.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [project.urls]
 Homepage = "https://github.com/equinor/ccs_scripts"
@@ -94,8 +76,6 @@ profile = "black"
 ignore_missing_imports = true
 
 [tool.pylint]
-# Module docstrings are not required, there are other means of documenting at
-# that level ... ?
 disable = "missing-module-docstring"
 
 [tool.pytest.ini_options]
@@ -107,12 +87,6 @@ norecursedirs = [
     "build",
     # "opm-common",
 ]
-# addopts = "-ra --strict-markers --ignore=docs/conf.py --ignore=setup.py --ignore=.eggs"
-# markers = [
-#     "integration: Marks a test as an integration test",
-#     "plot: Marks a test as interactive, plots will flash to the screen",
-#     "ri_dev: A test using a dev version of ResInsight, skipped by default"
-# ]
 
 [tool.rstcheck]
 ignore_directives = ["argparse", "automodule"]
