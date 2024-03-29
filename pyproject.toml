@@ -5,7 +5,7 @@ description = "Equinor's collection of scripts related to CCS"
 authors = ["Equinor <fmmo@equinor.com>"]
 # license = { file = "LICENSE" }
 readme = "README.md"
-package-mode = false
+package-mode = true
 keywords = ["ccs", "subsurface", "reservoir", "scientific", "engineering"]
 classifiers = [
     "Operating System :: POSIX :: Linux",
