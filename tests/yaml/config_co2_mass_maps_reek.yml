@@ -1,0 +1,12 @@
+input:
+  eclroot: tests/data/reek/eclipse/model/2_R001_REEK-0
+  grid: $eclroot.EGRID
+
+co2_mass_settings:
+  unrst_source: $eclroot-mass-maps.UNRST
+  init_source: $eclroot.INIT
+
+output:
+  mapfolder: tmp
+
+
