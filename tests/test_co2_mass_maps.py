@@ -1,14 +1,10 @@
 import shutil
-import subprocess
 from pathlib import Path
 
 from resdata.resfile import FortIO, ResdataFile, openFortIO
 
 from ccs_scripts.co2_mass_maps import grid3d_co2_mass
 
-def clean_uncommitted_changes():
-    subprocess.run(['git', 'reset', '--hard', 'HEAD'], check=True)
-    print("Uncommitted changes cleaned successfully.")
 
 def adapt_reek_grid_for_co2_mass_maps_test():
     """
@@ -97,8 +93,6 @@ def test_co2_mass_maps_reek_grid():
     assert dissolved_co2_file.exists()
     assert free_co2_file.exists()
     assert total_co2_file.exists()
-
-    clean_uncommitted_changes()
     
     
     
