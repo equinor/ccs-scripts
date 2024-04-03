@@ -8,7 +8,7 @@ SIMULATION
       OPTIONS
        RESERVOIR_DEFAULTS
        ISOTHERMAL
-       HYSTERESIS
+       !HYSTERESIS
        STRAND
       /
     / ! end of subsurface_flow
@@ -124,7 +124,7 @@ FLUID_PROPERTY
   DIFFUSION_COEFFICIENT 2.0d-5
 /
 
-BRINE 0.0525 MASS
+!BRINE 1.092 MOLAL
 
 EOS WATER
  SURFACE_DENSITY 1000.00 kg/m^3
@@ -154,8 +154,8 @@ WELL_DATA injg
   SHUT 
   DATE 1 JAN 2027            ! Open injector 2 years after simulation starts
   OPEN
-  TARG_GM 0.682 Mt/y
-  DATE 1 JAN 2031            ! Shut well 4 years after injection started
+  TARG_GM 0.2 Mt/y
+  DATE 1 JAN 2030            ! Shut well 4 years after injection started
   SHUT
 END
 
