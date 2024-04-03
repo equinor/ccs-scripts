@@ -98,7 +98,7 @@ def test_co2_mass_maps_reek_grid():
     assert free_co2_file.exists()
     assert total_co2_file.exists()
 
-    clean_uncommited_changes()
+    clean_uncommitted_changes()
     
     
     
