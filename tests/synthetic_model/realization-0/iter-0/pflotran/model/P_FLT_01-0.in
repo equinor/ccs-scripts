@@ -154,8 +154,8 @@ WELL_DATA injg
   SHUT 
   DATE 1 JAN 2027            ! Open injector 2 years after simulation starts
   OPEN
-  TARG_GM 0.682 Mt/y
-  DATE 1 JAN 2031            ! Shut well 4 years after injection started
+  TARG_GM 0.2 Mt/y
+  DATE 1 JAN 2030            ! Shut well 4 years after injection started
   SHUT
 END
 
