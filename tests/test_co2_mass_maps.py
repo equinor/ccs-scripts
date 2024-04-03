@@ -85,14 +85,18 @@ def test_co2_mass_maps_reek_grid():
             str(result),
         ]
     )
-    ## Assert files have been created
-    dissolved_co2_file = Path(__file__).absolute().parent / "answers" / "mass_maps" / "all--co2-mass-aqu-phase--20010801.gri"
-    free_co2_file = Path(__file__).absolute().parent / "answers" / "mass_maps" / "all--co2-mass-gas-phase--20010801.gri"
-    total_co2_file = Path(__file__).absolute().parent / "answers" / "mass_maps" / "all--co2-mass-total--20010801.gri"
-    
+    dissolved_co2_file = Path(__file__).absolute().parent 
+                         / "answers" 
+                         / "mass_maps" 
+                         / "all--co2-mass-aqu-phase--20010801.gri"
+    free_co2_file = Path(__file__).absolute().parent 
+                    / "answers" 
+                    / "mass_maps" 
+                    / "all--co2-mass-gas-phase--20010801.gri"
+    total_co2_file = Path(__file__).absolute().parent 
+                    / "answers" 
+                    / "mass_maps" 
+                    / "all--co2-mass-total--20010801.gri"
     assert dissolved_co2_file.exists()
     assert free_co2_file.exists()
     assert total_co2_file.exists()
-    
-    
-    
