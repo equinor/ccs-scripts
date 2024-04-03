@@ -1,4 +1,5 @@
 import shutil
+import os
 from pathlib import Path
 
 from resdata.resfile import FortIO, ResdataFile, openFortIO
