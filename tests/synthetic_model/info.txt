@@ -1,0 +1,7 @@
+# Description of the synthetic model realizations
+
+# realization-0 : 1 well with residual trapping and no salinity
+# realization-1 : 1 injector well no residual trapping and no slainity.
+# realization-2 : 2 injector wells with residual trapping and no salinity.
+# realization-3 : 1 injector well with North Sea salinity.
+# realization-4 : 1 injector well with UK seawater salinity.
