@@ -92,3 +92,4 @@ def test_co2_mass_maps_reek_grid():
     assert free_co2_file.exists()
     assert total_co2_file.exists()
     shutil.rmtree(str(Path(__file__).absolute().parent / "answers" / "mass_maps"))
+    os.remove(str(Path(__file__).absolute().parent / "data" / "reek" / "eclipse" / "model" / "2_R001_REEK-0-mass-maps.UNRST"))
