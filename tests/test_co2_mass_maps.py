@@ -91,3 +91,4 @@ def test_co2_mass_maps_reek_grid():
     assert dissolved_co2_file.exists()
     assert free_co2_file.exists()
     assert total_co2_file.exists()
+    shutil.rmtree(str(Path(__file__).absolute().parent / "answers" / "mass_maps"))
