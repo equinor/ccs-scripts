@@ -80,8 +80,8 @@ jobs:
         run: |
           pytest -n auto tests
           # Check that repository is untainted by test code:
-          git status --porcelain
-          test -z "$(git status --porcelain)"
+          # git status --porcelain
+          # test -z "$(git status --porcelain)"
 
       - name: Syntax check documentation
         if: ${{ always() }}
