@@ -44,16 +44,18 @@ Detailed explainations on each parameters:
 In progress:
 
 - Return % of co2 inside, outside and in the hazardeous area.
+![image ><](co2leakage-percentages.jpg)
 - New layout where plots are put in different tabs. It allows to visualize the plots better. A sliding scale as also been added to so the ratio between the map and the graph can be changed (map smaller and graphs bigger or opposite). 
-- Legend update on regions / zones options - icons between inside/outside will change.
-![image ><](update.png)
+![image ><](co2leakage-tabs.jpg)
+
 <br />
 <br />
 
 **Updates**
 
-- **12.03.24**
+- **March 24**
     
     - New CO2 leakage  layout available on Komodo bleeding. Allows for zones and regions filtering. 
     - A feedback button has been added. See an error? Let us know!
+![image ><](regions-zones-option.png)
 
