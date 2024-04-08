@@ -51,7 +51,7 @@ Config file are to be placed in `ert/input/config`
 Template example:
 
 ~~~ yaml title="grid3d_co2_mass_map.yml"
-{% include "./config-file-examples/mass-template.yml" %}
+{% include "./config-file-examples/mass-template2.yml" %}
 ~~~
 
 ## 📚 Other config file example

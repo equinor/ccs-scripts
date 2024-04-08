@@ -27,18 +27,15 @@ Template example:
 
 ## 📚 Other config file example
 
-~~~ yaml title="Example 1"
-{% include "./config-file-examples/migration-time1.yml" %}
-~~~
 
-~~~ yaml title="Example 2"
-{% include "./config-file-examples/migration-time2.yml" %}
-~~~
 
 ## 🔧 Versions & updates
 
 
 **Future development**
+
+- Extend the script to produce Migration time map for CO2 dissolved in water, in addition to SGAS. 
+
 <br />
 <br />
 

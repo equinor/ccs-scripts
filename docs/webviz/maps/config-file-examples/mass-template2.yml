@@ -1,0 +1,45 @@
+input:
+  eclroot: pflotran/model/SMEAHEIA_PFT     # ert will interpret this as relative to <runpath>
+  grid: $eclroot.EGRID
+  dates: 
+     - 20250101
+     - 20300101
+     - 20450101
+     - 21500101
+     - 25000101
+  
+co2_mass_settings:
+  init_source: $eclroot.INIT
+  unrst_source: $eclroot.UNRST
+  maps: ["dissolved_co2","total_co2"]
+  zones: ["Heather_A","Johansen","AmundsenStatfjord"]
+
+
+mapsettings:
+  ncol: 430
+  nrow: 500
+  xinc: 40.0
+  xori: 552770
+  yinc: 40.0
+  yori: 6695125
+
+output:
+  mapfolder: share/results/maps
+
+
+zonation:
+  zranges:
+    - Sognefjord: [1, 24]
+    - Fensfjord: [25, 54]
+    - Krossfjord: [55, 60]
+    - Heather_A: [61, 61]
+    - Brent: [62, 63]
+    - Drake: [64, 67]
+    - Johansen: [68, 192]
+    - AmundsenStatfjord: [193, 196]
+    - UpperLunde: [197, 310]
+    - LowerLunde: [311, 311]
+
+computesettings:
+   zone: Yes
+   all: No
