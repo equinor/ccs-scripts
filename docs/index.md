@@ -12,7 +12,7 @@ This documentation has been built to provide guidance to those wishing to implem
 <br />
 <br />
 
-**Disclamer**
+**Documentation last update**
 
-This documentation is a work in progress.
+08th of April 2024
 

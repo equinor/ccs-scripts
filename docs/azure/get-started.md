@@ -50,7 +50,11 @@ A step-by-step guide is available below.
 <br />
 <br />
 
-- How to synchronize folders between RGS nodes and Azure (change highlighted sections):​
+- How to synchronize folders between RGS nodes and Azure:
+
+    Remember to change the highlighted sections.
+
+    If you are using another subscirption than S268, update with your own subscription number.
 
 | Command line      | Description |
 | ----------- | ----------- |
