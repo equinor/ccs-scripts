@@ -13,7 +13,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -33,15 +33,18 @@ def _make_parser() -> argparse.ArgumentParser:
         For 'plume_extent': Either the name of the injection well (string) or \
         the x and y coordinates (two floats, '[x,y]') to calculate plume extent from. \
         For 'point': the x and y coordinates (two floats, '[x,y]'). \
-        For 'line': [direction, value] where direction must be 'east'/'west'/'north'/'south' and value is the \
+        For 'line': [direction, value] where direction must be \
+        'east'/'west'/'north'/'south' and value is the \
         corresponding x or y value that defines this line.",
     )
     parser.add_argument(
         "--calculation_type",
         help="Options: \
         'plume_extent': Maximum distance of plume from input (injection) coordinate. \
-        'point': Minimum distance from plume to a point, e.g. plume approaching a dangerous area. \
-        'line': Minimum distance from plume to an eastern/western/northern/southern line.",
+        'point': Minimum distance from plume to a point, e.g. plume approaching \
+        a dangerous area. \
+        'line': Minimum distance from plume to an \
+        eastern/western/northern/southern line.",
         default="plume_extent",
         type=str,
     )
@@ -380,12 +383,13 @@ def _find_input_point(injection_point_info: str) -> Tuple[float, float]:
                 return coordinates
             except ValueError:
                 logging.error(
-                    "Invalid input: When providing two arguments (x and y coordinates)\
-                    for point they need to be floats."
+                    "Invalid input: When providing two arguments (x and y coordinates) "
+                    "for point they need to be floats."
                 )
                 sys.exit(1)
     logging.error(
-        "Invalid input: injection_point_info must be on the format [x,y] when calculation_type is 'point'"
+        "Invalid input: injection_point_info must be on the format [x,y]"
+        "when calculation_type is 'point'"
     )
     sys.exit(1)
 
@@ -403,7 +407,8 @@ def _find_input_line(injection_point_info: str) -> Tuple[str, float]:
                 direction = direction.lower()
                 if direction not in ["east", "west", "north", "south"]:
                     raise ValueError(
-                        "Invalid line direction. Choose from 'east'/'west'/'north'/'south'"
+                        "Invalid line direction. Choose from "
+                        "'east'/'west'/'north'/'south'"
                     )
                 value = float(coords[1])
                 coordinates = (direction, value)
@@ -411,12 +416,14 @@ def _find_input_line(injection_point_info: str) -> Tuple[str, float]:
                 return coordinates
             except ValueError as error:
                 logging.error(
-                    "Invalid input: injection_point_info must be on the format [direction, value] when calculation_type is 'line'."
+                    "Invalid input: injection_point_info must be on the format "
+                    "[direction, value] when calculation_type is 'line'."
                 )
                 logging.error(error)
                 sys.exit(1)
     logging.error(
-        "Invalid input: injection_point_info must be on the format [direction, value] when calculation_type is 'line'"
+        "Invalid input: injection_point_info must be on the format "
+        "[direction, value] when calculation_type is 'line'"
     )
     sys.exit(1)
 
