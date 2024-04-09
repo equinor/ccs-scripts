@@ -73,7 +73,7 @@ def test_co2_mass_maps_reek_grid():
     """
     adapt_reek_grid_for_co2_mass_maps_test()
     result = str(Path(__file__).absolute().parent / "answers" / "mass_maps")
-    grid3d_co2_mass.main(
+    co2_mass_maps.main(
         [
             "--config",
             str(
