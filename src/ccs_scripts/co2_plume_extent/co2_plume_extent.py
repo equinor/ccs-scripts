@@ -230,7 +230,7 @@ def _find_max_distances_per_time_step(
             elif calculation_type in ["point", "line"]:
                 result = dist[plumeix].min()
         else:
-            result = np.nan
+            result = 0.0  # or np.nan?
 
         dist_vs_date[i] = result
 
@@ -278,7 +278,7 @@ def _collect_results_into_dataframe(
     amfg_results: Optional[List[List]],
     amfg_key: str,
     calculation_type: str,
-    name: str,
+    name: str = "",
 ) -> pd.DataFrame:
     col = "?"
     if calculation_type == "plume_extent":
