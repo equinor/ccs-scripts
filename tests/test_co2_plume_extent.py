@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas
 import pytest
 
@@ -41,7 +42,7 @@ def test_calc_plume_extents():
         threshold_sgas=0.1,
     )
     assert len(sgas_results) == 4
-    assert sgas_results[0][1] == 0.0
+    assert np.isnan(sgas_results[0][1])
     assert sgas_results[-1][1] == pytest.approx(1269.1237856341113)
 
     sgas_results_2, _, _ = calculate_distances(
@@ -50,7 +51,7 @@ def test_calc_plume_extents():
         (462500.0, 5933100.0),
     )
     assert len(sgas_results_2) == 4
-    assert sgas_results_2[-1][1] == 0.0
+    assert np.isnan(sgas_results_2[-1][1])
 
     sgas_results_3, _, _ = calculate_distances(
         case_path,

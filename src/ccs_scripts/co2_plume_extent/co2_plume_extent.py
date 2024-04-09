@@ -230,7 +230,7 @@ def _find_max_distances_per_time_step(
             elif calculation_type in ["point", "line"]:
                 result = dist[plumeix].min()
         else:
-            result = 0.0  # or np.nan?
+            result = np.nan
 
         dist_vs_date[i] = result
 
@@ -467,7 +467,7 @@ def main():
         args.name,
     )
     _log_results(df, amfg_key, args.calculation_type, args.name)
-    df.to_csv(output_file, index=False, na_rep="nan")
+    df.to_csv(output_file, index=False, na_rep="0.0")  # How to handle nan-values?
     logging.info("\nDone exporting results to CSV file.\n")
 
     return 0
