@@ -63,6 +63,12 @@ def _make_parser() -> argparse.ArgumentParser:
         help="Threshold for AMFG",
     )
     parser.add_argument(
+        "--name",
+        default="",
+        type=str,
+        help="Name that will be included in the column of the CSV file",
+    )
+    parser.add_argument(
         "--verbose",
         help="Log information to screen",
         action="store_true",
@@ -120,6 +126,8 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     logging.info(f"\nCase                 : {arguments.case}")
     logging.info(f"Injection point info : {arguments.injection_point_info}")
     logging.info(f"Calculation type     : {arguments.calculation_type}")
+    if arguments.name != "":
+        logging.info(f"Specified name       : {arguments.name}")
     logging.info(f"Output CSV file      : {arguments.output}")
     logging.info(f"Threshold SGAS       : {arguments.threshold_sgas}")
     logging.info(f"Threshold AMFG       : {arguments.threshold_amfg}\n")
@@ -238,6 +246,7 @@ def _log_results(
     df: pd.DataFrame,
     amfg_key: str,
     calculation_type: str,
+    name: str,
 ) -> None:
     dfs = df.sort_values("date")
     logging.info("\nSummary of results:")
@@ -253,6 +262,9 @@ def _log_results(
     elif calculation_type in ["point", "line"]:
         text = "min"
         col = "MIN_DISTANCE"
+    if name != "":
+        col = col + "_" + name
+
     logging.info(
         f"End state {text} distance SGAS : {dfs[col+'_SGAS'].iloc[-1]:>11.1f}"
     )
@@ -266,12 +278,15 @@ def _collect_results_into_dataframe(
     amfg_results: Optional[List[List]],
     amfg_key: str,
     calculation_type: str,
+    name: str,
 ) -> pd.DataFrame:
     col = "?"
     if calculation_type == "plume_extent":
         col = "MAX_DISTANCE"
     elif calculation_type in ["point", "line"]:
         col = "MIN_DISTANCE"
+    if name != "":
+        col = col + "_" + name
 
     sgas_df = pd.DataFrame.from_records(
         sgas_results, columns=["date", col+"_SGAS"]
@@ -416,6 +431,7 @@ def main():
     and AMFG/XMF2. Output is plume extent per date written to a CSV file.
     """
     args = _make_parser().parse_args()
+    args.name = args.name.upper()
     _setup_log_configuration(args)
     _log_input_configuration(args)
 
@@ -447,8 +463,14 @@ def main():
     else:
         output_file = args.output
 
-    df = _collect_results_into_dataframe(sgas_results, amfg_results, amfg_key, args.calculation_type)
-    _log_results(df, amfg_key, args.calculation_type)
+    df = _collect_results_into_dataframe(
+        sgas_results,
+        amfg_results,
+        amfg_key,
+        args.calculation_type,
+        args.name,
+    )
+    _log_results(df, amfg_key, args.calculation_type, args.name)
     df.to_csv(output_file, index=False, na_rep="nan")
     logging.info("\nDone exporting results to CSV file.\n")
 
