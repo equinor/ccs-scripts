@@ -2,6 +2,14 @@
 
 ## 🎯 Overview
 
+Returns one map per formation howing the time it takes for the CO2 to migrate to a certain point. 
+
+**Limitations**
+
+The config file only accepts one property at a time. 
+
+
+
 ![image alt ><](mig-time.jpg)
 
 ## 📝 How to set it up?
