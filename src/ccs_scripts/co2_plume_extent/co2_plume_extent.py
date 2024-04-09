@@ -125,7 +125,7 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     logging.info(f"Threshold AMFG       : {arguments.threshold_amfg}\n")
 
 
-def calculate_plume_extents(
+def calculate_distances(
     case: str,
     calculation_type: str,
     injxy: Tuple[Union[float, str], float],
@@ -144,13 +144,23 @@ def calculate_plume_extents(
     logging.info(f"Number of active grid cells                    : {nactive:>10}")
     dist = np.zeros(shape=(nactive,))
     if calculation_type in ["plume_extent", "point"]:
+        (x, y) = injxy
         for i in range(nactive):
             center = grid.get_xyz(active_index=i)
-            dist[i] = np.sqrt((center[0] - injxy[0]) ** 2 + (center[1] - injxy[1]) ** 2)
+            dist[i] = np.sqrt((center[0] - x) ** 2 + (center[1] - y) ** 2)
     elif calculation_type == "line":
+        (direction, line_value) = injxy
+        ind = 0  # x-coordinate
+        factor = 1
+        if direction in ["east", "west"]:
+            ind = 1  # y-coordinate
+        if direction in ["west", "south"]:
+            factor = -1
+
         for i in range(nactive):
             center = grid.get_xyz(active_index=i)
-            dist[i] = 10.0 # Change
+            dist[i] = factor * (line_value - center[ind])
+        dist[dist < 0] = 0.0
 
     text = ""
     if calculation_type == "plume_extent":
@@ -422,7 +432,7 @@ def main():
         logging.error(f"Invalid calculation type: {args.calculation_type}")
         sys.exit(1)
 
-    (sgas_results, amfg_results, amfg_key) = calculate_plume_extents( # Rename
+    (sgas_results, amfg_results, amfg_key) = calculate_distances(
         args.case,
         args.calculation_type,
         injxy,
@@ -438,7 +448,6 @@ def main():
         output_file = args.output
 
     df = _collect_results_into_dataframe(sgas_results, amfg_results, amfg_key, args.calculation_type)
-    print(df)
     _log_results(df, amfg_key, args.calculation_type)
     df.to_csv(output_file, index=False, na_rep="nan")
     logging.info("\nDone exporting results to CSV file.\n")
