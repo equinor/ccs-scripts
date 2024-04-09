@@ -80,7 +80,9 @@ def test_export_to_csv():
     )
 
     out_file = "temp.csv"
-    df = _collect_results_into_dataframe(sgas_results, amfg_results, amfg_key, "plume_extent")
+    df = _collect_results_into_dataframe(
+        sgas_results, amfg_results, amfg_key, "plume_extent"
+    )
     df.to_csv(out_file, index=False)
 
     df = pandas.read_csv(out_file)

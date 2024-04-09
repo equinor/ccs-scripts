@@ -265,9 +265,7 @@ def _log_results(
     if name != "":
         col = col + "_" + name
 
-    logging.info(
-        f"End state {text} distance SGAS : {dfs[col+'_SGAS'].iloc[-1]:>11.1f}"
-    )
+    logging.info(f"End state {text} distance SGAS : {dfs[col+'_SGAS'].iloc[-1]:>11.1f}")
     if amfg_key is not None:
         value = dfs[col + "_" + amfg_key].iloc[-1]
         logging.info(f"End state {text} distance {amfg_key} : {value:>11.1f}")
@@ -288,9 +286,7 @@ def _collect_results_into_dataframe(
     if name != "":
         col = col + "_" + name
 
-    sgas_df = pd.DataFrame.from_records(
-        sgas_results, columns=["date", col+"_SGAS"]
-    )
+    sgas_df = pd.DataFrame.from_records(sgas_results, columns=["date", col + "_SGAS"])
     if amfg_results is not None:
         amfg_df = pd.DataFrame.from_records(
             amfg_results, columns=["date", col + "_" + amfg_key]
@@ -406,12 +402,12 @@ def _find_input_line(injection_point_info: str) -> Tuple[str, float]:
                 direction = coords[0]
                 direction = direction.lower()
                 if direction not in ["east", "west", "north", "south"]:
-                    raise ValueError("Invalid line direction. Choose from 'east'/'west'/'north'/'south'")
+                    raise ValueError(
+                        "Invalid line direction. Choose from 'east'/'west'/'north'/'south'"
+                    )
                 value = float(coords[1])
                 coordinates = (direction, value)
-                logging.info(
-                    f"Using line data: [{direction}, {value}]"
-                )
+                logging.info(f"Using line data: [{direction}, {value}]")
                 return coordinates
             except ValueError as error:
                 logging.error(
