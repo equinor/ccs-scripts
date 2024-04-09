@@ -91,6 +91,6 @@ nav:
       - CO2 containment: webviz/scripts/co2-containment.md
     - Plugin:
       - CO2 leakage: webviz/plugin/co2-leakage.md
-  - Tutorials: tutorials.md
+  - Tutorials & Resources: tutorials-resources.md
   - Updates: updates.md
   - Contact us: contact.md
