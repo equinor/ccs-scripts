@@ -4,7 +4,7 @@
 
 Plugin available on Webviz. Allows to visualize CO2 plume maps and see if / how much CO2 is inside / outside given boundaries (polygons, zones, regions).
 
-![image ><](co2-leakage.png)
+![image ><](./img/co2-leakage2.jpg)
 
 ## 📝 How to set it up?
 
@@ -44,9 +44,9 @@ Detailed explainations on each parameters:
 In progress:
 
 - Return % of co2 inside, outside and in the hazardeous area.
-![image ><](co2leakage-percentages.jpg)
+![image ><](./img/co2leakage-percentages.jpg)
 - New layout where plots are put in different tabs. It allows to visualize the plots better. A sliding scale as also been added to so the ratio between the map and the graph can be changed (map smaller and graphs bigger or opposite). 
-![image ><](co2leakage-tabs.jpg)
+![image ><](./img/co2leakage-tabs.jpg)
 
 <br />
 <br />
@@ -57,5 +57,5 @@ In progress:
     
     - New CO2 leakage  layout available on Komodo bleeding. Allows for zones and regions filtering. 
     - A feedback button has been added. See an error? Let us know!
-![image ><](regions-zones-option.png)
+![image ><](./img/regions-zones-option.png)
 

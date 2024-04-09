@@ -1,0 +1,29 @@
+-----------------------------------------------------
+---- Post-Processing steps
+-----------------------------------------------------
+
+-- Output summary vectors
+FORWARD_MODEL ECL2CSV(<SUBCOMMAND>=summary, <ECLBASE>=<ECLBASE>, <OUTPUT>="share/results/tables/unsmry--monthly.csv", <XARG1>="--time_index", <XARG2>=monthly) -- Monthly, optional
+FORWARD_MODEL ECL2CSV(<SUBCOMMAND>=summary, <ECLBASE>=<ECLBASE>, <OUTPUT>="share/results/tables/unsmry--raw.csv", <XARG1>="--time_index", <XARG2>=raw) -- All
+FORWARD_MODEL ECL2CSV(<SUBCOMMAND>=summary, <ECLBASE>=<ECLBASE>, <OUTPUT>="share/results/unsmry/<ECLIPSE_NAME>-<IENS>.arrow", <XARG1>="--arrow") -- Special format for Webviz
+
+-- Maps
+FORWARD_MODEL GRID3D_HC_THICKNESS(<ECLROOT>=<ECLBASE>, <CONFIG_HCMAP>=<CONFIG_PATH>/../input/config/ecl_hc_thickness.yml) --Thickness of plume per formation for SGAS, AMFG, etc.
+FORWARD_MODEL GRID3D_AVERAGE_MAP(<ECLROOT>=<ECLBASE>, <CONFIG_AVGMAP>=<CONFIG_PATH>/../input/config/ecl_avg_map.yml) --Average maps for properties such as SGAS, AMFG, PRESSURE, etc. 
+FORWARD_MODEL GRID3D_AGGREGATE_MAP(<ECLROOT>=<ECLBASE>, <CONFIG_AGGREGATE>=<CONFIG_PATH>/../input/config/grid3d_aggregate_map.yml) --Aggregate map of SGAS and AMFG parameter.
+FORWARD_MODEL GRID3D_MIGRATION_TIME(<ECLROOT>=<ECLBASE>, <CONFIG_MIGTIME>=<CONFIG_PATH>/../input/config/grid3d_migration_time.yml) --CO2 migration time map based on SGAS or AMFG.
+FORWARD_MODEL GRID3D_CO2_MASS(<CONFIG_CO2_MASS>=<CONFIG_PATH>/../input/config/grid3d_co2_mass_map.yml, <ECLROOT>=<ECLBASE>) --In development - CO2 mass maps as total,free gas / dissolved in water defined in config_co2_mass file. 
+
+-- Maximum plume extent from an injector / coordinate (SGAS and AMFG). 
+FORWARD_MODEL PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>= "S-J", <XARG1>="--verbose") --Using well name 
+FORWARD_MODEL PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>= "[560544.08,6703705.32]", <XARG1>="--verbose") --Using well coordinates
+
+-- Total plume area for each formation (SGAS and AMFG).
+-- This script needs output from GRID3D_AGGREGATE_MAP.
+FORWARD_MODEL PLUME_AREA(<INPUT>=<RUNPATH>share/results/maps/, <XARG1>="--verbose")
+
+-- Plume mass/volume inside or outside a certain boundary or zone/region per formation and phase (SGAS and AMFG).
+-- Pre-requisite for CO2 Leakage plugin - calculate CO2 contained inside / outside a boundary.
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>,  <CALC_TYPE_INPUT>="actual_volume", <CONTAINMENT_POLYGON>="share/results/polygons/containment--boundary.csv", <HAZARDOUS_POLYGON>="share/results/polygons/hazardous--boundary.csv",<REGION_PROPERTY>="FIPSEG", <ZONEFILE>="rms/output/zone/zonation_geo_map.yml", <XARG1>="--verbose") --Using region_property for region calculation.
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>,  <CALC_TYPE_INPUT>="mass", <CONTAINMENT_POLYGON>="share/results/polygons/containment--boundary.csv", <HAZARDOUS_POLYGON>="share/results/polygons/hazardous--boundary.csv",<REGIONFILE>="share/results/grids/main_grid--fipseg.roff", <ZONEFILE>="rms/output/zone/zonation_geo_map.yml") --Using regionfile for region calculation
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <CALC_TYPE_INPUT>="cell_volume", <CONTAINMENT_POLYGON>="share/results/polygons/containment--boundary.csv", <HAZARDOUS_POLYGON>="share/results/polygons/hazardous--boundary.csv")

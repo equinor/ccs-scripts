@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-![image alt ><](agg-map.jpg)
+![image alt ><](./img/agg-map.jpg)
 
 
 
@@ -18,9 +18,7 @@ FORWARD_MODEL GRID3D_AGGREGATE_MAP(<ECLROOT>=<ECLBASE>, <CONFIG_AGGREGATE>=<CONF
 
 ### Config file
 
-Config file are to be placed in `ert/input/config`
-
-Template example:
+Config file are to be placed in `ert/input/config` folder. Here is a template example:
 
 ~~~ yaml title="grid3d_aggregate_map.yml"
 {% include "./config-file-examples/aggregate-template.yml" %}

@@ -35,47 +35,9 @@ More documentation on Webviz: [Drogon example](https://webviz-subsurface-example
 ##ERT config file - example
 
 Each of these scripts and command lines are detailed in there respected sections (general scripts, maps, plugin). 
-Here is a screenshot of ERT config file with all available scripts:
+Here is the post-processing steps in ERT config file with all available scripts. This step is a pre-requisite to ensemble analysis using Webviz:
 
-![image alt ><](ert_overview.png)
+~~~ yaml title="Example of post-processing steps in ERT config file"
+{% include "./ert-config.yml" %}
+~~~
 
-
-For simplicity, you can also copy-paste all the lines:
-
-``` yaml
------------------------------------------------------
----- PostPflotranProcessing
------------------------------------------------------
-
--- Create csv file of maximum plume extent (SGAS and AMFG). 
-FORWARD_MODEL PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>= "S-J", <XARG1>="--verbose") --Using well name 
-FORWARD_MODEL PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>= "[560544.08,6703705.32]", <XARG1>="--verbose") --Using well coordinates
-
-
----- thickness of CO2 plume for each zone calculated by using SGAS or AMFG------
-FORWARD_MODEL GRID3D_HC_THICKNESS(<ECLROOT>=<ECLBASE>, <CONFIG_HCMAP>=<CONFIG_PATH>/../input/config/ecl_hc_thickness.yml)
-
--- average maps with AMFG, PRESSURE, SGAS, PORO AND PERMX
-FORWARD_MODEL GRID3D_AVERAGE_MAP(<ECLROOT>=<ECLBASE>, <CONFIG_AVGMAP>=<CONFIG_PATH>/../input/config/ecl_avg_map.yml) --Properties to be calculated defined in config_avgmap file.
-
-FORWARD_MODEL GRID3D_AGGREGATE_MAP(<ECLROOT>=<ECLBASE>, <CONFIG_AGGREGATE>=<CONFIG_PATH>/../input/config/grid3d_aggregate_map.yml) --Aggregate map of SGAS and AMFG parameter.
-
-FORWARD_MODEL GRID3D_MIGRATION_TIME(<ECLROOT>=<ECLBASE>, <CONFIG_MIGTIME>=<CONFIG_PATH>/../input/config/grid3d_migration_time.yml) --CO2 migration time map based on SGAS.
-
---CO2 mass maps as total,free gas / dissolved in water defined in config_co2_mass file 
-FORWARD_MODEL GRID3D_CO2_MASS(<CONFIG_CO2_MASS>=<CONFIG_PATH>/../input/config/grid3d_co2_mass_map.yml, <ECLROOT>=<ECLBASE>) 
-
---Create csv file containing plume area for each formation (SGAS, AMFG). This script needs output from GRID3D_AGGREGATE_MAP:
-FORWARD_MODEL PLUME_AREA(<INPUT>=<RUNPATH>share/results/maps/, <XARG1>="--verbose")
-
-
--- Create csv containing plume mass/volume inside or outside per formation and phase(SGAS, AMFG)
--- Pre-requisite for CO2 Leakage plugin: calculate CO2 contained inside / outside a boundary
-
-FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>,  <CALC_TYPE_INPUT>="actual_volume", <CONTAINMENT_POLYGON>="share/results/polygons/containment--boundary.csv", <HAZARDOUS_POLYGON>="share/results/polygons/hazardous--boundary.csv",<REGION_PROPERTY>="FIPSEG", <ZONEFILE>="rms/output/zone/zonation_geo_map.yml", <XARG1>="--verbose") --Using region_property for region calculation.
-
-FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>,  <CALC_TYPE_INPUT>="mass", <CONTAINMENT_POLYGON>="share/results/polygons/containment--boundary.csv", <HAZARDOUS_POLYGON>="share/results/polygons/hazardous--boundary.csv",<REGIONFILE>="share/results/grids/main_grid--fipseg.roff", <ZONEFILE>="rms/output/zone/zonation_geo_map.yml") --Using regionfile for region calculation
-
-FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <CALC_TYPE_INPUT>="cell_volume", <CONTAINMENT_POLYGON>="share/results/polygons/containment--boundary.csv", <HAZARDOUS_POLYGON>="share/results/polygons/hazardous--boundary.csv")
-
-```

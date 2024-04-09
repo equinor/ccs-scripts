@@ -10,7 +10,7 @@ The config file only accepts one property at a time.
 
 
 
-![image alt ><](mig-time.jpg)
+![image alt ><](./img/mig-time.jpg)
 
 ## 📝 How to set it up?
 
@@ -25,9 +25,7 @@ FORWARD_MODEL GRID3D_MIGRATION_TIME(<ECLROOT>=<ECLBASE>, <CONFIG_MIGTIME>=<CONFI
 
 ### Config file
 
-Config file are to be placed in `ert/input/config`
-
-Template example:
+Config file are to be placed in `ert/input/config` folder. Here is a template example:
 
 ~~~ yaml title="grid3d_migration_time.yml"
 {% include "./config-file-examples/mig-time-template.yml" %}
