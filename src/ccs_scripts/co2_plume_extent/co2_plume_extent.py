@@ -186,19 +186,19 @@ def calculate_distances(
         f"Average distance grid cell to {text}  : {sum(dist)/len(dist):>10.1f}"
     )
 
-    sgas_results = _find_max_distances_per_time_step(
+    sgas_results = _find_distances_per_time_step(
         "SGAS", calculation_type, threshold_sgas, unrst, dist
     )
     logging.info("Done calculating plume extent for SGAS.")
 
     if "AMFG" in unrst:
-        amfg_results = _find_max_distances_per_time_step(
+        amfg_results = _find_distances_per_time_step(
             "AMFG", calculation_type, threshold_amfg, unrst, dist
         )
         amfg_key = "AMFG"
         logging.info("Done calculating plume extent for AMFG.")
     elif "XMF2" in unrst:
-        amfg_results = _find_max_distances_per_time_step(
+        amfg_results = _find_distances_per_time_step(
             "XMF2", calculation_type, threshold_amfg, unrst, dist
         )
         amfg_key = "XMF2"
@@ -211,7 +211,7 @@ def calculate_distances(
     return (sgas_results, amfg_results, amfg_key)
 
 
-def _find_max_distances_per_time_step(
+def _find_distances_per_time_step(
     attribute_key: str,
     calculation_type: str,
     threshold: float,
