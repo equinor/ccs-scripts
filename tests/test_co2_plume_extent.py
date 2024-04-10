@@ -1,13 +1,14 @@
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas
 import pytest
 
 from ccs_scripts.co2_plume_extent.co2_plume_extent import (
     _calculate_well_coordinates,
     _collect_results_into_dataframe,
-    calculate_plume_extents,
+    calculate_distances,
     main,
 )
 
@@ -34,24 +35,27 @@ def test_calc_plume_extents():
         / "model"
         / "2_R001_REEK-0"
     )
-    sgas_results, _, _ = calculate_plume_extents(
+    sgas_results, _, _ = calculate_distances(
         case_path,
+        "plume_extent",
         (462500.0, 5933100.0),
         threshold_sgas=0.1,
     )
     assert len(sgas_results) == 4
-    assert sgas_results[0][1] == 0.0
+    assert np.isnan(sgas_results[0][1])
     assert sgas_results[-1][1] == pytest.approx(1269.1237856341113)
 
-    sgas_results_2, _, _ = calculate_plume_extents(
+    sgas_results_2, _, _ = calculate_distances(
         case_path,
+        "plume_extent",
         (462500.0, 5933100.0),
     )
     assert len(sgas_results_2) == 4
-    assert sgas_results_2[-1][1] == 0.0
+    assert np.isnan(sgas_results_2[-1][1])
 
-    sgas_results_3, _, _ = calculate_plume_extents(
+    sgas_results_3, _, _ = calculate_distances(
         case_path,
+        "plume_extent",
         (462500.0, 5933100.0),
         threshold_sgas=0.0001,
     )
@@ -69,14 +73,17 @@ def test_export_to_csv():
         / "model"
         / "2_R001_REEK-0"
     )
-    (sgas_results, amfg_results, amfg_key) = calculate_plume_extents(
+    (sgas_results, amfg_results, amfg_key) = calculate_distances(
         case_path,
+        "plume_extent",
         (462500.0, 5933100.0),
         threshold_sgas=0.1,
     )
 
     out_file = "temp.csv"
-    df = _collect_results_into_dataframe(sgas_results, amfg_results, amfg_key)
+    df = _collect_results_into_dataframe(
+        sgas_results, amfg_results, amfg_key, "plume_extent"
+    )
     df.to_csv(out_file, index=False)
 
     df = pandas.read_csv(out_file)

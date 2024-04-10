@@ -13,7 +13,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -29,9 +29,24 @@ def _make_parser() -> argparse.ArgumentParser:
     parser.add_argument("case", help="Name of Eclipse case")
     parser.add_argument(
         "injection_point_info",
-        help="Either the name of the injection well (string) or \
-        the x and y coordinates (two floats) to calculate plume extent from "
-        "(format: [x,y]).",
+        help="Input depends on calculation_type. \
+        For 'plume_extent': Either the name of the injection well (string) or \
+        the x and y coordinates (two floats, '[x,y]') to calculate plume extent from. \
+        For 'point': the x and y coordinates (two floats, '[x,y]'). \
+        For 'line': [direction, value] where direction must be \
+        'east'/'west'/'north'/'south' and value is the \
+        corresponding x or y value that defines this line.",
+    )
+    parser.add_argument(
+        "--calculation_type",
+        help="Options: \
+        'plume_extent': Maximum distance of plume from input (injection) coordinate. \
+        'point': Minimum distance from plume to a point, e.g. plume approaching \
+        a dangerous area. \
+        'line': Minimum distance from plume to an \
+        eastern/western/northern/southern line.",
+        default="plume_extent",
+        type=str,
     )
     parser.add_argument(
         "--output",
@@ -49,6 +64,12 @@ def _make_parser() -> argparse.ArgumentParser:
         default=DEFAULT_THRESHOLD_AMFG,
         type=float,
         help="Threshold for AMFG",
+    )
+    parser.add_argument(
+        "--name",
+        default="",
+        type=str,
+        help="Name that will be included in the column of the CSV file",
     )
     parser.add_argument(
         "--verbose",
@@ -107,14 +128,18 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
 
     logging.info(f"\nCase                 : {arguments.case}")
     logging.info(f"Injection point info : {arguments.injection_point_info}")
+    logging.info(f"Calculation type     : {arguments.calculation_type}")
+    if arguments.name != "":
+        logging.info(f"Specified name       : {arguments.name}")
     logging.info(f"Output CSV file      : {arguments.output}")
     logging.info(f"Threshold SGAS       : {arguments.threshold_sgas}")
     logging.info(f"Threshold AMFG       : {arguments.threshold_amfg}\n")
 
 
-def calculate_plume_extents(
+def calculate_distances(
     case: str,
-    injxy: Tuple[float, float],
+    calculation_type: str,
+    injxy: Tuple[Union[float, str], float],
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
 ) -> Tuple[List[List], Optional[List[List]], Optional[str]]:
@@ -125,33 +150,56 @@ def calculate_plume_extents(
     grid = Grid(f"{case}.EGRID")
     unrst = ResdataFile(f"{case}.UNRST")
 
-    # First calculate distance from injection point to center of all cells
+    # First calculate distance from point/line to center of all cells
     nactive = grid.get_num_active()
     logging.info(f"Number of active grid cells                    : {nactive:>10}")
     dist = np.zeros(shape=(nactive,))
-    for i in range(nactive):
-        center = grid.get_xyz(active_index=i)
-        dist[i] = np.sqrt((center[0] - injxy[0]) ** 2 + (center[1] - injxy[1]) ** 2)
-    logging.info(f"Smallest distance grid cell to injection point : {min(dist):>10.1f}")
-    logging.info(f"Largest distance grid cell to injection point  : {max(dist):>10.1f}")
+    if calculation_type in ["plume_extent", "point"]:
+        (x, y) = injxy
+        for i in range(nactive):
+            center = grid.get_xyz(active_index=i)
+            dist[i] = np.sqrt((center[0] - x) ** 2 + (center[1] - y) ** 2)
+    elif calculation_type == "line":
+        (direction, line_value) = injxy
+        ind = 0  # x-coordinate
+        factor = 1
+        if direction in ["east", "west"]:
+            ind = 1  # y-coordinate
+        if direction in ["west", "south"]:
+            factor = -1
+
+        for i in range(nactive):
+            center = grid.get_xyz(active_index=i)
+            dist[i] = factor * (line_value - center[ind])
+        dist[dist < 0] = 0.0
+
+    text = ""
+    if calculation_type == "plume_extent":
+        text = "injection point"
+    elif calculation_type == "point":
+        text = "point          "
+    elif calculation_type == "line":
+        text = "line           "
+    logging.info(f"Smallest distance grid cell to {text} : {min(dist):>10.1f}")
+    logging.info(f"Largest distance grid cell to {text}  : {max(dist):>10.1f}")
     logging.info(
-        f"Average distance grid cell to injection point  : {sum(dist)/len(dist):>10.1f}"
+        f"Average distance grid cell to {text}  : {sum(dist)/len(dist):>10.1f}"
     )
 
-    sgas_results = _find_max_distances_per_time_step(
-        "SGAS", threshold_sgas, unrst, dist
+    sgas_results = _find_distances_per_time_step(
+        "SGAS", calculation_type, threshold_sgas, unrst, dist
     )
     logging.info("Done calculating plume extent for SGAS.")
 
     if "AMFG" in unrst:
-        amfg_results = _find_max_distances_per_time_step(
-            "AMFG", threshold_amfg, unrst, dist
+        amfg_results = _find_distances_per_time_step(
+            "AMFG", calculation_type, threshold_amfg, unrst, dist
         )
         amfg_key = "AMFG"
         logging.info("Done calculating plume extent for AMFG.")
     elif "XMF2" in unrst:
-        amfg_results = _find_max_distances_per_time_step(
-            "XMF2", threshold_amfg, unrst, dist
+        amfg_results = _find_distances_per_time_step(
+            "XMF2", calculation_type, threshold_amfg, unrst, dist
         )
         amfg_key = "XMF2"
         logging.info("Done calculating plume extent for XMF2.")
@@ -163,22 +211,31 @@ def calculate_plume_extents(
     return (sgas_results, amfg_results, amfg_key)
 
 
-def _find_max_distances_per_time_step(
-    attribute_key: str, threshold: float, unrst: ResdataFile, dist: np.ndarray
+def _find_distances_per_time_step(
+    attribute_key: str,
+    calculation_type: str,
+    threshold: float,
+    unrst: ResdataFile,
+    dist: np.ndarray,
 ) -> List[List]:
     """
-    Find max plume distance for each step
+    Find distance metric for each step
     """
     nsteps = len(unrst.report_steps)
     dist_vs_date = np.zeros(shape=(nsteps,))
     for i in range(nsteps):
         data = unrst[attribute_key][i].numpy_view()
         plumeix = np.where(data > threshold)[0]
-        maxdist = 0.0
+        result = 0.0
         if len(plumeix) > 0:
-            maxdist = dist[plumeix].max()
+            if calculation_type == "plume_extent":
+                result = dist[plumeix].max()
+            elif calculation_type in ["point", "line"]:
+                result = dist[plumeix].min()
+        else:
+            result = np.nan
 
-        dist_vs_date[i] = maxdist
+        dist_vs_date[i] = result
 
     output = []
     for i, d in enumerate(unrst.report_dates):
@@ -188,32 +245,54 @@ def _find_max_distances_per_time_step(
     return output
 
 
-def _log_results(df: pd.DataFrame, amfg_key: str) -> None:
+def _log_results(
+    df: pd.DataFrame,
+    amfg_key: str,
+    calculation_type: str,
+    name: str,
+) -> None:
     dfs = df.sort_values("date")
     logging.info("\nSummary of results:")
     logging.info("===================")
     logging.info(f"Number of dates             : {len(dfs['date'].unique()):>11}")
     logging.info(f"First date                  : {dfs['date'].iloc[0]:>11}")
     logging.info(f"Last date                   : {dfs['date'].iloc[-1]:>11}")
-    logging.info(
-        f"End state max distance SGAS : {dfs['MAX_DISTANCE_SGAS'].iloc[-1]:>11.1f}"
-    )
+    text = "?"
+    col = "?"
+    if calculation_type == "plume_extent":
+        text = "max"
+        col = "MAX_DISTANCE"
+    elif calculation_type in ["point", "line"]:
+        text = "min"
+        col = "MIN_DISTANCE"
+    if name != "":
+        col = col + "_" + name
+
+    logging.info(f"End state {text} distance SGAS : {dfs[col+'_SGAS'].iloc[-1]:>11.1f}")
     if amfg_key is not None:
-        value = dfs["MAX_DISTANCE_" + amfg_key].iloc[-1]
-        logging.info(f"End state max distance {amfg_key} : {value:>11.1f}")
+        value = dfs[col + "_" + amfg_key].iloc[-1]
+        logging.info(f"End state {text} distance {amfg_key} : {value:>11.1f}")
 
 
 def _collect_results_into_dataframe(
     sgas_results: List[List],
     amfg_results: Optional[List[List]],
     amfg_key: str,
+    calculation_type: str,
+    name: str = "",
 ) -> pd.DataFrame:
-    sgas_df = pd.DataFrame.from_records(
-        sgas_results, columns=["date", "MAX_DISTANCE_SGAS"]
-    )
+    col = "?"
+    if calculation_type == "plume_extent":
+        col = "MAX_DISTANCE"
+    elif calculation_type in ["point", "line"]:
+        col = "MIN_DISTANCE"
+    if name != "":
+        col = col + "_" + name
+
+    sgas_df = pd.DataFrame.from_records(sgas_results, columns=["date", col + "_SGAS"])
     if amfg_results is not None:
         amfg_df = pd.DataFrame.from_records(
-            amfg_results, columns=["date", "MAX_DISTANCE_" + amfg_key]
+            amfg_results, columns=["date", col + "_" + amfg_key]
         )
         df = pd.merge(sgas_df, amfg_df, on="date")
     else:
@@ -241,7 +320,7 @@ def _calculate_well_coordinates(
                 )
                 return coordinates
             except ValueError:
-                print(
+                logging.error(
                     "Invalid input: When providing two arguments (x and y coordinates)\
                     for injection point info they need to be floats."
                 )
@@ -262,7 +341,7 @@ def _calculate_well_coordinates(
     logging.debug(df)
 
     if well_name not in list(df["WELL"]):
-        print(
+        logging.error(
             f"No matches for well name {well_name}, input is either mistyped \
             or well does not exist."
         )
@@ -288,21 +367,93 @@ def _calculate_well_coordinates(
     return (x, y)
 
 
+def _find_input_point(injection_point_info: str) -> Tuple[float, float]:
+    if (
+        len(injection_point_info) > 0
+        and injection_point_info[0] == "["
+        and injection_point_info[-1] == "]"
+    ):
+        coords = injection_point_info[1:-1].split(",")
+        if len(coords) == 2:
+            try:
+                coordinates = (float(coords[0]), float(coords[1]))
+                logging.info(
+                    f"Using point coordinates: [{coordinates[0]}, {coordinates[1]}]"
+                )
+                return coordinates
+            except ValueError:
+                logging.error(
+                    "Invalid input: When providing two arguments (x and y coordinates) "
+                    "for point they need to be floats."
+                )
+                sys.exit(1)
+    logging.error(
+        "Invalid input: injection_point_info must be on the format [x,y]"
+        "when calculation_type is 'point'"
+    )
+    sys.exit(1)
+
+
+def _find_input_line(injection_point_info: str) -> Tuple[str, float]:
+    if (
+        len(injection_point_info) > 0
+        and injection_point_info[0] == "["
+        and injection_point_info[-1] == "]"
+    ):
+        coords = injection_point_info[1:-1].split(",")
+        if len(coords) == 2:
+            try:
+                direction = coords[0]
+                direction = direction.lower()
+                if direction not in ["east", "west", "north", "south"]:
+                    raise ValueError(
+                        "Invalid line direction. Choose from "
+                        "'east'/'west'/'north'/'south'"
+                    )
+                value = float(coords[1])
+                coordinates = (direction, value)
+                logging.info(f"Using line data: [{direction}, {value}]")
+                return coordinates
+            except ValueError as error:
+                logging.error(
+                    "Invalid input: injection_point_info must be on the format "
+                    "[direction, value] when calculation_type is 'line'."
+                )
+                logging.error(error)
+                sys.exit(1)
+    logging.error(
+        "Invalid input: injection_point_info must be on the format "
+        "[direction, value] when calculation_type is 'line'"
+    )
+    sys.exit(1)
+
+
 def main():
     """
     Calculate plume extent using EGRID and UNRST-files. Calculated for SGAS
     and AMFG/XMF2. Output is plume extent per date written to a CSV file.
     """
     args = _make_parser().parse_args()
+    args.name = args.name.upper()
     _setup_log_configuration(args)
     _log_input_configuration(args)
 
-    injxy = _calculate_well_coordinates(
+    if args.calculation_type == "plume_extent":
+        injxy = _calculate_well_coordinates(
+            args.case,
+            args.injection_point_info,
+        )
+    elif args.calculation_type == "point":
+        injxy = _find_input_point(args.injection_point_info)
+    elif args.calculation_type == "line":
+        injxy = _find_input_line(args.injection_point_info)
+    else:
+        logging.error(f"Invalid calculation type: {args.calculation_type}")
+        sys.exit(1)
+
+    (sgas_results, amfg_results, amfg_key) = calculate_distances(
         args.case,
-        args.injection_point_info,
-    )
-    (sgas_results, amfg_results, amfg_key) = calculate_plume_extents(
-        args.case,
+        args.calculation_type,
         injxy,
         args.threshold_sgas,
         args.threshold_amfg,
@@ -315,9 +466,15 @@ def main():
     else:
         output_file = args.output
 
-    df = _collect_results_into_dataframe(sgas_results, amfg_results, amfg_key)
-    _log_results(df, amfg_key)
-    df.to_csv(output_file, index=False)
+    df = _collect_results_into_dataframe(
+        sgas_results,
+        amfg_results,
+        amfg_key,
+        args.calculation_type,
+        args.name,
+    )
+    _log_results(df, amfg_key, args.calculation_type, args.name)
+    df.to_csv(output_file, index=False, na_rep="0.0")  # How to handle nan-values?
     logging.info("\nDone exporting results to CSV file.\n")
 
     return 0
