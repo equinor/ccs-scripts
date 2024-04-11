@@ -33,6 +33,8 @@ FORWARD_MODEL PLUME_EXTENT(<CASE>=<ECLBASE>, <XARG1>="--well_name", <XARG2>=S-J)
 - Ensure 2+ injectors can be used. 
 
 - Evaluate adding script extentsion from Smeaheia in this code.
+
+![image alt ><](./img/plume_extent2.png)
 <br />
 <br />
 
