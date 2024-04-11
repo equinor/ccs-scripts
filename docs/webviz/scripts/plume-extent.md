@@ -9,7 +9,6 @@ Calculates the maximum distance of the CO2 plume to the injector or another 
 Only calculates the maximum distance from 1 injector. 
 
 
-
 ## 📝 How to set it up?
 
 ### ERT

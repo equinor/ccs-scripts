@@ -13,15 +13,35 @@ Calculates the amount of CO2 inside or outside a boundary (polygons, zones or 
 
 ⚪ Optional parameters: Boundary polygons / zone output file / regions - depending on which calculation method has been selected. For more information on how to output your boundary polygons or zone output file, read the "RMS" section below.
 
+``` yaml title="Mandatory arguments"
+<CASE>: Path to Eclipse case, including base name, but excluding the file extension (.EGRID, .INIT, .UNRST)
+
+<CALC_TYPE_INPUT>: mass / cell_volume / actual_volume.
+```
+``` yaml title="Optional arguments"
+<ROOT_DIR>: Path to root directory.
+
+<OUT_DIR>: Path to output directory. By default, the filename is set to "plume_<calculation_type>.csv" and stored in <root_dir>/share/results/tables.
+
+<CONTAINMENT_POLYGON>: Path to the containment polygon. Counts all CO2 as contains if not provided. 
+
+<HAZARDOUS_POLYGON>: Path to the hazardous polygon.
+
+<EGRID>: Path to EGRID file. Overwrites <case> if provided.
+
+<UNRST>:  Path to UNRST file. Overwrites <case> if provided.
+
+<INIT>:  Path to INIT file. Overwrites <case> if provided.
+
+<ZONEFILE>: Path to file containing zone information. By default, does not calculates Co2 containment per zone.
+```
+
+Example:
+
 ``` yaml title="Calculates actual volume of CO2 in the model"
-FORWARD_MODEL CO2_CONTAINMENT(<GRID>=<RUNPATH><ECLBASE>.EGRID, <OUTFILE>="share/results/tables/plume_actual_volume.csv", <CALC_TYPE_INPUT>="actual_volume")
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <CALC_TYPE_INPUT>="actual_volume")
 ```
-``` yaml title="Calculates cell volume with CO2 in the model"
-FORWARD_MODEL CO2_CONTAINMENT(<GRID>=<RUNPATH><ECLBASE>.EGRID, <OUTFILE>="share/results/tables/plume_cell_volume.csv", <CALC_TYPE_INPUT>="cell_volume")
-```
-``` yaml title="Calculates mass of CO2 in the model"
-FORWARD_MODEL CO2_CONTAINMENT(<GRID>=<RUNPATH><ECLBASE>.EGRID, <OUTFILE>="share/results/tables/plume_mass.csv", <CALC_TYPE_INPUT>="mass")
-```
+
 
 ### RMS
 
@@ -29,7 +49,7 @@ RMS outputs some key information that the co2_containment script needs in order 
 
 **Boundary polygons**
 
-1. Create your polygons in the clipboard, under a "boundary_polygon" folder. 
+1. Create your polygons in the clipboard, under a `boundary_polygon` folder. 
 
 2. To export your boundary via RMS, use the following python job:
 ``` yaml title="export_boundary_polygons.py"
@@ -172,29 +192,43 @@ LAYER,ZONE
 
 Note: rename `[1st_oundary_name]` and `[2nd_boundary_name]` according to your project's naming standards.
 
-``` yaml title="Calculates actual volume of CO2 inside & outside 2 polygons"
-FORWARD_MODEL CO2_CONTAINMENT(<GRID>=<RUNPATH><ECLBASE>.EGRID, <OUTFILE>="share/results/tables/plume_actual_volume.csv", <CALC_TYPE_INPUT>="actual_volume", <XARG1>="--containment_polygon", <XARG2>=share/results/polygons/[1st_boundary_name]--boundary.csv, <XARG3>="--hazardous_polygon", <XARG4>=share/results/polygons/[2nd_boundary_name]--boundary.csv, <XARG5>="--zonefile", <XARG6>=<RUNPATH>rms/output/zone/layer_zone_table.csv)
+``` yaml title="Calculates cell volume with CO2 in the model"
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <CALC_TYPE_INPUT>="cell_volume")
+```
+``` yaml title="Calculates mass of CO2 in the model"
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <CALC_TYPE_INPUT>="mass")
 ```
 
-``` yaml title="Calculates actual volume using region property for region calculation"
-FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>,  <CALC_TYPE_INPUT>="actual_volume", <CONTAINMENT_POLYGON>="share/results/polygons/[1st_boundary_name]--boundary.csv", <HAZARDOUS_POLYGON>="share/results/polygons/[2nd_boundary_name]--boundary.csv",<REGION_PROPERTY>="FIPSEG", <ZONEFILE>="rms/output/zone/zonation_geo_map.yml", <XARG1>="--verbose")
+``` yaml title="Calculates actual volume of CO2 inside & outside 2 polygons"
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/results/tables/plume_actual_volume.csv", <CALC_TYPE_INPUT>="actual_volume", <CONTAINMENT_POLYGON>=share/results/polygons/[1st_boundary_name]--boundary.csv, <HAZARDOUS_POLYGON>=share/results/polygons/[2nd_boundary_name]--boundary.csv, <ZONEFILE>=<RUNPATH>rms/output/zone/layer_zone_table.csv)
 ```
+
 
 ``` yaml title="Calculates cell volume inside & outside your 1 polygon"
-FORWARD_MODEL CO2_CONTAINMENT(<GRID>=<RUNPATH><ECLBASE>.EGRID, <OUTFILE>="share/results/tables/plume_cell_volume.csv", <CALC_TYPE_INPUT>="cell_volume",<XARG1>="--containment_polygon", <XARG2>=share/results/polygons/[1st_boundary_name]--boundary.csv)
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/results/tables/plume_cell_volume.csv", <CALC_TYPE_INPUT>="cell_volume", <CONTAINMENT_POLYGON>=share/results/polygons/[1st_boundary_name]--boundary.csv)
 ```
 
 ``` yaml title="Calculates mass of CO2 inside & outside your 2 polygons and per zone"
-FORWARD_MODEL CO2_CONTAINMENT(<GRID>=<RUNPATH><ECLBASE>.EGRID, <OUTFILE>="share/results/tables/plume_mass.csv", <CALC_TYPE_INPUT>="mass", <XARG1>="--containment_polygon", <XARG2>="share/results/polygons/[1st_boundary_name]--boundary.csv", <XARG3>="--hazardous_polygon", <XARG4>="share/results/polygons/[2nd_boundary_name]--boundary.csv", <XARG5>="--zonefile", <XARG6>="<RUNPATH>rms/output/zone/layer_zone_table.csv" )
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/results/tables/plume_mass.csv", <CALC_TYPE_INPUT>="mass", <CONTAINMENT_POLYGON>="share/results/polygons/[1st_boundary_name]--boundary.csv",  <HAZARDOUS_POLYGON>="share/results/polygons/[2nd_boundary_name]--boundary.csv", <ZONEFILE>="<RUNPATH>rms/output/zone/layer_zone_table.csv" )
 ```
 
 
 ## 🔧 Versions & Updates
 
 **Future development**
+
+In progress:
+
+- Calculates CO2 containment per regions
+
+- Added a "--verbose" option. Outputs all the calculation steps during the ERT run in the .STDERR file.
+
+``` yaml title="Calculates actual volume using region property for region calculation"
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>,  <CALC_TYPE_INPUT>="actual_volume", <CONTAINMENT_POLYGON>="share/results/polygons/[1st_boundary_name]--boundary.csv", <HAZARDOUS_POLYGON>="share/results/polygons/[2nd_boundary_name]--boundary.csv", <REGION_PROPERTY>="FIPSEG", <ZONEFILE>="rms/output/zone/zonation_geo_map.yml", <XARG1>="--verbose")
+```
 <br />
 <br />
 
 **Updates**
 
-- This script know returns volume and mass of CO2 inside and outside regions and zones in addition to polygons. 
+- This script know returns volume and mass of CO2 inside and outside zones in addition to polygons. 
