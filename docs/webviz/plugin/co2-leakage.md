@@ -4,13 +4,13 @@
 
 Plugin available on Webviz. Allows to visualize CO2 plume maps and see if / how much CO2 is inside / outside given boundaries (polygons, zones, regions).
 
-![image ><](./img/co2-leakage2.jpg)
+![image ><](./img/co2-leakage3.png)
 
 ## 📝 How to set it up?
 
 ### Webviz
 
-✅ Available on Komodo
+✅ Available on Komodo bleeding
 
 ~~~ yaml title="Input to Webviz config file to use CO2 Leakage plugin"
 {% include "./config-file-examples/co2-leakage.yml" %}
