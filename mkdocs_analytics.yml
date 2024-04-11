@@ -37,12 +37,33 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
 
+extra:
+  analytics:
+    provide: azure
+    property: a8fd01a5-73fd-410c-b003-72ff4aff9f36
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/thumb-up-outline
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thank you for your feedback!
+        - icon: material/thumb-down-outline
+          name: This page was not helpful
+          data: 0
+          note: >-
+            Thanks for your feedback! Help us improve this page by
+            using our <a href="..." target="_blank" rel="noopener">feedback form</a>.
+
 extra_css:
   - https://cdn.eds.equinor.com/font/equinor-font.css
   - stylesheets/extra.css
   - stylesheets/extra-nonequinor.css
   - stylesheets/neoteroi-cards.css
-  - stylesheets/wrap.css
+
+extra_javascript:
+  - javascripts/feedback.js
 
 plugins:
   - search:

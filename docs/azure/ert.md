@@ -20,9 +20,9 @@ Other queues exist and will influence computational power & cost. ​Reach out t
 
 
 - Pflotran:
-
-    `FORWARD_MODEL RUN_PFLOTRAN(<queue>=<QUEUE>, <cpus_per_node>=<CPUS_PER_NODE>, <number_of_nodes>=<NUMBER_OF_NODES>, <model_file>=<RUNPATH>/pflotran/model/<ECLIPSE_NAME>-<IENS>.in)`
-
+```yaml
+FORWARD_MODEL RUN_PFLOTRAN(<queue>=<QUEUE>, <cpus_per_node>=<CPUS_PER_NODE>, <number_of_nodes>=<NUMBER_OF_NODES>, <model_file>=<RUNPATH>/pflotran/model/<ECLIPSE_NAME>-<IENS>.in)
+```
 - Post-processing scripts:
 
     To know more, visit the following section of the documentation about [Webviz](https://fmu-for-ccs.radix.equinor.com/webviz/overview/).
