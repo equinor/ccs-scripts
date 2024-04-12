@@ -1,13 +1,8 @@
 # Overview
 
-## About Weviz
-
-Webviz is designed for analysing FMU model results.
-
-More documentation on Webviz: [Drogon example](https://webviz-subsurface-example.azurewebsites.net/how-was-this-made)
-
 
 ## Available scripts
+
 
 **Maps**
 
@@ -32,7 +27,7 @@ More documentation on Webviz: [Drogon example](https://webviz-subsurface-example
 | [CO2 leakage](../webviz/plugin/co2-leakage.md)   | Plugin dedicated to surveiling and quantifying how much CO2 leaks outside the field's license boundary or any other area defined by the user.|
 
 
-##ERT config file - example
+## ERT config file - example
 
 Each of these scripts and command lines are detailed in there respected sections (general scripts, maps, plugin). 
 Here is the post-processing steps in ERT config file with all available scripts. This step is a pre-requisite to ensemble analysis using Webviz:
@@ -41,3 +36,18 @@ Here is the post-processing steps in ERT config file with all available scripts.
 {% include "./ert-config.yml" %}
 ~~~
 
+
+## About Weviz
+
+Webviz is designed for analysing FMU ensemble results.
+
+More documentation on Webviz: [Drogon example](https://webviz-subsurface-example.azurewebsites.net/how-was-this-made)
+
+
+## Webviz config file - example
+
+In order to open Webviz and analyse your ensemble, you will need to set up a config file. Examples can be found using the link provided above, however they are related to Oil & Gas. Here is an example made for CCS, using outputs from the six available scripts:
+
+~~~ yaml title="Example of a Webviz config file"
+{% include "./webviz-config.yml" %}
+~~~

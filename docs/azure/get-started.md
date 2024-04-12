@@ -5,6 +5,8 @@
 In order to run your simulations on Azure, you will need to have access to an Azure subscription and create a dedicated project space on the subscription. 
 A step-by-step guide is available below.
 
+For more information, please refer to the [presentation](https://statoilsrm.sharepoint.com/:p:/r/sites/SubOps/_layouts/15/Doc.aspx?sourcedoc=%7B122A0344-9D32-4B3C-BA6B-175B86B4F620%7D&file=Azure-S268-FirstUse.pptx&action=edit&mobileredirect=true) from Mark Reed and Hans Rune Bue. It dives into the configuration specifics of the Azure Europe West cluster.
+
 
 ## 📝 Set-by-step
 
@@ -54,7 +56,7 @@ A step-by-step guide is available below.
 
     Remember to change the highlighted sections.
 
-    If you are using another subscirption than S268, update with your own subscription number.
+    If you are using another subscription than S268, update with your own subscription number.
 
 | Command line      | Description |
 | ----------- | ----------- |
@@ -63,13 +65,11 @@ A step-by-step guide is available below.
 | Rsync –av s268-<span style="background-color: #FFE7D6">rgs0001</span>.s268.oc.equinor.com:<span style="background-color: #DFF5FF">22.1.2/</span> <span style="background-color: #DFF5FF">/project/fmu_for_ccs/22.1.2/</span>​ |Synchronize folder from Azure to RGS​​ |
 
 
-### Additional information & point of contact
-For more information, please refer to the [presentation](https://statoilsrm.sharepoint.com/:p:/r/sites/SubOps/_layouts/15/Doc.aspx?sourcedoc=%7B122A0344-9D32-4B3C-BA6B-175B86B4F620%7D&file=Azure-S268-FirstUse.pptx&action=edit&mobileredirect=true) from Mark Reed and Hans Rune Bue. It dives into the configuration specifics of the Azure Europe West cluster in detail.
+### Point of contact
 
-Contact people:
 
-- Hans Rune Bue ([hrbu](emailto:hrbu@equinor.com)) - Azure
-- Ketil Nummedal ([kenu](emailto:kenu@equinor.com)) - RGS
-- Roger Nybø ([rnyb](emailto:rnyu@equinor.com)) - ERT 
+- Hans Rune Bue ([hrbu](mailto:hrbu@equinor.com)), Mark Austin Reed ([markr](mailto:markr@equinor.com))  - Azure
+- Ketil Nummedal ([kenu](mailto:kenu@equinor.com)) - RGS
+- Roger Nybø ([rnyb](mailto:rnyu@equinor.com)) - ERT 
 
 
