@@ -37,7 +37,7 @@ Here is the post-processing steps in ERT config file with all available scripts.
 ~~~
 
 
-## About Weviz
+## About Webviz
 
 Webviz is designed for analysing FMU ensemble results.
 
