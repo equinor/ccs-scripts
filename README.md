@@ -49,4 +49,6 @@ Do you have a script that processes CCS data? Would like to share it with the CC
 
 ## Documentation
 
-To come :hourglass_flowing_sand:	
+A brand new documentation is now available on the following site: [link](https://fmu-for-ccs.radix.equinor.com). 
+
+It gathers definitions, tutorials, theory behind the calculations, etc. 
