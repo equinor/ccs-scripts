@@ -16,7 +16,7 @@ def expected_jobs():
     """dictionary of installed jobs with location to config"""
     expected_job_names = [
         "CO2_CONTAINMENT",
-        # "CO2_MASS_MAPS",
+        "CO2_MASS_MAPS",
         "PLUME_AREA",
         "PLUME_EXTENT",
     ]
@@ -82,10 +82,17 @@ def test_hook_implementations_job_docs():
     description string to be nonempty, and valid RST markup"""
 
     plugin_m = ErtPluginManager(plugins=[ccs_scripts.hook_implementations.jobs])
+    print(plugin_m)
 
     installable_jobs = plugin_m.get_installable_jobs()
 
     docs = plugin_m.get_documentation_for_jobs()
+
+    print(installable_jobs)
+    print("")
+    for a,b in docs.items():
+        print(a)
+        print(b)
 
     assert set(docs.keys()) == set(installable_jobs.keys())
 
