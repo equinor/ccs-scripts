@@ -13,12 +13,12 @@ from ccs_scripts.co2_mass_maps._co2_mass import translate_co2data_to_property
 
 # Module variables for ERT hook implementation:
 DESCRIPTION = """
-    Produces maps of CO2 mass per date, fomation and phase (gas/dissolved).
+    Produces maps of CO2 mass per date, formation and phase (gas/dissolved).
     Outputs are .gri files (one per requested combination of date, phase,
     formation).
 
     A yaml config file is the input file to co2_mass_maps. Through this file
-    the user can decide for which dates, phases or formations the maps are
+    the user can decide on which dates, phases or formations the maps are
     produced. See tests/yaml for examples of yaml files.
     """
 
