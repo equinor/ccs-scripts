@@ -28,9 +28,9 @@ PROPERTIES_TO_EXTRACT = [
 
 # Module variables for ERT hook implementation:
 DESCRIPTION = """Produces maps of CO2 mass per date, fomation and phase (gas/dissolved).
-        Outputs are .gri files (one per requested combination of date, phase, formation).
+        Outputs are gri files (one per requested combination of date, phase, formation).
 
-        A yaml config file is the input file to co2_mass_maps. Through this file the user
+    A yaml config file is the input file to co2_mass_maps. Through this file the user
           can decide for which dates, phases or formations the maps are produced.
         See tests/yaml for examples of yaml files.
      """
