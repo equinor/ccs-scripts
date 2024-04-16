@@ -15,4 +15,3 @@ ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--root_dir" <ROOT_DIR> "--out_dir" <OUT_D
 
 MIN_ARG 2
 MAX_ARG 14
- 
