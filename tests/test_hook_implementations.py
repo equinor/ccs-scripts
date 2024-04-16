@@ -90,7 +90,7 @@ def test_hook_implementations_job_docs():
 
     print(installable_jobs)
     print("")
-    for a,b in docs.items():
+    for a, b in docs.items():
         print(a)
         print(b)
 
