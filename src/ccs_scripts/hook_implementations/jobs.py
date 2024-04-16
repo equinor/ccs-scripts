@@ -60,7 +60,9 @@ def job_documentation(job_name: str) -> Optional[dict]:
     Return:
         dict:  keys: description, category, examples.
     """
+    print(f"\nRunning job_documentation for {job_name}")
     ccs_scripts_jobs = set(installable_jobs().data.keys())
+    print(ccs_scripts_jobs)
     if job_name not in ccs_scripts_jobs:
         return None
 

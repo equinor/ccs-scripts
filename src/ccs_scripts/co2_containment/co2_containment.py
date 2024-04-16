@@ -33,6 +33,23 @@ from ccs_scripts.co2_containment.co2_calculation import (
     calculate_co2,
 )
 
+DESCRIPTION = """
+Calculates the amount of CO2 inside and outside a given perimeter, and
+separates the result per formation and phase (gas/dissolved). Output is a table
+on CSV format.
+
+The most common use of the script is to calculate CO2 mass. Options for
+calculation type input:
+
+"mass": CO2 mass (kg), the default option
+"cell_volume": CO2 volume (m3), a simple calculation finding the grid cells
+with some CO2 and summing the volume of those cells
+"actual_volume": CO2 volume (m3), an attempt to calculate a more precise
+representative volume of CO2
+"""
+
+CATEGORY = "modelling.reservoir"
+
 
 # pylint: disable=too-many-arguments
 def calculate_out_of_bounds_co2(

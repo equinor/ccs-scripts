@@ -23,6 +23,16 @@ from resdata.resfile import ResdataFile
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
 
+DESCRIPTION = """
+Calculates the maximum lateral distance of the CO2 plume from a given location,
+for instance an injection point. The distance is calculated for each time step,
+for both SGAS and AMFG (Pflotran) / YMF2 (Eclipse).
+
+Output is a table on CSV format.
+"""
+
+CATEGORY = "modelling.reservoir"
+
 
 def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Calculate plume extent (distance)")

@@ -11,6 +11,12 @@ from ccs_scripts.co2_containment.co2_calculation import calculate_co2
 from ccs_scripts.co2_mass_maps import _config, _parser
 from ccs_scripts.co2_mass_maps._co2_mass import translate_co2data_to_property
 
+DESCRIPTION = """
+WIP
+"""
+
+CATEGORY = "modelling.reservoir"
+
 PROPERTIES_TO_EXTRACT = [
     "RPORV",
     "PORV",

@@ -17,8 +17,8 @@ def expected_jobs():
     expected_job_names = [
         "CO2_CONTAINMENT",
         "CO2_MASS_MAPS",
-        "PLUME_AREA",
-        "PLUME_EXTENT",
+        "CO2_PLUME_AREA",
+        "CO2_PLUME_EXTENT",
     ]
     return {
         name: path.join(path.dirname(ccs_scripts.__file__), "config_jobs", name)
@@ -87,12 +87,6 @@ def test_hook_implementations_job_docs():
     installable_jobs = plugin_m.get_installable_jobs()
 
     docs = plugin_m.get_documentation_for_jobs()
-
-    print(installable_jobs)
-    print("")
-    for a, b in docs.items():
-        print(a)
-        print(b)
 
     assert set(docs.keys()) == set(installable_jobs.keys())
 
