@@ -82,7 +82,6 @@ def test_hook_implementations_job_docs():
     description string to be nonempty, and valid RST markup"""
 
     plugin_m = ErtPluginManager(plugins=[ccs_scripts.hook_implementations.jobs])
-    print(plugin_m)
 
     installable_jobs = plugin_m.get_installable_jobs()
 
