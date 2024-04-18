@@ -100,19 +100,16 @@ class Configuration:
     """
 
     def __init__(self,
-        config_file: Optional[str],
-        calculation_type: Optional[str],
-        injection_point_info: Optional[str],
-        name: Optional[str],
+        config_file: str,
+        calculation_type: str,
+        injection_point_info: str,
+        name: str,
     ):
         self.distance_calculations: List[Calculation] = []
-        if config_file is not None:
+        if config_file != "":
             input_dict = self.read_config_file(config_file)
             self.make_config_from_input_dict(input_dict)
-        if calculation_type is not None:
-            if injection_point_info is None:
-                logging.error("\nERROR: Missing input injection_point_info")
-                sys.exit(1)
+        if injection_point_info != "":
             self.make_config_from_input_args(calculation_type, injection_point_info, name)
 
 
@@ -198,7 +195,7 @@ class Configuration:
             self.distance_calculations.append(calculation)
 
 
-    def make_config_from_input_args(self, calculation_type: str, injection_point_info: str, name: Optional[str]):
+    def make_config_from_input_args(self, calculation_type: str, injection_point_info: str, name: str):
             type_str = calculation_type.upper()
             CalculationType.check_for_key(type_str)
             calculation_type = CalculationType[type_str]
@@ -277,7 +274,7 @@ def _make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--config_file",
         help="YML file with configurations for distance calculations.",
-        default=None,
+        default="",
     )
     parser.add_argument(
         "--injection_point_info",
@@ -288,7 +285,7 @@ def _make_parser() -> argparse.ArgumentParser:
         For 'line': [direction, value] where direction must be \
         'east'/'west'/'north'/'south' and value is the \
         corresponding x or y value that defines this line.",
-        default=None,
+        default="",
     )
     parser.add_argument(
         "--calculation_type",
@@ -320,7 +317,7 @@ def _make_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--name",
-        default=None,
+        default="",
         type=str,
         help="Name that will be included in the column of the CSV file",
     )
@@ -347,7 +344,7 @@ def _setup_log_configuration(arguments: argparse.Namespace) -> None:
         logging.basicConfig(format="%(message)s", level=logging.WARNING)
 
 
-def _log_input_configuration(arguments: argparse.Namespace, config: Configuration) -> None:
+def _log_input_configuration(arguments: argparse.Namespace) -> None:
     version = "v0.5.0"
     is_dev_version = True
     if is_dev_version:
@@ -379,15 +376,32 @@ def _log_input_configuration(arguments: argparse.Namespace, config: Configuratio
     )
     logging.info(f"Python version      : {py_version}")
 
-    logging.info(f"\nCase                 : {arguments.case}")
-    logging.info(f"Injection point info : {arguments.injection_point_info}")
-    logging.info(f"Calculation type     : {arguments.calculation_type}")
-    if arguments.name != "":
-        logging.info(f"Specified name       : {arguments.name}")
-    logging.info(f"Output CSV file      : {arguments.output}")
-    logging.info(f"Threshold SGAS       : {arguments.threshold_sgas}")
-    logging.info(f"Threshold AMFG       : {arguments.threshold_amfg}\n")
+    logging.info(f"\nCase                    : {arguments.case}")
+    logging.info(f"Configuration YAML-file : {arguments.config_file if arguments.config_file != '' else 'Not specified'}")
+    if arguments.injection_point_info != "":
+        logging.info("Configuration from args :")
+        logging.info(f"    Injection point info: {arguments.injection_point_info}")
+        logging.info(f"    Calculation type    : {arguments.calculation_type}")
+        if arguments.name != "":
+            logging.info(f"    Column name         : {arguments.name if arguments.name is not None else 'Not specified'}")
+    else:
+        logging.info("Configuration from args : Not specified")
+    logging.info(f"Output CSV file         : {arguments.output if arguments.name is not None else 'Not specified, using default'}")
+    logging.info(f"Threshold SGAS          : {arguments.threshold_sgas}")
+    logging.info(f"Threshold AMFG          : {arguments.threshold_amfg}\n")
 
+
+def _log_distance_calculations(config: Configuration) -> None:
+    logging.info("\nWe have the following distance calculations:")
+    logging.info(f"\n{'Number':<8} {'Type':<14} {'Name':<15} {'Direction':<12} {'x':<15} {'y':<15}")
+    logging.info("-"*84)
+    for i, calc in enumerate(config.distance_calculations, 1):
+        name = calc.name if calc.name is not None else "-"
+        direction = calc.direction.name.lower() if calc.direction is not None else "-"
+        x = calc.x if calc.x is not None else "-"
+        y = calc.y if calc.y is not None else "-"
+        logging.info(f"{i:<8} {calc.type.name.lower():<14} {name:<15} {direction:<12} {x:<15} {y:<15}")
+    logging.info("")
 
 def calculate_distances(
     case: str,
@@ -697,7 +711,9 @@ def main():
         args.name,
     )
 
-    _log_input_configuration(args, config)
+    _log_input_configuration(args)
+
+    _log_distance_calculations(config)
 
     # if args.calculation_type == "plume_extent":
     #     injxy = _calculate_well_coordinates(
