@@ -4,6 +4,8 @@ Calculates the plume extent from a given coordinate, or well point,
 using SGAS and AMFG/XMF2.
 """
 import argparse
+from dataclasses import dataclass
+from enum import Enum
 import getpass
 import logging
 import os
@@ -13,12 +15,13 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
+import yaml
 
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
@@ -34,11 +37,165 @@ Output is a table on CSV format.
 CATEGORY = "modelling.reservoir"
 
 
+class CalculationType(Enum):
+    """
+    Type of distance calculation
+    """
+
+    PLUME_EXTENT = 0
+    POINT = 1
+    LINE = 2
+
+    @classmethod
+    def check_for_key(cls, key: str):
+        """
+        Check if key is in enum
+        """
+        if key not in cls.__members__:
+            error_text = "Illegal calculation type: " + key
+            error_text += "\nValid options:"
+            for calc_type in CalculationType:
+                error_text += "\n  * " + calc_type.name.lower()
+            error_text += "\nExiting"
+            raise ValueError(error_text)
+
+
+class LineDirection(Enum):
+    """
+    Line direction used in distance calculations. We currently only allow
+    north/south/east/west.
+    """
+
+    NORTH = 0
+    SOUTH = 1
+    EAST = 2
+    WEST = 3
+
+    @classmethod
+    def check_for_key(cls, key: str):
+        """
+        Check if key is in enum
+        """
+        if key not in cls.__members__:
+            error_text = "Illegal line direction: " + key
+            error_text += "\nValid options:"
+            for line in LineDirection:
+                error_text += "\n  * " + line.name.lower()
+            error_text += "\nExiting"
+            raise ValueError(error_text)
+
+
+@dataclass
+class Calculation:
+    type: CalculationType
+    direction: Optional[LineDirection]
+    name: Optional[str]
+    x: Optional[float]
+    y: Optional[float]
+
+
+class Configuration:
+    """
+    Holds the configuration for all distance calculations
+    """
+
+    def __init__(self, config_file: Optional[str]):
+        self.distance_calculations: List[Calculation] = []
+        if config_file is not None:
+            input_dict = self.read_config_file(config_file)
+            self.make_config_from_input_dict(input_dict)
+
+    def read_config_file(self, config_file: str) -> Dict:
+        with open(config_file, "r", encoding="utf8") as stream:
+            try:
+                config = yaml.safe_load(stream)
+                return config
+            except yaml.YAMLError as exc:
+                logging.error(exc)
+                sys.exit(1)
+
+    def make_config_from_input_dict(self, input_dict: Dict):
+        if "distance_calculations" not in input_dict:
+            logging.error("\nERROR: No instance of \"distance_calculations\" in input YAML file.")
+            sys.exit(1)
+        if not isinstance(input_dict["distance_calculations"], list):
+            logging.error("\nERROR: Specification under \"distance_calculations\" in input YAML file is not a list.")
+            sys.exit(1)
+        for i, single_calculation in enumerate(input_dict["distance_calculations"], 1):
+            if "type" not in single_calculation:
+                logging.error(f"\nERROR: Missing \"type\" for distance calculation number {i}.")
+                sys.exit(1)
+            type_str = single_calculation["type"].upper()
+            CalculationType.check_for_key(type_str)
+            calculation_type = CalculationType[type_str]
+
+            name = single_calculation["name"] if "name" in single_calculation else None
+
+            direction = None
+            if calculation_type == CalculationType.LINE:
+                if "direction" not in single_calculation:
+                    logging.error(f"\nERROR: Missing \"direction\" for distance calculation number {i}. Needed when \"type\" = \"line\".")
+                    sys.exit(1)
+                else:
+                    direction_str = single_calculation["direction"].upper()
+                    LineDirection.check_for_key(direction_str)
+                    direction = LineDirection[direction_str]
+            else:
+                if "direction" in single_calculation:
+                    logging.warning(
+                        f"\nWARNING: No need to specify \"direction\" when \"type\" is not \"line\" (distance calculation number {i})."
+                    )
+
+            x = single_calculation["x"] if "x" in single_calculation else None
+            y = single_calculation["y"] if "y" in single_calculation else None
+
+            if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
+                if x is None:
+                    logging.error(
+                        f"\nERROR: Missing \"x\" for distance calculation number {i}.")
+                    sys.exit(1)
+                if y is None:
+                    logging.error(
+                        f"\nERROR: Missing \"x\" for distance calculation number {i}.")
+                    sys.exit(1)
+            elif calculation_type == CalculationType.LINE:
+                if direction in (LineDirection.EAST, LineDirection.WEST):
+                    if x is None:
+                        logging.error(
+                            f"\nERROR: Missing \"x\" for distance calculation number {i}.")
+                        sys.exit(1)
+                    if y is not None:
+                        logging.warning(
+                            f"\nWARNING: No need to specify \"y\" for distance calculation number {i}.")
+                elif direction in (LineDirection.NORTH, LineDirection.SOUTH):
+                    if y is None:
+                        logging.error(
+                            f"\nERROR: Missing \"y\" for distance calculation number {i}.")
+                        sys.exit(1)
+                    if x is not None:
+                        logging.warning(
+                            f"\nWARNING: No need to specify \"x\" for distance calculation number {i}.")
+
+            calculation = Calculation(
+                type=calculation_type,
+                direction=direction,
+                name=name,
+                x=x,
+                y=y,
+            )
+            self.distance_calculations.append(calculation)
+
+
 def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Calculate plume extent (distance)")
     parser.add_argument("case", help="Name of Eclipse case")
     parser.add_argument(
-        "injection_point_info",
+        "--config_file",
+        help="YML file with configurations for distance calculations.",
+        default="",
+    )
+    parser.add_argument(
+        "--injection_point_info",
         help="Input depends on calculation_type. \
         For 'plume_extent': Either the name of the injection well (string) or \
         the x and y coordinates (two floats, '[x,y]') to calculate plume extent from. \
@@ -46,6 +203,7 @@ def _make_parser() -> argparse.ArgumentParser:
         For 'line': [direction, value] where direction must be \
         'east'/'west'/'north'/'south' and value is the \
         corresponding x or y value that defines this line.",
+        default = "",
     )
     parser.add_argument(
         "--calculation_type",
@@ -104,7 +262,7 @@ def _setup_log_configuration(arguments: argparse.Namespace) -> None:
         logging.basicConfig(format="%(message)s", level=logging.WARNING)
 
 
-def _log_input_configuration(arguments: argparse.Namespace) -> None:
+def _log_input_configuration(arguments: argparse.Namespace, config: Configuration) -> None:
     version = "v0.5.0"
     is_dev_version = True
     if is_dev_version:
@@ -352,8 +510,8 @@ def _calculate_well_coordinates(
 
     if well_name not in list(df["WELL"]):
         logging.error(
-            f"No matches for well name {well_name}, input is either mistyped \
-            or well does not exist."
+            f"No matches for well name {well_name}, input is either mistyped "
+            "or well does not exist."
         )
         sys.exit(1)
 
@@ -446,7 +604,10 @@ def main():
     args = _make_parser().parse_args()
     args.name = args.name.upper()
     _setup_log_configuration(args)
-    _log_input_configuration(args)
+
+    config = Configuration(args.config_file)
+
+    _log_input_configuration(args, config)
 
     if args.calculation_type == "plume_extent":
         injxy = _calculate_well_coordinates(
