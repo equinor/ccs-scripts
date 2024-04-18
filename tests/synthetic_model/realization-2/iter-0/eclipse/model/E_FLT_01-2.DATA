@@ -38,10 +38,10 @@ EQLDIMS
  1 100 20 1 20 /
  
 REGDIMS
- 10 10 0 1 0 /   
+ 10 1 0 1 0 /   
 
 WELLDIMS
-2 30/
+5 30 /
 
  
 TABDIMS
@@ -163,14 +163,10 @@ PVTO PVTW /
 REGIONS  ===============================================================
 EQUALS
 FIPNUM    1     1 30    1 30    1  2  /  overburden
-FIPNUM    2     1 30    1 30    3  8  /  	       
-FIPNUM    3     1 30    1 30    9  12   / 
+FIPNUM    2     1 30    1 30    1  6  /  	       
+FIPNUM    3     1 30    1 30    1  4   / 
 / 	    
 
-EQUALS
-FIPREG  1    1  15   12* /
-FIPREG  2    16 30  12* / 
-/
 
 EQUALS
 SATNUM 1      /
@@ -296,6 +292,7 @@ WELLSTRE
 WELSPECS
  injg  G1  21  21  1*  GAS /
  prod  G2   1   1  1*  WATER / 
+ injg2 G1   30  1  1*  GAS /
 /
 
 COMPDAT 
@@ -310,12 +307,24 @@ COMPDAT
  prod    1  1  1 12  OPEN 2* 0.1524 1* 1* 1* 'Z'/  
 /
 
+COMPDAT 
+ injg2   30 1 4  4  OPEN 2* 0.1524 1* 1* 1* 'X'/
+ injg2   29 2 4  4   OPEN 2* 0.1524 1* 1* 1* 'X'/
+ injg2   28 3 4  4   OPEN 2* 0.1524 1* 1* 1* 'X'/
+ injg2   27 4 4  4  OPEN 2* 0.1524 1* 1* 1* 'X'/
+ injg2   26 5 4  4  OPEN 2* 0.1524 1* 1* 1* 'X'/
+/
+
+
+
 WINJGAS
  injg STREAM C02FEED /
+ injg2 STREAM C02FEED /
 /
 
 WCONINJE
-  injg GAS SHUT RATE 1001176 1* 400 / 
+  injg GAS SHUT RATE 295000 1* 400 /
+  injg GAS SHUT RATE 295000 1* 400 /  
 /
 
 
@@ -353,6 +362,44 @@ DATES
 -- Shut the producer
 WELOPEN
  prod SHUT /
+/
+
+DATES
+1 'JAN' 2080 /
+/
+
+--Open the CO2 injector2
+WELOPEN
+ injg2 OPEN /
+/
+
+DATES
+1 'JAN' 2081 /
+/
+
+DATES
+1 'JAN' 2082 /
+/
+
+DATES
+1 'JAN' 2083 /
+/
+
+-- Shut the CO2 injector2
+WELOPEN
+ injg2 SHUT /
+/
+
+DATES
+1 'JAN' 2100 /
+/
+
+DATES
+1 'JAN' 2150 /
+/
+
+DATES
+1 'JAN' 2200 /
 /
 
 DATES
