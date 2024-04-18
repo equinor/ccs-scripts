@@ -50,8 +50,8 @@ TABDIMS
 AQUDIMS
  /
 
-SATOPTS
- HYSTER /
+--SATOPTS
+-- HYSTER /
 
 
 GRID    ================================================
@@ -78,17 +78,17 @@ INCLUDE
  '../include/e300_relperm.inc' /
 
 
-EHYSTR
- 1 4 /
+--EHYSTR
+-- 1 4 /
 
 ROCK
  1.0 4.35E-05 /
 
-ISGCR
- 10800*0.4 /
+--ISGCR
+-- 10800*0.4 /
 
-ISWCR
- 10800*0.15 /
+--ISWCR
+-- 10800*0.15 /
 
 
 RTEMP
@@ -110,7 +110,7 @@ CNAMES
 
 ZI
 --h2o co2 NACL
- 0.9832062 0.0 0.016794 /
+ 1.0 0.0 0.0 /
 
 --ZMFVD
 --###
@@ -160,10 +160,11 @@ RPTPROPS
 PVTO PVTW /
 
 REGIONS  ===============================================================
+
 EQUALS
-FIPNUM    1     1 30    1 30    1  2  /  overburden
-FIPNUM    2     1 30    1 30    3  8  /  	       
-FIPNUM    3     1 30    1 30    9  12   / 
+FIPNUM  1     1 30    1 30    1  2 /   
+FIPNUM  2     1 30    1 30    3  8 /   
+FIPNUM  3     1 30    1 30    9  12 / 	           
 / 	    
 
 EQUALS
@@ -173,7 +174,7 @@ FIPREG  2    16 30  12* /
 
 EQUALS
 SATNUM 1      /
-IMBNUM 2     /
+--IMBNUM 2     /
 /
 
 SOLUTION ===============================================================
@@ -190,11 +191,11 @@ EQUIL
 
 
 RPTRST
- RESTART ALLPROPS FIP PRESSURE SGAS SWAT TEMP ENERGY AMF DENG DENW DENS VGAS VWAT
-  XMF YMF BGAS BWAT ZMF RPORV / AQSP AQPH  RPORV  /
+ RESTART ALLPROPS FIP PRESSURE SGAS SWAT TEMP ENERGY AMF DENG DENW DENS VGAS VWAT BGAS BWAT
+  XMF YMF ZMF RPORV SGTRH SGCRH SGASMAX/ AQSP AQPH  RPORV  /
 
 RPTSOL
- PRESSURE SGAS SWAT DENG DENW VGAS VWAT BGAS BWAT XMF YMF TEMP XFW YFW AMF ZMF / AQSP AQPH
+ PRESSURE SGAS SWAT DENG DENW VGAS VWAT XMF YMF TEMP XFW YFW AMF ZMF BGAS BWAT SGTRH SGCRH / AQSP AQPH
 
 FIELDSEP
  1 15.56 0.1 /
