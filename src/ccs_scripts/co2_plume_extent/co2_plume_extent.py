@@ -99,11 +99,23 @@ class Configuration:
     Holds the configuration for all distance calculations
     """
 
-    def __init__(self, config_file: Optional[str]):
+    def __init__(self,
+        config_file: Optional[str],
+        calculation_type: Optional[str],
+        injection_point_info: Optional[str],
+        name: Optional[str],
+    ):
         self.distance_calculations: List[Calculation] = []
         if config_file is not None:
             input_dict = self.read_config_file(config_file)
             self.make_config_from_input_dict(input_dict)
+        if calculation_type is not None:
+            if injection_point_info is None:
+                logging.error("\nERROR: Missing input injection_point_info")
+                sys.exit(1)
+            self.make_config_from_input_args(calculation_type, injection_point_info, name)
+
+
 
     def read_config_file(self, config_file: str) -> Dict:
         with open(config_file, "r", encoding="utf8") as stream:
@@ -186,13 +198,86 @@ class Configuration:
             self.distance_calculations.append(calculation)
 
 
+    def make_config_from_input_args(self, calculation_type: str, injection_point_info: str, name: Optional[str]):
+            type_str = calculation_type.upper()
+            CalculationType.check_for_key(type_str)
+            calculation_type = CalculationType[type_str]
+
+            if not (
+                len(injection_point_info) > 0
+                and injection_point_info[0] == "["
+                and injection_point_info[-1] == "]"
+            ):
+                logging.error(
+                    "Invalid input: injection_point_info must be on the format [x,y] "
+                    "when calculation_type is 'plume_extent' or 'point', or "
+                    "[direction, x or y] when calculation_type is 'line'."
+                )
+                sys.exit(1)
+
+            values = injection_point_info[1:-1].split(",")
+            if len(values) != 2:
+                logging.error(
+                    "Invalid input: injection_point_info must be on the format [x,y] "
+                    "when calculation_type is 'plume_extent' or 'point', or "
+                    "[direction, x or y] when calculation_type is 'line'."
+                )
+                sys.exit(1)
+
+            direction = None
+            x = None
+            y = None
+            if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
+                try:
+                    (x, y) = (float(values[0]), float(values[1]))
+                    logging.info(
+                        f"Using injection coordinates: [{x}, {y}]"
+                    )
+                except ValueError:
+                    logging.error(
+                        "Invalid input: When providing two arguments (x and y coordinates)\
+                        for injection point info they need to be floats."
+                    )
+                    sys.exit(1)
+            elif calculation_type == CalculationType.LINE:
+                try:
+                    (direction_str, coord) = (str(values[0]), float(values[1]))
+                    logging.info(
+                        f"Using injection info: [{direction_str}, {coord}]"
+                    )
+                except ValueError:
+                    logging.error(
+                        "Invalid input: When providing two arguments (x and y coordinates)\
+                        for injection point info they need to be floats."
+                    )
+                    sys.exit(1)
+
+                direction_str = direction_str.upper()
+                LineDirection.check_for_key(direction_str)
+                direction = LineDirection[direction_str]
+
+                if direction in (LineDirection.EAST, LineDirection.WEST):
+                    x = coord
+                elif direction in (LineDirection.NORTH, LineDirection.SOUTH):
+                    y = coord
+
+            calculation = Calculation(
+                type=calculation_type,
+                direction=direction,
+                name=name,
+                x=x,
+                y=y,
+            )
+            self.distance_calculations.append(calculation)
+
+
 def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Calculate plume extent (distance)")
     parser.add_argument("case", help="Name of Eclipse case")
     parser.add_argument(
         "--config_file",
         help="YML file with configurations for distance calculations.",
-        default="",
+        default=None,
     )
     parser.add_argument(
         "--injection_point_info",
@@ -203,7 +288,7 @@ def _make_parser() -> argparse.ArgumentParser:
         For 'line': [direction, value] where direction must be \
         'east'/'west'/'north'/'south' and value is the \
         corresponding x or y value that defines this line.",
-        default = "",
+        default=None,
     )
     parser.add_argument(
         "--calculation_type",
@@ -235,7 +320,7 @@ def _make_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--name",
-        default="",
+        default=None,
         type=str,
         help="Name that will be included in the column of the CSV file",
     )
@@ -602,25 +687,30 @@ def main():
     and AMFG/XMF2. Output is plume extent per date written to a CSV file.
     """
     args = _make_parser().parse_args()
-    args.name = args.name.upper()
+    args.name = args.name.upper() if args.name is not None else None
     _setup_log_configuration(args)
 
-    config = Configuration(args.config_file)
+    config = Configuration(
+        args.config_file,
+        args.calculation_type,
+        args.injection_point_info,
+        args.name,
+    )
 
     _log_input_configuration(args, config)
 
-    if args.calculation_type == "plume_extent":
-        injxy = _calculate_well_coordinates(
-            args.case,
-            args.injection_point_info,
-        )
-    elif args.calculation_type == "point":
-        injxy = _find_input_point(args.injection_point_info)
-    elif args.calculation_type == "line":
-        injxy = _find_input_line(args.injection_point_info)
-    else:
-        logging.error(f"Invalid calculation type: {args.calculation_type}")
-        sys.exit(1)
+    # if args.calculation_type == "plume_extent":
+    #     injxy = _calculate_well_coordinates(
+    #         args.case,
+    #         args.injection_point_info,
+    #     )
+    # elif args.calculation_type == "point":
+    #     injxy = _find_input_point(args.injection_point_info)
+    # elif args.calculation_type == "line":
+    #     injxy = _find_input_line(args.injection_point_info)
+    # else:
+    #     logging.error(f"Invalid calculation type: {args.calculation_type}")
+    #     sys.exit(1)
 
     (sgas_results, amfg_results, amfg_key) = calculate_distances(
         args.case,
