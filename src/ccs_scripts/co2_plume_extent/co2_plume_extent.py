@@ -104,13 +104,14 @@ class Configuration:
         calculation_type: str,
         injection_point_info: str,
         name: str,
+        case: str,
     ):
         self.distance_calculations: List[Calculation] = []
         if config_file != "":
             input_dict = self.read_config_file(config_file)
             self.make_config_from_input_dict(input_dict)
         if injection_point_info != "":
-            self.make_config_from_input_args(calculation_type, injection_point_info, name)
+            self.make_config_from_input_args(calculation_type, injection_point_info, name, case)
 
 
 
@@ -195,30 +196,36 @@ class Configuration:
             self.distance_calculations.append(calculation)
 
 
-    def make_config_from_input_args(self, calculation_type: str, injection_point_info: str, name: str):
-            type_str = calculation_type.upper()
-            CalculationType.check_for_key(type_str)
-            calculation_type = CalculationType[type_str]
+    def make_config_from_input_args(self, calculation_type: str, injection_point_info: str, name: str, case: str):
+        type_str = calculation_type.upper()
+        CalculationType.check_for_key(type_str)
+        calculation_type = CalculationType[type_str]
 
-            if not (
-                len(injection_point_info) > 0
-                and injection_point_info[0] == "["
-                and injection_point_info[-1] == "]"
-            ):
-                logging.error(
-                    "Invalid input: injection_point_info must be on the format [x,y] "
-                    "when calculation_type is 'plume_extent' or 'point', or "
-                    "[direction, x or y] when calculation_type is 'line'."
-                )
-                sys.exit(1)
-
+        if (
+            len(injection_point_info) > 0
+            and injection_point_info[0] == "["
+            and injection_point_info[-1] == "]"
+        ):
             values = injection_point_info[1:-1].split(",")
             if len(values) != 2:
-                logging.error(
-                    "Invalid input: injection_point_info must be on the format [x,y] "
-                    "when calculation_type is 'plume_extent' or 'point', or "
-                    "[direction, x or y] when calculation_type is 'line'."
-                )
+                if calculation_type == CalculationType.PLUME_EXTENT:
+                    logging.error(
+                        "ERROR: Invalid input. injection_point_info must be on"
+                        " the format \"[x,y]\" or \"well_name\" when "
+                        "calculation_type is 'plume_extent'."
+                    )
+                elif calculation_type == CalculationType.POINT:
+                    logging.error(
+                        "ERROR: Invalid input. injection_point_info must be on"
+                        " the format \"[x,y]\" when calculation_type is "
+                        "'point'."
+                    )
+                elif calculation_type == CalculationType.LINE:
+                    logging.error(
+                        "Invalid input: injection_point_info must be on the "
+                        "format \"[direction, x or y]\" when "
+                        "calculation_type is 'line'."
+                    )
                 sys.exit(1)
 
             direction = None
@@ -232,8 +239,9 @@ class Configuration:
                     )
                 except ValueError:
                     logging.error(
-                        "Invalid input: When providing two arguments (x and y coordinates)\
-                        for injection point info they need to be floats."
+                        "ERROR: Invalid input. When providing two arguments "
+                        "(x and y coordinates) for injection point info they "
+                        "need to be floats."
                     )
                     sys.exit(1)
             elif calculation_type == CalculationType.LINE:
@@ -244,8 +252,10 @@ class Configuration:
                     )
                 except ValueError:
                     logging.error(
-                        "Invalid input: When providing two arguments (x and y coordinates)\
-                        for injection point info they need to be floats."
+                        "ERROR: Invalid input. When providing two arguments "
+                        "(direction and x or y) for injection point, the "
+                        "direction needs to be a string and the coordinate "
+                        "needs to be a float."
                     )
                     sys.exit(1)
 
@@ -266,6 +276,58 @@ class Configuration:
                 y=y,
             )
             self.distance_calculations.append(calculation)
+        else:
+            if calculation_type != CalculationType.PLUME_EXTENT:
+                logging.error(
+                    "ERROR: Invalid input. For plume_extent, the injection "
+                    f"point info specified (\"{injection_point_info}\") is "
+                    "incorrect. It should be on the format \"[x,y]\" or "
+                    "\"well_name\"."
+                )
+                sys.exit(1)
+
+            # Specification is now either a well name (for plume extent) or incorrect
+            self.calculate_well_coordinates()
+            well_name = injection_point_info
+            logging.info(f"Using well to find coordinates: {well_name}")
+
+            if well_picks_path is None:
+                p = Path(case).parents[2]
+                p2 = p / "share" / "results" / "wells" / "well_picks.csv"
+                logging.info(f"Using default well picks path : {p2}")
+            else:
+                p2 = Path(well_picks_path)
+
+            df = pd.read_csv(p2)
+            logging.info("Done reading well picks CSV file")
+            logging.debug("Well picks read from CSV file:")
+            logging.debug(df)
+
+            if well_name not in list(df["WELL"]):
+                logging.error(
+                    f"No matches for well name {well_name}, input is either mistyped "
+                    "or well does not exist."
+                )
+                sys.exit(1)
+
+            df = df[df["WELL"] == well_name]
+            logging.info(f"Number of well picks for well {well_name}: {len(df)}")
+            logging.info("Using the well pick with the largest measured depth.")
+
+            df = df[df["X_UTME"].notna()]
+            df = df[df["Y_UTMN"].notna()]
+
+            max_id = df["MD"].idxmax()
+            max_md_row = df.loc[max_id]
+            x = max_md_row["X_UTME"]
+            y = max_md_row["Y_UTMN"]
+            md = max_md_row["MD"]
+            surface = max_md_row["HORIZON"] if "HORIZON" in max_md_row else "-"
+            logging.info(
+                f"Injection coordinates: [{x:.2f}, {y:.2f}] (surface: {surface}, MD: {md:.2f})"
+            )
+
+            return (x, y)
 
 
 def _make_parser() -> argparse.ArgumentParser:
@@ -709,10 +771,10 @@ def main():
         args.calculation_type,
         args.injection_point_info,
         args.name,
+        args.case,
     )
 
     _log_input_configuration(args)
-
     _log_distance_calculations(config)
 
     # if args.calculation_type == "plume_extent":
