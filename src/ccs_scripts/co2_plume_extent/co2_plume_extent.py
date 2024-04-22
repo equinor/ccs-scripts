@@ -99,7 +99,8 @@ class Configuration:
     Holds the configuration for all distance calculations
     """
 
-    def __init__(self,
+    def __init__(
+        self,
         config_file: str,
         calculation_type: str,
         injection_point_info: str,
@@ -111,9 +112,9 @@ class Configuration:
             input_dict = self.read_config_file(config_file)
             self.make_config_from_input_dict(input_dict)
         if injection_point_info != "":
-            self.make_config_from_input_args(calculation_type, injection_point_info, name, case)
-
-
+            self.make_config_from_input_args(
+                calculation_type, injection_point_info, name, case
+            )
 
     def read_config_file(self, config_file: str) -> Dict:
         with open(config_file, "r", encoding="utf8") as stream:
@@ -126,14 +127,20 @@ class Configuration:
 
     def make_config_from_input_dict(self, input_dict: Dict):
         if "distance_calculations" not in input_dict:
-            logging.error("\nERROR: No instance of \"distance_calculations\" in input YAML file.")
+            logging.error(
+                '\nERROR: No instance of "distance_calculations" in input YAML file.'
+            )
             sys.exit(1)
         if not isinstance(input_dict["distance_calculations"], list):
-            logging.error("\nERROR: Specification under \"distance_calculations\" in input YAML file is not a list.")
+            logging.error(
+                '\nERROR: Specification under "distance_calculations" in input YAML file is not a list.'
+            )
             sys.exit(1)
         for i, single_calculation in enumerate(input_dict["distance_calculations"], 1):
             if "type" not in single_calculation:
-                logging.error(f"\nERROR: Missing \"type\" for distance calculation number {i}.")
+                logging.error(
+                    f'\nERROR: Missing "type" for distance calculation number {i}.'
+                )
                 sys.exit(1)
             type_str = single_calculation["type"].upper()
             CalculationType.check_for_key(type_str)
@@ -144,7 +151,9 @@ class Configuration:
             direction = None
             if calculation_type == CalculationType.LINE:
                 if "direction" not in single_calculation:
-                    logging.error(f"\nERROR: Missing \"direction\" for distance calculation number {i}. Needed when \"type\" = \"line\".")
+                    logging.error(
+                        f'\nERROR: Missing "direction" for distance calculation number {i}. Needed when "type" = "line".'
+                    )
                     sys.exit(1)
                 else:
                     direction_str = single_calculation["direction"].upper()
@@ -153,38 +162,47 @@ class Configuration:
             else:
                 if "direction" in single_calculation:
                     logging.warning(
-                        f"\nWARNING: No need to specify \"direction\" when \"type\" is not \"line\" (distance calculation number {i})."
+                        f'\nWARNING: No need to specify "direction" when "type" is not "line" (distance calculation number {i}).'
                     )
 
             x = single_calculation["x"] if "x" in single_calculation else None
             y = single_calculation["y"] if "y" in single_calculation else None
 
-            if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
+            if calculation_type in (
+                CalculationType.PLUME_EXTENT,
+                CalculationType.POINT,
+            ):
                 if x is None:
                     logging.error(
-                        f"\nERROR: Missing \"x\" for distance calculation number {i}.")
+                        f'\nERROR: Missing "x" for distance calculation number {i}.'
+                    )
                     sys.exit(1)
                 if y is None:
                     logging.error(
-                        f"\nERROR: Missing \"x\" for distance calculation number {i}.")
+                        f'\nERROR: Missing "x" for distance calculation number {i}.'
+                    )
                     sys.exit(1)
             elif calculation_type == CalculationType.LINE:
                 if direction in (LineDirection.EAST, LineDirection.WEST):
                     if x is None:
                         logging.error(
-                            f"\nERROR: Missing \"x\" for distance calculation number {i}.")
+                            f'\nERROR: Missing "x" for distance calculation number {i}.'
+                        )
                         sys.exit(1)
                     if y is not None:
                         logging.warning(
-                            f"\nWARNING: No need to specify \"y\" for distance calculation number {i}.")
+                            f'\nWARNING: No need to specify "y" for distance calculation number {i}.'
+                        )
                 elif direction in (LineDirection.NORTH, LineDirection.SOUTH):
                     if y is None:
                         logging.error(
-                            f"\nERROR: Missing \"y\" for distance calculation number {i}.")
+                            f'\nERROR: Missing "y" for distance calculation number {i}.'
+                        )
                         sys.exit(1)
                     if x is not None:
                         logging.warning(
-                            f"\nWARNING: No need to specify \"x\" for distance calculation number {i}.")
+                            f'\nWARNING: No need to specify "x" for distance calculation number {i}.'
+                        )
 
             calculation = Calculation(
                 type=calculation_type,
@@ -195,11 +213,16 @@ class Configuration:
             )
             self.distance_calculations.append(calculation)
 
-
-    def make_config_from_input_args(self, calculation_type: str, injection_point_info: str, name: str, case: str):
+    def make_config_from_input_args(
+        self, calculation_type: str, injection_point_info: str, name: str, case: str
+    ):
         type_str = calculation_type.upper()
         CalculationType.check_for_key(type_str)
         calculation_type = CalculationType[type_str]
+
+        direction = None
+        x = None
+        y = None
 
         if (
             len(injection_point_info) > 0
@@ -211,32 +234,30 @@ class Configuration:
                 if calculation_type == CalculationType.PLUME_EXTENT:
                     logging.error(
                         "ERROR: Invalid input. injection_point_info must be on"
-                        " the format \"[x,y]\" or \"well_name\" when "
+                        ' the format "[x,y]" or "well_name" when '
                         "calculation_type is 'plume_extent'."
                     )
                 elif calculation_type == CalculationType.POINT:
                     logging.error(
                         "ERROR: Invalid input. injection_point_info must be on"
-                        " the format \"[x,y]\" when calculation_type is "
+                        ' the format "[x,y]" when calculation_type is '
                         "'point'."
                     )
                 elif calculation_type == CalculationType.LINE:
                     logging.error(
                         "Invalid input: injection_point_info must be on the "
-                        "format \"[direction, x or y]\" when "
+                        'format "[direction, x or y]" when '
                         "calculation_type is 'line'."
                     )
                 sys.exit(1)
 
-            direction = None
-            x = None
-            y = None
-            if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
+            if calculation_type in (
+                CalculationType.PLUME_EXTENT,
+                CalculationType.POINT,
+            ):
                 try:
                     (x, y) = (float(values[0]), float(values[1]))
-                    logging.info(
-                        f"Using injection coordinates: [{x}, {y}]"
-                    )
+                    logging.info(f"Using injection coordinates: [{x}, {y}]")
                 except ValueError:
                     logging.error(
                         "ERROR: Invalid input. When providing two arguments "
@@ -247,9 +268,7 @@ class Configuration:
             elif calculation_type == CalculationType.LINE:
                 try:
                     (direction_str, coord) = (str(values[0]), float(values[1]))
-                    logging.info(
-                        f"Using injection info: [{direction_str}, {coord}]"
-                    )
+                    logging.info(f"Using injection info: [{direction_str}, {coord}]")
                 except ValueError:
                     logging.error(
                         "ERROR: Invalid input. When providing two arguments "
@@ -267,67 +286,69 @@ class Configuration:
                     x = coord
                 elif direction in (LineDirection.NORTH, LineDirection.SOUTH):
                     y = coord
-
-            calculation = Calculation(
-                type=calculation_type,
-                direction=direction,
-                name=name,
-                x=x,
-                y=y,
-            )
-            self.distance_calculations.append(calculation)
         else:
+            # Specification is now either a well name (for plume extent) or incorrect
             if calculation_type != CalculationType.PLUME_EXTENT:
                 logging.error(
                     "ERROR: Invalid input. For plume_extent, the injection "
-                    f"point info specified (\"{injection_point_info}\") is "
-                    "incorrect. It should be on the format \"[x,y]\" or "
-                    "\"well_name\"."
+                    f'point info specified ("{injection_point_info}") is '
+                    'incorrect. It should be on the format "[x,y]" or '
+                    '"well_name".'
                 )
                 sys.exit(1)
 
-            # Specification is now either a well name (for plume extent) or incorrect
-            self.calculate_well_coordinates()
-            well_name = injection_point_info
-            logging.info(f"Using well to find coordinates: {well_name}")
+            (x, y) = self.calculate_well_coordinates(case, injection_point_info)
 
-            if well_picks_path is None:
-                p = Path(case).parents[2]
-                p2 = p / "share" / "results" / "wells" / "well_picks.csv"
-                logging.info(f"Using default well picks path : {p2}")
-            else:
-                p2 = Path(well_picks_path)
+        calculation = Calculation(
+            type=calculation_type,
+            direction=direction,
+            name=name,
+            x=x,
+            y=y,
+        )
+        self.distance_calculations.append(calculation)
 
-            df = pd.read_csv(p2)
-            logging.info("Done reading well picks CSV file")
-            logging.debug("Well picks read from CSV file:")
-            logging.debug(df)
+    def calculate_well_coordinates(
+        self, case: str, well_name: str, well_picks_path: Optional[str] = None
+    ):
+        logging.info(f"Using well to find coordinates: {well_name}")
 
-            if well_name not in list(df["WELL"]):
-                logging.error(
-                    f"No matches for well name {well_name}, input is either mistyped "
-                    "or well does not exist."
-                )
-                sys.exit(1)
+        if well_picks_path is None:
+            p = Path(case).parents[2]
+            p2 = p / "share" / "results" / "wells" / "well_picks.csv"
+            logging.info(f"Using default well picks path : {p2}")
+        else:
+            p2 = Path(well_picks_path)
 
-            df = df[df["WELL"] == well_name]
-            logging.info(f"Number of well picks for well {well_name}: {len(df)}")
-            logging.info("Using the well pick with the largest measured depth.")
+        df = pd.read_csv(p2)
+        logging.info("Done reading well picks CSV file")
+        logging.debug("Well picks read from CSV file:")
+        logging.debug(df)
 
-            df = df[df["X_UTME"].notna()]
-            df = df[df["Y_UTMN"].notna()]
-
-            max_id = df["MD"].idxmax()
-            max_md_row = df.loc[max_id]
-            x = max_md_row["X_UTME"]
-            y = max_md_row["Y_UTMN"]
-            md = max_md_row["MD"]
-            surface = max_md_row["HORIZON"] if "HORIZON" in max_md_row else "-"
-            logging.info(
-                f"Injection coordinates: [{x:.2f}, {y:.2f}] (surface: {surface}, MD: {md:.2f})"
+        if well_name not in list(df["WELL"]):
+            logging.error(
+                f"No matches for well name {well_name}, input is either mistyped "
+                "or well does not exist."
             )
+            sys.exit(1)
 
-            return (x, y)
+        df = df[df["WELL"] == well_name]
+        logging.info(f"Number of well picks for well {well_name}: {len(df)}")
+        logging.info("Using the well pick with the largest measured depth.")
+
+        df = df[df["X_UTME"].notna()]
+        df = df[df["Y_UTMN"].notna()]
+
+        max_id = df["MD"].idxmax()
+        max_md_row = df.loc[max_id]
+        x = max_md_row["X_UTME"]
+        y = max_md_row["Y_UTMN"]
+        md = max_md_row["MD"]
+        surface = max_md_row["HORIZON"] if "HORIZON" in max_md_row else "-"
+        logging.info(
+            f"Injection coordinates: [{x:.2f}, {y:.2f}] (surface: {surface}, MD: {md:.2f})"
+        )
+        return (x, y)
 
 
 def _make_parser() -> argparse.ArgumentParser:
@@ -439,31 +460,42 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     logging.info(f"Python version      : {py_version}")
 
     logging.info(f"\nCase                    : {arguments.case}")
-    logging.info(f"Configuration YAML-file : {arguments.config_file if arguments.config_file != '' else 'Not specified'}")
+    logging.info(
+        f"Configuration YAML-file : {arguments.config_file if arguments.config_file != '' else 'Not specified'}"
+    )
     if arguments.injection_point_info != "":
         logging.info("Configuration from args :")
         logging.info(f"    Injection point info: {arguments.injection_point_info}")
         logging.info(f"    Calculation type    : {arguments.calculation_type}")
         if arguments.name != "":
-            logging.info(f"    Column name         : {arguments.name if arguments.name is not None else 'Not specified'}")
+            logging.info(
+                f"    Column name         : {arguments.name if arguments.name is not None else 'Not specified'}"
+            )
     else:
         logging.info("Configuration from args : Not specified")
-    logging.info(f"Output CSV file         : {arguments.output if arguments.name is not None else 'Not specified, using default'}")
+    logging.info(
+        f"Output CSV file         : {arguments.output if arguments.name is not None else 'Not specified, using default'}"
+    )
     logging.info(f"Threshold SGAS          : {arguments.threshold_sgas}")
     logging.info(f"Threshold AMFG          : {arguments.threshold_amfg}\n")
 
 
 def _log_distance_calculations(config: Configuration) -> None:
     logging.info("\nWe have the following distance calculations:")
-    logging.info(f"\n{'Number':<8} {'Type':<14} {'Name':<15} {'Direction':<12} {'x':<15} {'y':<15}")
-    logging.info("-"*84)
+    logging.info(
+        f"\n{'Number':<8} {'Type':<14} {'Name':<15} {'Direction':<12} {'x':<15} {'y':<15}"
+    )
+    logging.info("-" * 84)
     for i, calc in enumerate(config.distance_calculations, 1):
         name = calc.name if calc.name is not None else "-"
         direction = calc.direction.name.lower() if calc.direction is not None else "-"
         x = calc.x if calc.x is not None else "-"
         y = calc.y if calc.y is not None else "-"
-        logging.info(f"{i:<8} {calc.type.name.lower():<14} {name:<15} {direction:<12} {x:<15} {y:<15}")
+        logging.info(
+            f"{i:<8} {calc.type.name.lower():<14} {name:<15} {direction:<12} {x:<15} {y:<15}"
+        )
     logging.info("")
+
 
 def calculate_distances(
     case: str,
@@ -766,6 +798,7 @@ def main():
     args.name = args.name.upper() if args.name is not None else None
     _setup_log_configuration(args)
 
+    _log_input_configuration(args)
     config = Configuration(
         args.config_file,
         args.calculation_type,
@@ -773,22 +806,7 @@ def main():
         args.name,
         args.case,
     )
-
-    _log_input_configuration(args)
     _log_distance_calculations(config)
-
-    # if args.calculation_type == "plume_extent":
-    #     injxy = _calculate_well_coordinates(
-    #         args.case,
-    #         args.injection_point_info,
-    #     )
-    # elif args.calculation_type == "point":
-    #     injxy = _find_input_point(args.injection_point_info)
-    # elif args.calculation_type == "line":
-    #     injxy = _find_input_line(args.injection_point_info)
-    # else:
-    #     logging.error(f"Invalid calculation type: {args.calculation_type}")
-    #     sys.exit(1)
 
     (sgas_results, amfg_results, amfg_key) = calculate_distances(
         args.case,
