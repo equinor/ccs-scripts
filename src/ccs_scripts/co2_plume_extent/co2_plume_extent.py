@@ -110,7 +110,7 @@ class Configuration:
         self.distance_calculations: List[Calculation] = []
         if config_file != "":
             input_dict = self.read_config_file(config_file)
-            self.make_config_from_input_dict(input_dict)
+            self.make_config_from_input_dict(input_dict, case)
         if injection_point_info != "":
             self.make_config_from_input_args(
                 calculation_type, injection_point_info, name, case
@@ -125,7 +125,7 @@ class Configuration:
                 logging.error(exc)
                 sys.exit(1)
 
-    def make_config_from_input_dict(self, input_dict: Dict):
+    def make_config_from_input_dict(self, input_dict: Dict, case: str):
         if "distance_calculations" not in input_dict:
             logging.error(
                 '\nERROR: No instance of "distance_calculations" in input YAML file.'
@@ -167,10 +167,14 @@ class Configuration:
 
             x = single_calculation["x"] if "x" in single_calculation else None
             y = single_calculation["y"] if "y" in single_calculation else None
+            well_name = (
+                single_calculation["well_name"]
+                if "well_name" in single_calculation
+                else None
+            )
 
-            if calculation_type in (
-                CalculationType.PLUME_EXTENT,
-                CalculationType.POINT,
+            if calculation_type == CalculationType.POINT or (
+                calculation_type == CalculationType.PLUME_EXTENT and well_name is None
             ):
                 if x is None:
                     logging.error(
@@ -179,7 +183,7 @@ class Configuration:
                     sys.exit(1)
                 if y is None:
                     logging.error(
-                        f'\nERROR: Missing "x" for distance calculation number {i}.'
+                        f'\nERROR: Missing "y" for distance calculation number {i}.'
                     )
                     sys.exit(1)
             elif calculation_type == CalculationType.LINE:
@@ -203,6 +207,9 @@ class Configuration:
                         logging.warning(
                             f'\nWARNING: No need to specify "x" for distance calculation number {i}.'
                         )
+
+            if well_name is not None:
+                (x, y) = self.calculate_well_coordinates(case, well_name)
 
             calculation = Calculation(
                 type=calculation_type,
