@@ -92,15 +92,15 @@ def test_export_to_csv():
     )
 
     out_file = "temp.csv"
-    df = _collect_results_into_dataframe(
-        all_results, config
-    )
+    df = _collect_results_into_dataframe(all_results, config)
     df.to_csv(out_file, index=False)
 
     df = pandas.read_csv(out_file)
     assert "MAX_DISTANCE_plume_extent_1_SGAS" in df.keys()
     assert "MAX_DISTANCE_plume_extent_1_AMFG" not in df.keys()
-    assert df["MAX_DISTANCE_plume_extent_1_SGAS"].iloc[-1] == pytest.approx(1269.1237856341113)
+    assert df["MAX_DISTANCE_plume_extent_1_SGAS"].iloc[-1] == pytest.approx(
+        1269.1237856341113
+    )
 
     os.remove(out_file)
 
@@ -123,6 +123,7 @@ def test_plume_extent(mocker):
         [
             "--case",
             case_path,
+            "--injection_point_info",
             "[462500.0,5933100.0]",
             "--threshold_sgas",
             "0.02",
@@ -133,9 +134,11 @@ def test_plume_extent(mocker):
     main()
 
     df = pandas.read_csv(output_path)
-    assert "MAX_DISTANCE_SGAS" in df.keys()
-    assert "MAX_DISTANCE_AMFG" not in df.keys()
-    assert df["MAX_DISTANCE_SGAS"].iloc[-1] == pytest.approx(1915.5936794783647)
+    assert "MAX_DISTANCE_plume_extent_1_SGAS" in df.keys()
+    assert "MAX_DISTANCE_plume_extent_1_AMFG" not in df.keys()
+    assert df["MAX_DISTANCE_plume_extent_1_SGAS"].iloc[-1] == pytest.approx(
+        1915.5936794783647
+    )
 
     os.remove(output_path)
 
@@ -169,6 +172,7 @@ def test_plume_extent_eclipse_using_well_name(mocker):
         [
             "--case",
             case_path,
+            "--injection_point_info",
             "INJ",
             "--threshold_sgas",
             "0.015",
@@ -203,6 +207,7 @@ def test_plume_extent_eclipse_using_coordinates(mocker):
         [
             "--case",
             case_path,
+            "--injection_point_info",
             "[2124.95, 2108.24]",
             "--threshold_sgas",
             "0.015",
@@ -237,6 +242,7 @@ def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
         [
             "--case",
             case_path,
+            "--injection_point_info",
             "[2124.95, 2108.24]",
             "--threshold_sgas",
             "0.000000001",
@@ -271,6 +277,7 @@ def test_plume_extent_pflotran_using_well_name(mocker):
         [
             "--case",
             case_path,
+            "--injection_point_info",
             "INJ",
             "--threshold_sgas",
             "0.015",
@@ -305,6 +312,7 @@ def test_plume_extent_pflotran_using_coordinates(mocker):
         [
             "--case",
             case_path,
+            "--injection_point_info",
             "[2124.95, 2108.24]",
             "--threshold_sgas",
             "0.015",
@@ -339,6 +347,7 @@ def test_plume_extent_pflotran_using_coordinates_default_thresholds(mocker):
         [
             "--case",
             case_path,
+            "--injection_point_info",
             "[2124.95, 2108.24]",
             "--output",
             output_path,
