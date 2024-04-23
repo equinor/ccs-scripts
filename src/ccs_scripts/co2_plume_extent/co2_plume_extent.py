@@ -146,7 +146,7 @@ class Configuration:
             CalculationType.check_for_key(type_str)
             calculation_type = CalculationType[type_str]
 
-            name = single_calculation["name"] if "name" in single_calculation else None
+            name = single_calculation["name"] if "name" in single_calculation else ""
 
             direction = None
             if calculation_type == CalculationType.LINE:
@@ -476,25 +476,25 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
         logging.info(f"    Calculation type    : {arguments.calculation_type}")
         if arguments.name != "":
             logging.info(
-                f"    Column name         : {arguments.name if arguments.name is not None else 'Not specified'}"
+                f"    Column name         : {arguments.name if arguments.name != '' else 'Not specified'}"
             )
     else:
         logging.info("Configuration from args : Not specified")
     logging.info(
-        f"Output CSV file         : {arguments.output if arguments.name is not None else 'Not specified, using default'}"
+        f"Output CSV file         : {arguments.output if arguments.name != '' else 'Not specified, using default'}"
     )
     logging.info(f"Threshold SGAS          : {arguments.threshold_sgas}")
     logging.info(f"Threshold AMFG          : {arguments.threshold_amfg}\n")
 
 
-def _log_distance_calculations(config: Configuration) -> None:
-    logging.info("\nWe have the following distance calculations:")
+def _log_distance_calculation_configurations(config: Configuration) -> None:
+    logging.info("\nWe have the following distance calculation configurations:")
     logging.info(
         f"\n{'Number':<8} {'Type':<14} {'Name':<15} {'Direction':<12} {'x':<15} {'y':<15}"
     )
     logging.info("-" * 84)
     for i, calc in enumerate(config.distance_calculations, 1):
-        name = calc.name if calc.name is not None else "-"
+        name = calc.name if calc.name != "" else "-"
         direction = calc.direction.name.lower() if calc.direction is not None else "-"
         x = calc.x if calc.x is not None else "-"
         y = calc.y if calc.y is not None else "-"
@@ -506,8 +506,8 @@ def _log_distance_calculations(config: Configuration) -> None:
 
 def calculate_single_distances(
     nactive: int,
-    grid,  # NBNB-AS: type
-    unrst,  # NBNB-AS: type
+    grid: Grid,
+    unrst: ResdataFile,
     threshold_sgas: float,
     threshold_amfg: float,
     config: Calculation,
@@ -522,13 +522,11 @@ def calculate_single_distances(
             center = grid.get_xyz(active_index=i)
             dist[i] = np.sqrt((center[0] - x) ** 2 + (center[1] - y) ** 2)
     elif calculation_type == CalculationType.LINE:
-        ind = 0  # Use x-coordinate
         line_value = x
-        if direction in (LineDirection.EAST, LineDirection.WEST):
-            ind = 1  # Use y-coordinate
-        elif direction in (LineDirection.NORTH, LineDirection.SOUTH):
+        ind = 0  # Use x-coordinate
+        if direction in (LineDirection.NORTH, LineDirection.SOUTH):
             line_value = y
-        # Ble dette riktig?
+            ind = 1  # Use y-coordinate
 
         factor = 1
         if direction in (LineDirection.WEST, LineDirection.SOUTH):
@@ -582,11 +580,10 @@ def calculate_distances(
     config: Configuration,
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
-) -> Tuple[List[List], Optional[List[List]], Optional[str]]:
-    # calculation_type: str,
-    # injxy: Tuple[Union[float, str], float],
+) -> List[Tuple[List[List], Optional[List[List]], Optional[str]]]:
     """
-    Find plume extents per date for SGAS and AMFG/XMF2.
+    Find distance (plume extent / distance to point / distance to line) per
+    date for SGAS and AMFG/XMF2.
     """
     logging.info("\nStart calculating distances")
     grid = Grid(f"{case}.EGRID")
@@ -596,14 +593,14 @@ def calculate_distances(
     nactive = grid.get_num_active()
     logging.info(f"Number of active grid cells                    : {nactive:>10}")
 
-    for single_config in config.distance_calculations:
+    all_results = []
+    for i, single_config in enumerate(config.distance_calculations, 1):
+        logging.info(f"\nCalculating distances for configuration number : {i:>10}\n")
         (a, b, c) = calculate_single_distances(
             nactive, grid, unrst, threshold_sgas, threshold_amfg, single_config
         )
-        print(a)
-        print(b)
-        print(c)
-        exit()
+        all_results.append((a, b, c))
+    return all_results
 
 
 def _find_distances_per_time_step(
@@ -640,58 +637,62 @@ def _find_distances_per_time_step(
     return output
 
 
+def _find_output_file(output: str, case: str):
+    if output is None:
+        p = Path(case).parents[2]
+        p2 = p / "share" / "results" / "tables" / "plume_extent.csv"
+        return str(p2)
+    else:
+        return output
+
+
 def _log_results(
     df: pd.DataFrame,
-    amfg_key: str,
-    calculation_type: str,
-    name: str,
 ) -> None:
     dfs = df.sort_values("date")
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates             : {len(dfs['date'].unique()):>11}")
-    logging.info(f"First date                  : {dfs['date'].iloc[0]:>11}")
-    logging.info(f"Last date                   : {dfs['date'].iloc[-1]:>11}")
-    text = "?"
-    col = "?"
-    if calculation_type == "plume_extent":
-        text = "max"
-        col = "MAX_DISTANCE"
-    elif calculation_type in ["point", "line"]:
-        text = "min"
-        col = "MIN_DISTANCE"
-    if name != "":
-        col = col + "_" + name
+    logging.info(f"Number of dates {' '*27}: {len(dfs['date'].unique()):>11}")
+    logging.info(f"First date      {' '*27}: {dfs['date'].iloc[0]:>11}")
+    logging.info(f"Last date       {' '*27}: {dfs['date'].iloc[-1]:>11}")
 
-    logging.info(f"End state {text} distance SGAS : {dfs[col+'_SGAS'].iloc[-1]:>11.1f}")
-    if amfg_key is not None:
-        value = dfs[col + "_" + amfg_key].iloc[-1]
-        logging.info(f"End state {text} distance {amfg_key} : {value:>11.1f}")
+    for col in df.drop("date", axis=1).columns:
+        logging.info(f"End state {col:>32} : {dfs[col].iloc[-1]:>11.1f}")
 
 
 def _collect_results_into_dataframe(
-    sgas_results: List[List],
-    amfg_results: Optional[List[List]],
-    amfg_key: str,
-    calculation_type: str,
-    name: str = "",
+    all_results: List[Tuple[List[List], Optional[List[List]], Optional[str]]],
+    config: Configuration,
 ) -> pd.DataFrame:
-    col = "?"
-    if calculation_type == "plume_extent":
-        col = "MAX_DISTANCE"
-    elif calculation_type in ["point", "line"]:
-        col = "MIN_DISTANCE"
-    if name != "":
-        col = col + "_" + name
 
-    sgas_df = pd.DataFrame.from_records(sgas_results, columns=["date", col + "_SGAS"])
-    if amfg_results is not None:
-        amfg_df = pd.DataFrame.from_records(
-            amfg_results, columns=["date", col + "_" + amfg_key]
+    dates = [[date] for (date, _) in all_results[0][0]]
+    df = pd.DataFrame.from_records(dates, columns=["date"])
+
+    for i, (result, single_config) in enumerate(
+        zip(all_results, config.distance_calculations), 1
+    ):
+        (sgas_results, amfg_results, amfg_key) = result
+
+        col = "?"
+        if single_config.type == CalculationType.PLUME_EXTENT:
+            col = "MAX_DISTANCE_"
+        elif single_config.type in (CalculationType.POINT, CalculationType.LINE):
+            col = "MIN_DISTANCE_"
+        if single_config.name != "":
+            col = col + single_config.name
+        else:
+            col = col + f"{single_config.type.name.lower()}_{i}"
+
+        sgas_df = pd.DataFrame.from_records(
+            sgas_results, columns=["date", col + "_SGAS"]
         )
-        df = pd.merge(sgas_df, amfg_df, on="date")
-    else:
-        df = sgas_df
+        df = pd.merge(df, sgas_df, on="date")
+        if amfg_results is not None:
+            amfg_df = pd.DataFrame.from_records(
+                amfg_results, columns=["date", col + "_" + amfg_key]
+            )
+            df = pd.merge(df, amfg_df, on="date")
+
     return df
 
 
@@ -831,8 +832,8 @@ def main():
     args = _make_parser().parse_args()
     args.name = args.name.upper() if args.name is not None else None
     _setup_log_configuration(args)
-
     _log_input_configuration(args)
+
     config = Configuration(
         args.config_file,
         args.calculation_type,
@@ -840,30 +841,22 @@ def main():
         args.name,
         args.case,
     )
-    _log_distance_calculations(config)
+    _log_distance_calculation_configurations(config)
 
-    (sgas_results, amfg_results, amfg_key) = calculate_distances(
+    all_results = calculate_distances(
         args.case,
         config,
         args.threshold_sgas,
         args.threshold_amfg,
     )
 
-    if args.output is None:
-        p = Path(args.case).parents[2]
-        p2 = p / "share" / "results" / "tables" / "plume_extent.csv"
-        output_file = str(p2)
-    else:
-        output_file = args.output
+    output_file = _find_output_file(args.output, args.case)
 
     df = _collect_results_into_dataframe(
-        sgas_results,
-        amfg_results,
-        amfg_key,
-        args.calculation_type,
-        args.name,
+        all_results,
+        config,
     )
-    _log_results(df, amfg_key, args.calculation_type, args.name)
+    _log_results(df)
     df.to_csv(output_file, index=False, na_rep="0.0")  # How to handle nan-values?
     logging.info("\nDone exporting results to CSV file.\n")
 
