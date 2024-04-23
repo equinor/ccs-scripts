@@ -6,10 +6,11 @@ import pandas
 import pytest
 
 from ccs_scripts.co2_plume_extent.co2_plume_extent import (
+    Configuration,
+    LineDirection,
     _calculate_well_coordinates,
     _collect_results_into_dataframe,
     calculate_distances,
-    Configuration,
     main,
 )
 
@@ -66,6 +67,92 @@ def test_calc_plume_extents():
     )[0]
     assert len(sgas_results_3) == 4
     assert sgas_results_3[-1][1] == pytest.approx(2070.3444680185216)
+
+
+def test_calc_distances_to_point():
+    case_path = str(
+        Path(__file__).parents[1]
+        / "tests"
+        / "data"
+        / "reek"
+        / "eclipse"
+        / "model"
+        / "2_R001_REEK-0"
+    )
+    config = Configuration(
+        config_file="",
+        calculation_type="point",
+        injection_point_info="[467000.0, 5934000.0]",
+        name="",
+        case=case_path,
+    )
+    sgas_results, _, _ = calculate_distances(
+        case_path,
+        config,
+        threshold_sgas=0.1,
+    )[0]
+    assert len(sgas_results) == 4
+    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[-1][1] == pytest.approx(4465.953446894702)
+
+
+def test_calc_distances_to_line():
+    case_path = str(
+        Path(__file__).parents[1]
+        / "tests"
+        / "data"
+        / "reek"
+        / "eclipse"
+        / "model"
+        / "2_R001_REEK-0"
+    )
+    config = Configuration(
+        config_file="",
+        calculation_type="line",
+        injection_point_info="[east, 467000.0]",
+        name="",
+        case=case_path,
+    )
+    sgas_results, _, _ = calculate_distances(
+        case_path,
+        config,
+        threshold_sgas=0.1,
+    )[0]
+    assert len(sgas_results) == 4
+    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[-1][1] == pytest.approx(4331.578703680541)
+
+    config.distance_calculations[0].direction = LineDirection.WEST
+    sgas_results, _, _ = calculate_distances(
+        case_path,
+        config,
+        threshold_sgas=0.1,
+    )[0]
+    assert len(sgas_results) == 4
+    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[-1][1] == 0.0
+
+    config.distance_calculations[0].direction = LineDirection.NORTH
+    config.distance_calculations[0].x = None
+    config.distance_calculations[0].y = 5934000.0
+    sgas_results, _, _ = calculate_distances(
+        case_path,
+        config,
+        threshold_sgas=0.1,
+    )[0]
+    assert len(sgas_results) == 4
+    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[-1][1] == pytest.approx(498.06528236251324)
+
+    config.distance_calculations[0].direction = LineDirection.SOUTH
+    sgas_results, _, _ = calculate_distances(
+        case_path,
+        config,
+        threshold_sgas=0.1,
+    )[0]
+    assert len(sgas_results) == 4
+    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[-1][1] == pytest.approx(0.0)
 
 
 def test_export_to_csv():
