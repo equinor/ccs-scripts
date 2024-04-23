@@ -4,8 +4,6 @@ Calculates the plume extent from a given coordinate, or well point,
 using SGAS and AMFG/XMF2.
 """
 import argparse
-from dataclasses import dataclass
-from enum import Enum
 import getpass
 import logging
 import os
@@ -13,15 +11,17 @@ import platform
 import socket
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
-import yaml
 
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
@@ -89,7 +89,7 @@ class LineDirection(Enum):
 class Calculation:
     type: CalculationType
     direction: Optional[LineDirection]
-    name: Optional[str]
+    name: str
     x: Optional[float]
     y: Optional[float]
 
@@ -133,7 +133,8 @@ class Configuration:
             sys.exit(1)
         if not isinstance(input_dict["distance_calculations"], list):
             logging.error(
-                '\nERROR: Specification under "distance_calculations" in input YAML file is not a list.'
+                '\nERROR: Specification under "distance_calculations" in '
+                "input YAML file is not a list."
             )
             sys.exit(1)
         for i, single_calculation in enumerate(input_dict["distance_calculations"], 1):
@@ -152,7 +153,8 @@ class Configuration:
             if calculation_type == CalculationType.LINE:
                 if "direction" not in single_calculation:
                     logging.error(
-                        f'\nERROR: Missing "direction" for distance calculation number {i}. Needed when "type" = "line".'
+                        f'\nERROR: Missing "direction" for distance '
+                        f'calculation number {i}. Needed when "type" = "line".'
                     )
                     sys.exit(1)
                 else:
@@ -162,7 +164,9 @@ class Configuration:
             else:
                 if "direction" in single_calculation:
                     logging.warning(
-                        f'\nWARNING: No need to specify "direction" when "type" is not "line" (distance calculation number {i}).'
+                        f'\nWARNING: No need to specify "direction" when '
+                        f'"type" is not "line" (distance calculation number '
+                        f"{i})."
                     )
 
             x = single_calculation["x"] if "x" in single_calculation else None
@@ -195,7 +199,8 @@ class Configuration:
                         sys.exit(1)
                     if y is not None:
                         logging.warning(
-                            f'\nWARNING: No need to specify "y" for distance calculation number {i}.'
+                            f'\nWARNING: No need to specify "y" for distance '
+                            f"calculation number {i}."
                         )
                 elif direction in (LineDirection.NORTH, LineDirection.SOUTH):
                     if y is None:
@@ -205,7 +210,8 @@ class Configuration:
                         sys.exit(1)
                     if x is not None:
                         logging.warning(
-                            f'\nWARNING: No need to specify "x" for distance calculation number {i}.'
+                            f'\nWARNING: No need to specify "x" for distance '
+                            f"calculation number {i}."
                         )
 
             if well_name is not None:
@@ -221,9 +227,9 @@ class Configuration:
             self.distance_calculations.append(calculation)
 
     def make_config_from_input_args(
-        self, calculation_type: str, injection_point_info: str, name: str, case: str
+        self, calculation_type_str: str, injection_point_info: str, name: str, case: str
     ):
-        type_str = calculation_type.upper()
+        type_str = calculation_type_str.upper()
         CalculationType.check_for_key(type_str)
         calculation_type = CalculationType[type_str]
 
@@ -353,7 +359,8 @@ class Configuration:
         md = max_md_row["MD"]
         surface = max_md_row["HORIZON"] if "HORIZON" in max_md_row else "-"
         logging.info(
-            f"Injection coordinates: [{x:.2f}, {y:.2f}] (surface: {surface}, MD: {md:.2f})"
+            f"Injection coordinates: [{x:.2f}, {y:.2f}] (surface: {surface}, "
+            f"MD: {md:.2f})"
         )
         return (x, y)
 
@@ -468,7 +475,8 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
 
     logging.info(f"\nCase                    : {arguments.case}")
     logging.info(
-        f"Configuration YAML-file : {arguments.config_file if arguments.config_file != '' else 'Not specified'}"
+        f"Configuration YAML-file : "
+        f"{arguments.config_file if arguments.config_file != '' else 'Not specified'}"
     )
     if arguments.injection_point_info != "":
         logging.info("Configuration from args :")
@@ -476,13 +484,16 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
         logging.info(f"    Calculation type    : {arguments.calculation_type}")
         if arguments.name != "":
             logging.info(
-                f"    Column name         : {arguments.name if arguments.name != '' else 'Not specified'}"
+                f"    Column name         : "
+                f"{arguments.name if arguments.name != '' else 'Not specified'}"
             )
     else:
         logging.info("Configuration from args : Not specified")
-    logging.info(
-        f"Output CSV file         : {arguments.output if arguments.name != '' else 'Not specified, using default'}"
-    )
+    if arguments.name != "":
+        text = "Not specified, using default"
+    else:
+        text = arguments.output
+    logging.info(f"Output CSV file         : {text}")
     logging.info(f"Threshold SGAS          : {arguments.threshold_sgas}")
     logging.info(f"Threshold AMFG          : {arguments.threshold_amfg}\n")
 
@@ -490,7 +501,8 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
 def _log_distance_calculation_configurations(config: Configuration) -> None:
     logging.info("\nWe have the following distance calculation configurations:")
     logging.info(
-        f"\n{'Number':<8} {'Type':<14} {'Name':<15} {'Direction':<12} {'x':<15} {'y':<15}"
+        f"\n{'Number':<8} {'Type':<14} {'Name':<15} {'Direction':<12} "
+        f"{'x':<15} {'y':<15}"
     )
     logging.info("-" * 84)
     for i, calc in enumerate(config.distance_calculations, 1):
@@ -499,7 +511,8 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
         x = calc.x if calc.x is not None else "-"
         y = calc.y if calc.y is not None else "-"
         logging.info(
-            f"{i:<8} {calc.type.name.lower():<14} {name:<15} {direction:<12} {x:<15} {y:<15}"
+            f"{i:<8} {calc.type.name.lower():<14} {name:<15} {direction:<12} "
+            f"{x:<15} {y:<15}"
         )
     logging.info("")
 
@@ -688,8 +701,12 @@ def _collect_results_into_dataframe(
         )
         df = pd.merge(df, sgas_df, on="date")
         if amfg_results is not None:
+            if amfg_key is None:
+                amfg_key_str = "?"
+            else:
+                amfg_key_str = amfg_key
             amfg_df = pd.DataFrame.from_records(
-                amfg_results, columns=["date", col + "_" + amfg_key]
+                amfg_results, columns=["date", col + "_" + amfg_key_str]
             )
             df = pd.merge(df, amfg_df, on="date")
 
