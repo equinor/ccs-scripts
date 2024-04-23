@@ -504,36 +504,34 @@ def _log_distance_calculations(config: Configuration) -> None:
     logging.info("")
 
 
-def calculate_distances(
-    case: str,
-    calculation_type: str,
-    injxy: Tuple[Union[float, str], float],
-    threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
-    threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
-) -> Tuple[List[List], Optional[List[List]], Optional[str]]:
-    """
-    Find plume extents per date for SGAS and AMFG/XMF2.
-    """
-    logging.info("\nStart calculating plume extent")
-    grid = Grid(f"{case}.EGRID")
-    unrst = ResdataFile(f"{case}.UNRST")
-
-    # First calculate distance from point/line to center of all cells
-    nactive = grid.get_num_active()
-    logging.info(f"Number of active grid cells                    : {nactive:>10}")
+def calculate_single_distances(
+    nactive: int,
+    grid,  # NBNB-AS: type
+    unrst,  # NBNB-AS: type
+    threshold_sgas: float,
+    threshold_amfg: float,
+    config: Calculation,
+):
+    calculation_type = config.type
+    x = config.x
+    y = config.y
+    direction = config.direction
     dist = np.zeros(shape=(nactive,))
-    if calculation_type in ["plume_extent", "point"]:
-        (x, y) = injxy
+    if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
         for i in range(nactive):
             center = grid.get_xyz(active_index=i)
             dist[i] = np.sqrt((center[0] - x) ** 2 + (center[1] - y) ** 2)
-    elif calculation_type == "line":
-        (direction, line_value) = injxy
-        ind = 0  # x-coordinate
+    elif calculation_type == CalculationType.LINE:
+        ind = 0  # Use x-coordinate
+        line_value = x
+        if direction in (LineDirection.EAST, LineDirection.WEST):
+            ind = 1  # Use y-coordinate
+        elif direction in (LineDirection.NORTH, LineDirection.SOUTH):
+            line_value = y
+        # Ble dette riktig?
+
         factor = 1
-        if direction in ["east", "west"]:
-            ind = 1  # y-coordinate
-        if direction in ["west", "south"]:
+        if direction in (LineDirection.WEST, LineDirection.SOUTH):
             factor = -1
 
         for i in range(nactive):
@@ -542,16 +540,16 @@ def calculate_distances(
         dist[dist < 0] = 0.0
 
     text = ""
-    if calculation_type == "plume_extent":
+    if calculation_type == CalculationType.PLUME_EXTENT:
         text = "injection point"
-    elif calculation_type == "point":
+    elif calculation_type == CalculationType.POINT:
         text = "point          "
-    elif calculation_type == "line":
+    elif calculation_type == CalculationType.LINE:
         text = "line           "
     logging.info(f"Smallest distance grid cell to {text} : {min(dist):>10.1f}")
     logging.info(f"Largest distance grid cell to {text}  : {max(dist):>10.1f}")
     logging.info(
-        f"Average distance grid cell to {text}  : {sum(dist)/len(dist):>10.1f}"
+        f"Average distance grid cell to {text}  : {sum(dist) / len(dist):>10.1f}"
     )
 
     sgas_results = _find_distances_per_time_step(
@@ -579,9 +577,38 @@ def calculate_distances(
     return (sgas_results, amfg_results, amfg_key)
 
 
+def calculate_distances(
+    case: str,
+    config: Configuration,
+    threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
+    threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
+) -> Tuple[List[List], Optional[List[List]], Optional[str]]:
+    # calculation_type: str,
+    # injxy: Tuple[Union[float, str], float],
+    """
+    Find plume extents per date for SGAS and AMFG/XMF2.
+    """
+    logging.info("\nStart calculating distances")
+    grid = Grid(f"{case}.EGRID")
+    unrst = ResdataFile(f"{case}.UNRST")
+
+    # First calculate distance from point/line to center of all cells
+    nactive = grid.get_num_active()
+    logging.info(f"Number of active grid cells                    : {nactive:>10}")
+
+    for single_config in config.distance_calculations:
+        (a, b, c) = calculate_single_distances(
+            nactive, grid, unrst, threshold_sgas, threshold_amfg, single_config
+        )
+        print(a)
+        print(b)
+        print(c)
+        exit()
+
+
 def _find_distances_per_time_step(
     attribute_key: str,
-    calculation_type: str,
+    calculation_type: CalculationType,
     threshold: float,
     unrst: ResdataFile,
     dist: np.ndarray,
@@ -596,9 +623,9 @@ def _find_distances_per_time_step(
         plumeix = np.where(data > threshold)[0]
         result = 0.0
         if len(plumeix) > 0:
-            if calculation_type == "plume_extent":
+            if calculation_type == CalculationType.PLUME_EXTENT:
                 result = dist[plumeix].max()
-            elif calculation_type in ["point", "line"]:
+            elif calculation_type in (CalculationType.POINT, CalculationType.LINE):
                 result = dist[plumeix].min()
         else:
             result = np.nan
@@ -817,8 +844,7 @@ def main():
 
     (sgas_results, amfg_results, amfg_key) = calculate_distances(
         args.case,
-        args.calculation_type,
-        injxy,
+        config,
         args.threshold_sgas,
         args.threshold_amfg,
     )
