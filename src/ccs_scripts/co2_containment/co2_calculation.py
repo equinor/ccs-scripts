@@ -302,7 +302,9 @@ def _fetch_properties(
 
     """
     dates = [d.strftime("%Y%m%d") for d in unrst.report_dates]
+    logging.info(f"dates: {dates}")
     properties = _read_props(unrst, properties_to_extract)
+    logging.info(f"properties:{props_info}")
     properties = {
         p: {d[1]: properties[p][d[0]].numpy_copy() for d in enumerate(dates)}
         for p in properties
