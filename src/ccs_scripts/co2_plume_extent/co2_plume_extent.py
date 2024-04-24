@@ -28,10 +28,13 @@ DEFAULT_THRESHOLD_AMFG = 0.0005
 
 DESCRIPTION = """
 Calculates the maximum lateral distance of the CO2 plume from a given location,
-for instance an injection point. The distance is calculated for each time step,
-for both SGAS and AMFG (Pflotran) / YMF2 (Eclipse).
+for instance an injection point. It is also possible to instead calculate the
+distance to a point or a line (north-south or east-west). The distances are
+calculated for each time step, for both SGAS and AMFG (Pflotran) / YMF2
+(Eclipse).
 
-Output is a table on CSV format.
+Output is a table on CSV format. Multiple calculations specified in the
+YAML-file will be combined to a single CSV-file with many columns.
 """
 
 CATEGORY = "modelling.reservoir"
