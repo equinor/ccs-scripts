@@ -463,7 +463,6 @@ def test_yaml_file_pflotran(mocker):
     config_path = str(
         Path(__file__).parents[1] / "tests" / "yaml" / "config_co2_plume_extent.yml"
     )
-    print(config_path)
     mocker.patch(
         "sys.argv",
         [

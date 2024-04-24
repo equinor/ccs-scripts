@@ -843,8 +843,9 @@ def _find_input_line(injection_point_info: str) -> Tuple[str, float]:
 
 def main():
     """
-    Calculate plume extent using EGRID and UNRST-files. Calculated for SGAS
-    and AMFG/XMF2. Output is plume extent per date written to a CSV file.
+    Calculate plume extent or distance to point/line using EGRID and
+    UNRST-files. Calculated for SGAS and AMFG/XMF2. Output is distance per
+    date written to a CSV file.
     """
     args = _make_parser().parse_args()
     args.name = args.name.upper() if args.name is not None else None
