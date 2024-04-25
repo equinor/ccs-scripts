@@ -323,10 +323,15 @@ def get_parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument(
-        "--zonefile", help="Path to file containing zone information.", default=None
+        "--zonefile",
+        help="Path to yaml or roff file containing zone information.",
+        default=None,
     )
     parser.add_argument(
-        "--regionfile", help="Path to file containing region information.", default=None
+        "--regionfile",
+        help="Path to roff file containing region information. "
+        "Use either 'regionfile' or 'region_property', not both.",
+        default=None,
     )
     parser.add_argument(
         "--region_property",
@@ -335,7 +340,8 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--compact",
-        help="Write the output to a single file as compact as possible.",
+        help="Property in INIT file containing integer grid of regions. "
+        "Use either 'regionfile' or 'region_property', not both.",
         action="store_true",
     )
     parser.add_argument(
@@ -474,6 +480,12 @@ def check_input(arguments: argparse.Namespace):
         for file in files_not_found:
             error_text += "\n  * " + file
         raise FileNotFoundError(error_text)
+
+    if arguments.regionfile is not None and arguments.region_property is not None:
+        raise InputError(
+            "Both 'regionfile' and 'region_property' have been provided. "
+            "Please provide only one of the two options."
+        )
 
     if not os.path.isdir(arguments.out_dir):
         logging.warning("Output directory doesn't exist. Creating a new folder.")
