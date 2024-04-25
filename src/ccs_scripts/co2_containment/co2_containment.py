@@ -222,13 +222,23 @@ def _merge_date_rows(
         pd.DataFrame: Output data frame
     """
     data_frame = data_frame.drop(columns=["zone", "region"], axis=1, errors="ignore")
+    trapped_co2_in_data_frame = "trapped_gas" in  data_frame["phase"].unique()
     # Total
-    df1 = (
-        data_frame.drop(["phase", "location"], axis=1)
-        .groupby(["date"])
-        .sum()
-        .rename(columns={"amount": "total"})
-    )
+    if trapped_co2_in_data_frame:
+        df1 = (
+            data_frame[data_frame["phase"] != "trapped_gas"]
+            .drop(["phase", "location"], axis=1)
+            .groupby(["date"])
+            .sum()
+            .rename(columns={"amount": "total"})
+        )
+    else:
+        df1 = (
+            data_frame.drop(["phase", "location"], axis=1)
+            .groupby(["date"])
+            .sum()
+            .rename(columns={"amount": "total"})
+        )
     total_df = df1.copy()
     if calc_type == CalculationType.CELL_VOLUME:
         df2 = data_frame.drop("phase", axis=1).groupby(["location", "date"]).sum()
@@ -243,7 +253,15 @@ def _merge_date_rows(
         df2b = df2.loc["aqueous"].rename(columns={"amount": "total_aqueous"})
         df2c = df2.loc["trapped_gas"].rename(columns={"amount": "total_trapped_gas"})
         # Total by containment
-        df3 = data_frame.drop("phase", axis=1).groupby(["location", "date"]).sum()
+        if trapped_co2_in_data_frame:
+            df3 = (
+                data_frame[data_frame["phase"] != "trapped_gas"]
+                .drop("phase", axis=1)
+                .groupby(["location", "date"])
+                .sum()
+            )
+        else:
+            df3 = data_frame.drop("phase", axis=1).groupby(["location", "date"]).sum()
         df3a = df3.loc[("contained",)].rename(columns={"amount": "total_contained"})
         df3b = df3.loc[("outside",)].rename(columns={"amount": "total_outside"})
         df3c = df3.loc[("hazardous",)].rename(columns={"amount": "total_hazardous"})
