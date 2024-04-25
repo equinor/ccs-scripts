@@ -143,7 +143,7 @@ def calculate_co2_containment(
                     ),
                 ]
             ]
-        if co2_data.data_list.trapped_gas_phase is None:
+        if co2_data.data_list[0].trapped_gas_phase is None:
             return [
                 c
                 for w in co2_data.data_list
@@ -253,7 +253,7 @@ def calculate_co2_containment(
     logging.info(
         f"Done calculating contained CO2 {calc_type.name.lower()} using input polygons"
     )
-    if co2_data.data_list.trapped_gas_phase is None:
+    if co2_data.data_list[0].trapped_gas_phase is None:
         return [
             c
             for w in co2_data.data_list

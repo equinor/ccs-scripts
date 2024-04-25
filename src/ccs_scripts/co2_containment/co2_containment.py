@@ -241,6 +241,7 @@ def _merge_date_rows(
         df2 = data_frame.drop("location", axis=1).groupby(["phase", "date"]).sum()
         df2a = df2.loc["gas"].rename(columns={"amount": "total_gas"})
         df2b = df2.loc["aqueous"].rename(columns={"amount": "total_aqueous"})
+        df2c = df2.loc["trapped_gas"].rename(columns={"amount": "total_trapped_gas"})
         # Total by containment
         df3 = data_frame.drop("phase", axis=1).groupby(["location", "date"]).sum()
         df3a = df3.loc[("contained",)].rename(columns={"amount": "total_contained"})
@@ -252,15 +253,18 @@ def _merge_date_rows(
         df4b = df4.loc["aqueous", "contained"].rename(
             columns={"amount": "aqueous_contained"}
         )
-        df4c = df4.loc["gas", "outside"].rename(columns={"amount": "gas_outside"})
-        df4d = df4.loc["aqueous", "outside"].rename(
+        df4c = df4.loc["trapped_gas", "contained"].rename(columns={"amount": "trapped_gas_contained"})
+        df4d = df4.loc["gas", "outside"].rename(columns={"amount": "gas_outside"})
+        df4e = df4.loc["aqueous", "outside"].rename(
             columns={"amount": "aqueous_outside"}
         )
-        df4e = df4.loc["gas", "hazardous"].rename(columns={"amount": "gas_hazardous"})
-        df4f = df4.loc["aqueous", "hazardous"].rename(
+        df4f = df4.loc["trapped_gas", "outside"].rename(columns={"amount": "trapped_gas_outside"})
+        df4g = df4.loc["gas", "hazardous"].rename(columns={"amount": "gas_hazardous"})
+        df4h = df4.loc["aqueous", "hazardous"].rename(
             columns={"amount": "aqueous_hazardous"}
         )
-        for _df in [df2a, df2b, df3a, df3b, df3c, df4a, df4b, df4c, df4d, df4e, df4f]:
+        df4i = df4.loc["trapped_gas", "hazardous"].rename(columns={"amount": "trapped_gas_hazardous"})
+        for _df in [df2a, df2b, df2c, df3a, df3b, df3c, df4a, df4b, df4c, df4d, df4e, df4f, df4g, df4h, df4i]:
             total_df = total_df.merge(_df, on="date", how="left")
     return total_df.reset_index()
 
