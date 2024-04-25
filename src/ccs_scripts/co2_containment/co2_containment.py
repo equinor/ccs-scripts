@@ -91,7 +91,6 @@ def calculate_out_of_bounds_co2(
     co2_data = calculate_co2(
         grid_file, unrst_file, zone_info, region_info, calc_type_input, init_file
     )
-    print("All good witch SGSTRAND in co2_data")
     if file_containment_polygon is not None:
         containment_polygon = _read_polygon(file_containment_polygon)
     else:
