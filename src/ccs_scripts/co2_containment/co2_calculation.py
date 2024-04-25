@@ -126,7 +126,7 @@ class SourceData:
         return {}
 
     def get_sgstrand(self):
-        """Get SGAS"""
+        """Get SGSTRAND"""
         if self.SGSTRAND is not None:
             return self.SGSTRAND
         return {}
@@ -625,9 +625,15 @@ def _pflotran_co2mass(
             * dgas[date]
             * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass),
         ]
+        if sgstrand is not None:
+            co2_mass[date].append(eff_vols[date]
+            * sgstrand[date]
+            * dgas[date]
+            * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass))
         print(len(co2_mass[date]))
         print(len(co2_mass[date][0]))
         print(len(co2_mass[date][1]))
+        print(len(co2_mass[date][2]))
     return co2_mass
 
 
