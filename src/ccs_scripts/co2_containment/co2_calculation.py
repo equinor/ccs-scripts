@@ -222,6 +222,7 @@ class Co2DataAtTimeStep:
     aqu_phase: np.ndarray
     gas_phase: np.ndarray
     volume_coverage: np.ndarray
+    trapped_gas_phase: Optional[np.ndarray] = None
 
     def total_mass(self) -> np.ndarray:
         """
@@ -630,10 +631,6 @@ def _pflotran_co2mass(
             * sgstrand[date]
             * dgas[date]
             * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass))
-        print(len(co2_mass[date]))
-        print(len(co2_mass[date][0]))
-        print(len(co2_mass[date][1]))
-        print(len(co2_mass[date][2]))
     return co2_mass
 
 
@@ -896,17 +893,30 @@ def _calculate_co2_data_from_source_data(
             )
         else:
             co2_mass_cell = _eclipse_co2mass(source_data, co2_molar_mass)
-        co2_mass_output = Co2Data(
-            source_data.x_coord,
-            source_data.y_coord,
-            [
-                Co2DataAtTimeStep(key, value[0], value[1], np.zeros_like(value[1]))
-                for key, value in co2_mass_cell.items()
-            ],
-            "kg",
-            source_data.get_zone(),
-            source_data.get_region(),
-        )
+        if source_data.SGSTRAND is None:
+            co2_mass_output = Co2Data(
+                source_data.x_coord,
+                source_data.y_coord,
+                [
+                    Co2DataAtTimeStep(key, value[0], value[1], np.zeros_like(value[1]))
+                    for key, value in co2_mass_cell.items()
+                ],
+                "kg",
+                source_data.get_zone(),
+                source_data.get_region(),
+            )
+        else:
+            co2_mass_output = Co2Data(
+                source_data.x_coord,
+                source_data.y_coord,
+                [
+                    Co2DataAtTimeStep(key, value[0], value[1], np.zeros_like(value[1]), value[2])
+                    for key, value in co2_mass_cell.items()
+                ],
+                "kg",
+                source_data.get_zone(),
+                source_data.get_region(),
+            )
         if calc_type != CalculationType.MASS:
             if source == "PFlotran":
                 y = source_data.get_amfg()[source_data.DATES[0]]
