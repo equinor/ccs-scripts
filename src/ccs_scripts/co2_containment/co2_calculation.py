@@ -92,6 +92,7 @@ class SourceData:
     VOL: Optional[Dict[str, np.ndarray]] = None
     SWAT: Optional[Dict[str, np.ndarray]] = None
     SGAS: Optional[Dict[str, np.ndarray]] = None
+    SGSTRAND: Optional[Dict[str, np.ndarray]] = None
     RPORV: Optional[Dict[str, np.ndarray]] = None
     PORV: Optional[Dict[str, np.ndarray]] = None
     AMFG: Optional[Dict[str, np.ndarray]] = None
@@ -122,6 +123,12 @@ class SourceData:
         """Get SGAS"""
         if self.SGAS is not None:
             return self.SGAS
+        return {}
+
+    def get_sgstrand(self):
+        """Get SGAS"""
+        if self.SGSTRAND is not None:
+            return self.SGSTRAND
         return {}
 
     def get_rporv(self):
@@ -604,6 +611,7 @@ def _pflotran_co2mass(
     amfg = source_data.get_amfg()
     ymfg = source_data.get_ymfg()
     sgas = source_data.get_sgas()
+    sgstrand = source_data.get_sgstrand()
     eff_vols = source_data.get_porv()
     co2_mass = {}
     for date in dates:
@@ -617,6 +625,9 @@ def _pflotran_co2mass(
             * dgas[date]
             * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass),
         ]
+        print(len(co2_mass[date]))
+        print(len(co2_mass[date][0]))
+        print(len(co2_mass[date][1]))
     return co2_mass
 
 
