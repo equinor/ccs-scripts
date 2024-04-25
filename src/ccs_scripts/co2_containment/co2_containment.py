@@ -382,7 +382,7 @@ def _replace_default_dummies_from_ert(args):
 
 
 class InputError(Exception):
-    """Raised when relative paths are provided when absolute ones are expected"""
+    """Raised for various mistakes in the provided input."""
 
 
 def process_args() -> argparse.Namespace:
