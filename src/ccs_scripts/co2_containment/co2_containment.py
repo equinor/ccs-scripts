@@ -335,13 +335,13 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--region_property",
-        help="Property in INIT file containing integer grid of regions.",
+        help="Property in INIT file containing integer grid of regions. "
+        "Use either 'regionfile' or 'region_property', not both.",
         default=None,
     )
     parser.add_argument(
         "--compact",
-        help="Property in INIT file containing integer grid of regions. "
-        "Use either 'regionfile' or 'region_property', not both.",
+        help="Write the output to a single file as compact as possible.",
         action="store_true",
     )
     parser.add_argument(

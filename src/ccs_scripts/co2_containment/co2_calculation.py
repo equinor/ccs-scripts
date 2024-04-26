@@ -456,7 +456,7 @@ def _check_grid_dimensions(
     roff_shape = roff_grid.values.shape
     if roff_shape != grid_shape:
         err = f"Inconsistent grid dimensions {roff_shape} from file {roff_file}"
-        err += f"and {grid_shape} from file {grid_file}."
+        err += f" and {grid_shape} from file {grid_file}."
         raise ValueError(err)
 
 
