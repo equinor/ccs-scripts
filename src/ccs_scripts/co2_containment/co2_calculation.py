@@ -444,6 +444,22 @@ def _extract_source_data(
     return source_data
 
 
+def _check_grid_dimensions(
+    roff_file: str,
+    grid_file: str,
+    nx: int,
+    ny: int,
+    nz: int,
+) -> None:
+    grid_shape = (nx, ny, nz)
+    roff_grid = xtgeo.gridproperty_from_file(roff_file)
+    roff_shape = roff_grid.values.shape
+    if roff_shape != grid_shape:
+        err = f"Inconsistent grid dimensions {roff_shape} from file {roff_file}"
+        err += f" and {grid_shape} from file {grid_file}."
+        raise ValueError(err)
+
+
 def _process_zones(
     zone_info: Dict,
     grid: Grid,
@@ -471,6 +487,13 @@ def _process_zones(
             zone = zone_array.flatten(order="F")[global_active_idx]
         else:
             xtg_grid = xtgeo.grid_from_file(grid_file)
+            _check_grid_dimensions(
+                zone_info["source"],
+                grid_file,
+                xtg_grid.ncol,
+                xtg_grid.nrow,
+                xtg_grid.nlay,
+            )
             zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
             zone = zone.values.data.flatten(order="F")
             zonevals = np.unique(zone)
@@ -503,6 +526,13 @@ def _process_regions(
     if region_info["source"] is not None:
         logging.info("Using regions info")
         xtg_grid = xtgeo.grid_from_file(grid_file)
+        _check_grid_dimensions(
+            region_info["source"],
+            grid_file,
+            xtg_grid.ncol,
+            xtg_grid.nrow,
+            xtg_grid.nlay,
+        )
         region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
         region = region.values.data.flatten(order="F")
         regvals = np.unique(region)
