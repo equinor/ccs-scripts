@@ -43,5 +43,3 @@ FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>,  <CALC_TYPE_INPUT>="mas
 
 FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <CALC_TYPE_INPUT>="cell_volume", <CONTAINMENT_POLYGON>="share/results/polygons/containment--boundary.csv", <HAZARDOUS_POLYGON>="share/results/polygons/hazardous--boundary.csv", <REGION_PROPERTY>="FIPSEG") -- Calculates cell volume with presence of CO2 inside/outside the polygons per Region using region property FIPXXX.
 
---verbose option outputs information about the calculations being done.
---debug option outputs more information at each step of the calculation to help with debugging possible error messages. 

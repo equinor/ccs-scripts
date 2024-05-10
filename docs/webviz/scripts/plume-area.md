@@ -19,7 +19,7 @@ Only calculates the total area of the plume(s).
 🔺 Pre-requisite: Run `GRID3D_AGGREGATE_MAP` - [More information](https://fmu-for-ccs.radix.equinor.com/webviz/maps/agg-map/).
 
 ``` yaml
-FORWARD_MODEL PLUME_AREA(<INPUT>=<RUNPATH>share/results/maps/)
+FORWARD_MODEL CO2_PLUME_AREA(<INPUT>=<RUNPATH>share/results/maps/, <XARG1>= "--verbose")
 ```
 
 ## 📚 Other examples
@@ -31,9 +31,13 @@ FORWARD_MODEL PLUME_AREA(<INPUT>=<RUNPATH>share/results/maps/)
 **Future development**
 
 - Ensure area distinction between the different injection sites, in addition to the total area. 
+
 <br />
 <br />
 
 **Updates**
 
-- Date - Insert changes
+May 2024: 
+
+- "--verbose" option. Outputs all the calculation steps during the ERT run in the .STDERR file.
+- "--debug" option. Outputs all the calculation steps and extra information during the ERT run in the .STDERR file. 

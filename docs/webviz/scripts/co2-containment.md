@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-Calculates the amount of CO2 inside or outside a boundary (polygons, zones or regions) and returns it as a volume or mass. Multiple options are available.
+Calculates the amount of CO2 inside or outside a boundary (polygons) per  zones or regions and returns it as a volume or mass. Multiple options are available.
 
 
 ## 📝 How to set it up?
@@ -11,7 +11,7 @@ Calculates the amount of CO2 inside or outside a boundary (polygons, zones or 
 
 ✅ Available on Komodo
 
-⚪ Optional parameters: Boundary polygons / zone output file / regions - depending on which calculation method has been selected. For more information on how to output your boundary polygons or zone output file, read the "RMS" section below.
+⚪ Optional parameters: Boundary polygons / zone output file / regions - depending on which calculation method has been selected. For more information on how to output your boundary polygons , zone or region output file, read the "RMS" section below.
 
 ``` yaml title="Mandatory arguments"
 <CASE>: Path to Eclipse case, including base name, but excluding the file extension (.EGRID, .INIT, .UNRST)
@@ -34,6 +34,13 @@ Calculates the amount of CO2 inside or outside a boundary (polygons, zones or 
 <INIT>:  Path to INIT file. Overwrites <case> if provided.
 
 <ZONEFILE>: Path to file containing zone information. By default, does not calculates Co2 containment per zone.
+
+<REGIONFILE>: Path to file containing Region information. By default, does not calculates Co2 containment per Region.
+
+<REGION_PROPERTY>: Grid property FIPXXX used in simulation to define regions. By default, does not calculates Co2 containment per Region.
+
+--verbose:  option outputs information about the calculations being done.
+--debug: option outputs more information at each step of the calculation to help with debugging possible error messages. 
 ```
 
 Example:
@@ -119,78 +126,125 @@ X_UTME,Y_UTMN,Z_TVDSS,POLY_ID
 
 **Zone output file**
 
-The following RMS job is used to export the zone table:
+The following RMS job is used to export the zone information:
 
-``` yaml title="make_zones_layer_table.py"
-##############################################################################
-#
-# NAME:
-#    make_zones_layer_table.py
-#
-# AUTHOR(S):
-#    Jimmy Zurcher (jiz@equinor.com)
-#
-# DESCRIPTION:
-#    Create a text table with the zone associated with each layer of a 3D grid
-#
-# rnyb, Sep 20 - export of zone-layer info as part of the main workflow to ensure 
-#                consistency when running ert (gendata_rft) 
-#                (ert gendata_rft keyword should be set up to point to this file)
-###############################################################################
+``` yaml title="export_geogrid_zone_layer_yml.py"
+"""
+    Create yml file with zone and layer info to be used with xtgeo qc scripts (GRID3D_HC_THICKNESS and GRID3D_AVG_MAP in ert model file)
 
-grid_name = 'Main_grid'
-file_name = 'layer_zone_table'
-file_path = '../../rms/output/zone/'
+    rnyb, Aug 20
+"""
+from pathlib import Path
 
-grid = project.grid_models[grid_name].get_grid()
-indexer = grid.grid_indexer
-dimensions = indexer.dimensions
+GNAME = "Main_grid"
+ZONE_YML_FILE = Path ("../../rms/output/zone/zonation_geo_map.yml")
 
-n_layers = dimensions[2]
+# ------------------------------------------------------------------
 
-txt_file = open(file_path+file_name+'.txt', 'w')
-csv_file = open(file_path+file_name+'.csv', 'w')
-csv_file.write('LAYER,ZONE\n')
+def main ():
+    """create yml file with zone-layer info """
 
-print('Layer   Zone')
-for k in range(0, n_layers):
-    zone_name = 'FAIL'
-    for zone_index in indexer.zonation:
-        for layer_interval in indexer.zonation[zone_index]:
-        # More than one group of layers only if repeat sections in the grid
-            if k in layer_interval:
-                zone_name = grid.zone_names[zone_index]
-    if k < 9:
-        sep = '    '
-    else:
-        sep = '   '
-    print('{}{}{}'.format(k+1, sep, zone_name))
-    txt_file.write('{}{}{}\n'.format(k+1, sep, zone_name))
-    csv_file.write('{},{}\n'.format(k+1, zone_name))
+    # Retrieve the grid to process:
+    grid_model = project.grid_models [GNAME]
+    grid = grid_model.get_grid()
 
-txt_file.close()
-csv_file.close()
+    #Retrieve the zones to process:
+    zone_names = grid.zone_names
 
-print('Done.')
+    ZONE_YML_FILE.parent.mkdir(parents*=True, exist_ok=True)
+    f = open(ZONE_YML_FILE, "w+)
+    f.write("zranges:\n")
+
+    # Loop over all zones in the grid
+    for zone_index in range (len(zone_names)):
+
+        # Get layers for zone_index
+        layer_ranges = grid.grid_indexer.zonation[zone_index]
+        # Convert range to list and add 1 (range starts at 0, we want to start at 1)
+
+        layer_list = [1 + layer_ranges[0][0], 1 + layer_ranges[0][-1]]
+        #Write result to file:
+        f.write(" - " + zone_names[zone_index] + ": " + str(layer_list) + "\n")
+    f.close()
+
+if __name__ == "__main__":
+    main()
+    print("Done. Created xtgeo compatible yml file". ZONE_YML_FILE)
 ```
 
 The output file should look like:
 
-``` yaml title="Example of `layer_zone_file.csv` exported by RMS"
-LAYER,ZONE
-1,Sognefjord
-2,Sognefjord
-3,Sognefjord
-4,Sognefjord
-5,Sognefjord
-[...]
-310,UpperLunde
-311,LowerLunde
+``` yaml title="Example of `zonation_geo_map.yml` exported by RMS"
+zranges:
+  - Sognefjord: [1, 24]
+  - Fensfjord: [25, 54]
+  - Krossfjord: [55, 60]
+  - Heather_A: [61, 61]
+  - Brent: [62, 63]
+  - Drake: [64, 67]
+  - Johansen: [68, 191]
+  - AmundsenStatfjord: [192, 195]
+  - UpperLunde: [196, 309]
+  - LowerLunde: [310, 310]
+
 ```
+
+**Region output file**
+
+The following RMS job is used to export the region information:
+
+``` yaml title="export_geogrid_parameter.py" 
+"""
+    Export geogrid and geogrid parameters (roff format)
+    Used for both visualization and as input to seismic project
+
+    Parameters required/used by seismic projects is set in PROPS_SEISMIC
+    Additional parameters can be set with PROPS_OTHER
+    All parameters can be used for visualization (coviz)
+
+    Authors:
+    JRIV
+    rnyb, Sep 20
+"""
+import xtgeo
+from pathlib import Path, PurePath
+
+PRJ = project
+
+GNAME = "Main_grid"
+PROPS_SEISMIC = ["PORO", "VSH", "SW"]
+PROPS_OTHER =["PERMX", "Zone", "FIPSEG"] ##Any other region property of the form FIPXXX can be used.
+TARGET = "../../share/results/grids"
+
+def export_geogrid_parameters():
+    
+    """export geogrid and associated parameters based on user defined lists"""
+    
+    Path(TARGET).mkdir(parents=True, exists_ok=True)
+
+    props = PROPS_SESIMIC + PROPS_OTHER ###can only have PROPS_OTHER
+
+    print("Write grid to ", TARGET)
+    grd = xtgeo.grid_from_roxar(PRJ,GNAME)
+    grd.to_file(Path(TARGET).joinpath(GNAME.lower() + ".roff"))
+
+    print("Write grid properties to ", TARGET)
+    for propname in props:
+        print(propname)
+        prop = xtgeo.gridproperty_from_roxar(PRJ, GNAME, propname)
+        filename = GNAME.lower() + "--" + propname.lower() + ".roff"
+        prop.to_file(Path(TARGET).joinpath(filename))
+
+if __name__ == "__main__":
+    export_geogrid_parameters()
+    print("Done.")
+```
+
+
 
 ## 📚 Other examples
 
-Note: rename `[1st_oundary_name]` and `[2nd_boundary_name]` according to your project's naming standards.
+Note: rename `[1st_boundary_name]` and `[2nd_boundary_name]` according to your project's naming standards.
 
 ``` yaml title="Calculates cell volume with CO2 in the model"
 FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <CALC_TYPE_INPUT>="cell_volume")
@@ -199,17 +253,25 @@ FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <CALC_TYPE_INPUT>="cell
 FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <CALC_TYPE_INPUT>="mass")
 ```
 
-``` yaml title="Calculates actual volume of CO2 inside & outside 2 polygons"
-FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/results/tables/plume_actual_volume.csv", <CALC_TYPE_INPUT>="actual_volume", <CONTAINMENT_POLYGON>=share/results/polygons/[1st_boundary_name]--boundary.csv, <HAZARDOUS_POLYGON>=share/results/polygons/[2nd_boundary_name]--boundary.csv, <ZONEFILE>=<RUNPATH>rms/output/zone/layer_zone_table.csv)
+``` yaml title="Calculates actual volume of CO2 inside & outside 2 polygons per zone"
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/results/tables/plume_actual_volume.csv", <CALC_TYPE_INPUT>="actual_volume", <CONTAINMENT_POLYGON>=share/results/polygons/[1st_boundary_name]--boundary.csv, <HAZARDOUS_POLYGON>=share/results/polygons/[2nd_boundary_name]--boundary.csv, <ZONEFILE>=<RUNPATH>rms/output/zone/zonation_geo_map.yml)
 ```
 
 
-``` yaml title="Calculates cell volume inside & outside your 1 polygon"
-FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/results/tables/plume_cell_volume.csv", <CALC_TYPE_INPUT>="cell_volume", <CONTAINMENT_POLYGON>=share/results/polygons/[1st_boundary_name]--boundary.csv)
+``` yaml title="Calculates cell volume inside & outside your 1 polygon with verbose and debug option"
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/results/tables/plume_cell_volume.csv", <CALC_TYPE_INPUT>="cell_volume", <CONTAINMENT_POLYGON>=share/results/polygons/[1st_boundary_name]--boundary.csv, <XARG1>= "--verbose", <XARG2>= "--debug")
 ```
 
 ``` yaml title="Calculates mass of CO2 inside & outside your 2 polygons and per zone"
 FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/results/tables/plume_mass.csv", <CALC_TYPE_INPUT>="mass", <CONTAINMENT_POLYGON>="share/results/polygons/[1st_boundary_name]--boundary.csv",  <HAZARDOUS_POLYGON>="share/results/polygons/[2nd_boundary_name]--boundary.csv", <ZONEFILE>="<RUNPATH>rms/output/zone/layer_zone_table.csv" )
+```
+
+``` yaml title="Calculates mass of CO2 inside & outside your 2 polygons and per region using region file"
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/results/tables/plume_mass.csv", <CALC_TYPE_INPUT>="mass", <CONTAINMENT_POLYGON>="share/results/polygons/[1st_boundary_name]--boundary.csv",  <HAZARDOUS_POLYGON>="share/results/polygons/[2nd_boundary_name]--boundary.csv", <REGIONFILE>="<RUNPATH>share/results/grids/main_grid--fipseg.roff" )
+```
+
+``` yaml title="Calculates cell volume inside & outside your 1 polygon per region using region property"
+FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/results/tables/plume_cell_volume.csv", <CALC_TYPE_INPUT>="cell_volume", <CONTAINMENT_POLYGON>=share/results/polygons/[1st_boundary_name]--boundary.csv, <REGION_PROPERTY>="FIPSEG")
 ```
 
 
@@ -219,16 +281,14 @@ FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>, <OUT_DIR>="share/result
 
 In progress:
 
-- Calculates CO2 containment per regions
-
-- Added a "--verbose" option. Outputs all the calculation steps during the ERT run in the .STDERR file.
-
-``` yaml title="Calculates actual volume using region property for region calculation"
-FORWARD_MODEL CO2_CONTAINMENT(<CASE>=<RUNPATH><ECLBASE>,  <CALC_TYPE_INPUT>="actual_volume", <CONTAINMENT_POLYGON>="share/results/polygons/[1st_boundary_name]--boundary.csv", <HAZARDOUS_POLYGON>="share/results/polygons/[2nd_boundary_name]--boundary.csv", <REGION_PROPERTY>="FIPSEG", <ZONEFILE>="rms/output/zone/zonation_geo_map.yml", <XARG1>="--verbose")
-```
+- Include residual trapping analysis in containment calculations.
 <br />
 <br />
 
 **Updates**
+May 2024:
+- This script now returns volume and mass of CO2 inside and outside  polygons per zone and region. 
 
-- This script know returns volume and mass of CO2 inside and outside zones in addition to polygons. 
+- Added a "--verbose" option. Outputs all the calculation steps during the ERT run in the .STDERR file.
+
+- Added a "--debug" option. Outputs all the calculation steps and extra information during the ERT run in the .STDERR file.
