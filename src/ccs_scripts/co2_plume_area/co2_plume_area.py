@@ -50,12 +50,13 @@ def _make_parser():
     )
     parser.add_argument(
         "--verbose",
-        help="Log information to screen",
+        help="Enable print of detailed information during execution of script",
         action="store_true",
     )
     parser.add_argument(
         "--debug",
-        help="Log debug information to screen",
+        help="Enable print of debugging data during execution of script. "
+        "Normally not necessary for most users.",
         action="store_true",
     )
 
