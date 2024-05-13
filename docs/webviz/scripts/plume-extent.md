@@ -23,7 +23,7 @@ FORWARD_MODEL CO2_PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>="S-J", <
 ## 📚 Other examples
 
 ``` yaml title="Calculates max extent for a well called S-J using [x,y] coordinates"
-FORWARD_MODEL CO2_PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>= [560544,6703705], <XARG2> = "--debug")
+FORWARD_MODEL CO2_PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>=[560544,6703705], <XARG1>="--debug", <XARG2>="--verbose")
 ```
 
 ## 🔧 Versions & Updates

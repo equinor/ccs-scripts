@@ -7,9 +7,9 @@ input:
 
 zonation:
   zranges:
-    - Z1: [ 1, 5 ]
-    - Z2: [ 6, 10 ]
-    - Z3: [ 11, 14 ]
+    - Zone1: [ 1, 5 ]
+    - Zone2: [ 6, 10 ]
+    - Zone3: [ 11, 14 ]
 
 computesettings:
   weight_by_dz: yes

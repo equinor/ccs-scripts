@@ -11,7 +11,7 @@
 ✅ Available on Komodo
 
 ```yaml
-FORWARD_MODEL CO2_MASS_MAP(<ECLROOT>=<ECLBASE>, <CONFIG_CO2_MASS_MAPS>=<CONFIG_PATH>/../input/config/grid3d_co2_mass_map.yml )
+FORWARD_MODEL CO2_MASS_MAPS(<ECLROOT>=<ECLBASE>, <CONFIG_CO2_MASS_MAPS>=<CONFIG_PATH>/../input/config/grid3d_co2_mass_map.yml )
 ```
 
 

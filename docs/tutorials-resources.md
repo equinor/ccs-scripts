@@ -60,3 +60,11 @@ Here is a guide on how to clone the ccs-scripts repository and install it locall
 <br />
 
  5. If you want to <span style="background-color: #DFF5FF">test a specific script</span>, remember to update the `EXECUTABLE` section in the `ert/bin/jobs` of the file. You can do this by entering the path to the new script. 
+
+## Using solutions outside FMU 
+
+The solutions can be used with <span style="background-color: #DFF5FF">standalone models outside the FMU loop</span> ie do not have all information generated during an FMU loop run. Most information used for visualization in webviz ( surface files, faultline files, well picks e.t.c ) and those required by the 2D maps solutions are exported during the RMS ( main_grid--zone.roff, zonation_geo_map.yml e.t.c). 
+
+Work is in progress to set up an ert workflow manager config file that will create the required FMU directories structure and include other external scripts or solutions from exisiting librabries to export the required additional information in order to make full use of the CCS solutions. 
+
+If you and your project are interested in setting this up for use and testing now feel free to reach out to us!
