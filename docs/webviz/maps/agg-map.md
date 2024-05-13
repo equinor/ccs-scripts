@@ -28,27 +28,7 @@ Config file are to be placed in `ert/input/config` folder. Here is a template ex
 ## 📚 Other config file example
 
 ~~~ yaml title="Example 1"
-{% include "./config-file-examples/aggregate1.yml" %}
-~~~
-
-~~~ yaml title="Example 2"
-{% include "./config-file-examples/aggregate2.yml" %}
-~~~
-
-~~~ yaml title="Example 3"
-{% include "./config-file-examples/aggregate3.yml" %}
-~~~
-
-~~~ yaml title="Example 4"
-{% include "./config-file-examples/aggregate4.yml" %}
-~~~
-
-~~~ yaml title="Example 5"
-{% include "./config-file-examples/aggregate5.yml" %}
-~~~
-
-~~~ yaml title="Example 6"
-{% include "./config-file-examples/aggregate6.yml" %}
+{% include "./config-file-examples/aggregate-template2.yml" %}
 ~~~
 
 

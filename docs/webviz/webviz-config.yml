@@ -1,1 +1,7 @@
-More info to come
+title: Demo Webviz visualization
+
+shared settings:
+  user_defined_vectro_definitions:
+    vector_descriptions: vector_descriptions.yml
+  scratch_ensembles:
+    rms_seed_sens: 

@@ -12,11 +12,8 @@ output:
 
 zonation:
   zranges:
-  - Sognefjord: [1,24]
-  - Fensfjord: [25,54]
-  - Krossfjord: [55,60]
-  - Heather_A: [61,61]
-  - Brent: [62, 63]
-  - Drake: [64,67]
-  - Johansen: [68,192]
-  - AmundsenStatfjord: [193,196]
+  - Zone1: [1,24]
+  - Zone2: [25,54]
+  - Zone3: [55,60]
+  - Zone4: [61,61]
+  

@@ -27,7 +27,7 @@ zonation:
     name: Zone
     source: share/results/grids/main_grid--zone.roff
     zones:
-      - Zone1: [1]
-      - Zone2: [2]
-      - Zone3: [7]
-      - Zone4: [9] 
+      - Zone1: [1,24]
+      - Zone2: [25,54]
+      - Zone3: [55,60]
+      - Zone4: [61,61] 
