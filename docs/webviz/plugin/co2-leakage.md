@@ -10,7 +10,7 @@ Plugin available on Webviz. Allows to visualize CO2 plume maps and see if / how 
 
 ### Webviz
 
-✅ Available on Komodo bleeding
+✅ Available on Komodo stable
 
 ~~~ yaml title="Input to Webviz config file to use CO2 Leakage plugin"
 {% include "./config-file-examples/co2-leakage.yml" %}
@@ -43,7 +43,7 @@ Detailed explainations on each parameters:
 
 In progress:
 
-- Return % of co2 inside, outside and in the hazardeous area.
+- Return % of co2 inside, outside and in the hazardous area.
 ![image ><](./img/co2leakage-percentages.jpg)
 - New layout where plots are put in different tabs. It allows to visualize the plots better. A sliding scale as also been added to so the ratio between the map and the graph can be changed (map smaller and graphs bigger or opposite). 
 ![image ><](./img/co2leakage-tabs.jpg)

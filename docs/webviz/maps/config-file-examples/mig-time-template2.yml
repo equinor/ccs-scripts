@@ -1,0 +1,22 @@
+input:
+  eclroot: eclipse/model/MODEL_NAME
+  grid: $eclroot.EGRID
+  
+  properties:
+    - source: $eclroot.UNRST
+      name: "SGAS"
+      lower_threshold: 1.0e-8
+
+output:
+  mapfolder: share/results/map
+
+zonation:
+  zranges:
+  - Sognefjord: [1,24]
+  - Fensfjord: [25,54]
+  - Krossfjord: [55,60]
+  - Heather_A: [61,61]
+  - Brent: [62, 63]
+  - Drake: [64,67]
+  - Johansen: [68,192]
+  - AmundsenStatfjord: [193,196]
