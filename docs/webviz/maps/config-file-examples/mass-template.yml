@@ -1,5 +1,5 @@
 input:
-  eclroot: pflotran/model/MODEL_NAME
+  eclroot: eclipse/model/MODEL_NAME
   grid: $eclroot.EGRID
   
 co2_mass_settings:

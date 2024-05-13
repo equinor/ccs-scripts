@@ -24,7 +24,9 @@ FORWARD_MODEL CO2_PLUME_AREA(<INPUT>=<RUNPATH>share/results/maps/, <XARG1>= "--v
 
 ## 📚 Other examples
 
-*More to come*
+``` yaml
+FORWARD_MODEL CO2_PLUME_AREA(<INPUT>=<RUNPATH>share/results/maps/, <XARG1>= "--debug")
+```
 
 ## 🔧 Versions & Updates
 
@@ -37,7 +39,7 @@ FORWARD_MODEL CO2_PLUME_AREA(<INPUT>=<RUNPATH>share/results/maps/, <XARG1>= "--v
 
 **Updates**
 
-May 2024: 
+**May 2024:** 
 
 - "--verbose" option. Outputs all the calculation steps during the ERT run in the .STDERR file.
 - "--debug" option. Outputs all the calculation steps and extra information during the ERT run in the .STDERR file. 

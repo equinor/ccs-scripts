@@ -1,5 +1,5 @@
 input:
-  folderroot: scratch/project/user/case/share/results
+  folderroot: scratch/<project>/<userid>/<case>/share/results    # foldreroot path follows the FMU directories standard
   grid: $folderroot/grids/main_grid.roff
   properties:
     - source: $folderroot/grids/main_grid--sgas.roff

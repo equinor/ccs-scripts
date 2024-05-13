@@ -1,7 +1,7 @@
 input:
-  eclroot: pflotran/model/SMEAHEIA_PFT     # ert will interpret this as relative to <runpath>
+  eclroot: pflotran/model/MODEL_NAME     # ert will interpret this as relative to <runpath>
   grid: $eclroot.EGRID
-  dates: 
+  dates:                     # To generate maps at specified dates only. Default is all times steps.
      - 20250101
      - 20300101
      - 20450101
@@ -11,11 +11,11 @@ input:
 co2_mass_settings:
   init_source: $eclroot.INIT
   unrst_source: $eclroot.UNRST
-  maps: ["dissolved_co2","total_co2"]
-  zones: ["Heather_A","Johansen","AmundsenStatfjord"]
+  maps: ["dissolved_co2","total_co2"]       # Calculation options: dissolved_co2, free_co2, total_co2
+  zones: ["Zone1","Zone2","Zone4"]   #Specify which zones to make calculation for
+   
 
-
-mapsettings:
+mapsettings:     
   ncol: 430
   nrow: 500
   xinc: 40.0
@@ -29,16 +29,11 @@ output:
 
 zonation:
   zranges:
-    - Sognefjord: [1, 24]
-    - Fensfjord: [25, 54]
-    - Krossfjord: [55, 60]
-    - Heather_A: [61, 61]
-    - Brent: [62, 63]
-    - Drake: [64, 67]
-    - Johansen: [68, 192]
-    - AmundsenStatfjord: [193, 196]
-    - UpperLunde: [197, 310]
-    - LowerLunde: [311, 311]
+    - Zone1: [1, 24]
+    - Zone2: [25, 54]
+    - Zone3: [55, 60]
+    - Zone4: [61, 61]
+ 
 
 computesettings:
    zone: Yes

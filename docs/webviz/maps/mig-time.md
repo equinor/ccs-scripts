@@ -22,9 +22,7 @@ The config file only accepts one property at a time.
 ```yaml
 FORWARD_MODEL GRID3D_MIGRATION_TIME(<ECLROOT>=<ECLBASE>, <CONFIG_MIGTIME>=<CONFIG_PATH>/../input/config/grid3d_migration_time.yml)
 ```
-```yaml
-FORWARD_MODEL GRID3D_MIGRATION_TIME(<ECLROOT>=<ECLBASE>, <CONFIG_MIGTIME>=<CONFIG_PATH>/../input/config/grid3d_migration_time.yml)
-```
+
 
 ### Config file
 
@@ -49,6 +47,7 @@ Config file with zonation in model defined by listing the zones and correspondin
 **Future development**
 
 - Extend the script to produce Migration time map for CO2 dissolved in water (AMFG / XMF2), in addition to SGAS. 
+- Allow multiple properties to be used in calcaultion at a time.
 
 <br />
 <br />

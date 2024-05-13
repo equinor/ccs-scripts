@@ -176,16 +176,11 @@ The output file should look like:
 
 ``` yaml title="Example of `zonation_geo_map.yml` exported by RMS"
 zranges:
-  - Sognefjord: [1, 24]
-  - Fensfjord: [25, 54]
-  - Krossfjord: [55, 60]
-  - Heather_A: [61, 61]
-  - Brent: [62, 63]
-  - Drake: [64, 67]
-  - Johansen: [68, 191]
-  - AmundsenStatfjord: [192, 195]
-  - UpperLunde: [196, 309]
-  - LowerLunde: [310, 310]
+  - Zone1: [1, 24]
+  - Zone2: [25, 54]
+  - Zone3: [55, 60]
+  - Zone4: [61, 61]
+
 
 ```
 
@@ -286,7 +281,8 @@ In progress:
 <br />
 
 **Updates**
-May 2024:
+**May 2024:**
+
 - This script now returns volume and mass of CO2 inside and outside  polygons per zone and region. 
 
 - Added a "--verbose" option. Outputs all the calculation steps during the ERT run in the .STDERR file.

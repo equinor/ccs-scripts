@@ -1,7 +1,268 @@
 title: Demo Webviz visualization
 
 shared settings:
-  user_defined_vectro_definitions:
+  user_defined_vector_definitions:
     vector_descriptions: vector_descriptions.yml
   scratch_ensembles:
-    rms_seed_sens: 
+    rms_seed_sens: /scratch/<project>/<userid>/<case>/realization-*/iter-0
+    hm_sens_run: /scratch/<project>/<userid>/<case>/realization-*/iter-0
+
+dm_ensembles: &dm_ensembles
+  - rms_seed_sens
+
+hm_ensembles: &hm_ensembles
+  - hm_sens_run
+
+csvfile: &csvfile share/results/tables/unsmry--raw.csv
+
+fipfile: &fipfile  /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/tables/fip.yml
+
+gridfile: &gridfile /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/grids/main_grid.roff
+
+wellfile: &wellfile /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/wells/well_picks.csv
+
+containment_boundary: &containment_boundary /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/polygons/containment--boundary.csv
+
+hazardous_boundary: &hazardous_boundary /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/polygons/hazardous--boundary.csv
+
+gridparameterfiles: &gridparameterfiles
+# Other maps could be: main_grid--phit, main_grid--facies, geogrid--sgas, geogrid--region, etc
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/grids/main_grid--sw.roff
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/grids/main_grid--permx.roff
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/grids/main_grid--poro.roff
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/grids/main_grid--zone.roff
+
+surfacefiles: &surfacefiles
+#rms_seed_sens
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/maps/seabed--ds_extracted_horizons.gri
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/maps/zone1_fm_top--ds_extracted_horizons.gri
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/maps/zone2_fm_top--ds_extracted_horizons.gri
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/maps/zone3_fm_top--ds_extracted_horizons.gri
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/maps/zone4_fm_top--ds_extracted_horizons.gri
+
+surfacenames: &surfacenames
+  - Seabed
+  - Zone1_Fm_Top
+  - Zone2_Fm_Top
+  - Zone3_Fm_Top
+  - Zone4_Fm_Top
+
+faultlinefile: &faultlinefile
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/polygons/seabed--dl_extracted_faultlines.csv
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/polygons/zone1_fm_top--dl_extracted_faultlines.csv
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/polygons/zone2_fm_top--dl_extracted_faultlines.csv
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/polygons/zone3_fm_top--dl_extracted_faultlines.csv
+  - /scratch/<project>/<userid>/<case>/realization-0/iter-0/share/results/polygons/zone4_fm_top--dl_extracted_faultlines.csv
+
+wellfolder: &wellfolder realization-0/iter-0/share/results/wells
+
+meanmap_colors: &meanmap_colors
+  - "#7f3b08"
+  - "#b35806"
+  - "#e08214"
+  - "#fdb863"
+  - "#fee0b6"
+  - "#f7f7f7"
+  - "#d8daeb"
+  - "#b2abd2"
+  - "#8073ac"
+  - "#542788"
+  - "#2d004b"
+  
+rmsmap_colors: &rmsmap_colors
+  - "#fff7ec"
+  - "#fee8c8"
+  - "#fdd49e"
+  - "#fdbb84"
+  - "#fc8d59"
+  - "#ef6548"
+  - "#d7301f"
+  - "#b30000"
+  - "#7f0000"
+#---------------------------------------------------------
+options:
+  menu:
+    show_logo: true
+    bar_position: left
+    drawer_position: left
+    initially_pinned: true
+    initially_collapsed: true
+
+# -------------------------------------------------------
+layout:
+  - section: Webviz for CCS
+    content:
+      # -------------------------------------------------
+      - page: Front page
+        icon: home
+        content:
+          - BannerImage:
+              image: ./ccs.png
+              height: 600
+          - |               
+               This is a live demo showcasing Webviz application for Carbon Capture and Storage (CCS).
+               ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+          - Markdown:
+              markdown_file: ./content/front_page_ccs.md
+# ---------------------------------------------------------
+  - section: Smeaheia analysis
+    content:
+      # ==================================================================================
+      #Results from Co2_plume_area and extent scripts
+      - group: CO2 plume area & extent - AMFG & SGAS
+        icon: timeline
+        content:
+          - page: Max CO2 plume distance
+            content:
+              - "**NOTE:**\n
+                - Select your prefered parameter in the **Color by** section (ex: BRINE_MASS when varying salinity).\n"
+              - LinePlotterFMU:
+                  csvfile: share/results/tables/plume_extent.csv
+                  ensembles: *dm_ensembles
+                  initial_data:
+                    x: date
+                    y: MAX_DISTANCE_AMFG
+                  colors:
+                    rms_seed_sens: red
+          - page: Co2 plume Area
+            content:
+              - "**NOTE:**\n
+                - Select your prefered parameter in the **Color by** section (ex: BRINE_MASS when varying salinity).\n"
+              - LinePlotterFMU:
+                  csvfile: share/results/tables/plume_area.csv
+                  ensembles: *dm_ensembles
+                  initial_data:
+                    x: date
+                    y: all_SGAS
+                  colors:
+                    rms_seed_sens: red
+
+      # ==================================================================================
+      #Results from Co2_containment script
+      - group: CO2 plume Volume & Mass
+        icon: timeline
+        content:
+          - page: Co2 plume volume
+            content:
+              - "**NOTE:**\n
+                - Select your prefered parameter in the **Color by** section (ex: BRINE_MASS when varying salinity).\n"
+              - LinePlotterFMU:
+                  csvfile: share/results/tables/plume_actual_volume.csv
+                  ensembles: *dm_ensembles
+                  initial_data:
+                    x: date
+                    y: total_gas
+                  colors:
+                    rms_seed_sens: red
+          - page: Co2 plume mass
+            content:
+              - "**NOTE:**\n
+                - Select your prefered parameter in the **Color by** section (ex: BRINE_MASS when varying salinity).\n"
+              - LinePlotterFMU:
+                  csvfile: share/results/tables/plume_mass.csv
+                  ensembles: *dm_ensembles
+                  initial_data:
+                    x: date
+                    y: zone2_gas
+                  colors:
+                    rms_seed_sens: red
+
+# ----------------------------------------------------------
+      - group: CO2 evolution on a field level
+        icon:  bar_chart
+        content:
+          - page: CO2 state vs time Field
+            content:
+              - "**NOTE:**\n
+                - Select **Ensemble** in **Group by** to gather the 3 plots together.\n
+                - This page focuses on understanding how much CO2 is dissolved in water / present in gas phase / (im)mobile / etc on a field level through time.\n
+                > - FGMIP - Field Gas Mass in place. \n
+                > - FGMDS - Field Gas Mass Dissolved in the Aqueous Phase (Water) - Amount of CO2 dissolved in Water on a Field level.\n
+                > - FGMGP - Field Gas Mass in the Gas Phase - Amount of CO2 as Gas on a Field level. \n"
+              #  > - FGMST - Field Gas Mass Stranded in gas phase.\n
+              #  > - FGMUS - Field Gas Mass gas Unstranded in gas phase. \n                
+              - SimulationTimeSeries:
+                  ensembles: *dm_ensembles
+                  sampling: "yearly"
+                  options:
+                    vectors:
+                      - FGMIP
+                      - FGMDS
+                      - FGMGP
+                    #  - FGMST
+                    #  - FGMUS
+                    visualization: realizations
+                    user_defined_vector_definitions: vector_descriptions
+          
+          - page: CO2 state vs time Zones
+            content:
+              - "**NOTE:**This page focuses on understanding how much CO2 is dissolved in water / present in gas phase / (im)mobile / etc on a regional (FIPNUM) level through time.\n
+                - **FIPNUM**- 1:Sognefjord, 2: Fensfjord, 3: Krossfjord, 4: Heather_A, 5: Brent, 6 : Drake, 7: Johansen, 8 : AmundsenStatfjord. \n
+                > - RGMIP - Region gas mass Inplace.\n
+                > - RGMGP - Region Gas Mass in the Gas Phase - Amount of CO2 as Gas on a Field level.\n
+                > - RGMDS - Region Gas Mass dissolved in the Aqueous Phase - Amount of CO2 dissolved in Water on a Region level.\n"
+              #  > - RGMST - Region Gas Mass Stranded in gas phase.\n
+              #  > - RGMUS - Region Gas Mass gas Unstranded in gas phase.\n
+
+              - SimulationTimeSeries:
+                  ensembles: *dm_ensembles
+                  sampling: "yearly"
+                  options:
+                    vectors:
+                    - RGMIP:2
+                    - RGMGP:2
+                    - RGMDS:2
+                  #  - RGMST:7
+                  #  - RGMUS:7
+                  user_defined_vector_definitions: smeaheia_vector_descriptions        
+
+          - page: CO2 leakage
+            icon: new_label
+            content:
+              - CO2Leakage:
+                  ensembles: 
+                  - rms_seed_sens
+                  file_containment_boundary: *containment_boundary
+                  file_hazardous_boundary: *hazardous_boundary
+                  well_pick_file: *wellfile
+                  plume_mass_relpath: share/results/tables/plume_mass.csv
+                  plume_actual_volume_relpath: share/results/tables/plume_actual_volume.csv
+                  unsmry_relpath: share/results/tables/unsmry--raw.csv    # Default is not to load unsmry data
+                  map_attribute_names: 
+                    MAX_SGAS: "max_sgas"
+                    MAX_AMFG: "max_amfg"
+                    MIGRATION_TIME: "migrationtime"
+                    MASS: "co2-mass-total"
+                    FREE: "co2-mass-gas-phase"
+                    DISSOLVED: "co2-mass-aqu-phase"
+                  fault_polygon_attribute: "dl_extracted_faultlines"
+                  map_surface_names_to_fault_polygons:
+                    zone1: zone1_fm_top
+                    zone2: zone2_fm_top
+                    zone3: zone3_fm_top
+                    zone4: zone4_fm_top
+                  map_surface_names_to_well_pick_names:
+                    zone1: Zone1_Fm_Top
+                    zone2: Zone2_Fm_Top
+                    zone3: Zone3_Fm_Top
+                    zone4: Zone4_Fm_Top
+
+##2D Maps can be visualized in Map Viewer as well
+          - page: CCS maps
+            icon: new_label 
+            content:
+              - MapViewerFMU:
+                  ensembles:  
+                  - rms_seed_sens              
+                  well_pick_file:  /work/fmu_for_ccs/mnaki/smeaheia_two_injectors/realization-0/iter-0/share/results/wells/well_picks.csv
+                  fault_polygon_attribute:  "dl_extracted_faultlines"
+                  map_surface_names_to_fault_polygons:  
+                    zone1: zone1_fm_top
+                    zone2: zone2_fm_top
+                    zone3: zone3_fm_top
+                    zone4: zone4_fm_top
+                  map_surface_names_to_well_pick_names:  
+                    zone1: Zone1_Fm_Top
+                    zone2: Zone2_Fm_Top
+                    zone3: Zone3_Fm_Top
+                    zone4: Zone4_Fm_Top

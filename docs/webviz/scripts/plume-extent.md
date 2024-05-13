@@ -23,7 +23,7 @@ FORWARD_MODEL CO2_PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>="S-J", <
 ## 📚 Other examples
 
 ``` yaml title="Calculates max extent for a well called S-J using [x,y] coordinates"
-FORWARD_MODEL PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>= [560544,6703705], <XARG2> = "--debug")
+FORWARD_MODEL CO2_PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>= [560544,6703705], <XARG2> = "--debug")
 ```
 
 ## 🔧 Versions & Updates
@@ -40,7 +40,7 @@ FORWARD_MODEL PLUME_EXTENT(<CASE>=<ECLBASE>, <INJECTION_POINT_INFO>= [560544,670
 
 **Updates**
 
-May 2024:
+**May 2024:**
 
 - ERT arguments updated to include injection_point_info which takes either a well name or well coordinates.
 - "--verbose" option. Outputs all the calculation steps during the ERT run in the .STDERR file.

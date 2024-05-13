@@ -22,9 +22,8 @@ Detailed explainations on each parameters:
 - `file_containment_boundary`: Path to a polygon representing the containment area
 - `file_hazardous_boundary`: Path to a polygon representing the hazardous area
 - `well_pick_file`: Path to a file containing well picks
-- `co2_containment_relpath`: Path to a table of co2 containment data (amount of CO2 outside/inside a boundary), for co2 mass. Relative to each realization.
-- `co2_containment_volume_actual_relpath`: Path to a table of co2 containment data (amount of CO2 outside/inside a boundary), for co2 volume of type "actual". Relative to each realization.
-- `co2_containment_volume_actual_simple_relpath`: Path to a table of co2 containment data (amount of CO2 outside/inside a boundary), for co2 volume of type "actual_simple". Relative to each realization.
+- `plume_mass_relpath`: Path to a table of co2 containment data (amount of CO2 outside/inside a boundary), for co2 mass. Relative to each realization.
+- `plume_actual_volume_relpath`: Path to a table of co2 containment data (amount of CO2 outside/inside a boundary), for co2 volume of type "actual". Relative to each realization.
 - `unsmry_relpath`: Relative path to a csv version of a unified summary file
 - `fault_polygon_attribute`: Polygons with this attribute are used as fault polygons
 - `map_attribute_names`: Dictionary for overriding the default mapping between attributes visualized by the plugin and attributes names used by EnsembleSurfaceProvider
@@ -43,8 +42,6 @@ Detailed explainations on each parameters:
 
 In progress:
 
-- Return % of co2 inside, outside and in the hazardous area.
-![image ><](./img/co2leakage-percentages.jpg)
 - New layout where plots are put in different tabs. It allows to visualize the plots better. A sliding scale as also been added to so the ratio between the map and the graph can be changed (map smaller and graphs bigger or opposite). 
 ![image ><](./img/co2leakage-tabs.jpg)
 
@@ -59,3 +56,7 @@ In progress:
     - A feedback button has been added. See an error? Let us know!
 ![image ><](./img/regions-zones-option.png)
 
+- **May 24**
+
+- Return % of co2 inside, outside and in the hazardous area.
+![image ><](./img/co2leakage-percentages.jpg)
