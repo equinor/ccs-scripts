@@ -39,4 +39,5 @@ Config file are to be placed in `ert/input/config` folder. Here is a template ex
 
 **Updates**
 **May 2024**:
+
 - Made available in Komodo stable.
