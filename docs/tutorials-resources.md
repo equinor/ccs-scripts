@@ -77,10 +77,10 @@ Work is in progress to set up an ert workflow manager config file that will crea
  ```yaml
  FORWARD_MODEL COPY_DIRECTORY(<FROM>=<STANDALONE_MODEL>,       <TO>=<RUNPATH>/eclipse/model/) 
  ```
- 3. Other Files that need to be copied:
- - parameters.txt file 
+ 3. Other Files that need to be copied: parameters.txt 
  
- 4. Install and run custom job to execute local script to export 3d grid properties to roff files: 
+ 
+ 4. Install and run custom job to execute local script to export 3d grid properties like zone information to roff files: 
   ``` yaml
   INSTALL_JOB 3DGRID_TO_ROFF ../bin/jobs/3DGRID_TO_ROFF
   ```
@@ -88,7 +88,7 @@ Work is in progress to set up an ert workflow manager config file that will crea
   
   ``` yaml
   FORWARD_MODEL 3DGRID_TO_ROFF(<ECLBASE>=<ECLBASE>, <RUNPATH>=<RUNPATH>, <PROPERTY>="FIPNUM")
-  ````
+  ```
  
 
-If you and your project are interested in setting this up for use and testing now feel free to reach out to us!
+If you and your project are interested in setting this up for use and testing now, feel free to reach out to us through the <span style="background-color: #DFF5FF"> Contact Us </span> tab .
