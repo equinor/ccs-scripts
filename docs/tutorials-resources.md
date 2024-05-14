@@ -63,8 +63,32 @@ Here is a guide on how to clone the ccs-scripts repository and install it locall
 
 ## Using solutions outside FMU 
 
-The solutions can be used with <span style="background-color: #DFF5FF">standalone models outside the FMU loop</span> ie do not have all information generated during an FMU loop run. Most information used for visualization in webviz ( surface files, faultline files, well picks e.t.c ) and those required by the 2D maps solutions are exported during the RMS ( main_grid--zone.roff, zonation_geo_map.yml e.t.c). 
+The solutions can be used with <span style="background-color: #DFF5FF">standalone models outside the FMU loop</span> ie do not have all information generated during an FMU loop run. Most information used for visualization in webviz ( surface files, faultline files, well picks e.t.c ) and those required by the 2D maps solutions are exported from RMS ( main_grid--zone.roff, zonation_geo_map.yml e.t.c) during an FMU loop. 
 
-Work is in progress to set up an ert workflow manager config file that will create the required FMU directories structure and include other external scripts or solutions from exisiting librabries to export the required additional information in order to make full use of the CCS solutions. 
+Work is in progress to set up an ert workflow manager config file that will create the required FMU directories structure and include other external scripts or solutions from exisiting librabries to export the required additional information in order to make full use of the CCS solutions. The main changes to a regualar ert config file are: 
+
+ 1.  Create the required FMU folder structure in the work or scrtach area using the <span style="background-color: #DFF5FF">MAKE_DIRECTORY forward model: </span>
+ ``` yaml
+ FORWARD_MODEL MAKE_DIRECTORY( <DIRECTORY> = <RUNPATH>/rms/output/zone/)
+ ```
+
+
+ 2.  Copy your standalone model to the FMU directory structure, where <span style="background-color: #DFF5FF"> <STANDALONE_MODEL> </span> is the path to your standalone model defined in the ert config file:
+ ```yaml
+ FORWARD_MODEL COPY_DIRECTORY(<FROM>=<STANDALONE_MODEL>,       <TO>=<RUNPATH>/eclipse/model/) 
+ ```
+ 3. Other Files that need to be copied:
+ - parameters.txt file 
+ 
+ 4. Install and run custom job to execute local script to export 3d grid properties to roff files: 
+  ``` yaml
+  INSTALL_JOB 3DGRID_TO_ROFF ../bin/jobs/3DGRID_TO_ROFF
+  ```
+  Property defined can be FIPXXX, and other 3D grid properties:
+  
+  ``` yaml
+  FORWARD_MODEL 3DGRID_TO_ROFF(<ECLBASE>=<ECLBASE>, <RUNPATH>=<RUNPATH>, <PROPERTY>="FIPNUM")
+  ````
+ 
 
 If you and your project are interested in setting this up for use and testing now feel free to reach out to us!
