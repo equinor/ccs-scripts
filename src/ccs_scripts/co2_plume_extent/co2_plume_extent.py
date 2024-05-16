@@ -119,6 +119,11 @@ class Configuration:
                 calculation_type, injection_point_info, name, case
             )
 
+        if len(self.distance_calculations) == 0:
+            logging.warning("WARNING: No CO2 plume distance/extent calculations"
+                            " specified in the input. Terminating script")
+            sys.exit(1)
+
     def read_config_file(self, config_file: str) -> Dict:
         with open(config_file, "r", encoding="utf8") as stream:
             try:
