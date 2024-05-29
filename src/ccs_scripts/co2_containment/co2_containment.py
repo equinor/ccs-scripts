@@ -114,6 +114,7 @@ def calculate_out_of_bounds_co2(
         calc_type_input,
         zone_info,
         region_info,
+        residual_trapping
     )
 
 
@@ -125,6 +126,7 @@ def calculate_from_co2_data(
     calc_type_input: str,
     zone_info: Dict,
     region_info: Dict,
+    residual_trapping: bool
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
     Use polygons to divide co2 mass or volume into different categories
@@ -158,26 +160,26 @@ def calculate_from_co2_data(
         return data_frame
     logging.info("\nMerge data rows for data frame")
     if co2_data.zone is None and co2_data.region is None:
-        return _merge_date_rows(data_frame, calc_type)
+        return _merge_date_rows(data_frame, calc_type,residual_trapping)
     if co2_data.region is None:
         return {
             "zone": {
-                z: _merge_date_rows(g, calc_type) for z, g in data_frame.groupby("zone")
+                z: _merge_date_rows(g, calc_type,residual_trapping) for z, g in data_frame.groupby("zone")
             }
         }
     if co2_data.zone is None:
         return {
             "region": {
-                z: _merge_date_rows(g, calc_type)
+                z: _merge_date_rows(g, calc_type,residual_trapping)
                 for z, g in data_frame.groupby("region")
             }
         }
     return {
         "zone": {
-            z: _merge_date_rows(g, calc_type) for z, g in data_frame.groupby("zone")
+            z: _merge_date_rows(g, calc_type,residual_trapping) for z, g in data_frame.groupby("zone")
         },
         "region": {
-            z: _merge_date_rows(g, calc_type) for z, g in data_frame.groupby("region")
+            z: _merge_date_rows(g, calc_type,residual_trapping) for z, g in data_frame.groupby("region")
         },
     }
 
@@ -214,7 +216,7 @@ def _construct_containment_table(
 
 # pylint: disable-msg=too-many-locals
 def _merge_date_rows(
-    data_frame: pd.DataFrame, calc_type: CalculationType
+    data_frame: pd.DataFrame, calc_type: CalculationType, residual_trapping: bool
 ) -> pd.DataFrame:
     """
     Uses input dataframe to calculate various new columns and renames/merges
@@ -229,9 +231,8 @@ def _merge_date_rows(
         pd.DataFrame: Output data frame
     """
     data_frame = data_frame.drop(columns=["zone", "region"], axis=1, errors="ignore")
-    trapped_co2_in_data_frame = "trapped_gas" in data_frame["phase"].unique()
     # Total
-    if trapped_co2_in_data_frame:
+    if residual_trapping:
         df1 = (
             data_frame[data_frame["phase"] != "trapped_gas"]
             .drop(["phase", "location"], axis=1)
@@ -259,7 +260,7 @@ def _merge_date_rows(
         df2a = df2.loc["gas"].rename(columns={"amount": "total_gas"})
         df2b = df2.loc["aqueous"].rename(columns={"amount": "total_aqueous"})
         # Total by containment
-        if trapped_co2_in_data_frame:
+        if residual_trapping:
             df2c = df2.loc["trapped_gas"].rename(
                 columns={"amount": "total_trapped_gas"}
             )
@@ -288,7 +289,7 @@ def _merge_date_rows(
         df4f = df4.loc["aqueous", "hazardous"].rename(
             columns={"amount": "aqueous_hazardous"}
         )
-        if trapped_co2_in_data_frame:
+        if residual_trapping:
             df4g = df4.loc["trapped_gas", "contained"].rename(
                 columns={"amount": "trapped_gas_contained"}
             )
