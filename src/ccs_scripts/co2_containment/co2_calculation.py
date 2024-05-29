@@ -230,7 +230,7 @@ class Co2DataAtTimeStep:
     aqu_phase: np.ndarray
     gas_phase: np.ndarray
     volume_coverage: np.ndarray
-    trapped_gas_phase: Optional[np.ndarray] = None
+    trapped_gas_phase: np.ndarray
 
     def total_mass(self) -> np.ndarray:
         """
@@ -913,7 +913,7 @@ def _calculate_co2_data_from_source_data(
                 source_data.x_coord,
                 source_data.y_coord,
                 [
-                    Co2DataAtTimeStep(key, value[0], value[1], np.zeros_like(value[1]))
+                    Co2DataAtTimeStep(key, value[0], value[1], np.zeros_like(value[1]), np.zeros_like(value[2]))
                     for key, value in co2_mass_cell.items()
                 ],
                 "kg",
@@ -1001,6 +1001,7 @@ def _calculate_co2_data_from_source_data(
                         np.array(vols_co2[t][0]),
                         np.array(vols_co2[t][1]),
                         np.zeros_like(np.array(vols_co2[t][1])),
+                        np.zeros_like(np.array(vols_co2[t][1])),
                     )
                     for t in vols_co2
                 ],
@@ -1040,6 +1041,7 @@ def _calculate_co2_data_from_source_data(
                     np.zeros_like(np.array(vols_ext[t])),
                     np.zeros_like(np.array(vols_ext[t])),
                     np.array(vols_ext[t]),
+                    np.zeros_like(np.array(vols_ext[t])),
                 )
                 for t in vols_ext
             ],

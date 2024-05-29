@@ -210,7 +210,6 @@ def calculate_co2_containment(
                         w.date, sum(w.aqu_phase[is_hazardous]), "aqueous", "hazardous"
                     ),
                 ]
-                if w.trapped_gas_phase is not None
             ]
 
     zone_map = (
