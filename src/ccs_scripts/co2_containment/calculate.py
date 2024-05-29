@@ -148,8 +148,12 @@ def calculate_co2_containment(
                 c
                 for w in co2_data.data_list
                 for c in [
-                    ContainedCo2(w.date, sum(w.gas_phase[is_inside]), "gas", "contained"),
-                    ContainedCo2(w.date, sum(w.gas_phase[is_outside]), "gas", "outside"),
+                    ContainedCo2(
+                        w.date, sum(w.gas_phase[is_inside]), "gas", "contained"
+                    ),
+                    ContainedCo2(
+                        w.date, sum(w.gas_phase[is_outside]), "gas", "outside"
+                    ),
                     ContainedCo2(
                         w.date, sum(w.gas_phase[is_hazardous]), "gas", "hazardous"
                     ),
@@ -169,15 +173,32 @@ def calculate_co2_containment(
                 c
                 for w in co2_data.data_list
                 for c in [
-                    ContainedCo2(w.date, sum(w.gas_phase[is_inside]), "gas", "contained"),
-                    ContainedCo2(w.date, sum(w.gas_phase[is_outside]), "gas", "outside"),
+                    ContainedCo2(
+                        w.date, sum(w.gas_phase[is_inside]), "gas", "contained"
+                    ),
+                    ContainedCo2(
+                        w.date, sum(w.gas_phase[is_outside]), "gas", "outside"
+                    ),
                     ContainedCo2(
                         w.date, sum(w.gas_phase[is_hazardous]), "gas", "hazardous"
                     ),
-                    ContainedCo2(w.date, sum(w.trapped_gas_phase[is_inside]), "trapped_gas", "contained"),
-                    ContainedCo2(w.date, sum(w.trapped_gas_phase[is_outside]), "trapped_gas", "outside"),
                     ContainedCo2(
-                        w.date, sum(w.trapped_gas_phase[is_hazardous]), "trapped_gas", "hazardous"
+                        w.date,
+                        sum(w.trapped_gas_phase[is_inside]),
+                        "trapped_gas",
+                        "contained",
+                    ),
+                    ContainedCo2(
+                        w.date,
+                        sum(w.trapped_gas_phase[is_outside]),
+                        "trapped_gas",
+                        "outside",
+                    ),
+                    ContainedCo2(
+                        w.date,
+                        sum(w.trapped_gas_phase[is_hazardous]),
+                        "trapped_gas",
+                        "hazardous",
                     ),
                     ContainedCo2(
                         w.date, sum(w.aqu_phase[is_inside]), "aqueous", "contained"
@@ -269,7 +290,12 @@ def calculate_co2_containment(
                     rn,
                 ),
                 ContainedCo2(
-                    w.date, sum(w.gas_phase[is_outside & zm & rm]), "gas", "outside", zn, rn
+                    w.date,
+                    sum(w.gas_phase[is_outside & zm & rm]),
+                    "gas",
+                    "outside",
+                    zn,
+                    rn,
                 ),
                 ContainedCo2(
                     w.date,
@@ -321,7 +347,12 @@ def calculate_co2_containment(
                     rn,
                 ),
                 ContainedCo2(
-                    w.date, sum(w.gas_phase[is_outside & zm & rm]), "gas", "outside", zn, rn
+                    w.date,
+                    sum(w.gas_phase[is_outside & zm & rm]),
+                    "gas",
+                    "outside",
+                    zn,
+                    rn,
                 ),
                 ContainedCo2(
                     w.date,
@@ -340,7 +371,12 @@ def calculate_co2_containment(
                     rn,
                 ),
                 ContainedCo2(
-                    w.date, sum(w.trapped_gas_phase[is_outside & zm & rm]), "trapped_gas", "outside", zn, rn
+                    w.date,
+                    sum(w.trapped_gas_phase[is_outside & zm & rm]),
+                    "trapped_gas",
+                    "outside",
+                    zn,
+                    rn,
                 ),
                 ContainedCo2(
                     w.date,
@@ -376,6 +412,7 @@ def calculate_co2_containment(
                 ),
             ]
         ]
+
 
 def _calculate_containment(
     x_coord: np.ndarray, y_coord: np.ndarray, poly: Union[Polygon, MultiPolygon]
