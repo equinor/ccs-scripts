@@ -494,10 +494,10 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
         logging.info("Configuration from args :")
         logging.info(f"    Injection point info: {arguments.injection_point_info}")
         logging.info(f"    Calculation type    : {arguments.calculation_type}")
-        if arguments.column_name != "":
+        col = arguments.column_name
+        if col != "":
             logging.info(
-                f"    Column name         : "
-                f"{arguments.column_name if arguments.column_name != '' else 'Not specified'}"
+                f"    Column name         : " f"{col if col != '' else 'Not specified'}"
             )
     else:
         logging.info("Configuration from args : Not specified")
