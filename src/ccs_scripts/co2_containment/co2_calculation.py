@@ -29,7 +29,8 @@ PROPERTIES_TO_EXTRACT = [
     "YMFG",
     "XMF2",
     "YMF2",
-    "SGSTRAND"
+    "SGSTRAND",
+    "SGTRH"
 ]
 
 
@@ -93,6 +94,7 @@ class SourceData:
     SWAT: Optional[Dict[str, np.ndarray]] = None
     SGAS: Optional[Dict[str, np.ndarray]] = None
     SGSTRAND: Optional[Dict[str, np.ndarray]] = None
+    SGTRH: Optional[Dict[str, np.ndarray]] = None
     RPORV: Optional[Dict[str, np.ndarray]] = None
     PORV: Optional[Dict[str, np.ndarray]] = None
     AMFG: Optional[Dict[str, np.ndarray]] = None
@@ -129,6 +131,12 @@ class SourceData:
         """Get SGSTRAND"""
         if self.SGSTRAND is not None:
             return self.SGSTRAND
+        return {}
+
+    def get_sgtrh(self):
+        """Get SGTRH"""
+        if self.SGTRH is not None:
+            return self.SGTRH
         return {}
 
     def get_rporv(self):
@@ -626,7 +634,7 @@ def _pflotran_co2mass(
             * dgas[date]
             * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass),
         ]
-        if sgstrand is not None:
+        if len(sgstrand)!=0:
             co2_mass[date].append(eff_vols[date]
             * sgstrand[date]
             * dgas[date]
@@ -655,6 +663,7 @@ def _eclipse_co2mass(
     xmf2 = source_data.get_xmf2()
     ymf2 = source_data.get_ymf2()
     sgas = source_data.get_sgas()
+    sgtrh = source_data.get_sgtrh()
     eff_vols = source_data.get_rporv()
     conv_fact = co2_molar_mass
     co2_mass = {}
@@ -663,6 +672,8 @@ def _eclipse_co2mass(
             conv_fact * bwat[date] * xmf2[date] * (1 - sgas[date]) * eff_vols[date],
             conv_fact * bgas[date] * ymf2[date] * sgas[date] * eff_vols[date],
         ]
+        if len(sgtrh)!=0:
+            co2_mass[date].append(conv_fact * bgas[date] * ymf2[date] * sgtrh[date] * eff_vols[date])
     return co2_mass
 
 
@@ -893,7 +904,7 @@ def _calculate_co2_data_from_source_data(
             )
         else:
             co2_mass_cell = _eclipse_co2mass(source_data, co2_molar_mass)
-        if source_data.SGSTRAND is None:
+        if source_data.SGSTRAND is None and source_data.SGTRH is None:
             co2_mass_output = Co2Data(
                 source_data.x_coord,
                 source_data.y_coord,
@@ -1048,6 +1059,7 @@ def calculate_co2(
     zone_info: Dict,
     region_info: Dict,
     calc_type_input: str = "mass",
+    residual_trapping: bool = False,
     init_file: Optional[str] = None,
 ) -> Co2Data:
     """
@@ -1065,10 +1077,12 @@ def calculate_co2(
       CO2Data
 
     """
+    global PROPERTIES_TO_EXTRACT
+    if not residual_trapping:
+        PROPERTIES_TO_EXTRACT = [prop for prop in PROPERTIES_TO_EXTRACT if prop not in ["SGSTRAND","SGTRH"]]
     source_data = _extract_source_data(
         grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_info, region_info, init_file
     )
-    print("Done with source_data")
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     co2_data = _calculate_co2_data_from_source_data(source_data, calc_type=calc_type)
     return co2_data
