@@ -637,9 +637,22 @@ def _find_distances_per_time_step(
     """
     nsteps = len(unrst.report_steps)
     dist_vs_date = np.zeros(shape=(nsteps,))
+    prev_groups = []
     for i in range(nsteps):
         data = unrst[attribute_key][i].numpy_view()
         plumeix = np.where(data > threshold)[0]
+        groups = [-1] * len(plumeix)
+        if i in [4]:
+            print(f"i = {i}")
+            print(data)
+            print(len(data))
+            print(plumeix)
+            print(len(plumeix))
+            print(prev_groups)
+            print(len(prev_groups))
+            print(groups)
+            print(len(groups))
+            exit()
         result = 0.0
         if len(plumeix) > 0:
             if calculation_type == CalculationType.PLUME_EXTENT:
@@ -651,10 +664,12 @@ def _find_distances_per_time_step(
 
         dist_vs_date[i] = result
 
+        prev_groups = groups
+
     output = []
     for i, d in enumerate(unrst.report_dates):
-        temp = [d.strftime("%Y-%m-%d"), dist_vs_date[i]]
-        output.append(temp)
+        date_and_result = [d.strftime("%Y-%m-%d"), dist_vs_date[i]]
+        output.append(date_and_result)
 
     return output
 
