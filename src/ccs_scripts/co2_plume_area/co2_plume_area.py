@@ -44,7 +44,7 @@ def _make_parser():
     parser = argparse.ArgumentParser(description="Calculate plume area")
     parser.add_argument("input", help="Path to maps created through grid3d-maps")
     parser.add_argument(
-        "--output",
+        "--output_csv",
         help="Path to output CSV file",
         default=None,
     )
@@ -170,7 +170,7 @@ def _read_args() -> Tuple[str, str]:
     _setup_log_configuration(args)
 
     input_path = args.input
-    output_path = args.output
+    output_path = args.output_csv
 
     if not os.path.isdir(input_path):
         text = f"Input surface directory not found: {input_path}"
