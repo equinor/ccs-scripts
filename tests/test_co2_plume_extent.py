@@ -41,7 +41,7 @@ def test_calc_plume_extents():
         config_file="",
         calculation_type="plume_extent",
         injection_point_info="[462500.0, 5933100.0]",
-        name="",
+        column_name="",
         case=case_path,
     )
     sgas_results, _, _ = calculate_distances(
@@ -83,7 +83,7 @@ def test_calc_distances_to_point():
         config_file="",
         calculation_type="point",
         injection_point_info="[467000.0, 5934000.0]",
-        name="",
+        column_name="",
         case=case_path,
     )
     sgas_results, _, _ = calculate_distances(
@@ -110,7 +110,7 @@ def test_calc_distances_to_line():
         config_file="",
         calculation_type="line",
         injection_point_info="[east, 467000.0]",
-        name="",
+        column_name="",
         case=case_path,
     )
     sgas_results, _, _ = calculate_distances(
@@ -169,7 +169,7 @@ def test_export_to_csv():
         config_file="",
         calculation_type="plume_extent",
         injection_point_info="[462500.0, 5933100.0]",
-        name="",
+        column_name="",
         case=case_path,
     )
     all_results = calculate_distances(

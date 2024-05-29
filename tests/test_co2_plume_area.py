@@ -27,7 +27,7 @@ def test_plume_area(mocker):
     output_path = str(
         Path(__file__).parents[1] / "tests" / "testdata_co2_plume" / "plume_area.csv"
     )
-    mocker.patch("sys.argv", ["--input", input_path, "--output", output_path])
+    mocker.patch("sys.argv", ["--input", input_path, "--output_csv", output_path])
     main()
 
     df = pandas.read_csv(output_path)
@@ -51,7 +51,7 @@ def _get_synthetic_case_paths(case: str):
 
 def test_plume_area_synthetic_case_eclipse(mocker):
     (input_path, output_path) = _get_synthetic_case_paths("eclipse")
-    mocker.patch("sys.argv", ["--input", input_path, "--output", output_path])
+    mocker.patch("sys.argv", ["--input", input_path, "--output_csv", output_path])
     main()
 
     df = pandas.read_csv(output_path)
@@ -69,7 +69,7 @@ def test_plume_area_synthetic_case_eclipse(mocker):
 
 def test_plume_area_synthetic_case_pflotran(mocker):
     (input_path, output_path) = _get_synthetic_case_paths("pflotran")
-    mocker.patch("sys.argv", ["--input", input_path, "--output", output_path])
+    mocker.patch("sys.argv", ["--input", input_path, "--output_csv", output_path])
     main()
 
     df = pandas.read_csv(output_path)
