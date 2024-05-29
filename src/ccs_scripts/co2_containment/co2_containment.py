@@ -126,7 +126,7 @@ def calculate_from_co2_data(
     calc_type_input: str,
     zone_info: Dict,
     region_info: Dict,
-    residual_trapping: bool
+    residual_trapping: Optional[bool] = False
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
     Use polygons to divide co2 mass or volume into different categories
