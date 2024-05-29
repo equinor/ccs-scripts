@@ -90,7 +90,13 @@ def calculate_out_of_bounds_co2(
         pd.DataFrame
     """
     co2_data = calculate_co2(
-        grid_file, unrst_file, zone_info, region_info, calc_type_input, residual_trapping,init_file, 
+        grid_file,
+        unrst_file,
+        zone_info,
+        region_info,
+        calc_type_input,
+        residual_trapping,
+        init_file,
     )
     if file_containment_polygon is not None:
         containment_polygon = _read_polygon(file_containment_polygon)
@@ -223,7 +229,7 @@ def _merge_date_rows(
         pd.DataFrame: Output data frame
     """
     data_frame = data_frame.drop(columns=["zone", "region"], axis=1, errors="ignore")
-    trapped_co2_in_data_frame = "trapped_gas" in  data_frame["phase"].unique()
+    trapped_co2_in_data_frame = "trapped_gas" in data_frame["phase"].unique()
     # Total
     if trapped_co2_in_data_frame:
         df1 = (
@@ -251,10 +257,12 @@ def _merge_date_rows(
     else:
         df2 = data_frame.drop("location", axis=1).groupby(["phase", "date"]).sum()
         df2a = df2.loc["gas"].rename(columns={"amount": "total_gas"})
-        df2b = df2.loc["aqueous"].rename(columns={"amount": "total_aqueous"})        
+        df2b = df2.loc["aqueous"].rename(columns={"amount": "total_aqueous"})
         # Total by containment
         if trapped_co2_in_data_frame:
-            df2c = df2.loc["trapped_gas"].rename(columns={"amount": "total_trapped_gas"})
+            df2c = df2.loc["trapped_gas"].rename(
+                columns={"amount": "total_trapped_gas"}
+            )
             df3 = (
                 data_frame[data_frame["phase"] != "trapped_gas"]
                 .drop("phase", axis=1)
@@ -281,13 +289,47 @@ def _merge_date_rows(
             columns={"amount": "aqueous_hazardous"}
         )
         if trapped_co2_in_data_frame:
-            df4g = df4.loc["trapped_gas", "contained"].rename(columns={"amount": "trapped_gas_contained"})
-            df4h = df4.loc["trapped_gas", "outside"].rename(columns={"amount": "trapped_gas_outside"})
-            df4i = df4.loc["trapped_gas", "hazardous"].rename(columns={"amount": "trapped_gas_hazardous"})
-            for _df in [df2a, df2b, df2c, df3a, df3b, df3c, df4a, df4b, df4c, df4d, df4e, df4f, df4g, df4h, df4i]:            
+            df4g = df4.loc["trapped_gas", "contained"].rename(
+                columns={"amount": "trapped_gas_contained"}
+            )
+            df4h = df4.loc["trapped_gas", "outside"].rename(
+                columns={"amount": "trapped_gas_outside"}
+            )
+            df4i = df4.loc["trapped_gas", "hazardous"].rename(
+                columns={"amount": "trapped_gas_hazardous"}
+            )
+            for _df in [
+                df2a,
+                df2b,
+                df2c,
+                df3a,
+                df3b,
+                df3c,
+                df4a,
+                df4b,
+                df4c,
+                df4d,
+                df4e,
+                df4f,
+                df4g,
+                df4h,
+                df4i,
+            ]:
                 total_df = total_df.merge(_df, on="date", how="left")
         else:
-            for _df in [df2a, df2b, df3a, df3b, df3c, df4a, df4b, df4c, df4d, df4e, df4f]:
+            for _df in [
+                df2a,
+                df2b,
+                df3a,
+                df3b,
+                df3c,
+                df4a,
+                df4b,
+                df4c,
+                df4d,
+                df4e,
+                df4f,
+            ]:
                 total_df = total_df.merge(_df, on="date", how="left")
 
     return total_df.reset_index()
@@ -377,7 +419,9 @@ def get_parser() -> argparse.ArgumentParser:
         action="store_true",
     )
     parser.add_argument(
-        "--residual_trapping", help="Compute mass/volume of trapped CO2 in gass phase.", default=False
+        "--residual_trapping",
+        help="Compute mass/volume of trapped CO2 in gass phase.",
+        default=False,
     )
 
     return parser
@@ -435,7 +479,7 @@ def process_args() -> argparse.Namespace:
     adict = vars(args)
     paths = [
         "case",
-        #"out_dir",
+        # "out_dir",
         "egrid",
         "unrst",
         "init",

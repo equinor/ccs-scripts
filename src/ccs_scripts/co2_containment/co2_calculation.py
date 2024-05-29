@@ -30,7 +30,7 @@ PROPERTIES_TO_EXTRACT = [
     "XMF2",
     "YMF2",
     "SGSTRAND",
-    "SGTRH"
+    "SGTRH",
 ]
 
 
@@ -634,11 +634,13 @@ def _pflotran_co2mass(
             * dgas[date]
             * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass),
         ]
-        if len(sgstrand)!=0:
-            co2_mass[date].append(eff_vols[date]
-            * sgstrand[date]
-            * dgas[date]
-            * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass))
+        if len(sgstrand) != 0:
+            co2_mass[date].append(
+                eff_vols[date]
+                * sgstrand[date]
+                * dgas[date]
+                * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass)
+            )
     return co2_mass
 
 
@@ -672,8 +674,10 @@ def _eclipse_co2mass(
             conv_fact * bwat[date] * xmf2[date] * (1 - sgas[date]) * eff_vols[date],
             conv_fact * bgas[date] * ymf2[date] * sgas[date] * eff_vols[date],
         ]
-        if len(sgtrh)!=0:
-            co2_mass[date].append(conv_fact * bgas[date] * ymf2[date] * sgtrh[date] * eff_vols[date])
+        if len(sgtrh) != 0:
+            co2_mass[date].append(
+                conv_fact * bgas[date] * ymf2[date] * sgtrh[date] * eff_vols[date]
+            )
     return co2_mass
 
 
@@ -921,7 +925,9 @@ def _calculate_co2_data_from_source_data(
                 source_data.x_coord,
                 source_data.y_coord,
                 [
-                    Co2DataAtTimeStep(key, value[0], value[1], np.zeros_like(value[1]), value[2])
+                    Co2DataAtTimeStep(
+                        key, value[0], value[1], np.zeros_like(value[1]), value[2]
+                    )
                     for key, value in co2_mass_cell.items()
                 ],
                 "kg",
@@ -1079,7 +1085,9 @@ def calculate_co2(
     """
     global PROPERTIES_TO_EXTRACT
     if not residual_trapping:
-        PROPERTIES_TO_EXTRACT = [prop for prop in PROPERTIES_TO_EXTRACT if prop not in ["SGSTRAND","SGTRH"]]
+        PROPERTIES_TO_EXTRACT = [
+            prop for prop in PROPERTIES_TO_EXTRACT if prop not in ["SGSTRAND", "SGTRH"]
+        ]
     source_data = _extract_source_data(
         grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_info, region_info, init_file
     )
