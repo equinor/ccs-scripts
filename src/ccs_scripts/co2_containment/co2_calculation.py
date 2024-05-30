@@ -913,7 +913,13 @@ def _calculate_co2_data_from_source_data(
                 source_data.x_coord,
                 source_data.y_coord,
                 [
-                    Co2DataAtTimeStep(key, value[0], value[1], np.zeros_like(value[1]), np.zeros_like(value[1]))
+                    Co2DataAtTimeStep(
+                        key,
+                        value[0],
+                        value[1],
+                        np.zeros_like(value[1]),
+                        np.zeros_like(value[1]),
+                    )
                     for key, value in co2_mass_cell.items()
                 ],
                 "kg",

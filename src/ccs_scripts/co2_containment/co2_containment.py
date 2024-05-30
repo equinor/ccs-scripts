@@ -114,7 +114,7 @@ def calculate_out_of_bounds_co2(
         calc_type_input,
         zone_info,
         region_info,
-        residual_trapping
+        residual_trapping,
     )
 
 
@@ -126,7 +126,7 @@ def calculate_from_co2_data(
     calc_type_input: str,
     zone_info: Dict,
     region_info: Dict,
-    residual_trapping: bool = False
+    residual_trapping: bool = False,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
     Use polygons to divide co2 mass or volume into different categories
@@ -160,26 +160,29 @@ def calculate_from_co2_data(
         return data_frame
     logging.info("\nMerge data rows for data frame")
     if co2_data.zone is None and co2_data.region is None:
-        return _merge_date_rows(data_frame, calc_type,residual_trapping)
+        return _merge_date_rows(data_frame, calc_type, residual_trapping)
     if co2_data.region is None:
         return {
             "zone": {
-                z: _merge_date_rows(g, calc_type,residual_trapping) for z, g in data_frame.groupby("zone")
+                z: _merge_date_rows(g, calc_type, residual_trapping)
+                for z, g in data_frame.groupby("zone")
             }
         }
     if co2_data.zone is None:
         return {
             "region": {
-                z: _merge_date_rows(g, calc_type,residual_trapping)
+                z: _merge_date_rows(g, calc_type, residual_trapping)
                 for z, g in data_frame.groupby("region")
             }
         }
     return {
         "zone": {
-            z: _merge_date_rows(g, calc_type,residual_trapping) for z, g in data_frame.groupby("zone")
+            z: _merge_date_rows(g, calc_type, residual_trapping)
+            for z, g in data_frame.groupby("zone")
         },
         "region": {
-            z: _merge_date_rows(g, calc_type,residual_trapping) for z, g in data_frame.groupby("region")
+            z: _merge_date_rows(g, calc_type, residual_trapping)
+            for z, g in data_frame.groupby("region")
         },
     }
 
