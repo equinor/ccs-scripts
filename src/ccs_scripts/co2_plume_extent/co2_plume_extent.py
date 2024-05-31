@@ -120,8 +120,10 @@ class Configuration:
             )
 
         if len(self.distance_calculations) == 0:
-            logging.warning("WARNING: No CO2 plume distance/extent calculations"
-                            " specified in the input. Terminating script")
+            logging.warning(
+                "WARNING: No CO2 plume distance/extent calculations"
+                " specified in the input. Terminating script"
+            )
             sys.exit(1)
 
     def read_config_file(self, config_file: str) -> Dict:
@@ -632,12 +634,20 @@ def _find_nearest_groups(ijk, grid, groups) -> list[str]:
     # print(ijk)
     for ind, group in enumerate(groups, 0):
         (i2, j2, k2) = grid.get_ijk(active_index=ind)
-        if abs(i2-i1) <= 1 and abs(j2-j1) <= 1 and abs(k2-k2) <= 1:
+        if abs(i2 - i1) <= 1 and abs(j2 - j1) <= 1 and abs(k2 - k2) <= 1:
             # print((i2, j2, k2))
             if group not in ["-", "?"]:
                 out.add(group)
     # print(f"group: {out}")
     return list(out)
+
+
+def _temp_print(groups):
+    print(f"Count '-'       : {len([c for c in groups if c == '-'])}")
+    print(f"Count '?'       : {len([c for c in groups if c == '?'])}")
+    print(f"Count '1'       : {len([c for c in groups if c == '1'])}")
+    print(f"Count '2'       : {len([c for c in groups if c == '2'])}")
+    print(f"Count 'U'       : {len([c for c in groups if c == 'U'])}")
 
 
 def _find_distances_per_time_step(
@@ -652,7 +662,10 @@ def _find_distances_per_time_step(
     Find distance metric for each step
     """
     nsteps = len(unrst.report_steps)
-    dist_vs_date = np.zeros(shape=(nsteps,))
+    dist_per_group = {}
+    dist_per_group["1"] = np.zeros(shape=(nsteps,))
+    dist_per_group["2"] = np.zeros(shape=(nsteps,))
+    dist_per_group["1+2"] = np.zeros(shape=(nsteps,))
     # Groups: "?", 1, 2, 3, 4, "1+2", "3+4", "1+2+3+4"
     # "-"          : No CO2
     # "1", "2", ...: Group number
@@ -661,18 +674,24 @@ def _find_distances_per_time_step(
 
     n_cells = len(unrst[attribute_key][0].numpy_view())
     print(f"n_cells = {n_cells}")
-    prev_groups = ["-"]*n_cells
+    prev_groups = ["-"] * n_cells
 
-    x0 = 2150.0
-    y0 = 2150.0
+    x_inj_1 = 2150.0
+    y_inj_1 = 2150.0
+    x_inj_2 = 2550.0
+    y_inj_2 = 350.0
     lateral_threshold = 60.0
+    print(f"\nChanging treshold from: {threshold}")
+    # threshold = 0.25  # To test merging av groups
+    threshold = 0.30  # No merging of groups
+    print(f"                    to: {threshold}")
 
     for i in range(nsteps):
-        print(f"\ni = {i}")
-        indices_prev_step = [ind for ind, group in enumerate(prev_groups) if group != "-"]
+        print(f"\n\ni = {i}")
         data = unrst[attribute_key][i].numpy_view()
         plumeix = np.where(data > threshold)[0]
-        groups = ["-"]*n_cells
+        print(f"Number of grid cells with CO2 this time step: {len(plumeix)}")
+        groups = ["-"] * n_cells
         for index in plumeix:
             if prev_groups[index] != "-":
                 # Need to handle here if CO2 is gone from this grid cell in this time step
@@ -681,40 +700,33 @@ def _find_distances_per_time_step(
                 # This grid cell did not have CO2 in the last time step
                 # (i1, j1, k1) = grid.get_ijk(active_index=index)
                 (x, y, _) = grid.get_xyz(active_index=index)
-                if abs(x-x0) <= lateral_threshold and abs(y-y0) <= lateral_threshold:
+                if (
+                    abs(x - x_inj_1) <= lateral_threshold
+                    and abs(y - y_inj_1) <= lateral_threshold
+                ):
                     # This grid cell is close to injection point
-                    print("Eureka")
+                    print("Eureka 1")
                     groups[index] = "1"
+                elif (
+                    abs(x - x_inj_2) <= lateral_threshold
+                    and abs(y - y_inj_2) <= lateral_threshold
+                ):
+                    # This grid cell is close to injection point
+                    print("Eureka 2")
+                    groups[index] = "2"
                 else:
                     groups[index] = "?"
-                    # groups_of_neighbours = set()
-                    # # Can we get the 6 nearest indices and just check them instead?
-                    # for index_prev in indices_prev_step:
-                    #     (i2, j2, k2) = grid.get_ijk(active_index=index_prev)
-                    #     if abs(i2-i1) <= 1 or abs(j2-j1) <= 1 or abs(k2-k1) <= 1:
-                    #         groups_of_neighbours.add(prev_groups[index_prev])
-                    # groups_of_neighbours = list(groups_of_neighbours)
-                    # if len(groups_of_neighbours) == 0:
-                    #     groups[index] = "?"
-                    # elif len(groups_of_neighbours) == 1:
-                    #     groups[index] = groups_of_neighbours[0]
-                    # else:
-                    #     print("???????????")
-                    #     exit()
-        if i in [4] or True:
-            # print(plumeix)
-            print(f"Number of grid cells with CO2: {len(plumeix)}")
-            print(f"len(prev_groups): {len(prev_groups)}")
-            print(f"len(groups)     : {len(groups)}")
-            print(f"Count '-'       : {len([c for c in groups if c == '-'])}")
-            print(f"Count '?'       : {len([c for c in groups if c == '?'])}")
-            print(f"Count '1'       : {len([c for c in groups if c == '1'])}")
-            print(f"Count '2'       : {len([c for c in groups if c == '2'])}")
+
+        print(f"Number of grid cells with CO2: {len(plumeix)}")
+        print("Previous group:")
+        _temp_print(prev_groups)
+        print("Current group:")
+        _temp_print(groups)
 
         # Resolve as many "?" as possible:
         ind_to_resolve = [ind for ind, group in enumerate(groups) if group == "?"]
         counter = 1
-        while len(ind_to_resolve) > 0 and counter <= 100:
+        while len(ind_to_resolve) > 0 and counter <= 20:
             print(f"counter        : {counter}")
             print(f"left to resolve: {len(ind_to_resolve)}")
             for ind in ind_to_resolve:
@@ -722,30 +734,61 @@ def _find_distances_per_time_step(
                 groups_nearby = _find_nearest_groups(ijk, grid, groups)
                 if len(groups_nearby) == 1:
                     groups[ind] = groups_nearby[0]
+                elif len(groups_nearby) >= 2:
+                    if "U" in groups_nearby:
+                        groups_nearby.remove("U")
+                        print("SKIP MERGE WITH U")
+                    if len(groups_nearby) >= 2:
+                        print("NEED TO MERGE")
+                        print(groups_nearby)
+                        exit()
 
-            ind_to_resolve = [ind for ind, group in enumerate(groups) if group == "?"]
+            updated_ind_to_resolve = [
+                ind for ind, group in enumerate(groups) if group == "?"
+            ]
+            if len(updated_ind_to_resolve) == len(ind_to_resolve):
+                print("BREAK")
+                break
+            ind_to_resolve = updated_ind_to_resolve
             counter += 1
 
-        result = 0.0
-        if len(plumeix) > 0:
-            if calculation_type == CalculationType.PLUME_EXTENT:
-                result = dist[plumeix].max()
-            elif calculation_type in (CalculationType.POINT, CalculationType.LINE):
-                result = dist[plumeix].min()
-        else:
-            result = np.nan
+        # Any unresolved grid cells?
+        for ind in ind_to_resolve:
+            groups[ind] = "U"
 
-        dist_vs_date[i] = result
+        print("Current group:")
+        _temp_print(groups)
+
+        # Find the groups:
+        # unique_groups = [g for g in groups if g not in ["-", "?", "U"]]
+        for g in dist_per_group.keys():  # unique_groups
+            result = 0.0
+            if len(plumeix) > 0:
+                if calculation_type == CalculationType.PLUME_EXTENT:
+                    result = dist[plumeix].max()
+                elif calculation_type in (CalculationType.POINT, CalculationType.LINE):
+                    result = dist[plumeix].min()
+            else:
+                result = np.nan
+
+            dist_per_group[g][i] = result
 
         prev_groups = groups
 
-    exit()
-    output = []
-    for i, d in enumerate(unrst.report_dates):
-        date_and_result = [d.strftime("%Y-%m-%d"), dist_vs_date[i]]
-        output.append(date_and_result)
+    outputs = {}
+    outputs["1"] = []
+    outputs["2"] = []
+    outputs["1+2"] = []
+    for group_name, distances in dist_per_group.items():
+        print(f"group_name: {group_name}")
+        for i, d in enumerate(unrst.report_dates):
+            date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
+            outputs[group_name].append(date_and_result)
+        print(outputs[group_name])
 
-    return output
+    exit()
+
+    return outputs
 
 
 def _find_output_file(output: str, case: str):
