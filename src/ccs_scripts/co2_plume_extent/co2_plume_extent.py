@@ -573,19 +573,19 @@ def calculate_single_distances(
     )
 
     sgas_results = _find_distances_per_time_step(
-        "SGAS", calculation_type, threshold_sgas, unrst, dist
+        "SGAS", calculation_type, threshold_sgas, unrst, grid, dist
     )
     logging.info("Done calculating plume extent for SGAS.")
 
     if "AMFG" in unrst:
         amfg_results = _find_distances_per_time_step(
-            "AMFG", calculation_type, threshold_amfg, unrst, dist
+            "AMFG", calculation_type, threshold_amfg, unrst, grid, dist
         )
         amfg_key = "AMFG"
         logging.info("Done calculating plume extent for AMFG.")
     elif "XMF2" in unrst:
         amfg_results = _find_distances_per_time_step(
-            "XMF2", calculation_type, threshold_amfg, unrst, dist
+            "XMF2", calculation_type, threshold_amfg, unrst, grid, dist
         )
         amfg_key = "XMF2"
         logging.info("Done calculating plume extent for XMF2.")
@@ -625,11 +625,27 @@ def calculate_distances(
     return all_results
 
 
+def _find_nearest_groups(ijk, grid, groups) -> list[str]:
+    out = set()
+    # print("\n\n")
+    (i1, j1, k1) = ijk
+    # print(ijk)
+    for ind, group in enumerate(groups, 0):
+        (i2, j2, k2) = grid.get_ijk(active_index=ind)
+        if abs(i2-i1) <= 1 and abs(j2-j1) <= 1 and abs(k2-k2) <= 1:
+            # print((i2, j2, k2))
+            if group not in ["-", "?"]:
+                out.add(group)
+    # print(f"group: {out}")
+    return list(out)
+
+
 def _find_distances_per_time_step(
     attribute_key: str,
     calculation_type: CalculationType,
     threshold: float,
     unrst: ResdataFile,
+    grid: Grid,
     dist: np.ndarray,
 ) -> List[List]:
     """
@@ -637,22 +653,79 @@ def _find_distances_per_time_step(
     """
     nsteps = len(unrst.report_steps)
     dist_vs_date = np.zeros(shape=(nsteps,))
-    prev_groups = []
+    # Groups: "?", 1, 2, 3, 4, "1+2", "3+4", "1+2+3+4"
+    # "-"          : No CO2
+    # "1", "2", ...: Group number
+    # "?"          : Yet undecided group
+    # "1+2"        : Merged groups
+
+    n_cells = len(unrst[attribute_key][0].numpy_view())
+    print(f"n_cells = {n_cells}")
+    prev_groups = ["-"]*n_cells
+
+    x0 = 2150.0
+    y0 = 2150.0
+    lateral_threshold = 60.0
+
     for i in range(nsteps):
+        print(f"\ni = {i}")
+        indices_prev_step = [ind for ind, group in enumerate(prev_groups) if group != "-"]
         data = unrst[attribute_key][i].numpy_view()
         plumeix = np.where(data > threshold)[0]
-        groups = [-1] * len(plumeix)
-        if i in [4]:
-            print(f"i = {i}")
-            print(data)
-            print(len(data))
-            print(plumeix)
-            print(len(plumeix))
-            print(prev_groups)
-            print(len(prev_groups))
-            print(groups)
-            print(len(groups))
-            exit()
+        groups = ["-"]*n_cells
+        for index in plumeix:
+            if prev_groups[index] != "-":
+                # Need to handle here if CO2 is gone from this grid cell in this time step
+                groups[index] = prev_groups[index]
+            else:
+                # This grid cell did not have CO2 in the last time step
+                # (i1, j1, k1) = grid.get_ijk(active_index=index)
+                (x, y, _) = grid.get_xyz(active_index=index)
+                if abs(x-x0) <= lateral_threshold and abs(y-y0) <= lateral_threshold:
+                    # This grid cell is close to injection point
+                    print("Eureka")
+                    groups[index] = "1"
+                else:
+                    groups[index] = "?"
+                    # groups_of_neighbours = set()
+                    # # Can we get the 6 nearest indices and just check them instead?
+                    # for index_prev in indices_prev_step:
+                    #     (i2, j2, k2) = grid.get_ijk(active_index=index_prev)
+                    #     if abs(i2-i1) <= 1 or abs(j2-j1) <= 1 or abs(k2-k1) <= 1:
+                    #         groups_of_neighbours.add(prev_groups[index_prev])
+                    # groups_of_neighbours = list(groups_of_neighbours)
+                    # if len(groups_of_neighbours) == 0:
+                    #     groups[index] = "?"
+                    # elif len(groups_of_neighbours) == 1:
+                    #     groups[index] = groups_of_neighbours[0]
+                    # else:
+                    #     print("???????????")
+                    #     exit()
+        if i in [4] or True:
+            # print(plumeix)
+            print(f"Number of grid cells with CO2: {len(plumeix)}")
+            print(f"len(prev_groups): {len(prev_groups)}")
+            print(f"len(groups)     : {len(groups)}")
+            print(f"Count '-'       : {len([c for c in groups if c == '-'])}")
+            print(f"Count '?'       : {len([c for c in groups if c == '?'])}")
+            print(f"Count '1'       : {len([c for c in groups if c == '1'])}")
+            print(f"Count '2'       : {len([c for c in groups if c == '2'])}")
+
+        # Resolve as many "?" as possible:
+        ind_to_resolve = [ind for ind, group in enumerate(groups) if group == "?"]
+        counter = 1
+        while len(ind_to_resolve) > 0 and counter <= 100:
+            print(f"counter        : {counter}")
+            print(f"left to resolve: {len(ind_to_resolve)}")
+            for ind in ind_to_resolve:
+                ijk = grid.get_ijk(active_index=ind)
+                groups_nearby = _find_nearest_groups(ijk, grid, groups)
+                if len(groups_nearby) == 1:
+                    groups[ind] = groups_nearby[0]
+
+            ind_to_resolve = [ind for ind, group in enumerate(groups) if group == "?"]
+            counter += 1
+
         result = 0.0
         if len(plumeix) > 0:
             if calculation_type == CalculationType.PLUME_EXTENT:
@@ -666,6 +739,7 @@ def _find_distances_per_time_step(
 
         prev_groups = groups
 
+    exit()
     output = []
     for i, d in enumerate(unrst.report_dates):
         date_and_result = [d.strftime("%Y-%m-%d"), dist_vs_date[i]]
