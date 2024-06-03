@@ -257,21 +257,21 @@ class Configuration:
             if len(values) != 2:
                 if calculation_type == CalculationType.PLUME_EXTENT:
                     logging.error(
-                        "ERROR: Invalid input. injection_point_info must be on"
+                        "ERROR: Invalid input. inj_point must be on"
                         ' the format "[x,y]" or "well_name" when '
-                        "calculation_type is 'plume_extent'."
+                        "calc_type is 'plume_extent'."
                     )
                 elif calculation_type == CalculationType.POINT:
                     logging.error(
-                        "ERROR: Invalid input. injection_point_info must be on"
-                        ' the format "[x,y]" when calculation_type is '
+                        "ERROR: Invalid input. inj_point must be on"
+                        ' the format "[x,y]" when calc_type is '
                         "'point'."
                     )
                 elif calculation_type == CalculationType.LINE:
                     logging.error(
-                        "Invalid input: injection_point_info must be on the "
+                        "Invalid input: inj_point must be on the "
                         'format "[direction, x or y]" when '
-                        "calculation_type is 'line'."
+                        "calc_type is 'line'."
                     )
                 sys.exit(1)
 
@@ -385,8 +385,8 @@ def _make_parser() -> argparse.ArgumentParser:
         default="",
     )
     parser.add_argument(
-        "--injection_point_info",
-        help="Input depends on calculation_type. \
+        "--inj_point",
+        help="Input depends on calc_type. \
         For 'plume_extent': Either the name of the injection well (string) or \
         the x and y coordinates (two floats, '[x,y]') to calculate plume extent from. \
         For 'point': the x and y coordinates (two floats, '[x,y]'). \
@@ -396,7 +396,7 @@ def _make_parser() -> argparse.ArgumentParser:
         default="",
     )
     parser.add_argument(
-        "--calculation_type",
+        "--calc_type",
         help="Options: \
         'plume_extent': Maximum distance of plume from input (injection) coordinate. \
         'point': Minimum distance from plume to a point, e.g. plume approaching \
@@ -490,10 +490,10 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
         f"Configuration YAML-file : "
         f"{arguments.config_file if arguments.config_file != '' else 'Not specified'}"
     )
-    if arguments.injection_point_info != "":
+    if arguments.inj_point != "":
         logging.info("Configuration from args :")
-        logging.info(f"    Injection point info: {arguments.injection_point_info}")
-        logging.info(f"    Calculation type    : {arguments.calculation_type}")
+        logging.info(f"    Injection point info: {arguments.inj_point}")
+        logging.info(f"    Calculation type    : {arguments.calc_type}")
         col = arguments.column_name
         if col != "":
             logging.info(
@@ -501,7 +501,7 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
             )
     else:
         logging.info("Configuration from args : Not specified")
-    if arguments.output_csv != "":
+    if arguments.output_csv is None or arguments.output_csv == "":
         text = "Not specified, using default"
     else:
         text = arguments.output_csv
@@ -813,8 +813,8 @@ def _find_input_point(injection_point_info: str) -> Tuple[float, float]:
                 )
                 sys.exit(1)
     logging.error(
-        "Invalid input: injection_point_info must be on the format [x,y]"
-        "when calculation_type is 'point'"
+        "Invalid input: inj_point must be on the format [x,y]"
+        "when calc_type is 'point'"
     )
     sys.exit(1)
 
@@ -841,14 +841,14 @@ def _find_input_line(injection_point_info: str) -> Tuple[str, float]:
                 return coordinates
             except ValueError as error:
                 logging.error(
-                    "Invalid input: injection_point_info must be on the format "
-                    "[direction, value] when calculation_type is 'line'."
+                    "Invalid input: inj_point must be on the format "
+                    "[direction, value] when calc_type is 'line'."
                 )
                 logging.error(error)
                 sys.exit(1)
     logging.error(
-        "Invalid input: injection_point_info must be on the format "
-        "[direction, value] when calculation_type is 'line'"
+        "Invalid input: inj_point must be on the format "
+        "[direction, value] when calc_type is 'line'"
     )
     sys.exit(1)
 
@@ -868,8 +868,8 @@ def main():
 
     config = Configuration(
         args.config_file,
-        args.calculation_type,
-        args.injection_point_info,
+        args.calc_type,
+        args.inj_point,
         args.column_name,
         args.case,
     )
