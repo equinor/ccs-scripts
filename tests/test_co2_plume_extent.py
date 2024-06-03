@@ -210,7 +210,7 @@ def test_plume_extent(mocker):
         [
             "--case",
             case_path,
-            "--injection_point_info",
+            "--inj_point",
             "[462500.0,5933100.0]",
             "--threshold_sgas",
             "0.02",
@@ -259,7 +259,7 @@ def test_plume_extent_eclipse_using_well_name(mocker):
         [
             "--case",
             case_path,
-            "--injection_point_info",
+            "--inj_point",
             "INJ",
             "--threshold_sgas",
             "0.015",
@@ -294,7 +294,7 @@ def test_plume_extent_eclipse_using_coordinates(mocker):
         [
             "--case",
             case_path,
-            "--injection_point_info",
+            "--inj_point",
             "[2124.95, 2108.24]",
             "--threshold_sgas",
             "0.015",
@@ -329,7 +329,7 @@ def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
         [
             "--case",
             case_path,
-            "--injection_point_info",
+            "--inj_point",
             "[2124.95, 2108.24]",
             "--threshold_sgas",
             "0.000000001",
@@ -364,7 +364,7 @@ def test_plume_extent_pflotran_using_well_name(mocker):
         [
             "--case",
             case_path,
-            "--injection_point_info",
+            "--inj_point",
             "INJ",
             "--threshold_sgas",
             "0.015",
@@ -399,7 +399,7 @@ def test_plume_extent_pflotran_using_coordinates(mocker):
         [
             "--case",
             case_path,
-            "--injection_point_info",
+            "--inj_point",
             "[2124.95, 2108.24]",
             "--threshold_sgas",
             "0.015",
@@ -434,7 +434,7 @@ def test_plume_extent_pflotran_using_coordinates_default_thresholds(mocker):
         [
             "--case",
             case_path,
-            "--injection_point_info",
+            "--inj_point",
             "[2124.95, 2108.24]",
             "--output",
             output_path,
