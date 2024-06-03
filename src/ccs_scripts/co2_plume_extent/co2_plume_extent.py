@@ -501,7 +501,7 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
             )
     else:
         logging.info("Configuration from args : Not specified")
-    if arguments.output_csv != "":
+    if arguments.output_csv is None or arguments.output_csv == "":
         text = "Not specified, using default"
     else:
         text = arguments.output_csv
