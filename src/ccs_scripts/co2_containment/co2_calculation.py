@@ -1081,7 +1081,7 @@ def calculate_co2(
     unrst_file: str,
     zone_info: Dict,
     region_info: Dict,
-    residual_trapping: bool,
+    residual_trapping: bool = False,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
 ) -> Co2Data:
