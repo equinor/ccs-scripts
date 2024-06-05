@@ -29,7 +29,7 @@ class ContainedCo2:
 
     date: str
     amount: float
-    phase: Literal["gas", "aqueous", "trapped_gas", "undefined"]
+    phase: Literal["gas", "aqueous", "trapped_gas", "free_gas", "undefined"]
     location: Literal["contained", "outside", "hazardous"]
     zone: Optional[str] = None
     region: Optional[str] = None
