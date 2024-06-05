@@ -302,39 +302,31 @@ def _merge_date_rows(
             df4i = df4.loc["trapped_gas", "hazardous"].rename(
                 columns={"amount": "trapped_gas_hazardous"}
             )
+        for _df in [
+            df2a,
+            df2b,
+            df3a,
+            df3b,
+            df3c,
+            df4a,
+            df4b,
+            df4c,
+            df4d,
+            df4e,
+            df4f,
+        ]:
+            total_df = total_df.merge(_df, on="date", how="left")
+        if residual_trapping:            
             for _df in [
-                df2a,
-                df2b,
                 df2c,
-                df3a,
-                df3b,
-                df3c,
-                df4a,
-                df4b,
-                df4c,
-                df4d,
-                df4e,
-                df4f,
                 df4g,
                 df4h,
                 df4i,
             ]:
                 total_df = total_df.merge(_df, on="date", how="left")
-        else:
-            for _df in [
-                df2a,
-                df2b,
-                df3a,
-                df3b,
-                df3c,
-                df4a,
-                df4b,
-                df4c,
-                df4d,
-                df4e,
-                df4f,
-            ]:
-                total_df = total_df.merge(_df, on="date", how="left")
+            columns = list(total_df.columns)
+            columns.insert(3, columns.pop(columns.index("total_trapped_gas")))
+            total_df = total_df[columns]
 
     return total_df.reset_index()
 
