@@ -53,7 +53,7 @@ def calculate_co2_containment(
     zone_info: Dict,
     region_info: Dict,
     calc_type: CalculationType,
-    residual_trapping: bool
+    residual_trapping: bool,
 ) -> List[ContainedCo2]:
     """
     Calculates the amount (mass/volume) of CO2 within given boundaries

@@ -154,7 +154,7 @@ def calculate_from_co2_data(
         zone_info,
         region_info,
         calc_type,
-        residual_trapping
+        residual_trapping,
     )
     data_frame = _construct_containment_table(contained_co2)
     if compact:
@@ -281,38 +281,40 @@ def _merge_date_rows(
 
         if not residual_trapping:
             df2a = df2.loc["gas"].rename(columns={"amount": "total_gas"})
-            df4a = df4.loc["gas", "contained"].rename(columns={"amount": "gas_contained"})
+            df4a = df4.loc["gas", "contained"].rename(
+                columns={"amount": "gas_contained"}
+            )
             df4c = df4.loc["gas", "outside"].rename(columns={"amount": "gas_outside"})
-            df4e = df4.loc["gas", "hazardous"].rename(columns={"amount": "gas_hazardous"})            
+            df4e = df4.loc["gas", "hazardous"].rename(
+                columns={"amount": "gas_hazardous"}
+            )
         else:
             df2a_trapped = df2.loc["trapped_gas"].rename(
                 columns={"amount": "total_trapped_gas"}
             )
-            df2a_free = df2.loc["free_gas"].rename(
-                columns={"amount": "total_free_gas"}
-            )
-            df2a = df2a_trapped.merge(df2a_free,on="date",how="left")
+            df2a_free = df2.loc["free_gas"].rename(columns={"amount": "total_free_gas"})
+            df2a = df2a_trapped.merge(df2a_free, on="date", how="left")
             df4a_trapped = df4.loc["trapped_gas", "contained"].rename(
                 columns={"amount": "trapped_gas_contained"}
             )
             df4a_free = df4.loc["free_gas", "contained"].rename(
                 columns={"amount": "free_gas_contained"}
             )
-            df4a = df4a_trapped.merge(df4a_free,on="date",how="left")
+            df4a = df4a_trapped.merge(df4a_free, on="date", how="left")
             df4c_trapped = df4.loc["trapped_gas", "outside"].rename(
                 columns={"amount": "trapped_gas_outside"}
             )
             df4c_free = df4.loc["free_gas", "outside"].rename(
                 columns={"amount": "free_gas_outside"}
             )
-            df4c = df4c_trapped.merge(df4c_free,on="date",how="left")
+            df4c = df4c_trapped.merge(df4c_free, on="date", how="left")
             df4e_trapped = df4.loc["trapped_gas", "hazardous"].rename(
                 columns={"amount": "trapped_gas_hazardous"}
             )
             df4e_free = df4.loc["free_gas", "hazardous"].rename(
                 columns={"amount": "free_gas_hazardous"}
             )
-            df4e = df4e_trapped.merge(df4e_free,on="date",how="left")
+            df4e = df4e_trapped.merge(df4e_free, on="date", how="left")
         for _df in [
             df2a,
             df2b,
