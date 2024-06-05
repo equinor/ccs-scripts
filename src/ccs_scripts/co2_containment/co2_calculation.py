@@ -231,6 +231,7 @@ class Co2DataAtTimeStep:
     gas_phase: np.ndarray
     volume_coverage: np.ndarray
     trapped_gas_phase: np.ndarray
+    free_gas_phase: np.ndarray
 
     def total_mass(self) -> np.ndarray:
         """
@@ -635,11 +636,15 @@ def _pflotran_co2mass(
             * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass),
         ]
         if len(sgstrand) != 0:
-            co2_mass[date].append(
-                eff_vols[date]
+            co2_mass[date].extend(
+                [eff_vols[date]
                 * sgstrand[date]
                 * dgas[date]
-                * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass)
+                * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass),
+                eff_vols[date]
+                * (sgas[date]-sgstrand[date])
+                * dgas[date]
+                * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass)]
             )
     return co2_mass
 
@@ -675,8 +680,9 @@ def _eclipse_co2mass(
             conv_fact * bgas[date] * ymf2[date] * sgas[date] * eff_vols[date],
         ]
         if len(sgtrh) != 0:
-            co2_mass[date].append(
-                conv_fact * bgas[date] * ymf2[date] * sgtrh[date] * eff_vols[date]
+            co2_mass[date].extend(
+                [conv_fact * bgas[date] * ymf2[date] * sgtrh[date] * eff_vols[date],
+                conv_fact * bgas[date] * ymf2[date] * (sgas[date]-sgtrh[date]) * eff_vols[date]]
             )
     return co2_mass
 
@@ -919,6 +925,7 @@ def _calculate_co2_data_from_source_data(
                         value[1],
                         np.zeros_like(value[1]),
                         np.zeros_like(value[1]),
+                        np.zeros_like(value[1]),
                     )
                     for key, value in co2_mass_cell.items()
                 ],
@@ -932,7 +939,7 @@ def _calculate_co2_data_from_source_data(
                 source_data.y_coord,
                 [
                     Co2DataAtTimeStep(
-                        key, value[0], value[1], np.zeros_like(value[1]), value[2]
+                        key, value[0], value[1], np.zeros_like(value[1]), value[2], value[3]
                     )
                     for key, value in co2_mass_cell.items()
                 ],
@@ -1008,6 +1015,7 @@ def _calculate_co2_data_from_source_data(
                         np.array(vols_co2[t][1]),
                         np.zeros_like(np.array(vols_co2[t][1])),
                         np.zeros_like(np.array(vols_co2[t][1])),
+                        np.zeros_like(np.array(vols_co2[t][1])),
                     )
                     for t in vols_co2
                 ],
@@ -1048,6 +1056,7 @@ def _calculate_co2_data_from_source_data(
                     np.zeros_like(np.array(vols_ext[t])),
                     np.array(vols_ext[t]),
                     np.zeros_like(np.array(vols_ext[t])),
+                    np.zeros_like(np.array(vols_ext[t])),
                 )
                 for t in vols_ext
             ],
@@ -1072,8 +1081,8 @@ def calculate_co2(
     unrst_file: str,
     zone_info: Dict,
     region_info: Dict,
+    residual_trapping: bool,
     calc_type_input: str = "mass",
-    residual_trapping: bool = False,
     init_file: Optional[str] = None,
 ) -> Co2Data:
     """

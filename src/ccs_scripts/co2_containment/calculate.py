@@ -53,6 +53,7 @@ def calculate_co2_containment(
     zone_info: Dict,
     region_info: Dict,
     calc_type: CalculationType,
+    residual_trapping: bool
 ) -> List[ContainedCo2]:
     """
     Calculates the amount (mass/volume) of CO2 within given boundaries
@@ -143,7 +144,7 @@ def calculate_co2_containment(
                     ),
                 ]
             ]
-        if co2_data.data_list[0].trapped_gas_phase is None:
+        if not residual_trapping:
             return [
                 c
                 for w in co2_data.data_list
@@ -174,15 +175,6 @@ def calculate_co2_containment(
                 for w in co2_data.data_list
                 for c in [
                     ContainedCo2(
-                        w.date, sum(w.gas_phase[is_inside]), "gas", "contained"
-                    ),
-                    ContainedCo2(
-                        w.date, sum(w.gas_phase[is_outside]), "gas", "outside"
-                    ),
-                    ContainedCo2(
-                        w.date, sum(w.gas_phase[is_hazardous]), "gas", "hazardous"
-                    ),
-                    ContainedCo2(
                         w.date,
                         sum(w.trapped_gas_phase[is_inside]),
                         "trapped_gas",
@@ -198,6 +190,24 @@ def calculate_co2_containment(
                         w.date,
                         sum(w.trapped_gas_phase[is_hazardous]),
                         "trapped_gas",
+                        "hazardous",
+                    ),
+                    ContainedCo2(
+                        w.date,
+                        sum(w.free_gas_phase[is_inside]),
+                        "free_gas",
+                        "contained",
+                    ),
+                    ContainedCo2(
+                        w.date,
+                        sum(w.free_gas_phase[is_outside]),
+                        "free_gas",
+                        "outside",
+                    ),
+                    ContainedCo2(
+                        w.date,
+                        sum(w.free_gas_phase[is_hazardous]),
+                        "free_gas",
                         "hazardous",
                     ),
                     ContainedCo2(
@@ -274,7 +284,7 @@ def calculate_co2_containment(
     logging.info(
         f"Done calculating contained CO2 {calc_type.name.lower()} using input polygons"
     )
-    if co2_data.data_list[0].trapped_gas_phase is None:
+    if not residual_trapping:
         return [
             c
             for w in co2_data.data_list
@@ -340,30 +350,6 @@ def calculate_co2_containment(
             for c in [
                 ContainedCo2(
                     w.date,
-                    sum(w.gas_phase[is_inside & zm & rm]),
-                    "gas",
-                    "contained",
-                    zn,
-                    rn,
-                ),
-                ContainedCo2(
-                    w.date,
-                    sum(w.gas_phase[is_outside & zm & rm]),
-                    "gas",
-                    "outside",
-                    zn,
-                    rn,
-                ),
-                ContainedCo2(
-                    w.date,
-                    sum(w.gas_phase[is_hazardous & zm & rm]),
-                    "gas",
-                    "hazardous",
-                    zn,
-                    rn,
-                ),
-                ContainedCo2(
-                    w.date,
                     sum(w.trapped_gas_phase[is_inside & zm & rm]),
                     "trapped_gas",
                     "contained",
@@ -382,6 +368,30 @@ def calculate_co2_containment(
                     w.date,
                     sum(w.trapped_gas_phase[is_hazardous & zm & rm]),
                     "trapped_gas",
+                    "hazardous",
+                    zn,
+                    rn,
+                ),
+                ContainedCo2(
+                    w.date,
+                    sum(w.free_gas_phase[is_inside & zm & rm]),
+                    "free_gas",
+                    "contained",
+                    zn,
+                    rn,
+                ),
+                ContainedCo2(
+                    w.date,
+                    sum(w.free_gas_phase[is_outside & zm & rm]),
+                    "free_gas",
+                    "outside",
+                    zn,
+                    rn,
+                ),
+                ContainedCo2(
+                    w.date,
+                    sum(w.free_gas_phase[is_hazardous & zm & rm]),
+                    "free_gas",
                     "hazardous",
                     zn,
                     rn,
