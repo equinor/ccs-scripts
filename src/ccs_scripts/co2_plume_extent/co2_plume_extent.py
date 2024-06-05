@@ -23,6 +23,9 @@ import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
+from ccs_scripts.co2_plume_extent._utils import CellGroup, PlumeGroups
+
+
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
 
@@ -627,28 +630,12 @@ def calculate_distances(
     return all_results
 
 
-def _find_nearest_groups(ijk, grid, groups) -> list[str]:
-    out = set()
-    # print("\n\n")
-    (i1, j1, k1) = ijk
-    # print(ijk)
-    for ind, group in enumerate(groups, 0):
-        (i2, j2, k2) = grid.get_ijk(active_index=ind)
-        if abs(i2 - i1) <= 1 and abs(j2 - j1) <= 1 and abs(k2 - k2) <= 1:
-            # print((i2, j2, k2))
-            if group not in ["-", "?"]:
-                out.add(group)
-    # print(f"group: {out}")
-    return list(out)
-
-
-def _temp_print(groups):
-    print(f"Count '-'       : {len([c for c in groups if c == '-'])}")
-    print(f"Count '?'       : {len([c for c in groups if c == '?'])}")
-    print(f"Count '1'       : {len([c for c in groups if c == '1'])}")
-    print(f"Count '2'       : {len([c for c in groups if c == '2'])}")
-    print(f"Count 'U'       : {len([c for c in groups if c == 'U'])}")
-
+def _temp_print(groups: PlumeGroups):
+    print(f"Count '-'       : {len([c for c in groups.cells if c.has_no_co2()])}")
+    print(f"Count '?'       : {len([c for c in groups.cells if c.is_undetermined()])}")
+    print(f"Count '1'       : {len([c for c in groups.cells if c.has_co2() and c.all_groups[0] == 1])}")
+    print(f"Count '2'       : {len([c for c in groups.cells if c.has_co2() and c.all_groups[0] == 2])}")
+    # print(f"Count 'U'       : {len([c for c in groups.cells if c.has_co2() and c.groups[0] == U])}")
 
 def _find_distances_per_time_step(
     attribute_key: str,
@@ -666,15 +653,16 @@ def _find_distances_per_time_step(
     dist_per_group["1"] = np.zeros(shape=(nsteps,))
     dist_per_group["2"] = np.zeros(shape=(nsteps,))
     dist_per_group["1+2"] = np.zeros(shape=(nsteps,))
-    # Groups: "?", 1, 2, 3, 4, "1+2", "3+4", "1+2+3+4"
-    # "-"          : No CO2
-    # "1", "2", ...: Group number
-    # "?"          : Yet undecided group
-    # "1+2"        : Merged groups
+    # Groups: "-", "?", 1, 2, 3, 4, "1+2", "3+4", "1+2+3+4"
+    # "-"           : No CO2
+    # "?"           : Yet undecided group
+    # "1", "2", ... : Group number
+    # "1+2"         : Merged groups
 
     n_cells = len(unrst[attribute_key][0].numpy_view())
     print(f"n_cells = {n_cells}")
-    prev_groups = ["-"] * n_cells
+    # prev_groups = ["-"] * n_cells
+    prev_groups2 = PlumeGroups(n_cells)
 
     x_inj_1 = 2150.0
     y_inj_1 = 2150.0
@@ -691,11 +679,14 @@ def _find_distances_per_time_step(
         data = unrst[attribute_key][i].numpy_view()
         plumeix = np.where(data > threshold)[0]
         print(f"Number of grid cells with CO2 this time step: {len(plumeix)}")
-        groups = ["-"] * n_cells
+        # groups = ["-"] * n_cells
+        groups2 = PlumeGroups(n_cells)
         for index in plumeix:
-            if prev_groups[index] != "-":
+            # if prev_groups[index] != "-":
+            if prev_groups2.cells[index].has_co2():
                 # Need to handle here if CO2 is gone from this grid cell in this time step
-                groups[index] = prev_groups[index]
+                # groups[index] = prev_groups[index]
+                groups2.cells[index] = prev_groups2.cells[index]
             else:
                 # This grid cell did not have CO2 in the last time step
                 # (i1, j1, k1) = grid.get_ijk(active_index=index)
@@ -706,61 +697,40 @@ def _find_distances_per_time_step(
                 ):
                     # This grid cell is close to injection point
                     print("Eureka 1")
-                    groups[index] = "1"
+                    # groups[index] = "1"
+                    # groups2.cells[index] = CellGroup([1])
+                    groups2.cells[index].set_cell_groups(new_groups = [1])
                 elif (
                     abs(x - x_inj_2) <= lateral_threshold
                     and abs(y - y_inj_2) <= lateral_threshold
                 ):
                     # This grid cell is close to injection point
                     print("Eureka 2")
-                    groups[index] = "2"
+                    # groups[index] = "2"
+                    # groups2.cells[index] = CellGroup([2])
+                    groups2.cells[index].set_cell_groups([2])
                 else:
-                    groups[index] = "?"
+                    # groups[index] = "?"
+                    # groups2.cells[index] = CellGroup()
+                    groups2.cells[index].set_undetermined()
 
         print(f"Number of grid cells with CO2: {len(plumeix)}")
         print("Previous group:")
-        _temp_print(prev_groups)
+        _temp_print(prev_groups2)
         print("Current group:")
-        _temp_print(groups)
+        _temp_print(groups2)
 
-        # Resolve as many "?" as possible:
-        ind_to_resolve = [ind for ind, group in enumerate(groups) if group == "?"]
-        counter = 1
-        while len(ind_to_resolve) > 0 and counter <= 20:
-            print(f"counter        : {counter}")
-            print(f"left to resolve: {len(ind_to_resolve)}")
-            for ind in ind_to_resolve:
-                ijk = grid.get_ijk(active_index=ind)
-                groups_nearby = _find_nearest_groups(ijk, grid, groups)
-                if len(groups_nearby) == 1:
-                    groups[ind] = groups_nearby[0]
-                elif len(groups_nearby) >= 2:
-                    if "U" in groups_nearby:
-                        groups_nearby.remove("U")
-                        print("SKIP MERGE WITH U")
-                    if len(groups_nearby) >= 2:
-                        print("NEED TO MERGE")
-                        print(groups_nearby)
-                        exit()
-
-            updated_ind_to_resolve = [
-                ind for ind, group in enumerate(groups) if group == "?"
-            ]
-            if len(updated_ind_to_resolve) == len(ind_to_resolve):
-                print("BREAK")
-                break
-            ind_to_resolve = updated_ind_to_resolve
-            counter += 1
-
-        # Any unresolved grid cells?
-        for ind in ind_to_resolve:
-            groups[ind] = "U"
+        groups2.resolve_undetermined_cells(grid)
 
         print("Current group:")
-        _temp_print(groups)
+        _temp_print(groups2)
 
         # Find the groups:
-        # unique_groups = [g for g in groups if g not in ["-", "?", "U"]]
+        unique_groups = set()
+        for cell in groups2.cells:
+            if cell.has_co2():
+                unique_groups = unique_groups.union(set(cell.all_groups))
+        print(f"Unique groups: {unique_groups}")
         for g in dist_per_group.keys():  # unique_groups
             result = 0.0
             if len(plumeix) > 0:
@@ -773,7 +743,8 @@ def _find_distances_per_time_step(
 
             dist_per_group[g][i] = result
 
-        prev_groups = groups
+        # prev_groups = groups
+        prev_groups2 = groups2.copy()
 
     outputs = {}
     outputs["1"] = []
