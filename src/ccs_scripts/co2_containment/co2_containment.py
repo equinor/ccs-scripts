@@ -424,7 +424,7 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--residual_trapping",
-        help="Compute mass/volume of trapped CO2 in gass phase.",
+        help="Compute mass/volume of trapped CO2 in gas phase.",
         default=False,
     )
 
