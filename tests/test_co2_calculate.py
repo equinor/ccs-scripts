@@ -8,7 +8,7 @@ import shapely.geometry
 import xtgeo
 
 from ccs_scripts.co2_containment.co2_calculation import (
-    PROPERTIES_TO_EXTRACT,
+    RELEVANT_PROPERTIES,
     CalculationType,
     SourceData,
     _calculate_co2_data_from_source_data,
@@ -307,7 +307,7 @@ def test_reek_grid_extract_source_data():
         _extract_source_data(
             str(reek_gridfile),
             str(reek_unrstfile),
-            PROPERTIES_TO_EXTRACT,
+            RELEVANT_PROPERTIES,
             zone_info,
             region_info,
             str(reek_initfile),
