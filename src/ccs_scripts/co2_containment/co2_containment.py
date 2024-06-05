@@ -60,6 +60,7 @@ def calculate_out_of_bounds_co2(
     calc_type_input: str,
     zone_info: Dict,
     region_info: Dict,
+    residual_trapping: bool,
     file_containment_polygon: Optional[str] = None,
     file_hazardous_polygon: Optional[str] = None,
 ) -> pd.DataFrame:
@@ -89,7 +90,13 @@ def calculate_out_of_bounds_co2(
         pd.DataFrame
     """
     co2_data = calculate_co2(
-        grid_file, unrst_file, zone_info, region_info, calc_type_input, init_file
+        grid_file,
+        unrst_file,
+        zone_info,
+        region_info,
+        residual_trapping,
+        calc_type_input,
+        init_file,
     )
     if file_containment_polygon is not None:
         containment_polygon = _read_polygon(file_containment_polygon)
@@ -107,6 +114,7 @@ def calculate_out_of_bounds_co2(
         calc_type_input,
         zone_info,
         region_info,
+        residual_trapping,
     )
 
 
@@ -118,6 +126,7 @@ def calculate_from_co2_data(
     calc_type_input: str,
     zone_info: Dict,
     region_info: Dict,
+    residual_trapping: bool = False,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
     Use polygons to divide co2 mass or volume into different categories
@@ -144,33 +153,37 @@ def calculate_from_co2_data(
         hazardous_polygon,
         zone_info,
         region_info,
-        calc_type=calc_type,
+        calc_type,
+        residual_trapping,
     )
     data_frame = _construct_containment_table(contained_co2)
     if compact:
         return data_frame
     logging.info("\nMerge data rows for data frame")
     if co2_data.zone is None and co2_data.region is None:
-        return _merge_date_rows(data_frame, calc_type)
+        return _merge_date_rows(data_frame, calc_type, residual_trapping)
     if co2_data.region is None:
         return {
             "zone": {
-                z: _merge_date_rows(g, calc_type) for z, g in data_frame.groupby("zone")
+                z: _merge_date_rows(g, calc_type, residual_trapping)
+                for z, g in data_frame.groupby("zone")
             }
         }
     if co2_data.zone is None:
         return {
             "region": {
-                z: _merge_date_rows(g, calc_type)
+                z: _merge_date_rows(g, calc_type, residual_trapping)
                 for z, g in data_frame.groupby("region")
             }
         }
     return {
         "zone": {
-            z: _merge_date_rows(g, calc_type) for z, g in data_frame.groupby("zone")
+            z: _merge_date_rows(g, calc_type, residual_trapping)
+            for z, g in data_frame.groupby("zone")
         },
         "region": {
-            z: _merge_date_rows(g, calc_type) for z, g in data_frame.groupby("region")
+            z: _merge_date_rows(g, calc_type, residual_trapping)
+            for z, g in data_frame.groupby("region")
         },
     }
 
@@ -207,7 +220,7 @@ def _construct_containment_table(
 
 # pylint: disable-msg=too-many-locals
 def _merge_date_rows(
-    data_frame: pd.DataFrame, calc_type: CalculationType
+    data_frame: pd.DataFrame, calc_type: CalculationType, residual_trapping: bool
 ) -> pd.DataFrame:
     """
     Uses input dataframe to calculate various new columns and renames/merges
@@ -223,12 +236,21 @@ def _merge_date_rows(
     """
     data_frame = data_frame.drop(columns=["zone", "region"], axis=1, errors="ignore")
     # Total
-    df1 = (
-        data_frame.drop(["phase", "location"], axis=1)
-        .groupby(["date"])
-        .sum()
-        .rename(columns={"amount": "total"})
-    )
+    if residual_trapping:
+        df1 = (
+            data_frame[data_frame["phase"] != "trapped_gas"]
+            .drop(["phase", "location"], axis=1)
+            .groupby(["date"])
+            .sum()
+            .rename(columns={"amount": "total"})
+        )
+    else:
+        df1 = (
+            data_frame.drop(["phase", "location"], axis=1)
+            .groupby(["date"])
+            .sum()
+            .rename(columns={"amount": "total"})
+        )
     total_df = df1.copy()
     if calc_type == CalculationType.CELL_VOLUME:
         df2 = data_frame.drop("phase", axis=1).groupby(["location", "date"]).sum()
@@ -239,29 +261,75 @@ def _merge_date_rows(
             total_df = total_df.merge(_df, on="date", how="left")
     else:
         df2 = data_frame.drop("location", axis=1).groupby(["phase", "date"]).sum()
-        df2a = df2.loc["gas"].rename(columns={"amount": "total_gas"})
         df2b = df2.loc["aqueous"].rename(columns={"amount": "total_aqueous"})
-        # Total by containment
         df3 = data_frame.drop("phase", axis=1).groupby(["location", "date"]).sum()
+        # Total by containment
         df3a = df3.loc[("contained",)].rename(columns={"amount": "total_contained"})
         df3b = df3.loc[("outside",)].rename(columns={"amount": "total_outside"})
         df3c = df3.loc[("hazardous",)].rename(columns={"amount": "total_hazardous"})
-        # Total by containment and phase
+        # Total by containment and phase - aqueous
         df4 = data_frame.groupby(["phase", "location", "date"]).sum()
-        df4a = df4.loc["gas", "contained"].rename(columns={"amount": "gas_contained"})
         df4b = df4.loc["aqueous", "contained"].rename(
             columns={"amount": "aqueous_contained"}
         )
-        df4c = df4.loc["gas", "outside"].rename(columns={"amount": "gas_outside"})
         df4d = df4.loc["aqueous", "outside"].rename(
             columns={"amount": "aqueous_outside"}
         )
-        df4e = df4.loc["gas", "hazardous"].rename(columns={"amount": "gas_hazardous"})
         df4f = df4.loc["aqueous", "hazardous"].rename(
             columns={"amount": "aqueous_hazardous"}
         )
-        for _df in [df2a, df2b, df3a, df3b, df3c, df4a, df4b, df4c, df4d, df4e, df4f]:
+
+        if not residual_trapping:
+            df2a = df2.loc["gas"].rename(columns={"amount": "total_gas"})
+            df4a = df4.loc["gas", "contained"].rename(
+                columns={"amount": "gas_contained"}
+            )
+            df4c = df4.loc["gas", "outside"].rename(columns={"amount": "gas_outside"})
+            df4e = df4.loc["gas", "hazardous"].rename(
+                columns={"amount": "gas_hazardous"}
+            )
+        else:
+            df2a_trapped = df2.loc["trapped_gas"].rename(
+                columns={"amount": "total_trapped_gas"}
+            )
+            df2a_free = df2.loc["free_gas"].rename(columns={"amount": "total_free_gas"})
+            df2a = df2a_trapped.merge(df2a_free, on="date", how="left")
+            df4a_trapped = df4.loc["trapped_gas", "contained"].rename(
+                columns={"amount": "trapped_gas_contained"}
+            )
+            df4a_free = df4.loc["free_gas", "contained"].rename(
+                columns={"amount": "free_gas_contained"}
+            )
+            df4a = df4a_trapped.merge(df4a_free, on="date", how="left")
+            df4c_trapped = df4.loc["trapped_gas", "outside"].rename(
+                columns={"amount": "trapped_gas_outside"}
+            )
+            df4c_free = df4.loc["free_gas", "outside"].rename(
+                columns={"amount": "free_gas_outside"}
+            )
+            df4c = df4c_trapped.merge(df4c_free, on="date", how="left")
+            df4e_trapped = df4.loc["trapped_gas", "hazardous"].rename(
+                columns={"amount": "trapped_gas_hazardous"}
+            )
+            df4e_free = df4.loc["free_gas", "hazardous"].rename(
+                columns={"amount": "free_gas_hazardous"}
+            )
+            df4e = df4e_trapped.merge(df4e_free, on="date", how="left")
+        for _df in [
+            df2a,
+            df2b,
+            df3a,
+            df3b,
+            df3c,
+            df4a,
+            df4b,
+            df4c,
+            df4d,
+            df4e,
+            df4f,
+        ]:
             total_df = total_df.merge(_df, on="date", how="left")
+
     return total_df.reset_index()
 
 
@@ -353,6 +421,11 @@ def get_parser() -> argparse.ArgumentParser:
         "--debug",
         help="Enable print of debugging data during execution of script. "
         "Normally not necessary for most users.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--residual_trapping",
+        help="Compute mass/volume of trapped CO2 in gas phase.",
         action="store_true",
     )
 
@@ -740,6 +813,7 @@ def main() -> None:
         arguments_processed.calc_type_input,
         zone_info,
         region_info,
+        arguments_processed.residual_trapping,
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
     )

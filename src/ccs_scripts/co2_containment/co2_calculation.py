@@ -17,7 +17,7 @@ TRESHOLD_AMFG = 1e-16
 PROPERTIES_NEEDED_PFLOTRAN = ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
 PROPERTIES_NEEDED_ELCIPSE = ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
 
-PROPERTIES_TO_EXTRACT = [
+RELEVANT_PROPERTIES = [
     "RPORV",
     "PORV",
     "SGAS",
@@ -29,6 +29,8 @@ PROPERTIES_TO_EXTRACT = [
     "YMFG",
     "XMF2",
     "YMF2",
+    "SGSTRAND",
+    "SGTRH",
 ]
 
 
@@ -91,6 +93,8 @@ class SourceData:
     VOL: Optional[Dict[str, np.ndarray]] = None
     SWAT: Optional[Dict[str, np.ndarray]] = None
     SGAS: Optional[Dict[str, np.ndarray]] = None
+    SGSTRAND: Optional[Dict[str, np.ndarray]] = None
+    SGTRH: Optional[Dict[str, np.ndarray]] = None
     RPORV: Optional[Dict[str, np.ndarray]] = None
     PORV: Optional[Dict[str, np.ndarray]] = None
     AMFG: Optional[Dict[str, np.ndarray]] = None
@@ -121,6 +125,18 @@ class SourceData:
         """Get SGAS"""
         if self.SGAS is not None:
             return self.SGAS
+        return {}
+
+    def get_sgstrand(self):
+        """Get SGSTRAND"""
+        if self.SGSTRAND is not None:
+            return self.SGSTRAND
+        return {}
+
+    def get_sgtrh(self):
+        """Get SGTRH"""
+        if self.SGTRH is not None:
+            return self.SGTRH
         return {}
 
     def get_rporv(self):
@@ -214,6 +230,8 @@ class Co2DataAtTimeStep:
     aqu_phase: np.ndarray
     gas_phase: np.ndarray
     volume_coverage: np.ndarray
+    trapped_gas_phase: np.ndarray
+    free_gas_phase: np.ndarray
 
     def total_mass(self) -> np.ndarray:
         """
@@ -633,6 +651,7 @@ def _pflotran_co2mass(
     amfg = source_data.get_amfg()
     ymfg = source_data.get_ymfg()
     sgas = source_data.get_sgas()
+    sgstrand = source_data.get_sgstrand()
     eff_vols = source_data.get_porv()
     co2_mass = {}
     for date in dates:
@@ -646,6 +665,23 @@ def _pflotran_co2mass(
             * dgas[date]
             * _mole_to_mass_fraction(ymfg[date], co2_molar_mass, water_molar_mass),
         ]
+        if len(sgstrand) != 0:
+            co2_mass[date].extend(
+                [
+                    eff_vols[date]
+                    * sgstrand[date]
+                    * dgas[date]
+                    * _mole_to_mass_fraction(
+                        ymfg[date], co2_molar_mass, water_molar_mass
+                    ),
+                    eff_vols[date]
+                    * (sgas[date] - sgstrand[date])
+                    * dgas[date]
+                    * _mole_to_mass_fraction(
+                        ymfg[date], co2_molar_mass, water_molar_mass
+                    ),
+                ]
+            )
     return co2_mass
 
 
@@ -670,6 +706,7 @@ def _eclipse_co2mass(
     xmf2 = source_data.get_xmf2()
     ymf2 = source_data.get_ymf2()
     sgas = source_data.get_sgas()
+    sgtrh = source_data.get_sgtrh()
     eff_vols = source_data.get_rporv()
     conv_fact = co2_molar_mass
     co2_mass = {}
@@ -678,6 +715,17 @@ def _eclipse_co2mass(
             conv_fact * bwat[date] * xmf2[date] * (1 - sgas[date]) * eff_vols[date],
             conv_fact * bgas[date] * ymf2[date] * sgas[date] * eff_vols[date],
         ]
+        if len(sgtrh) != 0:
+            co2_mass[date].extend(
+                [
+                    conv_fact * bgas[date] * ymf2[date] * sgtrh[date] * eff_vols[date],
+                    conv_fact
+                    * bgas[date]
+                    * ymf2[date]
+                    * (sgas[date] - sgtrh[date])
+                    * eff_vols[date],
+                ]
+            )
     return co2_mass
 
 
@@ -908,17 +956,44 @@ def _calculate_co2_data_from_source_data(
             )
         else:
             co2_mass_cell = _eclipse_co2mass(source_data, co2_molar_mass)
-        co2_mass_output = Co2Data(
-            source_data.x_coord,
-            source_data.y_coord,
-            [
-                Co2DataAtTimeStep(key, value[0], value[1], np.zeros_like(value[1]))
-                for key, value in co2_mass_cell.items()
-            ],
-            "kg",
-            source_data.get_zone(),
-            source_data.get_region(),
-        )
+        if source_data.SGSTRAND is None and source_data.SGTRH is None:
+            co2_mass_output = Co2Data(
+                source_data.x_coord,
+                source_data.y_coord,
+                [
+                    Co2DataAtTimeStep(
+                        key,
+                        value[0],
+                        value[1],
+                        np.zeros_like(value[1]),
+                        np.zeros_like(value[1]),
+                        np.zeros_like(value[1]),
+                    )
+                    for key, value in co2_mass_cell.items()
+                ],
+                "kg",
+                source_data.get_zone(),
+                source_data.get_region(),
+            )
+        else:
+            co2_mass_output = Co2Data(
+                source_data.x_coord,
+                source_data.y_coord,
+                [
+                    Co2DataAtTimeStep(
+                        key,
+                        value[0],
+                        value[1],
+                        np.zeros_like(value[1]),
+                        value[2],
+                        value[3],
+                    )
+                    for key, value in co2_mass_cell.items()
+                ],
+                "kg",
+                source_data.get_zone(),
+                source_data.get_region(),
+            )
         if calc_type != CalculationType.MASS:
             if source == "PFlotran":
                 y = source_data.get_amfg()[source_data.DATES[0]]
@@ -986,6 +1061,8 @@ def _calculate_co2_data_from_source_data(
                         np.array(vols_co2[t][0]),
                         np.array(vols_co2[t][1]),
                         np.zeros_like(np.array(vols_co2[t][1])),
+                        np.zeros_like(np.array(vols_co2[t][1])),
+                        np.zeros_like(np.array(vols_co2[t][1])),
                     )
                     for t in vols_co2
                 ],
@@ -1025,6 +1102,8 @@ def _calculate_co2_data_from_source_data(
                     np.zeros_like(np.array(vols_ext[t])),
                     np.zeros_like(np.array(vols_ext[t])),
                     np.array(vols_ext[t]),
+                    np.zeros_like(np.array(vols_ext[t])),
+                    np.zeros_like(np.array(vols_ext[t])),
                 )
                 for t in vols_ext
             ],
@@ -1049,6 +1128,7 @@ def calculate_co2(
     unrst_file: str,
     zone_info: Dict,
     region_info: Dict,
+    residual_trapping: bool = False,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
 ) -> Co2Data:
@@ -1067,6 +1147,12 @@ def calculate_co2(
       CO2Data
 
     """
+
+    PROPERTIES_TO_EXTRACT = RELEVANT_PROPERTIES
+    if not residual_trapping:
+        PROPERTIES_TO_EXTRACT = [
+            prop for prop in RELEVANT_PROPERTIES if prop not in ["SGSTRAND", "SGTRH"]
+        ]
     source_data = _extract_source_data(
         grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_info, region_info, init_file
     )
