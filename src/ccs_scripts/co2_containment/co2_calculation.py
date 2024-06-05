@@ -17,7 +17,7 @@ TRESHOLD_AMFG = 1e-16
 PROPERTIES_NEEDED_PFLOTRAN = ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
 PROPERTIES_NEEDED_ELCIPSE = ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
 
-PROPERTIES_TO_EXTRACT = [
+RELEVANT_PROPERTIES = [
     "RPORV",
     "PORV",
     "SGAS",
@@ -1091,10 +1091,11 @@ def calculate_co2(
       CO2Data
 
     """
-    global PROPERTIES_TO_EXTRACT
+
+    PROPERTIES_TO_EXTRACT = RELEVANT_PROPERTIES
     if not residual_trapping:
         PROPERTIES_TO_EXTRACT = [
-            prop for prop in PROPERTIES_TO_EXTRACT if prop not in ["SGSTRAND", "SGTRH"]
+            prop for prop in RELEVANT_PROPERTIES if prop not in ["SGSTRAND", "SGTRH"]
         ]
     source_data = _extract_source_data(
         grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_info, region_info, init_file
