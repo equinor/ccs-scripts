@@ -55,12 +55,12 @@ class PlumeGroups:
             for ind in ind_to_resolve:
                 ijk = grid.get_ijk(active_index=ind)
                 groups_nearby = self._find_nearest_groups(ijk, grid)
+                if -1 in groups_nearby:
+                    groups_nearby.remove(-1)
+                    print("---------------->SKIP MERGE WITH UNKNOWN GROUP")
                 if len(groups_nearby) == 1:
                     self.cells[ind].set_cell_groups([groups_nearby[0]])
                 elif len(groups_nearby) >= 2:
-                    if -1 in groups_nearby:
-                        groups_nearby.remove(-1)
-                        print("SKIP MERGE WITH U")
                     if len(groups_nearby) >= 2:
                         print("NEED TO MERGE")
                         print(groups_nearby)
@@ -87,5 +87,12 @@ class PlumeGroups:
             if abs(i2 - i1) <= 1 and abs(j2 - j1) <= 1 and abs(k2 - k2) <= 1:
                 # if not group.is_undetermined() and not group.has_no_co2():
                 if group.has_co2():
-                    out.union(set(group.all_groups))
+                    out = out.union(set(group.all_groups))
         return list(out)
+
+    def _temp_print(self):
+        print(f"Count '-'       : {len([c for c in self.cells if c.has_no_co2()])}")
+        print(f"Count '?'       : {len([c for c in self.cells if c.is_undetermined()])}")
+        print(f"Count '1'       : {len([c for c in self.cells if c.has_co2() and c.all_groups[0] == 1])}")
+        print(f"Count '2'       : {len([c for c in self.cells if c.has_co2() and c.all_groups[0] == 2])}")
+        # print(f"Count 'U'       : {len([c for c in groups.cells if c.has_co2() and c.groups[0] == U])}")

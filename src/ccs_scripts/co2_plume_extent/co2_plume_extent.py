@@ -630,13 +630,6 @@ def calculate_distances(
     return all_results
 
 
-def _temp_print(groups: PlumeGroups):
-    print(f"Count '-'       : {len([c for c in groups.cells if c.has_no_co2()])}")
-    print(f"Count '?'       : {len([c for c in groups.cells if c.is_undetermined()])}")
-    print(f"Count '1'       : {len([c for c in groups.cells if c.has_co2() and c.all_groups[0] == 1])}")
-    print(f"Count '2'       : {len([c for c in groups.cells if c.has_co2() and c.all_groups[0] == 2])}")
-    # print(f"Count 'U'       : {len([c for c in groups.cells if c.has_co2() and c.groups[0] == U])}")
-
 def _find_distances_per_time_step(
     attribute_key: str,
     calculation_type: CalculationType,
@@ -679,13 +672,12 @@ def _find_distances_per_time_step(
         data = unrst[attribute_key][i].numpy_view()
         plumeix = np.where(data > threshold)[0]
         print(f"Number of grid cells with CO2 this time step: {len(plumeix)}")
-        # groups = ["-"] * n_cells
-        groups2 = PlumeGroups(n_cells)
+        print("Previous group:")
+        prev_groups2._temp_print()
+        groups2 = PlumeGroups(n_cells)  # groups = ["-"] * n_cells
         for index in plumeix:
-            # if prev_groups[index] != "-":
-            if prev_groups2.cells[index].has_co2():
+            if prev_groups2.cells[index].has_co2():  # if prev_groups[index] != "-":
                 # Need to handle here if CO2 is gone from this grid cell in this time step
-                # groups[index] = prev_groups[index]
                 groups2.cells[index] = prev_groups2.cells[index]
             else:
                 # This grid cell did not have CO2 in the last time step
@@ -695,35 +687,24 @@ def _find_distances_per_time_step(
                     abs(x - x_inj_1) <= lateral_threshold
                     and abs(y - y_inj_1) <= lateral_threshold
                 ):
-                    # This grid cell is close to injection point
                     print("Eureka 1")
-                    # groups[index] = "1"
-                    # groups2.cells[index] = CellGroup([1])
                     groups2.cells[index].set_cell_groups(new_groups = [1])
                 elif (
                     abs(x - x_inj_2) <= lateral_threshold
                     and abs(y - y_inj_2) <= lateral_threshold
                 ):
-                    # This grid cell is close to injection point
                     print("Eureka 2")
-                    # groups[index] = "2"
-                    # groups2.cells[index] = CellGroup([2])
                     groups2.cells[index].set_cell_groups([2])
                 else:
-                    # groups[index] = "?"
-                    # groups2.cells[index] = CellGroup()
                     groups2.cells[index].set_undetermined()
 
-        print(f"Number of grid cells with CO2: {len(plumeix)}")
-        print("Previous group:")
-        _temp_print(prev_groups2)
         print("Current group:")
-        _temp_print(groups2)
+        groups2._temp_print()
 
         groups2.resolve_undetermined_cells(grid)
 
-        print("Current group:")
-        _temp_print(groups2)
+        print("Current group after resolving undetermined cells:")
+        groups2._temp_print()
 
         # Find the groups:
         unique_groups = set()
@@ -743,8 +724,10 @@ def _find_distances_per_time_step(
 
             dist_per_group[g][i] = result
 
-        # prev_groups = groups
         prev_groups2 = groups2.copy()
+
+        # if i == 2:
+        #     exit()
 
     outputs = {}
     outputs["1"] = []
