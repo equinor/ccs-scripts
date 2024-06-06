@@ -663,8 +663,8 @@ def _find_distances_per_time_step(
     y_inj_2 = 350.0
     lateral_threshold = 60.0
     print(f"\nChanging treshold from: {threshold}")
-    # threshold = 0.25  # To test merging av groups
-    threshold = 0.30  # No merging of groups
+    threshold = 0.25  # To test merging av groups
+    # threshold = 0.30  # No merging of groups
     print(f"                    to: {threshold}")
 
     for i in range(nsteps):
@@ -687,13 +687,13 @@ def _find_distances_per_time_step(
                     abs(x - x_inj_1) <= lateral_threshold
                     and abs(y - y_inj_1) <= lateral_threshold
                 ):
-                    print("Eureka 1")
+                    # print("Eureka 1")
                     groups2.cells[index].set_cell_groups(new_groups = [1])
                 elif (
                     abs(x - x_inj_2) <= lateral_threshold
                     and abs(y - y_inj_2) <= lateral_threshold
                 ):
-                    print("Eureka 2")
+                    # print("Eureka 2")
                     groups2.cells[index].set_cell_groups([2])
                 else:
                     groups2.cells[index].set_undetermined()
@@ -701,16 +701,25 @@ def _find_distances_per_time_step(
         print("Current group:")
         groups2._temp_print()
 
-        groups2.resolve_undetermined_cells(grid)
+        groups_to_merge = groups2.resolve_undetermined_cells(grid)
+        print(f"Groups to merge: {groups_to_merge}")
+
+        if len(groups_to_merge) > 0:
+            for cell in groups2.cells:
+                for g in groups_to_merge:
+                    if set(cell.all_groups) & set(g):
+                        cell.all_groups = g
 
         print("Current group after resolving undetermined cells:")
         groups2._temp_print()
 
         # Find the groups:
-        unique_groups = set()
+        unique_groups = []
         for cell in groups2.cells:
             if cell.has_co2():
-                unique_groups = unique_groups.union(set(cell.all_groups))
+                if cell.all_groups not in unique_groups:
+                    unique_groups.append(cell.all_groups)
+
         print(f"Unique groups: {unique_groups}")
         for g in dist_per_group.keys():  # unique_groups
             result = 0.0
@@ -726,8 +735,8 @@ def _find_distances_per_time_step(
 
         prev_groups2 = groups2.copy()
 
-        # if i == 2:
-        #     exit()
+        if i == 10:
+            exit()
 
     outputs = {}
     outputs["1"] = []

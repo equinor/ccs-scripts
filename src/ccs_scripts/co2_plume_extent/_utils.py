@@ -21,7 +21,7 @@ class CellGroup:
 
     def set_cell_groups(self, new_groups: list[int]):
         self.status = Status.HAS_CO2
-        self.all_groups = new_groups.copy()  # NBNB-AS: Problem with copying list?
+        self.all_groups = new_groups.copy()
 
     def set_undetermined(self):
         self.status = Status.UNDETERMINED
@@ -46,25 +46,28 @@ class PlumeGroups:
         out.cells = self.cells.copy()
         return out
 
-    def resolve_undetermined_cells(self, grid: Grid):
+    def resolve_undetermined_cells(self, grid: Grid) -> list:
         ind_to_resolve = [ind for ind, group in enumerate(self.cells) if group.is_undetermined()]
         counter = 1
+        groups_to_merge = []
         while len(ind_to_resolve) > 0 and counter <= 20:
-            print(f"counter        : {counter}")
-            print(f"left to resolve: {len(ind_to_resolve)}")
+            # print(f"counter        : {counter}")
+            # print(f"left to resolve: {len(ind_to_resolve)}")
             for ind in ind_to_resolve:
                 ijk = grid.get_ijk(active_index=ind)
                 groups_nearby = self._find_nearest_groups(ijk, grid)
                 if -1 in groups_nearby:
                     groups_nearby.remove(-1)
-                    print("---------------->SKIP MERGE WITH UNKNOWN GROUP")
+                    print("----------------> SKIP MERGE WITH UNKNOWN GROUP")
                 if len(groups_nearby) == 1:
                     self.cells[ind].set_cell_groups([groups_nearby[0]])
                 elif len(groups_nearby) >= 2:
                     if len(groups_nearby) >= 2:
-                        print("NEED TO MERGE")
+                        print("----------------> NEED TO MERGE")
                         print(groups_nearby)
-                        exit()
+                        if groups_nearby not in groups_to_merge:
+                            groups_to_merge.append(groups_nearby)
+                        self.cells[ind].set_cell_groups(groups_nearby)
 
             updated_ind_to_resolve = [
                 ind for ind, group in enumerate(self.cells) if group.is_undetermined()
@@ -75,9 +78,42 @@ class PlumeGroups:
             ind_to_resolve = updated_ind_to_resolve
             counter += 1
 
-        # # Any unresolved grid cells?
+        # Any unresolved grid cells?
         for ind in ind_to_resolve:
             self.cells[ind].set_cell_groups([-1])
+
+        # Resolve groups to merge:
+        # print("\n\n--------")
+        new_groups_to_merge = []
+        # print(groups_to_merge)
+        # groups_to_merge = [ [ [1,2],[3,4],[5] ]  , [[10],[11],[12]] , [ [3,4],[6],[7] ], [[8], [9]] ]
+        # groups_to_merge = [ [ [1],[2],[3,4] ] ]
+        for g in groups_to_merge:
+            # print(g)
+            merged = False
+            for c in g:
+                if merged:
+                    continue
+                # Is group c in a group that is already somewhere new_groups_to_merge?
+                for d in new_groups_to_merge:
+                    if c in d:
+                        # print(f"FOUND {c} in {d}")
+                        merged = True
+                        # List of groups (g) needs to be merged with d
+                        for new_g in g:
+                            if new_g not in d:
+                                d.append(new_g)
+                        break
+            # print(f"Already merged with other group? {merged}")
+            if not merged:
+                new_groups_to_merge.append(g)
+        # print("\n")
+        # for g in new_groups_to_merge:
+        #     print(g)
+        # if len(groups_to_merge) > 0:
+        #     exit()
+
+        return new_groups_to_merge
 
     def _find_nearest_groups(self, ijk, grid) -> list[int]:
         out = set()
@@ -91,8 +127,15 @@ class PlumeGroups:
         return list(out)
 
     def _temp_print(self):
-        print(f"Count '-'       : {len([c for c in self.cells if c.has_no_co2()])}")
-        print(f"Count '?'       : {len([c for c in self.cells if c.is_undetermined()])}")
-        print(f"Count '1'       : {len([c for c in self.cells if c.has_co2() and c.all_groups[0] == 1])}")
-        print(f"Count '2'       : {len([c for c in self.cells if c.has_co2() and c.all_groups[0] == 2])}")
-        # print(f"Count 'U'       : {len([c for c in groups.cells if c.has_co2() and c.groups[0] == U])}")
+        # Find the groups:
+        unique_groups = []
+        for cell in self.cells:
+            if cell.has_co2():
+                if cell.all_groups not in unique_groups:
+                    unique_groups.append(cell.all_groups)
+        unique_groups.sort()
+
+        print(f"Count '-'              : {len([c for c in self.cells if c.has_no_co2()])}")
+        print(f"Count '?'              : {len([c for c in self.cells if c.is_undetermined()])}")
+        for unique_group in unique_groups:
+            print(f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {len([c for c in self.cells if c.has_co2() and c.all_groups == unique_group])}")
