@@ -643,9 +643,9 @@ def _find_distances_per_time_step(
     """
     nsteps = len(unrst.report_steps)
     dist_per_group = {}
-    dist_per_group["1"] = np.zeros(shape=(nsteps,))
-    dist_per_group["2"] = np.zeros(shape=(nsteps,))
-    dist_per_group["1+2"] = np.zeros(shape=(nsteps,))
+    # dist_per_group["1"] = np.zeros(shape=(nsteps,))
+    # dist_per_group["2"] = np.zeros(shape=(nsteps,))
+    # dist_per_group["1+2"] = np.zeros(shape=(nsteps,))
     # Groups: "-", "?", 1, 2, 3, 4, "1+2", "3+4", "1+2+3+4"
     # "-"           : No CO2
     # "?"           : Yet undecided group
@@ -721,33 +721,46 @@ def _find_distances_per_time_step(
                     unique_groups.append(cell.all_groups)
 
         print(f"Unique groups: {unique_groups}")
-        for g in dist_per_group.keys():  # unique_groups
+        for g in unique_groups:  # dist_per_group.keys()
+
+            indices_this_group = [i for i in plumeix if groups2.cells[i].all_groups == g]
             result = 0.0
-            if len(plumeix) > 0:
+            if len(indices_this_group) > 0:
                 if calculation_type == CalculationType.PLUME_EXTENT:
-                    result = dist[plumeix].max()
+                    result = dist[indices_this_group].max()
                 elif calculation_type in (CalculationType.POINT, CalculationType.LINE):
-                    result = dist[plumeix].min()
+                    result = dist[indices_this_group].min()
             else:
                 result = np.nan
 
-            dist_per_group[g][i] = result
+            group_string = "+".join([str(x) for x in g])
+            print(f"group_string: {group_string}")
+            if group_string not in dist_per_group:
+                dist_per_group[group_string] = np.zeros(shape=(nsteps,))
+            dist_per_group[group_string][i] = result
 
         prev_groups2 = groups2.copy()
 
-        if i == 10:
-            exit()
+        # if i == 10:
+        #     exit()
+
+    print("Distances per group:")
+    print(dist_per_group)
 
     outputs = {}
-    outputs["1"] = []
-    outputs["2"] = []
-    outputs["1+2"] = []
+    for key in dist_per_group.keys():
+        outputs[key] = []
+    # outputs["1"] = []
+    # outputs["2"] = []
+    # outputs["1+2"] = []
     for group_name, distances in dist_per_group.items():
         print(f"group_name: {group_name}")
         for i, d in enumerate(unrst.report_dates):
             date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
             outputs[group_name].append(date_and_result)
         print(outputs[group_name])
+
+    print(outputs)
 
     exit()
 
