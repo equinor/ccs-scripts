@@ -716,8 +716,17 @@ def _combine_data_frame(
     """
     Combine data frames from different zones into one single data frame
     """
-    if zone_info["source"] is None and region_info["int_to_region"] is None:
-        assert isinstance(data_frame, pd.DataFrame)
+    # if zone_info["source"] is None and region_info["int_to_region"] is None:
+    #     assert isinstance(data_frame, pd.DataFrame)
+    if isinstance(data_frame, pd.DataFrame):
+        if zone_info["source"] is None:
+            data_frame.drop(columns="zone", inplace=True)
+        if region_info["int_to_region"] is None:
+            data_frame.drop(columns="region", inplace=True)
+        data_frame.replace(to_replace=[None], value="total", inplace=True)
+        data_frame.replace(to_replace=["total"], value="AAAAAAAAAAtotal", inplace=True)
+        data_frame.sort_values(by=list(data_frame.columns[-1:1:-1]),inplace=True)
+        data_frame.replace(to_replace=["AAAAAAAAAAtotal"], value="total", inplace=True)
         return data_frame
 
     assert isinstance(data_frame, Dict)
@@ -797,7 +806,7 @@ def main() -> None:
     }
     region_info = {
         "source": arguments_processed.regionfile,
-        "int_to_region": None,
+        "int_to_region": None,  # set during calculation if source or property is given
         "property_name": arguments_processed.region_property,
     }
     if zone_info["source"] is not None:
@@ -818,7 +827,7 @@ def main() -> None:
         arguments_processed.hazardous_polygon,
     )
     df_combined = _combine_data_frame(data_frame, zone_info, region_info)
-    log_summary_of_results(df_combined)
+    # log_summary_of_results(df_combined)
     export_output_to_csv(
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,
