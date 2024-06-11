@@ -543,26 +543,40 @@ def calculate_single_distances(
     x = config.x
     y = config.y
     direction = config.direction
-    dist = np.zeros(shape=(nactive,))
-    if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
-        for i in range(nactive):
-            center = grid.get_xyz(active_index=i)
-            dist[i] = np.sqrt((center[0] - x) ** 2 + (center[1] - y) ** 2)
-    elif calculation_type == CalculationType.LINE:
-        line_value = x
-        ind = 0  # Use x-coordinate
-        if direction in (LineDirection.NORTH, LineDirection.SOUTH):
-            line_value = y
-            ind = 1  # Use y-coordinate
 
-        factor = 1
-        if direction in (LineDirection.WEST, LineDirection.SOUTH):
-            factor = -1
+    inj_well_numbers = [1, 2]
 
-        for i in range(nactive):
-            center = grid.get_xyz(active_index=i)
-            dist[i] = factor * (line_value - center[ind])
-        dist[dist < 0] = 0.0
+    dist = {}
+    for inj in inj_well_numbers:
+        dist[inj] = np.zeros(shape=(nactive,))
+
+        # NBNB-AS: Fix this
+        if inj == 1:
+            x = 2150.0
+            y = 2150.0
+        elif inj == 2:
+            x = 2550.0
+            y = 350.0
+
+        if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
+            for i in range(nactive):
+                center = grid.get_xyz(active_index=i)
+                dist[inj][i] = np.sqrt((center[0] - x) ** 2 + (center[1] - y) ** 2)
+        elif calculation_type == CalculationType.LINE:
+            line_value = x
+            ind = 0  # Use x-coordinate
+            if direction in (LineDirection.NORTH, LineDirection.SOUTH):
+                line_value = y
+                ind = 1  # Use y-coordinate
+
+            factor = 1
+            if direction in (LineDirection.WEST, LineDirection.SOUTH):
+                factor = -1
+
+            for i in range(nactive):
+                center = grid.get_xyz(active_index=i)
+                dist[inj][i] = factor * (line_value - center[ind])
+            dist[inj][dist[inj] < 0] = 0.0
 
     text = ""
     if calculation_type == CalculationType.PLUME_EXTENT:
@@ -571,11 +585,12 @@ def calculate_single_distances(
         text = "point          "
     elif calculation_type == CalculationType.LINE:
         text = "line           "
-    logging.info(f"Smallest distance grid cell to {text} : {min(dist):>10.1f}")
-    logging.info(f"Largest distance grid cell to {text}  : {max(dist):>10.1f}")
-    logging.info(
-        f"Average distance grid cell to {text}  : {sum(dist) / len(dist):>10.1f}"
-    )
+    for inj_well, distance in dist.items():
+        logging.info(f"Smallest distance grid cell to {text} : {min(distance):>10.1f}")
+        logging.info(f"Largest distance grid cell to {text}  : {max(distance):>10.1f}")
+        logging.info(
+            f"Average distance grid cell to {text}  : {sum(distance) / len(distance):>10.1f}"
+        )
 
     sgas_results = _find_distances_per_time_step(
         "SGAS", calculation_type, threshold_sgas, unrst, grid, dist
@@ -607,7 +622,7 @@ def calculate_distances(
     config: Configuration,
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
-) -> List[Tuple[List[List], Optional[List[List]], Optional[str]]]:
+) -> List[Tuple[dict, Optional[dict], Optional[str]]]:
     """
     Find distance (plume extent / distance to point / distance to line) per
     date for SGAS and AMFG/XMF2.
@@ -636,8 +651,8 @@ def _find_distances_per_time_step(
     threshold: float,
     unrst: ResdataFile,
     grid: Grid,
-    dist: np.ndarray,
-) -> List[List]:
+    dist: dict[int, np.ndarray],
+) -> dict:
     """
     Find distance metric for each step
     """
@@ -721,17 +736,19 @@ def _find_distances_per_time_step(
                     unique_groups.append(cell.all_groups)
 
         print(f"Unique groups: {unique_groups}")
-        for g in unique_groups:  # dist_per_group.keys()
-
+        for g in unique_groups:
             indices_this_group = [i for i in plumeix if groups2.cells[i].all_groups == g]
             result = 0.0
-            if len(indices_this_group) > 0:
-                if calculation_type == CalculationType.PLUME_EXTENT:
-                    result = dist[indices_this_group].max()
-                elif calculation_type in (CalculationType.POINT, CalculationType.LINE):
-                    result = dist[indices_this_group].min()
-            else:
-                result = np.nan
+            for single_inj_number in g:
+                if single_inj_number == -1:
+                    continue
+                if len(indices_this_group) > 0:
+                    if calculation_type == CalculationType.PLUME_EXTENT:
+                        result = dist[single_inj_number][indices_this_group].max()
+                    elif calculation_type in (CalculationType.POINT, CalculationType.LINE):
+                        result = dist[single_inj_number][indices_this_group].min()
+                else:
+                    result = np.nan
 
             group_string = "+".join([str(x) for x in g])
             print(f"group_string: {group_string}")
@@ -741,18 +758,12 @@ def _find_distances_per_time_step(
 
         prev_groups2 = groups2.copy()
 
-        # if i == 10:
-        #     exit()
-
     print("Distances per group:")
     print(dist_per_group)
 
     outputs = {}
     for key in dist_per_group.keys():
         outputs[key] = []
-    # outputs["1"] = []
-    # outputs["2"] = []
-    # outputs["1+2"] = []
     for group_name, distances in dist_per_group.items():
         print(f"group_name: {group_name}")
         for i, d in enumerate(unrst.report_dates):
@@ -761,8 +772,6 @@ def _find_distances_per_time_step(
         print(outputs[group_name])
 
     print(outputs)
-
-    exit()
 
     return outputs
 
@@ -791,11 +800,14 @@ def _log_results(
 
 
 def _collect_results_into_dataframe(
-    all_results: List[Tuple[List[List], Optional[List[List]], Optional[str]]],
+    all_results: List[Tuple[dict, Optional[dict], Optional[str]]],
     config: Configuration,
 ) -> pd.DataFrame:
 
-    dates = [[date] for (date, _) in all_results[0][0]]
+    print(all_results)
+    print(next(iter(all_results[0][0])))
+    print(all_results[0][0][next(iter(all_results[0][0]))])
+    dates = [[date] for (date, _) in all_results[0][0][next(iter(all_results[0][0]))]]
     df = pd.DataFrame.from_records(dates, columns=["date"])
 
     for i, (result, single_config) in enumerate(
@@ -813,19 +825,21 @@ def _collect_results_into_dataframe(
         else:
             col = col + f"{single_config.type.name.lower()}_{i}"
 
-        sgas_df = pd.DataFrame.from_records(
-            sgas_results, columns=["date", col + "_SGAS"]
-        )
-        df = pd.merge(df, sgas_df, on="date")
-        if amfg_results is not None:
-            if amfg_key is None:
-                amfg_key_str = "?"
-            else:
-                amfg_key_str = amfg_key
-            amfg_df = pd.DataFrame.from_records(
-                amfg_results, columns=["date", col + "_" + amfg_key_str]
+        for group_number, sgas_result in sgas_results.items():
+            sgas_df = pd.DataFrame.from_records(
+                sgas_result, columns=["date", col + "_SGAS_"+str(group_number)]
             )
-            df = pd.merge(df, amfg_df, on="date")
+            df = pd.merge(df, sgas_df, on="date")
+        for group_number, amfg_result in amfg_results.items():
+            if amfg_result is not None:
+                if amfg_key is None:
+                    amfg_key_str = "?"
+                else:
+                    amfg_key_str = amfg_key
+                amfg_df = pd.DataFrame.from_records(
+                    amfg_result, columns=["date", col + "_" + amfg_key_str + str(group_number)]
+                )
+                df = pd.merge(df, amfg_df, on="date")
 
     return df
 
