@@ -89,7 +89,6 @@ class PlumeGroups:
         # groups_to_merge = [ [ [1,2],[3,4],[5] ]  , [[10],[11],[12]] , [ [3,4],[6],[7] ], [[8], [9]] ]
         # groups_to_merge = [ [ [1],[2],[3,4] ] ]
         for g in groups_to_merge:
-            # print(g)
             merged = False
             for c in g:
                 if merged:
@@ -97,21 +96,14 @@ class PlumeGroups:
                 # Is group c in a group that is already somewhere new_groups_to_merge?
                 for d in new_groups_to_merge:
                     if c in d:
-                        # print(f"FOUND {c} in {d}")
                         merged = True
                         # List of groups (g) needs to be merged with d
                         for new_g in g:
                             if new_g not in d:
                                 d.append(new_g)
                         break
-            # print(f"Already merged with other group? {merged}")
             if not merged:
                 new_groups_to_merge.append(g)
-        # print("\n")
-        # for g in new_groups_to_merge:
-        #     print(g)
-        # if len(groups_to_merge) > 0:
-        #     exit()
 
         return new_groups_to_merge
 
@@ -121,7 +113,6 @@ class PlumeGroups:
         for ind, group in enumerate(self.cells, 0):
             (i2, j2, k2) = grid.get_ijk(active_index=ind)
             if abs(i2 - i1) <= 1 and abs(j2 - j1) <= 1 and abs(k2 - k2) <= 1:
-                # if not group.is_undetermined() and not group.has_no_co2():
                 if group.has_co2():
                     out = out.union(set(group.all_groups))
         return list(out)

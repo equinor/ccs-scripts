@@ -664,7 +664,7 @@ def _find_distances_per_time_step(
 
     n_cells = len(unrst[attribute_key][0].numpy_view())
     print(f"n_cells = {n_cells}")
-    prev_groups2 = PlumeGroups(n_cells)
+    prev_groups = PlumeGroups(n_cells)
 
     x_inj_1 = 2150.0
     y_inj_1 = 2150.0
@@ -694,62 +694,58 @@ def _find_distances_per_time_step(
 
         print(f"Number of grid cells with CO2 this time step: {len(plumeix)}")
         print("Previous group:")
-        prev_groups2._temp_print()
-        groups2 = PlumeGroups(n_cells)  # groups = ["-"] * n_cells
+        prev_groups._temp_print()
+        groups = PlumeGroups(n_cells)
         for index in plumeix:
-            if prev_groups2.cells[index].has_co2():  # if prev_groups[index] != "-":
+            if prev_groups.cells[index].has_co2():
                 # Need to handle here if CO2 is gone from this grid cell in this time step
-                groups2.cells[index] = prev_groups2.cells[index]
+                groups.cells[index] = prev_groups.cells[index]
             else:
                 # This grid cell did not have CO2 in the last time step
-                # (i1, j1, k1) = grid.get_ijk(active_index=index)
                 (x, y, _) = grid.get_xyz(active_index=index)
                 if (
                     abs(x - x_inj_1) <= lateral_threshold
                     and abs(y - y_inj_1) <= lateral_threshold
                 ):
-                    # print("Eureka 1")
-                    groups2.cells[index].set_cell_groups(new_groups = [1])
+                    groups.cells[index].set_cell_groups(new_groups = [1])
                 elif (
                     abs(x - x_inj_2) <= lateral_threshold
                     and abs(y - y_inj_2) <= lateral_threshold
                 ):
-                    # print("Eureka 2")
-                    groups2.cells[index].set_cell_groups(new_groups = [2])
+                    groups.cells[index].set_cell_groups(new_groups = [2])
                 elif (
                     abs(x - x_inj_3) <= lateral_threshold
                     and abs(y - y_inj_3) <= lateral_threshold
                 ):
-                    # print("Eureka 3")
-                    groups2.cells[index].set_cell_groups(new_groups = [3])
+                    groups.cells[index].set_cell_groups(new_groups = [3])
                 else:
-                    groups2.cells[index].set_undetermined()
+                    groups.cells[index].set_undetermined()
 
         print("Current group:")
-        groups2._temp_print()
+        groups._temp_print()
 
-        groups_to_merge = groups2.resolve_undetermined_cells(grid)
+        groups_to_merge = groups.resolve_undetermined_cells(grid)
         print(f"Groups to merge: {groups_to_merge}")
 
         if len(groups_to_merge) > 0:
-            for cell in groups2.cells:
+            for cell in groups.cells:
                 for g in groups_to_merge:
                     if set(cell.all_groups) & set(g):
                         cell.all_groups = g
 
         print("Current group after resolving undetermined cells:")
-        groups2._temp_print()
+        groups._temp_print()
 
         # Find the groups:
         unique_groups = []
-        for cell in groups2.cells:
+        for cell in groups.cells:
             if cell.has_co2():
                 if cell.all_groups not in unique_groups:
                     unique_groups.append(cell.all_groups)
 
         print(f"Unique groups: {unique_groups}")
         for g in unique_groups:
-            indices_this_group = [i for i in plumeix if groups2.cells[i].all_groups == g]
+            indices_this_group = [i for i in plumeix if groups.cells[i].all_groups == g]
             result = 0.0
             for single_inj_number in g:
                 if single_inj_number == -1:
@@ -768,10 +764,7 @@ def _find_distances_per_time_step(
                 dist_per_group[group_string] = np.zeros(shape=(nsteps,))
             dist_per_group[group_string][i] = result
 
-        prev_groups2 = groups2.copy()
-
-    print("Distances per group:")
-    print(dist_per_group)
+        prev_groups = groups.copy()
 
     outputs = {}
     for key in dist_per_group.keys():
@@ -781,9 +774,6 @@ def _find_distances_per_time_step(
         for i, d in enumerate(unrst.report_dates):
             date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
             outputs[group_name].append(date_and_result)
-        print(outputs[group_name])
-
-    print(outputs)
 
     return outputs
 
@@ -815,10 +805,6 @@ def _collect_results_into_dataframe(
     all_results: List[Tuple[dict, Optional[dict], Optional[str]]],
     config: Configuration,
 ) -> pd.DataFrame:
-
-    print(all_results)
-    print(next(iter(all_results[0][0])))
-    print(all_results[0][0][next(iter(all_results[0][0]))])
     dates = [[date] for (date, _) in all_results[0][0][next(iter(all_results[0][0]))]]
     df = pd.DataFrame.from_records(dates, columns=["date"])
 
