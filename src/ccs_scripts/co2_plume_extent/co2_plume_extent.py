@@ -813,19 +813,23 @@ def _collect_results_into_dataframe(
     ):
         (sgas_results, amfg_results, amfg_key) = result
 
-        col = "?"
         if single_config.type == CalculationType.PLUME_EXTENT:
-            col = "MAX_DISTANCE_"
+            col = "MAX_"
         elif single_config.type in (CalculationType.POINT, CalculationType.LINE):
-            col = "MIN_DISTANCE_"
+            col = "MIN_"
+        else:
+            col = "?"
+
         if single_config.name != "":
             col = col + single_config.name
         else:
-            col = col + f"{single_config.type.name.lower()}_{i}"
+            calc_number = "" if len(config.distance_calculations) == 1 else str(i)
+            col = col + f"{single_config.type.name.upper()}{calc_number}"
 
         for group_number, sgas_result in sgas_results.items():
+            col += "_SGAS_" + "GROUP_" + str(group_number) + "_FROM_" + str(group_number)  # NBNB-AS: Fix "from" later here
             sgas_df = pd.DataFrame.from_records(
-                sgas_result, columns=["date", col + "_SGAS_"+str(group_number)]
+                sgas_result, columns=["date", col]
             )
             df = pd.merge(df, sgas_df, on="date")
         for group_number, amfg_result in amfg_results.items():
@@ -834,8 +838,9 @@ def _collect_results_into_dataframe(
                     amfg_key_str = "?"
                 else:
                     amfg_key_str = amfg_key
+                col += "_" + amfg_key_str + "_GROUP_" + str(group_number) + "_FROM_" + str(group_number)  # NBNB-AS: Fix "from" later here
                 amfg_df = pd.DataFrame.from_records(
-                    amfg_result, columns=["date", col + "_" + amfg_key_str + str(group_number)]
+                    amfg_result, columns=["date", col]
                 )
                 df = pd.merge(df, amfg_df, on="date")
 
