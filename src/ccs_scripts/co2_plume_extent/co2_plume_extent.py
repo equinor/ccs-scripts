@@ -761,40 +761,24 @@ def _find_distances_per_time_step(
                         result[single_inj_number] = dist[single_inj_number][indices_this_group].max()
                     elif calculation_type in (CalculationType.POINT, CalculationType.LINE):
                         result[single_inj_number] = dist[single_inj_number][indices_this_group].min()
-                print(f"result       = {result}")
 
             group_string = "+".join([str(x) for x in g])
             print(f"group_string: {group_string}")
             if group_string not in dist_per_group:
-                print("AAA")
                 dist_per_group[group_string] = {s: np.zeros(shape=(nsteps,)) for s in g}
             for s in g:
                 dist_per_group[group_string][s][i] = result[s]
-            # print(f"\ndist_per_group[{group_string}]:")
-            # print(dist_per_group[group_string])
 
         prev_groups = groups.copy()
 
-    print("\ndist_per_group:")
-    print(dist_per_group)
-    print("")
-
     outputs = {}
-    # for key in dist_per_group.keys():
-    #     outputs[key] = {}
     for group_name, single_group_distances in dist_per_group.items():
-        print(f"group_name: {group_name}")
-        print(single_group_distances)
         outputs[group_name] = {}
         for single_group, distances in single_group_distances.items():
-            print(f"  single_group: {single_group}")
             outputs[group_name][single_group] = []
             for i, d in enumerate(unrst.report_dates):
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
                 outputs[group_name][single_group].append(date_and_result)
-
-    print(outputs)
-
     return outputs
 
 
@@ -821,63 +805,48 @@ def _log_results(
         logging.info(f"End state {col:>32} : {dfs[col].iloc[-1]:>11.1f}")
 
 
+def _find_dates(all_results: List[Tuple[dict, Optional[dict], Optional[str]]]):
+    one_dict = all_results[0][0][next(iter(all_results[0][0]))]
+    one_array = one_dict[next(iter(one_dict))]
+    dates = [[date] for (date, _) in one_array]
+    return dates
+
+
+def _find_column_name(single_config, n_calculations: int, calculation_number: int):
+    if single_config.type == CalculationType.PLUME_EXTENT:
+        col = "MAX_"
+    elif single_config.type in (CalculationType.POINT, CalculationType.LINE):
+        col = "MIN_"
+    else:
+        col = "?"
+
+    if single_config.name != "":
+        col = col + single_config.name
+    else:
+        calc_number = "" if n_calculations == 1 else str(calculation_number)
+        col = col + f"{single_config.type.name.upper()}{calc_number}"
+
+    return col
+
+
 def _collect_results_into_dataframe(
     all_results: List[Tuple[dict, Optional[dict], Optional[str]]],
     config: Configuration,
 ) -> pd.DataFrame:
-    print("\n\n\n\n\n")
-    print("\nall_results:")
-    print(all_results)
-    print("\nall_results[0][0]:")
-    print(all_results[0][0])
-    print("\n")
-
-    for keys1, items1 in all_results[0][0].items():
-        print(f"  keys1 : {keys1}")
-        for keys2, items2 in items1.items():
-            print(f"    keys2 : {keys2}")
-            print(f"    items2: {items2}")
-
-    one_dict = all_results[0][0][next(iter(all_results[0][0]))]
-    # print("\nA")
-    # print(one_dict)
-    one_array = one_dict[next(iter(one_dict))]
-    # print("\nB")
-    # print(one_array)
-    # dates = [[date] for (date, _) in all_results[0][0][next(iter(all_results[0][0]))]]
-    dates = [[date] for (date, _) in one_array]
+    dates = _find_dates(all_results)
     df = pd.DataFrame.from_records(dates, columns=["date"])
-
     for i, (result, single_config) in enumerate(
         zip(all_results, config.distance_calculations), 1
     ):
         (sgas_results, amfg_results, amfg_key) = result
-        print("\n\n\nsgas_results:")
-        print(sgas_results)
-        for keys1, items1 in sgas_results.items():
-            print(f"  keys1 : {keys1}")
-            for keys2, items2 in items1.items():
-                print(f"    keys2 : {keys2}")
-                print(f"    items2: {items2}")
 
-        if single_config.type == CalculationType.PLUME_EXTENT:
-            col = "MAX_"
-        elif single_config.type in (CalculationType.POINT, CalculationType.LINE):
-            col = "MIN_"
-        else:
-            col = "?"
-
-        if single_config.name != "":
-            col = col + single_config.name
-        else:
-            calc_number = "" if len(config.distance_calculations) == 1 else str(i)
-            col = col + f"{single_config.type.name.upper()}{calc_number}"
+        col = _find_column_name(single_config, len(config.distance_calculations), i)
 
         for group_number, sgas_results in sgas_results.items():
             for inj_well_number, sgas_result in sgas_results.items():
-                col2 = col + "_SGAS_" + "GROUP_" + str(group_number) + "_FROM_" + str(inj_well_number)
+                full_col_name = col + "_SGAS_" + "GROUP_" + str(group_number) + "_FROM_" + str(inj_well_number)
                 sgas_df = pd.DataFrame.from_records(
-                    sgas_result, columns=["date", col2]
+                    sgas_result, columns=["date", full_col_name]
                 )
                 df = pd.merge(df, sgas_df, on="date")
         for group_number, amfg_results in amfg_results.items():
@@ -887,14 +856,11 @@ def _collect_results_into_dataframe(
                         amfg_key_str = "?"
                     else:
                         amfg_key_str = amfg_key
-                    col2 = col + "_" + amfg_key_str + "_GROUP_" + str(group_number) + "_FROM_" + str(inj_well_number)
+                    full_col_name = col + "_" + amfg_key_str + "_GROUP_" + str(group_number) + "_FROM_" + str(inj_well_number)
                     amfg_df = pd.DataFrame.from_records(
-                        amfg_result, columns=["date", col2]
+                        amfg_result, columns=["date", full_col_name]
                     )
                     df = pd.merge(df, amfg_df, on="date")
-
-    print("\n\ndf:")
-    print(df)
     return df
 
 
