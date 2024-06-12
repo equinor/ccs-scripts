@@ -544,7 +544,7 @@ def calculate_single_distances(
     y = config.y
     direction = config.direction
 
-    inj_well_numbers = [1, 2]
+    inj_well_numbers = [1, 2, 3]
 
     dist = {}
     for inj in inj_well_numbers:
@@ -557,6 +557,9 @@ def calculate_single_distances(
         elif inj == 2:
             x = 2550.0
             y = 350.0
+        elif inj == 3:
+            x = 350.0
+            y = 2450.0
 
         if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
             for i in range(nactive):
@@ -658,27 +661,20 @@ def _find_distances_per_time_step(
     """
     nsteps = len(unrst.report_steps)
     dist_per_group = {}
-    # dist_per_group["1"] = np.zeros(shape=(nsteps,))
-    # dist_per_group["2"] = np.zeros(shape=(nsteps,))
-    # dist_per_group["1+2"] = np.zeros(shape=(nsteps,))
-    # Groups: "-", "?", 1, 2, 3, 4, "1+2", "3+4", "1+2+3+4"
-    # "-"           : No CO2
-    # "?"           : Yet undecided group
-    # "1", "2", ... : Group number
-    # "1+2"         : Merged groups
 
     n_cells = len(unrst[attribute_key][0].numpy_view())
     print(f"n_cells = {n_cells}")
-    # prev_groups = ["-"] * n_cells
     prev_groups2 = PlumeGroups(n_cells)
 
     x_inj_1 = 2150.0
     y_inj_1 = 2150.0
     x_inj_2 = 2550.0
     y_inj_2 = 350.0
+    x_inj_3 = 350.0
+    y_inj_3 = 2450.0
     lateral_threshold = 60.0
     print(f"\nChanging treshold from: {threshold}")
-    threshold = 0.25  # To test merging av groups
+    threshold = 0.25  # To test merging of groups
     # threshold = 0.30  # No merging of groups
     print(f"                    to: {threshold}")
 
@@ -686,6 +682,16 @@ def _find_distances_per_time_step(
         print(f"\n\ni = {i}")
         data = unrst[attribute_key][i].numpy_view()
         plumeix = np.where(data > threshold)[0]
+
+        # Temp add cells with co2 for made up injection well 3:
+        if i > 11 and True:
+            temp_inj3_list = [584, 585, 586, 609, 610, 611, 636, 637, 638, 1333, 1334, 1335, 1357, 1358, 1379, 1380]
+            if i > 14:
+                temp_inj3_list += [587, 612]
+            if i > 20:
+                temp_inj3_list += [588, 613]
+            plumeix = np.concatenate((plumeix, np.array(temp_inj3_list)))
+
         print(f"Number of grid cells with CO2 this time step: {len(plumeix)}")
         print("Previous group:")
         prev_groups2._temp_print()
@@ -709,7 +715,13 @@ def _find_distances_per_time_step(
                     and abs(y - y_inj_2) <= lateral_threshold
                 ):
                     # print("Eureka 2")
-                    groups2.cells[index].set_cell_groups([2])
+                    groups2.cells[index].set_cell_groups(new_groups = [2])
+                elif (
+                    abs(x - x_inj_3) <= lateral_threshold
+                    and abs(y - y_inj_3) <= lateral_threshold
+                ):
+                    # print("Eureka 3")
+                    groups2.cells[index].set_cell_groups(new_groups = [3])
                 else:
                     groups2.cells[index].set_undetermined()
 
