@@ -745,35 +745,55 @@ def _find_distances_per_time_step(
 
         print(f"Unique groups: {unique_groups}")
         for g in unique_groups:
+            # Calculate distance metric for this group
             indices_this_group = [i for i in plumeix if groups.cells[i].all_groups == g]
-            result = 0.0
-            for single_inj_number in g:
-                if single_inj_number == -1:
-                    continue
-                if len(indices_this_group) > 0:
-                    if calculation_type == CalculationType.PLUME_EXTENT:
-                        result = dist[single_inj_number][indices_this_group].max()
+            if len(indices_this_group) == 0:
+                result = {}
+                for single_inj_number in g:  # Can to this in a better way?
+                    result[single_inj_number] = np.nan
+            else:
+                result = {}
+                for single_inj_number in g:
+                    result[single_inj_number] = 0.0
+                    if single_inj_number == -1:
+                        continue
+                    elif calculation_type == CalculationType.PLUME_EXTENT:
+                        result[single_inj_number] = dist[single_inj_number][indices_this_group].max()
                     elif calculation_type in (CalculationType.POINT, CalculationType.LINE):
-                        result = dist[single_inj_number][indices_this_group].min()
-                else:
-                    result = np.nan
+                        result[single_inj_number] = dist[single_inj_number][indices_this_group].min()
+                print(f"result       = {result}")
 
             group_string = "+".join([str(x) for x in g])
             print(f"group_string: {group_string}")
             if group_string not in dist_per_group:
-                dist_per_group[group_string] = np.zeros(shape=(nsteps,))
-            dist_per_group[group_string][i] = result
+                print("AAA")
+                dist_per_group[group_string] = {s: np.zeros(shape=(nsteps,)) for s in g}
+            for s in g:
+                dist_per_group[group_string][s][i] = result[s]
+            # print(f"\ndist_per_group[{group_string}]:")
+            # print(dist_per_group[group_string])
 
         prev_groups = groups.copy()
 
+    print("\ndist_per_group:")
+    print(dist_per_group)
+    print("")
+
     outputs = {}
-    for key in dist_per_group.keys():
-        outputs[key] = []
-    for group_name, distances in dist_per_group.items():
+    # for key in dist_per_group.keys():
+    #     outputs[key] = {}
+    for group_name, single_group_distances in dist_per_group.items():
         print(f"group_name: {group_name}")
-        for i, d in enumerate(unrst.report_dates):
-            date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
-            outputs[group_name].append(date_and_result)
+        print(single_group_distances)
+        outputs[group_name] = {}
+        for single_group, distances in single_group_distances.items():
+            print(f"  single_group: {single_group}")
+            outputs[group_name][single_group] = []
+            for i, d in enumerate(unrst.report_dates):
+                date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
+                outputs[group_name][single_group].append(date_and_result)
+
+    print(outputs)
 
     return outputs
 
@@ -805,13 +825,40 @@ def _collect_results_into_dataframe(
     all_results: List[Tuple[dict, Optional[dict], Optional[str]]],
     config: Configuration,
 ) -> pd.DataFrame:
-    dates = [[date] for (date, _) in all_results[0][0][next(iter(all_results[0][0]))]]
+    print("\n\n\n\n\n")
+    print("\nall_results:")
+    print(all_results)
+    print("\nall_results[0][0]:")
+    print(all_results[0][0])
+    print("\n")
+
+    for keys1, items1 in all_results[0][0].items():
+        print(f"  keys1 : {keys1}")
+        for keys2, items2 in items1.items():
+            print(f"    keys2 : {keys2}")
+            print(f"    items2: {items2}")
+
+    one_dict = all_results[0][0][next(iter(all_results[0][0]))]
+    # print("\nA")
+    # print(one_dict)
+    one_array = one_dict[next(iter(one_dict))]
+    # print("\nB")
+    # print(one_array)
+    # dates = [[date] for (date, _) in all_results[0][0][next(iter(all_results[0][0]))]]
+    dates = [[date] for (date, _) in one_array]
     df = pd.DataFrame.from_records(dates, columns=["date"])
 
     for i, (result, single_config) in enumerate(
         zip(all_results, config.distance_calculations), 1
     ):
         (sgas_results, amfg_results, amfg_key) = result
+        print("\n\n\nsgas_results:")
+        print(sgas_results)
+        for keys1, items1 in sgas_results.items():
+            print(f"  keys1 : {keys1}")
+            for keys2, items2 in items1.items():
+                print(f"    keys2 : {keys2}")
+                print(f"    items2: {items2}")
 
         if single_config.type == CalculationType.PLUME_EXTENT:
             col = "MAX_"
@@ -826,24 +873,28 @@ def _collect_results_into_dataframe(
             calc_number = "" if len(config.distance_calculations) == 1 else str(i)
             col = col + f"{single_config.type.name.upper()}{calc_number}"
 
-        for group_number, sgas_result in sgas_results.items():
-            col += "_SGAS_" + "GROUP_" + str(group_number) + "_FROM_" + str(group_number)  # NBNB-AS: Fix "from" later here
-            sgas_df = pd.DataFrame.from_records(
-                sgas_result, columns=["date", col]
-            )
-            df = pd.merge(df, sgas_df, on="date")
-        for group_number, amfg_result in amfg_results.items():
-            if amfg_result is not None:
-                if amfg_key is None:
-                    amfg_key_str = "?"
-                else:
-                    amfg_key_str = amfg_key
-                col += "_" + amfg_key_str + "_GROUP_" + str(group_number) + "_FROM_" + str(group_number)  # NBNB-AS: Fix "from" later here
-                amfg_df = pd.DataFrame.from_records(
-                    amfg_result, columns=["date", col]
+        for group_number, sgas_results in sgas_results.items():
+            for inj_well_number, sgas_result in sgas_results.items():
+                col2 = col + "_SGAS_" + "GROUP_" + str(group_number) + "_FROM_" + str(inj_well_number)
+                sgas_df = pd.DataFrame.from_records(
+                    sgas_result, columns=["date", col2]
                 )
-                df = pd.merge(df, amfg_df, on="date")
+                df = pd.merge(df, sgas_df, on="date")
+        for group_number, amfg_results in amfg_results.items():
+            for inj_well_number, amfg_result in amfg_results.items():
+                if amfg_result is not None:
+                    if amfg_key is None:
+                        amfg_key_str = "?"
+                    else:
+                        amfg_key_str = amfg_key
+                    col2 = col + "_" + amfg_key_str + "_GROUP_" + str(group_number) + "_FROM_" + str(inj_well_number)
+                    amfg_df = pd.DataFrame.from_records(
+                        amfg_result, columns=["date", col2]
+                    )
+                    df = pd.merge(df, amfg_df, on="date")
 
+    print("\n\ndf:")
+    print(df)
     return df
 
 
