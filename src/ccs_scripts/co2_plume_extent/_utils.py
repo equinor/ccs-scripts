@@ -53,24 +53,30 @@ class PlumeGroups:
             ind for ind, group in enumerate(self.cells) if group.is_undetermined()
         ]
         counter = 1
-        groups_to_merge = []
+        groups_to_merge = []  # A list of list of groups to merge
         while len(ind_to_resolve) > 0 and counter <= 20:
             print(f"counter        : {counter}")
             print(f"left to resolve: {len(ind_to_resolve)}")
             for ind in ind_to_resolve:
                 ijk = grid.get_ijk(active_index=ind)
+                # print(f"\n\nind = {ind}")
                 groups_nearby = self._find_nearest_groups(ijk, grid)
-                if -1 in groups_nearby:
-                    groups_nearby.remove(-1)
+                # print(groups_nearby)
+                if [-1] in groups_nearby:
+                    groups_nearby = [x for x in groups_nearby if x != [-1]]
+                    # groups_nearby.remove(-1)
                     print("----------------> SKIP MERGE WITH UNKNOWN GROUP")
                 if len(groups_nearby) == 1:
-                    self.cells[ind].set_cell_groups([groups_nearby[0]])
+                    self.cells[ind].set_cell_groups(groups_nearby[0])
                 elif len(groups_nearby) >= 2:
                     print("----------------> NEED TO MERGE")
                     print(groups_nearby)
                     if groups_nearby not in groups_to_merge:
                         groups_to_merge.append(groups_nearby)
-                    self.cells[ind].set_cell_groups(groups_nearby)
+                    # for g in groups_nearby:
+                    #     if g not in groups_to_merge:
+                    #         groups_to_merge.append(g)
+                    self.cells[ind].set_cell_groups(groups_nearby[0])  # Set to first group, but will be overwritten by merge later
 
             updated_ind_to_resolve = [
                 ind for ind, group in enumerate(self.cells) if group.is_undetermined()
@@ -91,6 +97,8 @@ class PlumeGroups:
         # print(groups_to_merge)
         # groups_to_merge = [ [ [1,2],[3,4],[5] ]  , [[10],[11],[12]] , [ [3,4],[6],[7] ], [[8], [9]] ]
         # groups_to_merge = [ [ [1],[2],[3,4] ] ]
+        # print("DDDDDDD")
+        # print(groups_to_merge)
         for g in groups_to_merge:
             merged = False
             for c in g:
@@ -107,19 +115,30 @@ class PlumeGroups:
                         break
             if not merged:
                 new_groups_to_merge.append(g)
+        # print(new_groups_to_merge)
+        # exit()
+        # if (len(groups_to_merge) > 0):
+        #     exit()
 
         return new_groups_to_merge
 
-    def _find_nearest_groups(self, ijk, grid) -> list[int]:
-        out = set()
+    def _find_nearest_groups(self, ijk, grid) -> list[list[int]]:
+        out = []
         (i1, j1, k1) = ijk
         cells_with_co2 = [i for i in range(len(self.cells)) if self.cells[i].has_co2()]
         for ind in cells_with_co2:
             (i2, j2, k2) = grid.get_ijk(active_index=ind)
             if abs(i2 - i1) <= 1 and abs(j2 - j1) <= 1 and abs(k2 - k2) <= 1:
-                group = self.cells[ind]
-                out = out.union(set(group.all_groups))
-        return list(out)
+                all_groups = self.cells[ind].all_groups
+                # print("\nA")
+                # print(f"all_groups: {all_groups}")
+                if all_groups not in out:
+                    out.append(all_groups.copy())
+                # print(f"out: {out}")
+                # print("B")
+        # print("C")
+        # print(out)
+        return out
 
     def _find_unique_groups(self):
         unique_groups = []
