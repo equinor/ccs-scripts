@@ -55,8 +55,8 @@ class PlumeGroups:
         counter = 1
         groups_to_merge = []
         while len(ind_to_resolve) > 0 and counter <= 20:
-            # print(f"counter        : {counter}")
-            # print(f"left to resolve: {len(ind_to_resolve)}")
+            print(f"counter        : {counter}")
+            print(f"left to resolve: {len(ind_to_resolve)}")
             for ind in ind_to_resolve:
                 ijk = grid.get_ijk(active_index=ind)
                 groups_nearby = self._find_nearest_groups(ijk, grid)
@@ -66,12 +66,11 @@ class PlumeGroups:
                 if len(groups_nearby) == 1:
                     self.cells[ind].set_cell_groups([groups_nearby[0]])
                 elif len(groups_nearby) >= 2:
-                    if len(groups_nearby) >= 2:
-                        print("----------------> NEED TO MERGE")
-                        print(groups_nearby)
-                        if groups_nearby not in groups_to_merge:
-                            groups_to_merge.append(groups_nearby)
-                        self.cells[ind].set_cell_groups(groups_nearby)
+                    print("----------------> NEED TO MERGE")
+                    print(groups_nearby)
+                    if groups_nearby not in groups_to_merge:
+                        groups_to_merge.append(groups_nearby)
+                    self.cells[ind].set_cell_groups(groups_nearby)
 
             updated_ind_to_resolve = [
                 ind for ind, group in enumerate(self.cells) if group.is_undetermined()
@@ -116,9 +115,9 @@ class PlumeGroups:
         (i1, j1, k1) = ijk
         cells_with_co2 = [i for i in range(len(self.cells)) if self.cells[i].has_co2()]
         for ind in cells_with_co2:
-            group = self.cells[ind]
             (i2, j2, k2) = grid.get_ijk(active_index=ind)
             if abs(i2 - i1) <= 1 and abs(j2 - j1) <= 1 and abs(k2 - k2) <= 1:
+                group = self.cells[ind]
                 out = out.union(set(group.all_groups))
         return list(out)
 
@@ -132,13 +131,8 @@ class PlumeGroups:
 
     def _temp_print(self):
         # Find the groups:
-        unique_groups = []
-        for cell in self.cells:
-            if cell.has_co2():
-                if cell.all_groups not in unique_groups:
-                    unique_groups.append(cell.all_groups)
+        unique_groups = self._find_unique_groups()
         unique_groups.sort()
-
         print(
             f"Count '-'              : {len([c for c in self.cells if c.has_no_co2()])}"
         )
