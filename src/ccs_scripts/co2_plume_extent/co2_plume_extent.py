@@ -161,7 +161,7 @@ class Configuration:
             for arg in args_required:
                 if arg not in injection_well_info:
                     logging.error(
-                        f'\nERROR: Missing \"{arg}\" under "injection_wells" for injection well number {i}.'
+                        f'\nERROR: Missing "{arg}" under "injection_wells" for injection well number {i}.'
                     )
                     sys.exit(1)
 
@@ -170,7 +170,7 @@ class Configuration:
                     name=injection_well_info["name"],
                     x=injection_well_info["x"],
                     y=injection_well_info["y"],
-                    number=len(self.injection_wells)+1,
+                    number=len(self.injection_wells) + 1,
                 )
             )
 
@@ -566,14 +566,10 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
     logging.info("")
 
     logging.info("\nInjection well data for plume tracking:")
-    logging.info(
-        f"\n{'Number':<8} {'Name':<15} {'x':<15} {'y':<15}"
-    )
+    logging.info(f"\n{'Number':<8} {'Name':<15} {'x':<15} {'y':<15}")
     logging.info("-" * 56)
     for i, well in enumerate(config.injection_wells, 1):
-        logging.info(
-            f"{i:<8} {well.name:<15} {well.x:<15} {well.y:<15}"
-        )
+        logging.info(f"{i:<8} {well.name:<15} {well.x:<15} {well.y:<15}")
     logging.info("")
 
 
@@ -587,8 +583,8 @@ def calculate_single_distances(
     inj_wells: list[InjectionWellData],
 ):
     calculation_type = config.type
-    x = config.x # NBNB-AS: Remove these later
-    y = config.y # NBNB-AS: Remove these later
+    x = config.x  # NBNB-AS: Remove these later
+    y = config.y  # NBNB-AS: Remove these later
     direction = config.direction
 
     dist = {}
@@ -601,7 +597,9 @@ def calculate_single_distances(
         if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
             for i in range(nactive):
                 center = grid.get_xyz(active_index=i)
-                dist[well.name][i] = np.sqrt((center[0] - x) ** 2 + (center[1] - y) ** 2)
+                dist[well.name][i] = np.sqrt(
+                    (center[0] - x) ** 2 + (center[1] - y) ** 2
+                )
         elif calculation_type == CalculationType.LINE:
             line_value = x
             ind = 0  # Use x-coordinate
@@ -627,8 +625,12 @@ def calculate_single_distances(
         text = "line           "
     for inj_well, distance in dist.items():
         logging.info(f"Injection well: {inj_well}")
-        logging.info(f"    Smallest distance grid cell to {text} : {min(distance):>10.1f}")
-        logging.info(f"    Largest distance grid cell to {text}  : {max(distance):>10.1f}")
+        logging.info(
+            f"    Smallest distance grid cell to {text} : {min(distance):>10.1f}"
+        )
+        logging.info(
+            f"    Largest distance grid cell to {text}  : {max(distance):>10.1f}"
+        )
         logging.info(
             f"    Average distance grid cell to {text}  : {sum(distance) / len(distance):>10.1f}"
         )
@@ -680,7 +682,13 @@ def calculate_distances(
     for i, single_config in enumerate(config.distance_calculations, 1):
         logging.info(f"\nCalculating distances for configuration number : {i:>10}\n")
         (a, b, c) = calculate_single_distances(
-            nactive, grid, unrst, threshold_sgas, threshold_amfg, single_config, config.injection_wells
+            nactive,
+            grid,
+            unrst,
+            threshold_sgas,
+            threshold_amfg,
+            single_config,
+            config.injection_wells,
         )
         all_results.append((a, b, c))
     return all_results
@@ -689,7 +697,24 @@ def calculate_distances(
 def _temp_add_well3(i, plumeix):
     # Temp add cells with co2 for made up injection well 3:
     if i > 11 and True:
-        temp_inj3_list = [584, 585, 586, 609, 610, 611, 636, 637, 638, 1333, 1334, 1335, 1357, 1358, 1379, 1380]
+        temp_inj3_list = [
+            584,
+            585,
+            586,
+            609,
+            610,
+            611,
+            636,
+            637,
+            638,
+            1333,
+            1334,
+            1335,
+            1357,
+            1358,
+            1379,
+            1380,
+        ]
         if i > 14:
             temp_inj3_list += [587, 612]
         if i > 20:
@@ -741,7 +766,7 @@ def _find_distances_per_time_step(
                         and abs(y - well.y) <= INJ_POINT_LATERAL_THRESHOLD
                     ):
                         found = True
-                        groups.cells[index].set_cell_groups(new_groups = [well.number])
+                        groups.cells[index].set_cell_groups(new_groups=[well.number])
                         break
                 if not found:
                     groups.cells[index].set_undetermined()
@@ -774,16 +799,25 @@ def _find_distances_per_time_step(
             else:
                 result = {}
                 for single_inj_number in g:
-                    well_name = [x.name for x in inj_wells if x.number == single_inj_number][0]
+                    well_name = [
+                        x.name for x in inj_wells if x.number == single_inj_number
+                    ][0]
                     result[single_inj_number] = 0.0
                     if calculation_type == CalculationType.PLUME_EXTENT:
-                        result[single_inj_number] = dist[well_name][indices_this_group].max()
-                    elif calculation_type in (CalculationType.POINT, CalculationType.LINE):
-                        result[single_inj_number] = dist[well_name][indices_this_group].min()
+                        result[single_inj_number] = dist[well_name][
+                            indices_this_group
+                        ].max()
+                    elif calculation_type in (
+                        CalculationType.POINT,
+                        CalculationType.LINE,
+                    ):
+                        result[single_inj_number] = dist[well_name][
+                            indices_this_group
+                        ].min()
 
-            group_string = "+".join([
-                str([x.name for x in inj_wells if x.number == y][0]) for y in g
-            ])
+            group_string = "+".join(
+                [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
+            )
             print(f"group_string: {group_string}")
             if group_string not in dist_per_group:
                 dist_per_group[group_string] = {s: np.zeros(shape=(nsteps,)) for s in g}
@@ -868,7 +902,9 @@ def _collect_results_into_dataframe(
 
         for group_str, sgas_results in sgas_results.items():
             for well_name, sgas_result in sgas_results.items():
-                full_col_name = col + "_SGAS_" + "GROUP_" + group_str + "_FROM_" + well_name
+                full_col_name = (
+                    col + "_SGAS_" + "GROUP_" + group_str + "_FROM_" + well_name
+                )
                 sgas_df = pd.DataFrame.from_records(
                     sgas_result, columns=["date", full_col_name]
                 )
@@ -880,7 +916,15 @@ def _collect_results_into_dataframe(
                         amfg_key_str = "?"
                     else:
                         amfg_key_str = amfg_key
-                    full_col_name = col + "_" + amfg_key_str + "_GROUP_" + group_str + "_FROM_" + well_name
+                    full_col_name = (
+                        col
+                        + "_"
+                        + amfg_key_str
+                        + "_GROUP_"
+                        + group_str
+                        + "_FROM_"
+                        + well_name
+                    )
                     amfg_df = pd.DataFrame.from_records(
                         amfg_result, columns=["date", full_col_name]
                     )

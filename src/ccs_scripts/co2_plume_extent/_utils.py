@@ -39,7 +39,9 @@ class CellGroup:
 
 class PlumeGroups:
     def __init__(self, number_of_grid_cells: int):
-        self.cells: list[CellGroup] = [CellGroup() for _ in range(0, number_of_grid_cells)]
+        self.cells: list[CellGroup] = [
+            CellGroup() for _ in range(0, number_of_grid_cells)
+        ]
 
     def copy(self):
         out = PlumeGroups(len(self.cells))
@@ -47,7 +49,9 @@ class PlumeGroups:
         return out
 
     def resolve_undetermined_cells(self, grid: Grid) -> list:
-        ind_to_resolve = [ind for ind, group in enumerate(self.cells) if group.is_undetermined()]
+        ind_to_resolve = [
+            ind for ind, group in enumerate(self.cells) if group.is_undetermined()
+        ]
         counter = 1
         groups_to_merge = []
         while len(ind_to_resolve) > 0 and counter <= 20:
@@ -134,7 +138,13 @@ class PlumeGroups:
                     unique_groups.append(cell.all_groups)
         unique_groups.sort()
 
-        print(f"Count '-'              : {len([c for c in self.cells if c.has_no_co2()])}")
-        print(f"Count '?'              : {len([c for c in self.cells if c.is_undetermined()])}")
+        print(
+            f"Count '-'              : {len([c for c in self.cells if c.has_no_co2()])}"
+        )
+        print(
+            f"Count '?'              : {len([c for c in self.cells if c.is_undetermined()])}"
+        )
         for unique_group in unique_groups:
-            print(f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {len([c for c in self.cells if c.has_co2() and c.all_groups == unique_group])}")
+            print(
+                f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {len([c for c in self.cells if c.has_co2() and c.all_groups == unique_group])}"
+            )
