@@ -236,21 +236,12 @@ def _merge_date_rows(
     """
     data_frame = data_frame.drop(columns=["zone", "region"], axis=1, errors="ignore")
     # Total
-    if residual_trapping:
-        df1 = (
-            data_frame[data_frame["phase"] != "trapped_gas"]
-            .drop(["phase", "location"], axis=1)
-            .groupby(["date"])
-            .sum()
-            .rename(columns={"amount": "total"})
-        )
-    else:
-        df1 = (
-            data_frame.drop(["phase", "location"], axis=1)
-            .groupby(["date"])
-            .sum()
-            .rename(columns={"amount": "total"})
-        )
+    df1 = (
+        data_frame.drop(["phase", "location"], axis=1)
+        .groupby(["date"])
+        .sum()
+        .rename(columns={"amount": "total"})
+    )
     total_df = df1.copy()
     if calc_type == CalculationType.CELL_VOLUME:
         df2 = data_frame.drop("phase", axis=1).groupby(["location", "date"]).sum()
@@ -278,7 +269,6 @@ def _merge_date_rows(
         df4f = df4.loc["aqueous", "hazardous"].rename(
             columns={"amount": "aqueous_hazardous"}
         )
-
         if not residual_trapping:
             df2a = df2.loc["gas"].rename(columns={"amount": "total_gas"})
             df4a = df4.loc["gas", "contained"].rename(
