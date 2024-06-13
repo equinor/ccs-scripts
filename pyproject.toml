@@ -43,7 +43,8 @@ dependencies = [
     "shapely",
     "xtgeo",
     "pyyaml",
-    "grid3d-maps"
+    "grid3d-maps",
+    "ert",
 ]
 
 [project.optional-dependencies]
@@ -79,6 +80,7 @@ Repository = "https://github.com/equinor/ccs_scripts"
 
 [project.scripts]
 co2_containment = "ccs_scripts.co2_containment.co2_containment:main"
+co2_mass_maps = "ccs_scripts.co2_mass_maps.co2_mass_maps:main"
 co2_plume_area = "ccs_scripts.co2_plume_area.co2_plume_area:main"
 co2_plume_extent = "ccs_scripts.co2_plume_extent.co2_plume_extent:main"
 

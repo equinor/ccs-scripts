@@ -11,6 +11,25 @@ from ccs_scripts.co2_containment.co2_calculation import calculate_co2
 from ccs_scripts.co2_mass_maps import _config, _parser
 from ccs_scripts.co2_mass_maps._co2_mass import translate_co2data_to_property
 
+# Module variables for ERT hook implementation:
+DESCRIPTION = """
+    Produces maps of CO2 mass per date, formation and phase (gas/dissolved).
+    Outputs are .gri files (one per requested combination of date, phase,
+    formation).
+
+    A yaml config file is the input file to co2_mass_maps. Through this file
+    the user can decide on which dates, phases or formations the maps are
+    produced. See tests/yaml for examples of yaml files.
+    """
+
+CATEGORY = "modelling.reservoir"
+
+# EXAMPLES = """
+# .. code-block:: console
+#
+#   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
+# """
+
 PROPERTIES_TO_EXTRACT = [
     "RPORV",
     "PORV",
@@ -24,19 +43,6 @@ PROPERTIES_TO_EXTRACT = [
     "XMF2",
     "YMF2",
 ]
-
-
-# Module variables for ERT hook implementation:
-# DESCRIPTION = (
-#     "Generate migration time property maps. Docs:\n"
-#     + "https://fmu-docs.equinor.com/docs/xtgeoapp-grd3dmaps/"
-# )
-# CATEGORY = "modelling.reservoir"
-# EXAMPLES = """
-# .. code-block:: console
-#
-#   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
-# """
 
 
 def generate_co2_mass_maps(config_):
