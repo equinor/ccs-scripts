@@ -191,6 +191,7 @@ def test_reek_grid():
     """
     Test CO2 containment code, with eclipse Reek data.
     Tests both mass and actual_volume calculations.
+    Additionally, tests mass with residual_trapping
     """
     reek_gridfile = (
         Path(__file__).absolute().parent
@@ -272,6 +273,40 @@ def test_reek_grid():
     assert table2.total_hazardous.values[0] == pytest.approx(15.043116504854423)
     assert table2.gas_hazardous.values[0] == pytest.approx(4.873990291262155)
 
+    source_data_with_trapping = SourceData(
+        x_coord,
+        y_coord,
+        PORV={"2042": np.ones_like(poro) * 0.1},
+        VOL=vol,
+        DATES=["2042"],
+        SWAT={"2042": np.ones_like(poro) * 0.1},
+        DWAT={"2042": np.ones_like(poro) * 1000.0},
+        SGAS={"2042": np.ones_like(poro) * 0.1},
+        SGTRAND={"2042": np.ones_like(poro) * 0.06},
+        DGAS={"2042": np.ones_like(poro) * 100.0},
+        AMFG={"2042": np.ones_like(poro) * 0.1},
+        YMFG={"2042": np.ones_like(poro) * 0.1},
+    )
+
+    masses_with_trapping = _calculate_co2_data_from_source_data(source_data_with_trapping, CalculationType.MASS)
+    table = calculate_from_co2_data(
+        co2_data=masses_with_trapping,
+        containment_polygon=reek_poly,
+        hazardous_polygon=reek_poly_hazardous,
+        compact=False,
+        calc_type_input="mass",
+        zone_info=zone_info,
+        region_info=region_info,
+    )
+    assert table.total.values[0] == pytest.approx(696171.20388324)
+    assert table.total_trapped_gas.values[0] == pytest.approx(4590.13980582773)
+    assert table.total_free_gas.values[0] == pytest.approx(3060.093203885154)
+    assert table.total_aqueous.values[0] == pytest.approx(688520.9708735272)
+    assert table.trapped_gas_contained.values[0] == pytest.approx(69.58834951456248)
+    assert table.free_gas_contained.values[0] == pytest.approx(46.39223300970832)
+    assert table.total_hazardous.values[0] == pytest.approx(10282.11650485436)
+    assert table.trapped_gas_hazardous.values[0] == pytest.approx(67.79417475728094)
+    assert table.free_gas_hazardous.values[0] == pytest.approx(45.19611650485396)
 
 def test_reek_grid_extract_source_data():
     """
