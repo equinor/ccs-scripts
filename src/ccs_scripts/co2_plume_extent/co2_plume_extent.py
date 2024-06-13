@@ -15,11 +15,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-<<<<<<< HEAD
-from typing import List, Optional, Tuple, Union
-=======
 from typing import Dict, List, Optional, Tuple
->>>>>>> 109c721b9dff3ca14e590363250d90e88aa95612
+
 
 import numpy as np
 import pandas as pd
