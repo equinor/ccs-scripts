@@ -4,6 +4,10 @@ from typing import Optional
 from resdata.grid import Grid
 
 
+MAX_STEPS_RESOLVE_CELLS = 20
+MAX_NEAREST_GROUPS_SEARCH_DISTANCE = 3
+
+
 class Status(Enum):
     UNDETERMINED = 0
     NO_CO2 = 1
@@ -54,7 +58,7 @@ class PlumeGroups:
         ]
         counter = 1
         groups_to_merge = []  # A list of list of groups to merge
-        while len(ind_to_resolve) > 0 and counter <= 20:
+        while len(ind_to_resolve) > 0 and counter <= MAX_STEPS_RESOLVE_CELLS:
             print(f"counter        : {counter}")
             print(f"left to resolve: {len(ind_to_resolve)}")
             for ind in ind_to_resolve:
@@ -77,8 +81,31 @@ class PlumeGroups:
                 ind for ind, group in enumerate(self.cells) if group.is_undetermined()
             ]
             if len(updated_ind_to_resolve) == len(ind_to_resolve):
-                print("BREAK")
-                break
+                updated = False
+                for ind in ind_to_resolve:
+                    ijk = grid.get_ijk(active_index=ind)
+                    # Wider search radius when looking for nearby groups
+                    for tolerance in range(2, MAX_NEAREST_GROUPS_SEARCH_DISTANCE + 1):
+                        groups_nearby = self._find_nearest_groups(
+                            ijk, grid, tol=tolerance
+                        )
+                        if len(groups_nearby) >= 1:
+                            self.cells[ind].set_cell_groups(groups_nearby[0])
+                            updated = True
+                            break
+                if updated:
+                    print("CONTINUE")
+                    updated_ind_to_resolve = [
+                        ind
+                        for ind, group in enumerate(self.cells)
+                        if group.is_undetermined()
+                    ]
+                    ind_to_resolve = updated_ind_to_resolve
+                    counter += 1
+                    continue
+                else:
+                    print("BREAK")
+                    break
             ind_to_resolve = updated_ind_to_resolve
             counter += 1
 
@@ -111,13 +138,13 @@ class PlumeGroups:
 
         return new_groups_to_merge
 
-    def _find_nearest_groups(self, ijk, grid) -> list[list[int]]:
+    def _find_nearest_groups(self, ijk, grid, tol: int = 1) -> list[list[int]]:
         out = []
         (i1, j1, k1) = ijk
         cells_with_co2 = [i for i in range(len(self.cells)) if self.cells[i].has_co2()]
         for ind in cells_with_co2:
             (i2, j2, k2) = grid.get_ijk(active_index=ind)
-            if abs(i2 - i1) <= 1 and abs(j2 - j1) <= 1 and abs(k2 - k2) <= 1:
+            if abs(i2 - i1) <= tol and abs(j2 - j1) <= tol and abs(k2 - k2) <= tol:
                 all_groups = self.cells[ind].all_groups
                 if all_groups not in out:
                     out.append(all_groups.copy())
