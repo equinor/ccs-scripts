@@ -28,6 +28,7 @@ from ccs_scripts.co2_plume_extent._utils import CellGroup, PlumeGroups
 
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
+INJ_POINT_LATERAL_THRESHOLD = 60.0
 
 DESCRIPTION = """
 Calculates the maximum lateral distance of the CO2 plume from a given location,
@@ -100,6 +101,14 @@ class Calculation:
     y: Optional[float]
 
 
+@dataclass
+class InjectionWellData:
+    name: str
+    x: float
+    y: float
+    number: int
+
+
 class Configuration:
     """
     Holds the configuration for all distance calculations
@@ -113,6 +122,7 @@ class Configuration:
         name: str,
         case: str,
     ):
+        self.injection_wells: List[InjectionWellData] = []
         self.distance_calculations: List[Calculation] = []
         if config_file != "":
             input_dict = self.read_config_file(config_file)
@@ -139,6 +149,31 @@ class Configuration:
                 sys.exit(1)
 
     def make_config_from_input_dict(self, input_dict: Dict, case: str):
+        if "injection_wells" in input_dict:
+            if not isinstance(input_dict["injection_wells"], list):
+                logging.error(
+                    '\nERROR: Specification under "injection_wells" in '
+                    "input YAML file is not a list."
+                )
+                sys.exit(1)
+        for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
+            args_required = ["name", "x", "y"]
+            for arg in args_required:
+                if arg not in injection_well_info:
+                    logging.error(
+                        f'\nERROR: Missing \"{arg}\" under "injection_wells" for injection well number {i}.'
+                    )
+                    sys.exit(1)
+
+            self.injection_wells.append(
+                InjectionWellData(
+                    name=injection_well_info["name"],
+                    x=injection_well_info["x"],
+                    y=injection_well_info["y"],
+                    number=len(self.injection_wells)+1,
+                )
+            )
+
         if "distance_calculations" not in input_dict:
             logging.error(
                 '\nERROR: No instance of "distance_calculations" in input YAML file.'
@@ -513,7 +548,7 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
 
 
 def _log_distance_calculation_configurations(config: Configuration) -> None:
-    logging.info("\nWe have the following distance calculation configurations:")
+    logging.info("\nDistance calculation configurations:")
     logging.info(
         f"\n{'Number':<8} {'Type':<14} {'Name':<15} {'Direction':<12} "
         f"{'x':<15} {'y':<15}"
@@ -530,6 +565,17 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
         )
     logging.info("")
 
+    logging.info("\nInjection well data for plume tracking:")
+    logging.info(
+        f"\n{'Number':<8} {'Name':<15} {'x':<15} {'y':<15}"
+    )
+    logging.info("-" * 56)
+    for i, well in enumerate(config.injection_wells, 1):
+        logging.info(
+            f"{i:<8} {well.name:<15} {well.x:<15} {well.y:<15}"
+        )
+    logging.info("")
+
 
 def calculate_single_distances(
     nactive: int,
@@ -538,33 +584,24 @@ def calculate_single_distances(
     threshold_sgas: float,
     threshold_amfg: float,
     config: Calculation,
+    inj_wells: list[InjectionWellData],
 ):
     calculation_type = config.type
-    x = config.x
-    y = config.y
+    x = config.x # NBNB-AS: Remove these later
+    y = config.y # NBNB-AS: Remove these later
     direction = config.direction
 
-    inj_well_numbers = [1, 2, 3]
-
     dist = {}
-    for inj in inj_well_numbers:
-        dist[inj] = np.zeros(shape=(nactive,))
+    for well in inj_wells:
+        name = well.name
+        x = well.x
+        y = well.y
 
-        # NBNB-AS: Fix this
-        if inj == 1:
-            x = 2150.0
-            y = 2150.0
-        elif inj == 2:
-            x = 2550.0
-            y = 350.0
-        elif inj == 3:
-            x = 350.0
-            y = 2450.0
-
+        dist[name] = np.zeros(shape=(nactive,))
         if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
             for i in range(nactive):
                 center = grid.get_xyz(active_index=i)
-                dist[inj][i] = np.sqrt((center[0] - x) ** 2 + (center[1] - y) ** 2)
+                dist[well.name][i] = np.sqrt((center[0] - x) ** 2 + (center[1] - y) ** 2)
         elif calculation_type == CalculationType.LINE:
             line_value = x
             ind = 0  # Use x-coordinate
@@ -578,8 +615,8 @@ def calculate_single_distances(
 
             for i in range(nactive):
                 center = grid.get_xyz(active_index=i)
-                dist[inj][i] = factor * (line_value - center[ind])
-            dist[inj][dist[inj] < 0] = 0.0
+                dist[name][i] = factor * (line_value - center[ind])
+            dist[name][dist[name] < 0] = 0.0
 
     text = ""
     if calculation_type == CalculationType.PLUME_EXTENT:
@@ -589,26 +626,27 @@ def calculate_single_distances(
     elif calculation_type == CalculationType.LINE:
         text = "line           "
     for inj_well, distance in dist.items():
-        logging.info(f"Smallest distance grid cell to {text} : {min(distance):>10.1f}")
-        logging.info(f"Largest distance grid cell to {text}  : {max(distance):>10.1f}")
+        logging.info(f"Injection well: {inj_well}")
+        logging.info(f"    Smallest distance grid cell to {text} : {min(distance):>10.1f}")
+        logging.info(f"    Largest distance grid cell to {text}  : {max(distance):>10.1f}")
         logging.info(
-            f"Average distance grid cell to {text}  : {sum(distance) / len(distance):>10.1f}"
+            f"    Average distance grid cell to {text}  : {sum(distance) / len(distance):>10.1f}"
         )
 
     sgas_results = _find_distances_per_time_step(
-        "SGAS", calculation_type, threshold_sgas, unrst, grid, dist
+        "SGAS", calculation_type, threshold_sgas, unrst, grid, dist, inj_wells
     )
     logging.info("Done calculating plume extent for SGAS.")
 
     if "AMFG" in unrst:
         amfg_results = _find_distances_per_time_step(
-            "AMFG", calculation_type, threshold_amfg, unrst, grid, dist
+            "AMFG", calculation_type, threshold_amfg, unrst, grid, dist, inj_wells
         )
         amfg_key = "AMFG"
         logging.info("Done calculating plume extent for AMFG.")
     elif "XMF2" in unrst:
         amfg_results = _find_distances_per_time_step(
-            "XMF2", calculation_type, threshold_amfg, unrst, grid, dist
+            "XMF2", calculation_type, threshold_amfg, unrst, grid, dist, inj_wells
         )
         amfg_key = "XMF2"
         logging.info("Done calculating plume extent for XMF2.")
@@ -642,10 +680,22 @@ def calculate_distances(
     for i, single_config in enumerate(config.distance_calculations, 1):
         logging.info(f"\nCalculating distances for configuration number : {i:>10}\n")
         (a, b, c) = calculate_single_distances(
-            nactive, grid, unrst, threshold_sgas, threshold_amfg, single_config
+            nactive, grid, unrst, threshold_sgas, threshold_amfg, single_config, config.injection_wells
         )
         all_results.append((a, b, c))
     return all_results
+
+
+def _temp_add_well3(i, plumeix):
+    # Temp add cells with co2 for made up injection well 3:
+    if i > 11 and True:
+        temp_inj3_list = [584, 585, 586, 609, 610, 611, 636, 637, 638, 1333, 1334, 1335, 1357, 1358, 1379, 1380]
+        if i > 14:
+            temp_inj3_list += [587, 612]
+        if i > 20:
+            temp_inj3_list += [588, 613]
+        plumeix = np.concatenate((plumeix, np.array(temp_inj3_list)))
+    return plumeix
 
 
 def _find_distances_per_time_step(
@@ -654,7 +704,8 @@ def _find_distances_per_time_step(
     threshold: float,
     unrst: ResdataFile,
     grid: Grid,
-    dist: dict[int, np.ndarray],
+    dist: dict[str, np.ndarray],
+    inj_wells: list[InjectionWellData],
 ) -> dict:
     """
     Find distance metric for each step
@@ -666,31 +717,11 @@ def _find_distances_per_time_step(
     print(f"n_cells = {n_cells}")
     prev_groups = PlumeGroups(n_cells)
 
-    x_inj_1 = 2150.0
-    y_inj_1 = 2150.0
-    x_inj_2 = 2550.0
-    y_inj_2 = 350.0
-    x_inj_3 = 350.0
-    y_inj_3 = 2450.0
-    lateral_threshold = 60.0
-    print(f"\nChanging treshold from: {threshold}")
-    threshold = 0.25  # To test merging of groups
-    # threshold = 0.30  # No merging of groups
-    print(f"                    to: {threshold}")
-
     for i in range(nsteps):
         print(f"\n\ni = {i}")
         data = unrst[attribute_key][i].numpy_view()
         plumeix = np.where(data > threshold)[0]
-
-        # Temp add cells with co2 for made up injection well 3:
-        if i > 11 and True:
-            temp_inj3_list = [584, 585, 586, 609, 610, 611, 636, 637, 638, 1333, 1334, 1335, 1357, 1358, 1379, 1380]
-            if i > 14:
-                temp_inj3_list += [587, 612]
-            if i > 20:
-                temp_inj3_list += [588, 613]
-            plumeix = np.concatenate((plumeix, np.array(temp_inj3_list)))
+        plumeix = _temp_add_well3(i, plumeix)
 
         print(f"Number of grid cells with CO2 this time step: {len(plumeix)}")
         print("Previous group:")
@@ -703,24 +734,17 @@ def _find_distances_per_time_step(
             else:
                 # This grid cell did not have CO2 in the last time step
                 (x, y, _) = grid.get_xyz(active_index=index)
-                if (
-                    abs(x - x_inj_1) <= lateral_threshold
-                    and abs(y - y_inj_1) <= lateral_threshold
-                ):
-                    groups.cells[index].set_cell_groups(new_groups = [1])
-                elif (
-                    abs(x - x_inj_2) <= lateral_threshold
-                    and abs(y - y_inj_2) <= lateral_threshold
-                ):
-                    groups.cells[index].set_cell_groups(new_groups = [2])
-                elif (
-                    abs(x - x_inj_3) <= lateral_threshold
-                    and abs(y - y_inj_3) <= lateral_threshold
-                ):
-                    groups.cells[index].set_cell_groups(new_groups = [3])
-                else:
+                found = False
+                for well in inj_wells:
+                    if (
+                        abs(x - well.x) <= INJ_POINT_LATERAL_THRESHOLD
+                        and abs(y - well.y) <= INJ_POINT_LATERAL_THRESHOLD
+                    ):
+                        found = True
+                        groups.cells[index].set_cell_groups(new_groups = [well.number])
+                        break
+                if not found:
                     groups.cells[index].set_undetermined()
-
         print("Current group:")
         groups._temp_print()
 
@@ -736,49 +760,49 @@ def _find_distances_per_time_step(
         print("Current group after resolving undetermined cells:")
         groups._temp_print()
 
-        # Find the groups:
-        unique_groups = []
-        for cell in groups.cells:
-            if cell.has_co2():
-                if cell.all_groups not in unique_groups:
-                    unique_groups.append(cell.all_groups)
-
+        unique_groups = groups._find_unique_groups()
         print(f"Unique groups: {unique_groups}")
         for g in unique_groups:
+            if g == [-1]:
+                continue
             # Calculate distance metric for this group
             indices_this_group = [i for i in plumeix if groups.cells[i].all_groups == g]
             if len(indices_this_group) == 0:
                 result = {}
-                for single_inj_number in g:  # Can to this in a better way?
+                for single_inj_number in g:  # Can do this in a better way?
                     result[single_inj_number] = np.nan
             else:
                 result = {}
                 for single_inj_number in g:
+                    well_name = [x.name for x in inj_wells if x.number == single_inj_number][0]
                     result[single_inj_number] = 0.0
-                    if single_inj_number == -1:
-                        continue
-                    elif calculation_type == CalculationType.PLUME_EXTENT:
-                        result[single_inj_number] = dist[single_inj_number][indices_this_group].max()
+                    if calculation_type == CalculationType.PLUME_EXTENT:
+                        result[single_inj_number] = dist[well_name][indices_this_group].max()
                     elif calculation_type in (CalculationType.POINT, CalculationType.LINE):
-                        result[single_inj_number] = dist[single_inj_number][indices_this_group].min()
+                        result[single_inj_number] = dist[well_name][indices_this_group].min()
 
-            group_string = "+".join([str(x) for x in g])
+            group_string = "+".join([
+                str([x.name for x in inj_wells if x.number == y][0]) for y in g
+            ])
             print(f"group_string: {group_string}")
             if group_string not in dist_per_group:
                 dist_per_group[group_string] = {s: np.zeros(shape=(nsteps,)) for s in g}
             for s in g:
                 dist_per_group[group_string][s][i] = result[s]
-
         prev_groups = groups.copy()
 
     outputs = {}
     for group_name, single_group_distances in dist_per_group.items():
         outputs[group_name] = {}
         for single_group, distances in single_group_distances.items():
-            outputs[group_name][single_group] = []
+            # Find well name:
+            well_name = [x.name for x in inj_wells if x.number == single_group][0]
+            print("well_name")
+            print(well_name)
+            outputs[group_name][well_name] = []
             for i, d in enumerate(unrst.report_dates):
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
-                outputs[group_name][single_group].append(date_and_result)
+                outputs[group_name][well_name].append(date_and_result)
     return outputs
 
 
@@ -842,21 +866,21 @@ def _collect_results_into_dataframe(
 
         col = _find_column_name(single_config, len(config.distance_calculations), i)
 
-        for group_number, sgas_results in sgas_results.items():
-            for inj_well_number, sgas_result in sgas_results.items():
-                full_col_name = col + "_SGAS_" + "GROUP_" + str(group_number) + "_FROM_" + str(inj_well_number)
+        for group_str, sgas_results in sgas_results.items():
+            for well_name, sgas_result in sgas_results.items():
+                full_col_name = col + "_SGAS_" + "GROUP_" + group_str + "_FROM_" + well_name
                 sgas_df = pd.DataFrame.from_records(
                     sgas_result, columns=["date", full_col_name]
                 )
                 df = pd.merge(df, sgas_df, on="date")
-        for group_number, amfg_results in amfg_results.items():
-            for inj_well_number, amfg_result in amfg_results.items():
+        for group_str, amfg_results in amfg_results.items():
+            for well_name, amfg_result in amfg_results.items():
                 if amfg_result is not None:
                     if amfg_key is None:
                         amfg_key_str = "?"
                     else:
                         amfg_key_str = amfg_key
-                    full_col_name = col + "_" + amfg_key_str + "_GROUP_" + str(group_number) + "_FROM_" + str(inj_well_number)
+                    full_col_name = col + "_" + amfg_key_str + "_GROUP_" + group_str + "_FROM_" + well_name
                     amfg_df = pd.DataFrame.from_records(
                         amfg_result, columns=["date", full_col_name]
                     )

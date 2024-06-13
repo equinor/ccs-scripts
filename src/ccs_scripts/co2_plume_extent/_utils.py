@@ -117,6 +117,14 @@ class PlumeGroups:
                     out = out.union(set(group.all_groups))
         return list(out)
 
+    def _find_unique_groups(self):
+        unique_groups = []
+        for cell in self.cells:
+            if cell.has_co2():
+                if cell.all_groups not in unique_groups:
+                    unique_groups.append(cell.all_groups)
+        return unique_groups
+
     def _temp_print(self):
         # Find the groups:
         unique_groups = []
