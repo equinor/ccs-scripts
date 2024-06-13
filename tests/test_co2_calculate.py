@@ -297,6 +297,7 @@ def test_reek_grid():
         calc_type_input="mass",
         zone_info=zone_info,
         region_info=region_info,
+        residual_trapping=True
     )
     assert table.total.values[0] == pytest.approx(696171.20388324)
     assert table.total_trapped_gas.values[0] == pytest.approx(4590.13980582773)
