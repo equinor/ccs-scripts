@@ -282,7 +282,7 @@ def test_reek_grid():
         SWAT={"2042": np.ones_like(poro) * 0.1},
         DWAT={"2042": np.ones_like(poro) * 1000.0},
         SGAS={"2042": np.ones_like(poro) * 0.1},
-        SGTRAND={"2042": np.ones_like(poro) * 0.06},
+        SGSTRAND={"2042": np.ones_like(poro) * 0.06},
         DGAS={"2042": np.ones_like(poro) * 100.0},
         AMFG={"2042": np.ones_like(poro) * 0.1},
         YMFG={"2042": np.ones_like(poro) * 0.1},
