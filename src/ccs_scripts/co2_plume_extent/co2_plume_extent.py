@@ -776,27 +776,14 @@ def _find_distances_per_time_step(
         groups_to_merge = groups.resolve_undetermined_cells(grid)
         print(f"Groups to merge: {groups_to_merge}")
 
-        # if len(groups_to_merge) > 0:
         for full_group in groups_to_merge:
-            print(f"full_group: {full_group}")
-            # well_numbers = [item for sublist in list_of_lists for item in sublist]
             new_group = [x for y in full_group for x in y]
             new_group.sort()
-            print(f"new_group: {new_group}")
             for cell in groups.cells:
                 if cell.has_co2():
                     for g in full_group:
-                        # print("\n---")
-                        # print(g)
-                        # print(cell.all_groups)
-                        # print(set(g))
-                        # print(set(cell.all_groups))
                         if set(cell.all_groups) & set(g):
-                            # print("!")
                             cell.all_groups = new_group
-                    # exit()
-
-            # exit()
 
         print("Current group after resolving undetermined cells:")
         groups._temp_print()
