@@ -114,11 +114,12 @@ class PlumeGroups:
     def _find_nearest_groups(self, ijk, grid) -> list[int]:
         out = set()
         (i1, j1, k1) = ijk
-        for ind, group in enumerate(self.cells, 0):
+        cells_with_co2 = [i for i in range(len(self.cells)) if self.cells[i].has_co2()]
+        for ind in cells_with_co2:
+            group = self.cells[ind]
             (i2, j2, k2) = grid.get_ijk(active_index=ind)
             if abs(i2 - i1) <= 1 and abs(j2 - j1) <= 1 and abs(k2 - k2) <= 1:
-                if group.has_co2():
-                    out = out.union(set(group.all_groups))
+                out = out.union(set(group.all_groups))
         return list(out)
 
     def _find_unique_groups(self):
