@@ -288,7 +288,9 @@ def test_reek_grid():
         YMFG={"2042": np.ones_like(poro) * 0.1},
     )
 
-    masses_with_trapping = _calculate_co2_data_from_source_data(source_data_with_trapping, CalculationType.MASS)
+    masses_with_trapping = _calculate_co2_data_from_source_data(
+        source_data_with_trapping, CalculationType.MASS
+    )
     table = calculate_from_co2_data(
         co2_data=masses_with_trapping,
         containment_polygon=reek_poly,
@@ -297,7 +299,7 @@ def test_reek_grid():
         calc_type_input="mass",
         zone_info=zone_info,
         region_info=region_info,
-        residual_trapping=True
+        residual_trapping=True,
     )
     assert table.total.values[0] == pytest.approx(696171.20388324)
     assert table.total_trapped_gas.values[0] == pytest.approx(4590.13980582773)
@@ -308,6 +310,7 @@ def test_reek_grid():
     assert table.total_hazardous.values[0] == pytest.approx(10282.11650485436)
     assert table.trapped_gas_hazardous.values[0] == pytest.approx(67.79417475728094)
     assert table.free_gas_hazardous.values[0] == pytest.approx(45.19611650485396)
+
 
 def test_reek_grid_extract_source_data():
     """
