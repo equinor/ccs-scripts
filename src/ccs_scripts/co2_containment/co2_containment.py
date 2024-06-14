@@ -56,7 +56,6 @@ def calculate_out_of_bounds_co2(
     grid_file: str,
     unrst_file: str,
     init_file: str,
-    compact: bool,
     calc_type_input: str,
     zone_info: Dict,
     region_info: Dict,
@@ -73,7 +72,6 @@ def calculate_out_of_bounds_co2(
         grid_file (str): Path to EGRID-file
         unrst_file (str): Path to UNRST-file
         init_file (str): Path to INIT-file
-        compact (bool): Write the output to a single file as compact as possible
         calc_type_input (str): Choose mass / cell_volume / actual_volume
         file_containment_polygon (str): Path to polygon defining the
             containment area
@@ -85,6 +83,7 @@ def calculate_out_of_bounds_co2(
             as well as a list connecting zone-numbers to names
         region_info (Dict): Dictionary containing path to potential region-file,
             and list connecting region-numbers to names, if available
+        residual_trapping (bool): Indicate if residual trapping should be calculated
 
     Returns:
         pd.DataFrame
@@ -110,7 +109,6 @@ def calculate_out_of_bounds_co2(
         co2_data,
         containment_polygon,
         hazardous_polygon,
-        compact,
         calc_type_input,
         zone_info,
         region_info,
@@ -122,7 +120,6 @@ def calculate_from_co2_data(
     co2_data: Co2Data,
     containment_polygon: shapely.geometry.Polygon,
     hazardous_polygon: Union[shapely.geometry.Polygon, None],
-    compact: bool,
     calc_type_input: str,
     zone_info: Dict,
     region_info: Dict,
@@ -138,10 +135,10 @@ def calculate_from_co2_data(
             containment area
         hazardous_polygon (shapely.geometry.Polygon): Polygon defining the
             hazardous area
-        compact (bool):
         calc_type_input (str): Choose mass / cell_volume / actual_volume
         zone_info (Dict): Dictionary containing zone information
         region_info (Dict): Dictionary containing region information
+        residual_trapping (bool): Indicate if residual trapping is calculated
 
     Returns:
         pd.DataFrame
@@ -156,36 +153,7 @@ def calculate_from_co2_data(
         calc_type,
         residual_trapping,
     )
-    data_frame = _construct_containment_table(contained_co2)
-    if compact:
-        return data_frame
-    logging.info("\nMerge data rows for data frame")
-    if co2_data.zone is None and co2_data.region is None:
-        return _merge_date_rows(data_frame, calc_type, residual_trapping)
-    if co2_data.region is None:
-        return {
-            "zone": {
-                z: _merge_date_rows(g, calc_type, residual_trapping)
-                for z, g in data_frame.groupby("zone")
-            }
-        }
-    if co2_data.zone is None:
-        return {
-            "region": {
-                z: _merge_date_rows(g, calc_type, residual_trapping)
-                for z, g in data_frame.groupby("region")
-            }
-        }
-    return {
-        "zone": {
-            z: _merge_date_rows(g, calc_type, residual_trapping)
-            for z, g in data_frame.groupby("zone")
-        },
-        "region": {
-            z: _merge_date_rows(g, calc_type, residual_trapping)
-            for z, g in data_frame.groupby("region")
-        },
-    }
+    return _construct_containment_table(contained_co2)
 
 
 def _read_polygon(polygon_file: str) -> shapely.geometry.Polygon:
@@ -408,11 +376,6 @@ def get_parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument(
-        "--compact",
-        help="Write the output to a single file as compact as possible.",
-        action="store_true",
-    )
-    parser.add_argument(
         "--verbose",
         help="Enable print of detailed information during execution of script",
         action="store_true",
@@ -498,10 +461,9 @@ def process_args() -> argparse.Namespace:
             adict[key] = os.path.join(args.root_dir, adict[key])
 
     if args.egrid is None:
-        if args.case.endswith(".EGRID"):
-            args.egrid = args.case
-        else:
-            args.egrid = args.case + ".EGRID"
+        args.egrid = args.case
+        if not args.case.endswith(".EGRID"):
+            args.egrid += ".EGRID"
     if args.unrst is None:
         args.unrst = args.egrid.replace(".EGRID", ".UNRST")
     if args.init is None:
@@ -604,6 +566,9 @@ def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
 
 
 def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
+    """
+    Log the provided input
+    """
     version = "v0.7.0"
     is_dev_version = True
     if is_dev_version:
@@ -645,131 +610,166 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     logging.info(f"UNRST file          : {arguments_processed.unrst}")
     logging.info(f"INIT file           : {arguments_processed.init}")
     logging.info(f"Zone file           : {arguments_processed.zonefile}")
-    logging.info(
-        f"Compact             : {'yes' if arguments_processed.compact else 'no'}\n"
-    )
 
 
 def log_summary_of_results(df: pd.DataFrame) -> None:
+    """
+    Log a rough summary of the output
+    """
     dfs = df.sort_values("date")
     last_date = max(df["date"])
     df_subset = dfs[dfs["date"] == last_date]
-    if "zone" in df_subset and any(df_subset["zone"].str.contains("all", na=False)):
-        df_subset = df_subset[df_subset["zone"] == "all"]
-    if "region" in df_subset and any(df_subset["region"].str.contains("all", na=False)):
-        df_subset = df_subset[df_subset["region"] == "all"]
-    total = df_subset["total"].iloc[-1]
+    df_subset = df_subset[df_subset["zone"] == "all"]
+    df_subset = df_subset[df_subset["region"] == "all"]
+    total = _get_end_value(df_subset, "total", "total")
     n = len(f"{total:.1f}")
 
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates     : {len(dfs['date'].unique())}")
-    logging.info(f"First date          : {dfs['date'].iloc[0]}")
-    logging.info(f"Last date           : {dfs['date'].iloc[-1]}")
-    logging.info(f"End state total     : {total:{n+1}.1f}")
-    if "total_gas" in df_subset:
-        value = df_subset["total_gas"].iloc[-1]
+    logging.info(f"Number of dates       : {len(dfs['date'].unique())}")
+    logging.info(f"First date            : {dfs['date'].iloc[0]}")
+    logging.info(f"Last date             : {dfs['date'].iloc[-1]}")
+    logging.info(f"End state total       : {total:{n}.1f}")
+    if "gas" in list(df_subset["phase"]):
+        value = _get_end_value(df_subset, "total", "gas")
         percent = 100.0 * value / total if total > 0.0 else 0.0
-        logging.info(f"End state gaseous   : {value:{n+1}.1f}  ({percent:.1f} %)")
-    if "total_aqueous" in df_subset:
-        value = df_subset["total_aqueous"].iloc[-1]
+        logging.info(f"End state gaseous     : {value:{n}.1f}  ({percent:.1f} %)")
+    else:
+        value = _get_end_value(df_subset, "total", "free_gas")
         percent = 100.0 * value / total if total > 0.0 else 0.0
-        logging.info(f"End state aqueous   : {value:{n+1}.1f}  ({percent:.1f} %)")
-    value = df_subset["total_contained"].iloc[-1]
+        logging.info(f"End state free gas    : {value:{n}.1f}  ({percent:.1f} %)")
+        value = _get_end_value(df_subset, "total", "trapped_gas")
+        percent = 100.0 * value / total if total > 0.0 else 0.0
+        logging.info(f"End state trapped gas : {value:{n}.1f}  ({percent:.1f} %)")
+    value = _get_end_value(df_subset, "total", "aqueous")
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state contained : {value:{n+1}.1f}  ({percent:.1f} %)")
-    value = df_subset["total_outside"].iloc[-1]
+    logging.info(f"End state aqueous     : {value:{n}.1f}  ({percent:.1f} %)")
+    value = _get_end_value(df_subset, "contained", "total")
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state outside   : {value:{n+1}.1f}  ({percent:.1f} %)")
-    value = df_subset["total_hazardous"].iloc[-1]
+    logging.info(f"End state contained   : {value:{n}.1f}  ({percent:.1f} %)")
+    value = _get_end_value(df_subset, "outside", "total")
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state hazardous : {value:{n+1}.1f}  ({percent:.1f} %)")
+    logging.info(f"End state outside     : {value:{n}.1f}  ({percent:.1f} %)")
+    value = _get_end_value(df_subset, "hazardous", "total")
+    percent = 100.0 * value / total if total > 0.0 else 0.0
+    logging.info(f"End state hazardous   : {value:{n}.1f}  ({percent:.1f} %)")
     if "zone" in dfs:
-        logging.info("Split into zones?   : yes")
+        logging.info("Split into zones?     : yes")
         unique_zones = dfs["zone"].unique()
         n_zones = (
             len(unique_zones) - 1 if "all" in dfs["zone"].values else len(unique_zones)
         )
-        logging.info(f"Number of zones     : {n_zones}")
-        logging.info(f"Zones               : {', '.join(unique_zones)}")
+        logging.info(f"Number of zones       : {n_zones}")
+        logging.info(f"Zones                 : {', '.join(unique_zones)}")
     else:
-        logging.info("Split into zones?   : no")
+        logging.info("Split into zones?     : no")
     if "region" in dfs:
-        logging.info("Split into regions? : yes")
+        logging.info("Split into regions?   : yes")
         unique_regions = dfs["region"].unique()
         n_regions = (
             len(unique_regions) - 1
             if "all" in dfs["region"].values
             else len(unique_regions)
         )
-        logging.info(f"Number of regions   : {n_regions}")
-        logging.info(f"Regions             : {', '.join(unique_regions)}")
+        logging.info(f"Number of regions     : {n_regions}")
+        logging.info(f"Regions               : {', '.join(unique_regions)}")
     else:
-        logging.info("Split into regions? : no")
+        logging.info("Split into regions?   : no")
 
 
-def _combine_data_frame(
-    data_frame: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+def _get_end_value(df: pd.DataFrame, c: str, p: str) -> float:
+    return df[(df["containment"] == c) & (df["phase"] == p)]["amount"].iloc[-1]
+
+
+def _sort_and_replace_nones(
+    data_frame: pd.DataFrame,
+):
+    data_frame.replace(to_replace=[None], value="AAAAAll", inplace=True)
+    data_frame.replace(to_replace=["total"], value="AAAAtotal", inplace=True)
+    data_frame.sort_values(by=list(data_frame.columns[-1:1:-1]), inplace=True)
+    data_frame.replace(to_replace=["AAAAtotal"], value="total", inplace=True)
+    data_frame.replace(to_replace=["AAAAAll"], value="all", inplace=True)
+
+
+def _convert_data_frame(
+    data_frame: pd.DataFrame,
     zone_info: Dict[str, Any],
     region_info: Dict[str, Any],
+    calc_type: CalculationType,
+    residual_trapping: bool,
 ) -> pd.DataFrame:
     """
-    Combine data frames from different zones into one single data frame
+    Convert output format to human-readable state
     """
-    # if zone_info["source"] is None and region_info["int_to_region"] is None:
-    #     assert isinstance(data_frame, pd.DataFrame)
-    if isinstance(data_frame, pd.DataFrame):
-        if zone_info["source"] is None:
-            data_frame.drop(columns="zone", inplace=True)
-        if region_info["int_to_region"] is None:
-            data_frame.drop(columns="region", inplace=True)
-        data_frame.replace(to_replace=[None], value="total", inplace=True)
-        data_frame.replace(to_replace=["total"], value="AAAAAAAAAAtotal", inplace=True)
-        data_frame.sort_values(by=list(data_frame.columns[-1:1:-1]),inplace=True)
-        data_frame.replace(to_replace=["AAAAAAAAAAtotal"], value="total", inplace=True)
-        return data_frame
+    #### TODO: Currently not implemented! Coming soon.
 
-    assert isinstance(data_frame, Dict)
+    logging.info("\nMerge data rows for data frame")
+    if zone_info["source"] is None and region_info["int_to_region"] is None:
+        data_frame.drop(columns=["zone", "region"], inplace=True)
+        return _merge_date_rows(data_frame, calc_type, residual_trapping)
+    if region_info["int_to_region"] is None:
+        data_frame.drop(columns=["region"], inplace=True)
+        data = {
+            "zone": {
+                z: _merge_date_rows(g, calc_type, residual_trapping)
+                for z, g in data_frame.groupby("zone")
+            }
+        }
+    elif zone_info["source"] is None:
+        data_frame.drop(columns=["zone"], inplace=True)
+        data = {
+            "region": {
+                r: _merge_date_rows(g, calc_type, residual_trapping)
+                for r, g in data_frame.groupby("region")
+            }
+        }
+    else:
+        data = {
+            "zone": {
+                z: _merge_date_rows(g, calc_type, residual_trapping)
+                for z, g in data_frame.groupby("zone")
+            },
+            "region": {
+                r: _merge_date_rows(g, calc_type, residual_trapping)
+                for r, g in data_frame.groupby("region")
+            },
+        }
+
+    assert isinstance(data, Dict)
     zone_df = pd.DataFrame()
     region_df = pd.DataFrame()
-    summed_part = pd.DataFrame()
     if zone_info["source"] is not None:
-        assert isinstance(data_frame["zone"], Dict)
+        assert isinstance(data["zone"], Dict)
         assert zone_info["int_to_zone"] is not None
-        zone_keys = list(data_frame["zone"].keys())
+        zone_keys = list(data["zone"].keys())
         for key in zone_info["int_to_zone"]:
             if key is not None:
                 if key in zone_keys:
-                    _df = data_frame["zone"][key]
+                    _df = data["zone"][key]
                 else:
-                    _df = data_frame["zone"][zone_keys[0]]
+                    _df = data["zone"][zone_keys[0]]
                     numeric_cols = _df.select_dtypes(include=["number"]).columns
                     _df[numeric_cols] = 0
                 _df["zone"] = [key] * _df.shape[0]
                 zone_df = pd.concat([zone_df, _df])
         if region_info["int_to_region"] is not None:
             zone_df["region"] = ["all"] * zone_df.shape[0]
-        summed_part = zone_df.groupby("date").sum(numeric_only=True).reset_index()
-        summed_part["zone"] = ["all"] * summed_part.shape[0]
     if region_info["int_to_region"] is not None:
-        assert isinstance(data_frame["region"], Dict)
-        region_keys = list(data_frame["region"].keys())
+        assert isinstance(data["region"], Dict)
+        region_keys = list(data["region"].keys())
         for key in region_info["int_to_region"]:
             if key is not None:
                 if key in region_keys:
-                    _df = data_frame["region"][key]
+                    _df = data["region"][key]
                 else:
-                    _df = data_frame["region"][region_keys[0]]
+                    _df = data["region"][region_keys[0]]
                     numeric_cols = _df.select_dtypes(include=["number"]).columns
                     _df[numeric_cols] = 0
                 _df["region"] = [key] * _df.shape[0]
                 region_df = pd.concat([region_df, _df])
-        if zone_info["source"] is None:
-            summed_part = region_df.groupby("date").sum(numeric_only=True).reset_index()
-        else:
+        if zone_info["source"] is not None:
             region_df["zone"] = ["all"] * region_df.shape[0]
-        summed_part["region"] = ["all"] * summed_part.shape[0]
-    combined_df = pd.concat([summed_part, zone_df, region_df])
+    combined_df = pd.concat([zone_df, region_df])
     return combined_df
 
 
@@ -818,7 +818,6 @@ def main() -> None:
         arguments_processed.egrid,
         arguments_processed.unrst,
         arguments_processed.init,
-        arguments_processed.compact,
         arguments_processed.calc_type_input,
         zone_info,
         region_info,
@@ -826,13 +825,21 @@ def main() -> None:
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
     )
-    df_combined = _combine_data_frame(data_frame, zone_info, region_info)
-    # log_summary_of_results(df_combined)
+    _sort_and_replace_nones(data_frame)
+    log_summary_of_results(data_frame)
     export_output_to_csv(
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,
-        df_combined,
+        data_frame,
     )
+    # Currently not implemented! Coming soon.
+    # df_combined = _convert_data_frame(
+    #     data_frame,
+    #     zone_info,
+    #     region_info,
+    #     arguments_processed.calc_type_input,
+    #     arguments_processed.residual_trapping,
+    # )
 
 
 if __name__ == "__main__":

@@ -2,12 +2,16 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Literal, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from shapely.geometry import MultiPolygon, Point, Polygon
 
-from ccs_scripts.co2_containment.co2_calculation import CalculationType, Co2Data
+from ccs_scripts.co2_containment.co2_calculation import (
+    CalculationType,
+    Co2Data,
+    Co2DataAtTimeStep,
+)
 
 
 @dataclass
@@ -19,8 +23,9 @@ class ContainedCo2:
     Args:
         date (str): A given time step
         amount (float): Numerical value with the computed amount at "date"
-        phase (Literal): One of gas/aqueous/undefined. The phase of "amount".
-        location (Literal): One of contained/outside/hazardous. The location
+        phase (Literal): One of gas (or trapped_gas/free_gas)/aqueous/undefined.
+            The phase of "amount".
+        containment (Literal): One of contained/outside/hazardous. The location
             that "amount" corresponds to.
         zone (str):
         region (str):
@@ -29,8 +34,8 @@ class ContainedCo2:
 
     date: str
     amount: float
-    phase: Literal["gas", "aqueous", "trapped_gas", "free_gas", "total", "undefined"]
-    location: Literal["contained", "outside", "hazardous", "total"]
+    phase: str  # Literal["gas", "aqueous", "trapped_gas", "free_gas", "total", "undefined"]
+    containment: str  # Literal["contained", "outside", "hazardous", "total"]
     zone: Optional[str] = None
     region: Optional[str] = None
 
@@ -71,6 +76,7 @@ def calculate_co2_containment(
         region_info (Dict): Dictionary containing region information
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
+        residual_trapping (bool): Indicate if residual trapping is calculated
 
     Returns:
         List[ContainedCo2]
@@ -78,91 +84,144 @@ def calculate_co2_containment(
     logging.info(
         f"Calculate contained CO2 {calc_type.name.lower()} using input polygons"
     )
+    locations = {}
     if containment_polygon is not None:
-        is_contained = _calculate_containment(
+        locations["contained"] = _calculate_containment(
             co2_data.x_coord,
             co2_data.y_coord,
             containment_polygon,
         )
     else:
-        is_contained = np.array([True] * len(co2_data.x_coord))
+        locations["contained"] = np.ones(len(co2_data.x_coord), dtype=bool)
         logging.info("No containment polygon specified.")
     if hazardous_polygon is not None:
-        is_hazardous = _calculate_containment(
+        locations["hazardous"] = _calculate_containment(
             co2_data.x_coord,
             co2_data.y_coord,
             hazardous_polygon,
         )
     else:
-        is_hazardous = np.array([False] * len(co2_data.x_coord))
+        locations["hazardous"] = np.zeros(len(co2_data.x_coord), dtype=bool)
         logging.info("No hazardous polygon specified.")
 
     # Count as hazardous if the two boundaries overlap:
-    is_inside = [x if not y else False for x, y in zip(is_contained, is_hazardous)]
-    is_outside = [not x and not y for x, y in zip(is_contained, is_hazardous)]
+    locations["contained"] = np.array(
+        [
+            x if not y else False
+            for x, y in zip(locations["contained"], locations["hazardous"])
+        ]
+    )
+    locations["outside"] = np.array(
+        [
+            not x and not y
+            for x, y in zip(locations["contained"], locations["hazardous"])
+        ]
+    )
+    locations["total"] = np.ones(len(co2_data.x_coord), dtype=bool)
+    _log_summary_of_grid_node_location(locations)
+
+    phases = _lists_of_phases(calc_type, residual_trapping)
+    zone_map, region_map = _zone_and_region_maps(co2_data, zone_info, region_info)
+    zone_region_info = (
+        [(None, None, np.ones(len(co2_data.x_coord), dtype=bool))]
+        + [(zone, None, is_in_zone) for zone, is_in_zone in zone_map.items()]
+        + [(None, region, is_in_region) for region, is_in_region in region_map.items()]
+    )
+    containment = []
+    for zone, region, is_in_section in zone_region_info:
+        for w in co2_data.data_list:
+            co2_amounts = _lists_of_co2_for_each_phase(w, calc_type, residual_trapping)
+            for co2_amount, phase in zip(co2_amounts, phases):
+                for location, is_in_location in locations.items():
+                    amount = sum(co2_amount[is_in_section & is_in_location])
+                    containment += [
+                        ContainedCo2(
+                            w.date,
+                            amount,
+                            phase,
+                            location,
+                            zone,
+                            region,
+                        )
+                    ]
+    logging.info(
+        f"Done calculating contained CO2 {calc_type.name.lower()} using input polygons"
+    )
+    return containment
+
+
+def _log_summary_of_grid_node_location(locations: Dict) -> None:
     logging.info("Number of grid nodes:")
     logging.info(
         f"  * Inside containment polygon                        :\
-        {is_inside.count(True)}"
+            {locations['contained'].sum()}"
     )
     logging.info(
         f"  * Inside hazardous polygon                          :\
-        {list(is_hazardous).count(True)}"
+            {locations['hazardous'].sum()}"
     )
     logging.info(
         f"  * Outside containment polygon and hazardous polygon :\
-        {is_outside.count(True)}"
+            {locations['outside'].sum()}"
     )
     logging.info(
         f"  * Total                                             :\
-        {len(is_inside)}"
+            {len(locations['contained'])}"
     )
-    containment_list = []
+
+
+def _lists_of_phases(
+    calc_type: CalculationType,
+    residual_trapping: bool,
+) -> List[str]:
+    """
+    Returns a list of the relevant phases depending on calculation type and whether
+    residual trapping is calculated
+    """
     if calc_type == CalculationType.CELL_VOLUME:
-        for w in co2_data.data_list:
-            containment_list += [
-                ContainedCo2(
-                    w.date,
-                    sum(w.volume_coverage[is_inside]),
-                    "undefined",
-                    "contained",
-                ),
-                ContainedCo2(
-                    w.date,
-                    sum(w.volume_coverage[is_outside]),
-                    "undefined",
-                    "outside",
-                ),
-                ContainedCo2(
-                    w.date,
-                    sum(w.volume_coverage[is_hazardous]),
-                    "undefined",
-                    "hazardous",
-                ),
-            ]
+        phases = ["undefined"]
     else:
-        for w in co2_data.data_list:
-            arrays = [w.total_mass(), w.aqu_phase]
-            arrays += [w.trapped_gas_phase, w.free_gas_phase] if residual_trapping else [w.gas_phase]
-            phases = ["total", "aqueous"]
-            phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
-            for arr, phase in zip(arrays, phases):
-                containment_list += [
-                    ContainedCo2(w.date, sum(arr), phase, "total"),
-                    ContainedCo2(w.date, sum(arr[is_inside]), phase, "contained"),
-                    ContainedCo2(w.date, sum(arr[is_outside]), phase, "outside"),
-                    ContainedCo2(w.date, sum(arr[is_hazardous]), phase, "hazardous"),
-                ]
-    if co2_data.zone is None and co2_data.region is None:
-        return containment_list
+        phases = ["total", "aqueous"]
+        phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
+    return phases
+
+
+def _lists_of_co2_for_each_phase(
+    co2_at_date: Co2DataAtTimeStep,
+    calc_type: CalculationType,
+    residual_trapping: bool,
+) -> List[np.ndarray]:
+    """
+    Returns a list of the relevant arrays of different phases of co2 depending on
+    calculation type and whether residual trapping is calculated
+    """
+    if calc_type == CalculationType.CELL_VOLUME:
+        arrays = [co2_at_date.volume_coverage]
+    else:
+        arrays = [co2_at_date.total_mass(), co2_at_date.aqu_phase]
+        arrays += (
+            [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
+            if residual_trapping
+            else [co2_at_date.gas_phase]
+        )
+    return arrays
+
+
+def _zone_and_region_maps(
+    co2_data: Co2Data, zone_info: Dict, region_info: Dict
+) -> Tuple[Dict, Dict]:
+    """
+    Returns dictionaries connecting each zone/region to a boolean array over the grid,
+    indicating whether the grid point belongs to said zone/region
+    """
     zone_map = (
         {}
         if co2_data.zone is None
         else (
-            {z: co2_data.zone == z for z in np.unique(co2_data.zone)}
+            {z: np.array(co2_data.zone == z) for z in np.unique(co2_data.zone)}
             if zone_info["int_to_zone"] is None
             else {
-                zone_info["int_to_zone"][z]: co2_data.zone == z
+                zone_info["int_to_zone"][z]: np.array(co2_data.zone == z)
                 for z in np.unique(co2_data.zone)
                 if z >= 0 and zone_info["int_to_zone"][z] is not None
             }
@@ -172,100 +231,17 @@ def calculate_co2_containment(
         {}
         if co2_data.region is None
         else (
-            {r: co2_data.region == r for r in np.unique(co2_data.region)}
+            {r: np.array(co2_data.region == r) for r in np.unique(co2_data.region)}
             if region_info["int_to_region"] is None
             else {
-                region_info["int_to_region"][r]: co2_data.region == r
+                region_info["int_to_region"][r]: np.array(co2_data.region == r)
                 for r in np.unique(co2_data.region)
                 if r >= 0 and region_info["int_to_region"][r] is not None
             }
         )
     )
-    zone_region_info = ([(zn, zm, "zone") for zn, zm in zone_map.items()] +
-                        [(rn, rm, "region") for rn, rm in region_map.items()])
-    if calc_type == CalculationType.CELL_VOLUME:
-        for name_, is_in_section, type_ in zone_region_info:
-            for w in co2_data.data_list:
-                containment_list += [
-                    ContainedCo2(
-                        w.date,
-                        sum(w.volume_coverage[is_in_section]),
-                        "undefined",
-                        "total",
-                        name_ if type_ == "zone" else None,
-                        name_ if type_ == "region" else None,
-                    ),
-                    ContainedCo2(
-                        w.date,
-                        sum(w.volume_coverage[is_inside & is_in_section]),
-                        "undefined",
-                        "contained",
-                        name_ if type_ == "zone" else None,
-                        name_ if type_ == "region" else None,
-                    ),
-                    ContainedCo2(
-                        w.date,
-                        sum(w.volume_coverage[is_outside & is_in_section]),
-                        "undefined",
-                        "outside",
-                        name_ if type_ == "zone" else None,
-                        name_ if type_ == "region" else None,
-                    ),
-                    ContainedCo2(
-                        w.date,
-                        sum(w.volume_coverage[is_hazardous & is_in_section]),
-                        "undefined",
-                        "hazardous",
-                        name_ if type_ == "zone" else None,
-                        name_ if type_ == "region" else None,
-                    ),
-                ]
-    else:
-        for name_, is_in_section, type_ in zone_region_info:
-            for w in co2_data.data_list:
-                arrays = [w.total_mass(), w.aqu_phase]
-                arrays += [w.trapped_gas_phase, w.free_gas_phase] if residual_trapping else [w.gas_phase]
-                phases = ["total", "aqueous"]
-                phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
-                for arr, phase in zip(arrays, phases):
-                    containment_list += [
-                        ContainedCo2(
-                            w.date,
-                            sum(arr[is_in_section]),
-                            phase,
-                            "total",
-                            name_ if type_ == "zone" else None,
-                            name_ if type_ == "region" else None,
-                        ),
-                        ContainedCo2(
-                            w.date,
-                            sum(arr[is_inside & is_in_section]),
-                            phase,
-                            "contained",
-                            name_ if type_ == "zone" else None,
-                            name_ if type_ == "region" else None,
-                        ),
-                        ContainedCo2(
-                            w.date,
-                            sum(arr[is_outside & is_in_section]),
-                            phase,
-                            "outside",
-                            name_ if type_ == "zone" else None,
-                            name_ if type_ == "region" else None,
-                        ),
-                        ContainedCo2(
-                            w.date,
-                            sum(arr[is_hazardous & is_in_section]),
-                            phase,
-                            "hazardous",
-                            name_ if type_ == "zone" else None,
-                            name_ if type_ == "region" else None,
-                        ),
-                    ]
-        logging.info(
-            f"Done calculating contained CO2 {calc_type.name.lower()} using input polygons"
-        )
-    return containment_list
+    return zone_map, region_map
+
 
 def _calculate_containment(
     x_coord: np.ndarray, y_coord: np.ndarray, poly: Union[Polygon, MultiPolygon]

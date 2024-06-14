@@ -516,7 +516,7 @@ def _process_zones(
             zone = zone.values.data.flatten(order="F")
             zonevals = np.unique(zone)
             intvals = np.array(zonevals, dtype=int)
-            if sum(intvals == zonevals) != len(zonevals):
+            if np.sum(intvals == zonevals) != len(zonevals):
                 logging.info(
                     "Warning: Grid provided in zone file contains non-integer values. "
                     "This might cause problems with the calculations for "
@@ -555,7 +555,7 @@ def _process_regions(
         region = region.values.data.flatten(order="F")
         regvals = np.unique(region)
         intvals = np.array(regvals, dtype=int)
-        if sum(intvals == regvals) != len(regvals):
+        if np.sum(intvals == regvals) != len(regvals):
             logging.info(
                 "Warning: Grid provided in region file contains non-integer values. "
                 "This might cause problems with the calculations for "
@@ -817,7 +817,6 @@ def _eclipse_co2_molar_volume(
       source_data (SourceData): Data with the information of the necessary properties
                                 for the calculation of CO2 molar volume
       water_density (float): Water density - Default is 1000 kg/m3
-      co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
       water_molar_mass (float): Water molar mass - Default is 18 g/mol
 
     Returns:
@@ -1142,6 +1141,7 @@ def calculate_co2(
       init_file (str): Path to INIT-file
       zone_info (Dict): Dictionary with zone information
       region_info (Dict): Dictionary with region information
+      residual_trapping (bool): Calculate residual trapping or not
 
     Returns:
       CO2Data
