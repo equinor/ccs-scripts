@@ -576,6 +576,7 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     logging.info(f"Zone file           : {arguments_processed.zonefile}")
 
 
+# pylint: disable = too-many-statements
 def log_summary_of_results(df: pd.DataFrame) -> None:
     """
     Log a rough summary of the output
@@ -584,8 +585,7 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
     dfs = df.sort_values("date")
     last_date = max(df["date"])
     df_subset = dfs[dfs["date"] == last_date]
-    df_subset = df_subset[df_subset["zone"] == "all"]
-    df_subset = df_subset[df_subset["region"] == "all"]
+    df_subset = df_subset[(df_subset["zone"] == "all") & (df_subset["region"] == "all")]
     total = get_end_value(df_subset, "total", "total", cell_volume)
     n = len(f"{total:.1f}")
 
@@ -649,6 +649,10 @@ def get_end_value(
     p: str,
     cv: Optional[bool] = False,
 ) -> float:
+    """
+    Return the total co2 amount in grid nodes with the specified to phase and location
+    at the latest recorded date
+    """
     if cv:
         return df[df["containment"] == c]["amount"].iloc[-1]
     return df[(df["containment"] == c) & (df["phase"] == p)]["amount"].iloc[-1]
@@ -657,6 +661,9 @@ def get_end_value(
 def sort_and_replace_nones(
     data_frame: pd.DataFrame,
 ):
+    """
+    Replaces empty zone and region fields with "all", and sorts the data frame
+    """
     data_frame.replace(to_replace=[None], value="AAAAAll", inplace=True)
     data_frame.replace(to_replace=["total"], value="AAAAtotal", inplace=True)
     data_frame.sort_values(by=list(data_frame.columns[-1:1:-1]), inplace=True)
@@ -675,7 +682,6 @@ def convert_data_frame(
     Convert output format to human-readable state
 
     Work in progress
-    
     TODO:
         - Formatting
             * Column widths
@@ -691,72 +697,51 @@ def convert_data_frame(
         calc_type,
         residual_trapping,
     )
-    if zone_info["source"] is None and region_info["int_to_region"] is None:
-        return total_df
-    if region_info["int_to_region"] is None:
-        total_df["zone"] = ["all"] * total_df.shape[0]
-        data_frame = data_frame[data_frame["zone"] != "all"].drop(columns=["region"])
-        data = {
-            "zone": {
-                z: _merge_date_rows(g, calc_type, residual_trapping)
-                for z, g in data_frame.groupby("zone")
-            }
+    data = {}
+    if zone_info["source"] is not None:
+        data["zone"] = {
+            z: _merge_date_rows(g, calc_type, residual_trapping)
+            for z, g in data_frame[data_frame["zone"] != "all"]
+            .drop(columns=["region"])
+            .groupby("zone")
         }
-    elif zone_info["source"] is None:
-        total_df["region"] = ["all"] * total_df.shape[0]
-        data_frame = data_frame[data_frame["region"] != "all"].drop(columns=["zone"])
-        data = {
-            "region": {
-                r: _merge_date_rows(g, calc_type, residual_trapping)
-                for r, g in data_frame.groupby("region")
-            }
-        }
-    else:
-        total_df["zone"] = ["all"] * total_df.shape[0]
-        total_df["region"] = ["all"] * total_df.shape[0]
-        data = {
-            "zone": {
-                z: _merge_date_rows(g, calc_type, residual_trapping)
-                for z, g in data_frame[data_frame["zone"] != "all"].groupby("zone")
-            },
-            "region": {
-                r: _merge_date_rows(g, calc_type, residual_trapping)
-                for r, g in data_frame[data_frame["region"] != "all"].groupby("region")
-            },
+    if region_info["int_to_region"] is not None:
+        data["region"] = {
+            r: _merge_date_rows(g, calc_type, residual_trapping)
+            for r, g in data_frame[data_frame["region"] != "all"]
+            .drop(columns=["zone"])
+            .groupby("region")
         }
 
-    assert isinstance(data, Dict)
     zone_df = pd.DataFrame()
     region_df = pd.DataFrame()
     if zone_info["source"] is not None:
-        assert isinstance(data["zone"], Dict)
+        total_df["zone"] = ["all"] * total_df.shape[0]
         assert zone_info["int_to_zone"] is not None
         zone_keys = list(data["zone"].keys())
-        for key in zone_info["int_to_zone"]:
-            if key is not None:
-                if key in zone_keys:
-                    _df = data["zone"][key]
-                else:
-                    _df = data["zone"][zone_keys[0]]
-                    numeric_cols = _df.select_dtypes(include=["number"]).columns
-                    _df[numeric_cols] = 0
-                _df["zone"] = [key] * _df.shape[0]
-                zone_df = pd.concat([zone_df, _df])
+        for key in filter(None, zone_info["int_to_zone"]):  # type: str
+            if key in zone_keys:
+                _df = data["zone"][key]
+            else:
+                _df = data["zone"][zone_keys[0]]
+                numeric_cols = _df.select_dtypes(include=["number"]).columns
+                _df[numeric_cols] = 0
+            _df["zone"] = [key] * _df.shape[0]
+            zone_df = pd.concat([zone_df, _df])
         if region_info["int_to_region"] is not None:
             zone_df["region"] = ["all"] * zone_df.shape[0]
     if region_info["int_to_region"] is not None:
-        assert isinstance(data["region"], Dict)
+        total_df["region"] = ["all"] * total_df.shape[0]
         region_keys = list(data["region"].keys())
-        for key in region_info["int_to_region"]:
-            if key is not None:
-                if key in region_keys:
-                    _df = data["region"][key]
-                else:
-                    _df = data["region"][region_keys[0]]
-                    numeric_cols = _df.select_dtypes(include=["number"]).columns
-                    _df[numeric_cols] = 0
-                _df["region"] = [key] * _df.shape[0]
-                region_df = pd.concat([region_df, _df])
+        for key in filter(None, region_info["int_to_region"]):
+            if key in region_keys:
+                _df = data["region"][key]
+            else:
+                _df = data["region"][region_keys[0]]
+                numeric_cols = _df.select_dtypes(include=["number"]).columns
+                _df[numeric_cols] = 0
+            _df["region"] = [key] * _df.shape[0]
+            region_df = pd.concat([region_df, _df])
         if zone_info["source"] is not None:
             region_df["zone"] = ["all"] * region_df.shape[0]
     combined_df = pd.concat([total_df, zone_df, region_df])

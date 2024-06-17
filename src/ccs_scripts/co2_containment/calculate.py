@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 from shapely.geometry import MultiPolygon, Point, Polygon
@@ -50,7 +50,7 @@ class ContainedCo2:
             self.date = f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
 
-# pylint: disable = too-many-arguments
+# pylint: disable = too-many-arguments, too-many-locals
 def calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
@@ -84,6 +84,54 @@ def calculate_co2_containment(
     logging.info(
         f"Calculate contained CO2 {calc_type.name.lower()} using input polygons"
     )
+
+    # Dict with boolean arrays indicating location
+    locations = _make_location_filters(
+        co2_data,
+        containment_polygon,
+        hazardous_polygon,
+    )
+    _log_summary_of_grid_node_location(locations)
+    phases = _lists_of_phases(calc_type, residual_trapping)
+
+    # List of tuple with (zone/None, None/region, boolean array over grid)
+    zone_region_info = _zone_and_region_mapping(co2_data, zone_info, region_info)
+    containment = []
+    for zone, region, is_in_section in zone_region_info:
+        for co2_at_timestep in co2_data.data_list:
+            co2_amounts_for_each_phase = _lists_of_co2_for_each_phase(
+                co2_at_timestep,
+                calc_type,
+                residual_trapping,
+            )
+            for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
+                for location, is_in_location in locations.items():
+                    amount = sum(co2_amount[is_in_section & is_in_location])
+                    containment += [
+                        ContainedCo2(
+                            co2_at_timestep.date,
+                            amount,
+                            phase,
+                            location,
+                            zone,
+                            region,
+                        )
+                    ]
+    logging.info(
+        f"Done calculating contained CO2 {calc_type.name.lower()} using input polygons"
+    )
+    return containment
+
+
+def _make_location_filters(
+    co2_data: Co2Data,
+    containment_polygon: Union[Polygon, MultiPolygon],
+    hazardous_polygon: Union[Polygon, MultiPolygon, None],
+) -> Dict:
+    """
+    Return a dictionary connecting location (contained/outside/hazardous) to boolean
+    arrays over all grid nodes indicating membership to said location
+    """
     locations = {}
     if containment_polygon is not None:
         locations["contained"] = _calculate_containment(
@@ -118,36 +166,7 @@ def calculate_co2_containment(
         ]
     )
     locations["total"] = np.ones(len(co2_data.x_coord), dtype=bool)
-    _log_summary_of_grid_node_location(locations)
-
-    phases = _lists_of_phases(calc_type, residual_trapping)
-    zone_map, region_map = _zone_and_region_maps(co2_data, zone_info, region_info)
-    zone_region_info = (
-        [(None, None, np.ones(len(co2_data.x_coord), dtype=bool))]
-        + [(zone, None, is_in_zone) for zone, is_in_zone in zone_map.items()]
-        + [(None, region, is_in_region) for region, is_in_region in region_map.items()]
-    )
-    containment = []
-    for zone, region, is_in_section in zone_region_info:
-        for w in co2_data.data_list:
-            co2_amounts = _lists_of_co2_for_each_phase(w, calc_type, residual_trapping)
-            for co2_amount, phase in zip(co2_amounts, phases):
-                for location, is_in_location in locations.items():
-                    amount = sum(co2_amount[is_in_section & is_in_location])
-                    containment += [
-                        ContainedCo2(
-                            w.date,
-                            amount,
-                            phase,
-                            location,
-                            zone,
-                            region,
-                        )
-                    ]
-    logging.info(
-        f"Done calculating contained CO2 {calc_type.name.lower()} using input polygons"
-    )
-    return containment
+    return locations
 
 
 def _log_summary_of_grid_node_location(locations: Dict) -> None:
@@ -207,12 +226,10 @@ def _lists_of_co2_for_each_phase(
     return arrays
 
 
-def _zone_and_region_maps(
-    co2_data: Co2Data, zone_info: Dict, region_info: Dict
-) -> Tuple[Dict, Dict]:
+def _zone_map(co2_data: Co2Data, zone_info: Dict) -> Dict:
     """
-    Returns dictionaries connecting each zone/region to a boolean array over the grid,
-    indicating whether the grid point belongs to said zone/region
+    Returns a dictionary connecting each zone to a boolean array over the grid,
+    indicating whether the grid point belongs to said zone
     """
     zone_map = (
         {}
@@ -227,6 +244,14 @@ def _zone_and_region_maps(
             }
         )
     )
+    return zone_map
+
+
+def _region_map(co2_data: Co2Data, region_info: Dict) -> Dict:
+    """
+    Returns a dictionary connecting each region to a boolean array over the grid,
+    indicating whether the grid point belongs to said region
+    """
     region_map = (
         {}
         if co2_data.region is None
@@ -240,7 +265,26 @@ def _zone_and_region_maps(
             }
         )
     )
-    return zone_map, region_map
+    return region_map
+
+
+def _zone_and_region_mapping(
+    co2_data: Co2Data,
+    zone_info: Dict,
+    region_info: Dict,
+) -> List:
+    """
+    List containing a tuple for each zone / region (and no zone, no region),
+    with the name of the respective zone / region and a boolean array
+    indicating membership of each grid node to the zone / region
+    """
+    zone_map = _zone_map(co2_data, zone_info)
+    region_map = _region_map(co2_data, region_info)
+    return (
+        [(None, None, np.ones(len(co2_data.x_coord), dtype=bool))]
+        + [(zone, None, is_in_zone) for zone, is_in_zone in zone_map.items()]
+        + [(None, region, is_in_region) for region, is_in_region in region_map.items()]
+    )
 
 
 def _calculate_containment(
