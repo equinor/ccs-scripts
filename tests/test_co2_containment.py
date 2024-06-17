@@ -289,7 +289,11 @@ def test_synthetic_case_eclipse_actual_volume(mocker):
     main()
 
     output_path = str(
-        main_path / "share" / "results" / "tables" / "plume_actual_volume.csv"
+        main_path
+        / "share"
+        / "results"
+        / "tables"
+        / "plume_actual_volume.csv"
     )
     df = pandas.read_csv(output_path)
     os.remove(output_path)
@@ -391,7 +395,9 @@ def test_synthetic_case_eclipse_mass_no_zones(mocker):
     )
     main()
 
-    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_mass.csv"
+    )
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
@@ -439,7 +445,9 @@ def test_synthetic_case_eclipse_mass_no_regions(mocker):
     )
     main()
 
-    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_mass.csv"
+    )
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
@@ -485,7 +493,9 @@ def test_synthetic_case_eclipse_mass_no_zones_no_regions(mocker):
     )
     main()
 
-    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_mass.csv"
+    )
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
@@ -535,7 +545,9 @@ def test_synthetic_case_pflotran_mass(mocker):
     )
     main()
 
-    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_mass.csv"
+    )
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
@@ -586,7 +598,11 @@ def test_synthetic_case_pflotran_actual_volume(mocker):
     main()
 
     output_path = str(
-        main_path / "share" / "results" / "tables" / "plume_actual_volume.csv"
+        main_path
+        / "share"
+        / "results"
+        / "tables"
+        / "plume_actual_volume.csv"
     )
     df = pandas.read_csv(output_path)
     os.remove(output_path)

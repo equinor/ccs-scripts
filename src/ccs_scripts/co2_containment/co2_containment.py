@@ -203,102 +203,66 @@ def _merge_date_rows(
         pd.DataFrame: Output data frame
     """
     data_frame = data_frame.drop(columns=["zone", "region"], axis=1, errors="ignore")
-    # Total
-    if residual_trapping:
-        df1 = (
-            data_frame[data_frame["phase"] != "trapped_gas"]
-            .drop(["phase", "location"], axis=1)
-            .groupby(["date"])
-            .sum()
-            .rename(columns={"amount": "total"})
-        )
-    else:
-        df1 = (
-            data_frame.drop(["phase", "location"], axis=1)
-            .groupby(["date"])
-            .sum()
-            .rename(columns={"amount": "total"})
-        )
-    total_df = df1.copy()
+    locations = ["contained", "outside", "hazardous"]
     if calc_type == CalculationType.CELL_VOLUME:
-        df2 = data_frame.drop("phase", axis=1).groupby(["location", "date"]).sum()
-        df2a = df2.loc[("contained",)].rename(columns={"amount": "total_contained"})
-        df2b = df2.loc[("outside",)].rename(columns={"amount": "total_outside"})
-        df2c = df2.loc[("hazardous",)].rename(columns={"amount": "total_hazardous"})
-        for _df in [df2a, df2b, df2c]:
+        total_df = (
+            data_frame[data_frame["containment"] == "total"]
+            .drop(["phase", "containment"], axis=1)
+            .rename(columns={"amount": "total"})
+        )
+        for location in locations:
+            _df = (
+                data_frame[data_frame["containment"] == location]
+                .drop(columns=["phase", "containment"])
+                .rename(columns={"amount": f"total_{location}"})
+            )
             total_df = total_df.merge(_df, on="date", how="left")
     else:
-        df2 = data_frame.drop("location", axis=1).groupby(["phase", "date"]).sum()
-        df2b = df2.loc["aqueous"].rename(columns={"amount": "total_aqueous"})
-        df3 = data_frame.drop("phase", axis=1).groupby(["location", "date"]).sum()
-        # Total by containment
-        df3a = df3.loc[("contained",)].rename(columns={"amount": "total_contained"})
-        df3b = df3.loc[("outside",)].rename(columns={"amount": "total_outside"})
-        df3c = df3.loc[("hazardous",)].rename(columns={"amount": "total_hazardous"})
-        # Total by containment and phase - aqueous
-        df4 = data_frame.groupby(["phase", "location", "date"]).sum()
-        df4b = df4.loc["aqueous", "contained"].rename(
-            columns={"amount": "aqueous_contained"}
+        total_df = (
+            data_frame[
+                (data_frame["phase"] == "total")
+                & (data_frame["containment"] == "total")
+            ]
+            .drop(["phase", "containment"], axis=1)
+            .rename(columns={"amount": "total"})
         )
-        df4d = df4.loc["aqueous", "outside"].rename(
-            columns={"amount": "aqueous_outside"}
-        )
-        df4f = df4.loc["aqueous", "hazardous"].rename(
-            columns={"amount": "aqueous_hazardous"}
-        )
-
-        if not residual_trapping:
-            df2a = df2.loc["gas"].rename(columns={"amount": "total_gas"})
-            df4a = df4.loc["gas", "contained"].rename(
-                columns={"amount": "gas_contained"}
+        phases = ["free_gas", "trapped_gas"] if residual_trapping else ["gas"]
+        phases += ["aqueous"]
+        # Total by phase
+        for phase in phases:
+            _df = (
+                data_frame[
+                    (data_frame["containment"] == "total")
+                    & (data_frame["phase"] == phase)
+                ]
+                .drop(columns=["phase", "containment"])
+                .rename(columns={"amount": f"total_{phase}"})
             )
-            df4c = df4.loc["gas", "outside"].rename(columns={"amount": "gas_outside"})
-            df4e = df4.loc["gas", "hazardous"].rename(
-                columns={"amount": "gas_hazardous"}
-            )
-        else:
-            df2a_trapped = df2.loc["trapped_gas"].rename(
-                columns={"amount": "total_trapped_gas"}
-            )
-            df2a_free = df2.loc["free_gas"].rename(columns={"amount": "total_free_gas"})
-            df2a = df2a_trapped.merge(df2a_free, on="date", how="left")
-            df4a_trapped = df4.loc["trapped_gas", "contained"].rename(
-                columns={"amount": "trapped_gas_contained"}
-            )
-            df4a_free = df4.loc["free_gas", "contained"].rename(
-                columns={"amount": "free_gas_contained"}
-            )
-            df4a = df4a_trapped.merge(df4a_free, on="date", how="left")
-            df4c_trapped = df4.loc["trapped_gas", "outside"].rename(
-                columns={"amount": "trapped_gas_outside"}
-            )
-            df4c_free = df4.loc["free_gas", "outside"].rename(
-                columns={"amount": "free_gas_outside"}
-            )
-            df4c = df4c_trapped.merge(df4c_free, on="date", how="left")
-            df4e_trapped = df4.loc["trapped_gas", "hazardous"].rename(
-                columns={"amount": "trapped_gas_hazardous"}
-            )
-            df4e_free = df4.loc["free_gas", "hazardous"].rename(
-                columns={"amount": "free_gas_hazardous"}
-            )
-            df4e = df4e_trapped.merge(df4e_free, on="date", how="left")
-        for _df in [
-            df2a,
-            df2b,
-            df3a,
-            df3b,
-            df3c,
-            df4a,
-            df4b,
-            df4c,
-            df4d,
-            df4e,
-            df4f,
-        ]:
             total_df = total_df.merge(_df, on="date", how="left")
-
-    return total_df.reset_index()
+        # Total by containment
+        for location in locations:
+            _df = (
+                data_frame[
+                    (data_frame["containment"] == location)
+                    & (data_frame["phase"] == "total")
+                ]
+                .drop(columns=["phase", "containment"])
+                .rename(columns={"amount": f"total_{location}"})
+            )
+            total_df = total_df.merge(_df, on="date", how="left")
+        # Total by containment
+        for location in locations:
+            for phase in phases:
+                _df = (
+                    data_frame[
+                        (data_frame["containment"] == location)
+                        & (data_frame["phase"] == phase)
+                    ]
+                    .drop(columns=["phase", "containment"])
+                    .rename(columns={"amount": f"{phase}_{location}"})
+                )
+                total_df = total_df.merge(_df, on="date", how="left")
+    return total_df.reset_index(drop=True)
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -616,12 +580,13 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
     """
     Log a rough summary of the output
     """
+    cell_volume = "total" not in df["phase"]
     dfs = df.sort_values("date")
     last_date = max(df["date"])
     df_subset = dfs[dfs["date"] == last_date]
     df_subset = df_subset[df_subset["zone"] == "all"]
     df_subset = df_subset[df_subset["region"] == "all"]
-    total = _get_end_value(df_subset, "total", "total")
+    total = get_end_value(df_subset, "total", "total", cell_volume)
     n = len(f"{total:.1f}")
 
     logging.info("\nSummary of results:")
@@ -630,27 +595,28 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
     logging.info(f"First date            : {dfs['date'].iloc[0]}")
     logging.info(f"Last date             : {dfs['date'].iloc[-1]}")
     logging.info(f"End state total       : {total:{n}.1f}")
-    if "gas" in list(df_subset["phase"]):
-        value = _get_end_value(df_subset, "total", "gas")
+    if not cell_volume:
+        if "gas" in list(df_subset["phase"]):
+            value = get_end_value(df_subset, "total", "gas")
+            percent = 100.0 * value / total if total > 0.0 else 0.0
+            logging.info(f"End state gaseous     : {value:{n}.1f}  ({percent:.1f} %)")
+        else:
+            value = get_end_value(df_subset, "total", "free_gas")
+            percent = 100.0 * value / total if total > 0.0 else 0.0
+            logging.info(f"End state free gas    : {value:{n}.1f}  ({percent:.1f} %)")
+            value = get_end_value(df_subset, "total", "trapped_gas")
+            percent = 100.0 * value / total if total > 0.0 else 0.0
+            logging.info(f"End state trapped gas : {value:{n}.1f}  ({percent:.1f} %)")
+        value = get_end_value(df_subset, "total", "aqueous")
         percent = 100.0 * value / total if total > 0.0 else 0.0
-        logging.info(f"End state gaseous     : {value:{n}.1f}  ({percent:.1f} %)")
-    else:
-        value = _get_end_value(df_subset, "total", "free_gas")
-        percent = 100.0 * value / total if total > 0.0 else 0.0
-        logging.info(f"End state free gas    : {value:{n}.1f}  ({percent:.1f} %)")
-        value = _get_end_value(df_subset, "total", "trapped_gas")
-        percent = 100.0 * value / total if total > 0.0 else 0.0
-        logging.info(f"End state trapped gas : {value:{n}.1f}  ({percent:.1f} %)")
-    value = _get_end_value(df_subset, "total", "aqueous")
-    percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state aqueous     : {value:{n}.1f}  ({percent:.1f} %)")
-    value = _get_end_value(df_subset, "contained", "total")
+        logging.info(f"End state aqueous     : {value:{n}.1f}  ({percent:.1f} %)")
+    value = get_end_value(df_subset, "contained", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(f"End state contained   : {value:{n}.1f}  ({percent:.1f} %)")
-    value = _get_end_value(df_subset, "outside", "total")
+    value = get_end_value(df_subset, "outside", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(f"End state outside     : {value:{n}.1f}  ({percent:.1f} %)")
-    value = _get_end_value(df_subset, "hazardous", "total")
+    value = get_end_value(df_subset, "hazardous", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(f"End state hazardous   : {value:{n}.1f}  ({percent:.1f} %)")
     if "zone" in dfs:
@@ -677,11 +643,18 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
         logging.info("Split into regions?   : no")
 
 
-def _get_end_value(df: pd.DataFrame, c: str, p: str) -> float:
+def get_end_value(
+    df: pd.DataFrame,
+    c: str,
+    p: str,
+    cv: Optional[bool] = False,
+) -> float:
+    if cv:
+        return df[df["containment"] == c]["amount"].iloc[-1]
     return df[(df["containment"] == c) & (df["phase"] == p)]["amount"].iloc[-1]
 
 
-def _sort_and_replace_nones(
+def sort_and_replace_nones(
     data_frame: pd.DataFrame,
 ):
     data_frame.replace(to_replace=[None], value="AAAAAll", inplace=True)
@@ -691,24 +664,38 @@ def _sort_and_replace_nones(
     data_frame.replace(to_replace=["AAAAAll"], value="all", inplace=True)
 
 
-def _convert_data_frame(
+def convert_data_frame(
     data_frame: pd.DataFrame,
     zone_info: Dict[str, Any],
     region_info: Dict[str, Any],
-    calc_type: CalculationType,
+    calc_type_input: str,
     residual_trapping: bool,
 ) -> pd.DataFrame:
     """
     Convert output format to human-readable state
-    """
-    #### TODO: Currently not implemented! Coming soon.
 
+    Work in progress
+    
+    TODO:
+        - Formatting
+            * Column widths
+            * Number formats
+            * Units
+        - Consider handling of zones and regions
+            * Possible to do separate files
+    """
+    calc_type = _set_calc_type_from_input_string(calc_type_input)
     logging.info("\nMerge data rows for data frame")
+    total_df = _merge_date_rows(
+        data_frame[(data_frame["zone"] == "all") & (data_frame["region"] == "all")],
+        calc_type,
+        residual_trapping,
+    )
     if zone_info["source"] is None and region_info["int_to_region"] is None:
-        data_frame.drop(columns=["zone", "region"], inplace=True)
-        return _merge_date_rows(data_frame, calc_type, residual_trapping)
+        return total_df
     if region_info["int_to_region"] is None:
-        data_frame.drop(columns=["region"], inplace=True)
+        total_df["zone"] = ["all"] * total_df.shape[0]
+        data_frame = data_frame[data_frame["zone"] != "all"].drop(columns=["region"])
         data = {
             "zone": {
                 z: _merge_date_rows(g, calc_type, residual_trapping)
@@ -716,7 +703,8 @@ def _convert_data_frame(
             }
         }
     elif zone_info["source"] is None:
-        data_frame.drop(columns=["zone"], inplace=True)
+        total_df["region"] = ["all"] * total_df.shape[0]
+        data_frame = data_frame[data_frame["region"] != "all"].drop(columns=["zone"])
         data = {
             "region": {
                 r: _merge_date_rows(g, calc_type, residual_trapping)
@@ -724,14 +712,16 @@ def _convert_data_frame(
             }
         }
     else:
+        total_df["zone"] = ["all"] * total_df.shape[0]
+        total_df["region"] = ["all"] * total_df.shape[0]
         data = {
             "zone": {
                 z: _merge_date_rows(g, calc_type, residual_trapping)
-                for z, g in data_frame.groupby("zone")
+                for z, g in data_frame[data_frame["zone"] != "all"].groupby("zone")
             },
             "region": {
                 r: _merge_date_rows(g, calc_type, residual_trapping)
-                for r, g in data_frame.groupby("region")
+                for r, g in data_frame[data_frame["region"] != "all"].groupby("region")
             },
         }
 
@@ -769,7 +759,7 @@ def _convert_data_frame(
                 region_df = pd.concat([region_df, _df])
         if zone_info["source"] is not None:
             region_df["zone"] = ["all"] * region_df.shape[0]
-    combined_df = pd.concat([zone_df, region_df])
+    combined_df = pd.concat([total_df, zone_df, region_df])
     return combined_df
 
 
@@ -782,7 +772,10 @@ def export_output_to_csv(
     Exports the results to a csv file, named according to the calculation type
     (mass / cell_volume / actual_volume)
     """
-    file_name = f"plume_{calc_type_input}.csv"
+    if "amount" in data_frame.columns:
+        file_name = f"plume_{calc_type_input}.csv"
+    else:
+        file_name = f"OLD_OUTPUT_plume_{calc_type_input}.csv"
     logging.info(f"\nExport results to CSV file: {file_name}")
     file_path = os.path.join(out_dir, file_name)
     if os.path.isfile(file_path):
@@ -825,21 +818,26 @@ def main() -> None:
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
     )
-    _sort_and_replace_nones(data_frame)
+    sort_and_replace_nones(data_frame)
     log_summary_of_results(data_frame)
     export_output_to_csv(
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,
         data_frame,
     )
-    # Currently not implemented! Coming soon.
-    # df_combined = _convert_data_frame(
-    #     data_frame,
-    #     zone_info,
-    #     region_info,
-    #     arguments_processed.calc_type_input,
-    #     arguments_processed.residual_trapping,
-    # )
+    # Save also old output - WIP to make this better
+    df_old_output = convert_data_frame(
+        data_frame,
+        zone_info,
+        region_info,
+        arguments_processed.calc_type_input,
+        arguments_processed.residual_trapping,
+    )
+    export_output_to_csv(
+        arguments_processed.out_dir,
+        arguments_processed.calc_type_input,
+        df_old_output,
+    )
 
 
 if __name__ == "__main__":
