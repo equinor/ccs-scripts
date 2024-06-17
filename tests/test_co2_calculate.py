@@ -16,7 +16,6 @@ from ccs_scripts.co2_containment.co2_calculation import (
 )
 from ccs_scripts.co2_containment.co2_containment import (
     calculate_from_co2_data,
-    convert_data_frame,
     get_end_value,
     sort_and_replace_nones,
 )
