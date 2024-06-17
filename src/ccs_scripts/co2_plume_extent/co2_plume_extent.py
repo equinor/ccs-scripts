@@ -733,28 +733,27 @@ def _find_distances_per_time_step(
     inj_wells: list[InjectionWellData],
 ) -> dict:
     """
-    Find distance metric for each step
+    Find value of distance metric for each step
     """
-    nsteps = len(unrst.report_steps)
+    n_time_steps = len(unrst.report_steps)
     dist_per_group = {}
 
     n_cells = len(unrst[attribute_key][0].numpy_view())
     print(f"n_cells = {n_cells}")
     prev_groups = PlumeGroups(n_cells)
 
-    for i in range(nsteps):
+    for i in range(n_time_steps):
         print(f"\n\ni = {i}")
         data = unrst[attribute_key][i].numpy_view()
-        plumeix = np.where(data > threshold)[0]
-        plumeix = _temp_add_well3(i, plumeix)
+        cells_with_co2 = np.where(data > threshold)[0]
+        cells_with_co2 = _temp_add_well3(i, cells_with_co2)
+        print(f"Number of grid cells with CO2 this time step: {len(cells_with_co2)}")
 
-        print(f"Number of grid cells with CO2 this time step: {len(plumeix)}")
         print("Previous group:")
         prev_groups._temp_print()
         groups = PlumeGroups(n_cells)
-        for index in plumeix:
+        for index in cells_with_co2:
             if prev_groups.cells[index].has_co2():
-                # Need to handle here if CO2 is gone from this grid cell in this time step
                 groups.cells[index] = prev_groups.cells[index]
             else:
                 # This grid cell did not have CO2 in the last time step
@@ -794,7 +793,7 @@ def _find_distances_per_time_step(
             if g == [-1]:
                 continue
             # Calculate distance metric for this group
-            indices_this_group = [i for i in plumeix if groups.cells[i].all_groups == g]
+            indices_this_group = [i for i in cells_with_co2 if groups.cells[i].all_groups == g]
             if len(indices_this_group) == 0:
                 result = {}
                 for single_inj_number in g:  # Can do this in a better way?
@@ -823,7 +822,7 @@ def _find_distances_per_time_step(
             )
             print(f"group_string: {group_string}")
             if group_string not in dist_per_group:
-                dist_per_group[group_string] = {s: np.zeros(shape=(nsteps,)) for s in g}
+                dist_per_group[group_string] = {s: np.zeros(shape=(n_time_steps,)) for s in g}
             for s in g:
                 dist_per_group[group_string][s][i] = result[s]
         prev_groups = groups.copy()
