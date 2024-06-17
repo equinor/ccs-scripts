@@ -59,19 +59,19 @@ class PlumeGroups:
         counter = 1
         groups_to_merge = []  # A list of list of groups to merge
         while len(ind_to_resolve) > 0 and counter <= MAX_STEPS_RESOLVE_CELLS:
-            print(f"counter        : {counter}")
-            print(f"left to resolve: {len(ind_to_resolve)}")
+            # print(f"counter        : {counter}")
+            # print(f"left to resolve: {len(ind_to_resolve)}")
             for ind in ind_to_resolve:
                 ijk = grid.get_ijk(active_index=ind)
                 groups_nearby = self._find_nearest_groups(ijk, grid)
                 if [-1] in groups_nearby:
                     groups_nearby = [x for x in groups_nearby if x != [-1]]
-                    print("----------------> SKIP MERGE WITH UNKNOWN GROUP")
+                    # print("----------------> SKIP MERGE WITH UNKNOWN GROUP")
                 if len(groups_nearby) == 1:
                     self.cells[ind].set_cell_groups(groups_nearby[0])
                 elif len(groups_nearby) >= 2:
-                    print("----------------> NEED TO MERGE")
-                    print(groups_nearby)
+                    # print("----------------> NEED TO MERGE")
+                    # print(groups_nearby)
                     if groups_nearby not in groups_to_merge:
                         groups_to_merge.append(groups_nearby)
                     # Set to first group, but will be overwritten by merge later
@@ -94,7 +94,7 @@ class PlumeGroups:
                             updated = True
                             break
                 if updated:
-                    print("CONTINUE")
+                    # print("CONTINUE")
                     updated_ind_to_resolve = [
                         ind
                         for ind, group in enumerate(self.cells)
@@ -104,7 +104,7 @@ class PlumeGroups:
                     counter += 1
                     continue
                 else:
-                    print("BREAK")
+                    # print("BREAK")
                     break
             ind_to_resolve = updated_ind_to_resolve
             counter += 1

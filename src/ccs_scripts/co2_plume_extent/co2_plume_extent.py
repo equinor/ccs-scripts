@@ -573,20 +573,13 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
     logging.info("")
 
 
-def calculate_single_distances(
-    nactive: int,
-    grid: Grid,
-    unrst: ResdataFile,
-    threshold_sgas: float,
-    threshold_amfg: float,
-    config: Calculation,
+def _calculate_grid_cell_distances(
     inj_wells: list[InjectionWellData],
+    nactive: int,
+    calculation_type: CalculationType,
+    grid: Grid,
+    direction: LineDirection,
 ):
-    calculation_type = config.type
-    x = config.x  # NBNB-AS: Remove these later
-    y = config.y  # NBNB-AS: Remove these later
-    direction = config.direction
-
     dist = {}
     for well in inj_wells:
         name = well.name
@@ -634,24 +627,41 @@ def calculate_single_distances(
         logging.info(
             f"    Average distance grid cell to {text}  : {sum(distance) / len(distance):>10.1f}"
         )
+    logging.info("")
+
+    return dist
+
+
+def calculate_single_distances(
+    nactive: int,
+    grid: Grid,
+    unrst: ResdataFile,
+    threshold_sgas: float,
+    threshold_amfg: float,
+    config: Calculation,
+    inj_wells: list[InjectionWellData],
+):
+    calculation_type = config.type
+    x = config.x  # NBNB-AS: Remove these later
+    y = config.y  # NBNB-AS: Remove these later
+
+    dist = _calculate_grid_cell_distances(
+        inj_wells, nactive, calculation_type, grid, config.direction
+    )
 
     sgas_results = _find_distances_per_time_step(
         "SGAS", calculation_type, threshold_sgas, unrst, grid, dist, inj_wells
     )
-    logging.info("Done calculating plume extent for SGAS.")
-
     if "AMFG" in unrst:
         amfg_results = _find_distances_per_time_step(
             "AMFG", calculation_type, threshold_amfg, unrst, grid, dist, inj_wells
         )
         amfg_key = "AMFG"
-        logging.info("Done calculating plume extent for AMFG.")
     elif "XMF2" in unrst:
         amfg_results = _find_distances_per_time_step(
             "XMF2", calculation_type, threshold_amfg, unrst, grid, dist, inj_wells
         )
         amfg_key = "XMF2"
-        logging.info("Done calculating plume extent for XMF2.")
     else:
         amfg_results = None
         amfg_key = None
@@ -676,11 +686,11 @@ def calculate_distances(
 
     # First calculate distance from point/line to center of all cells
     nactive = grid.get_num_active()
-    logging.info(f"Number of active grid cells                    : {nactive:>10}")
+    logging.info(f"Number of active grid cells: {nactive}")
 
     all_results = []
     for i, single_config in enumerate(config.distance_calculations, 1):
-        logging.info(f"\nCalculating distances for configuration number : {i:>10}\n")
+        logging.info(f"\nCalculating distances for configuration number: {i}\n")
         (a, b, c) = calculate_single_distances(
             nactive,
             grid,
@@ -691,6 +701,7 @@ def calculate_distances(
             config.injection_wells,
         )
         all_results.append((a, b, c))
+        logging.info(f"\nDone calculating distances for configuration number: {i}\n")
     return all_results
 
 
@@ -723,6 +734,34 @@ def _temp_add_well3(i, plumeix):
     return plumeix
 
 
+def _log_number_of_grid_cells(
+    n_grid_cells_for_logging: dict[str, list[int]], report_dates, attribute_key
+):
+    logging.info(
+        f"Number of grid cells with {attribute_key} above threshold for the different plumes:"
+    )
+    cols = [c for c in n_grid_cells_for_logging]
+    header = f"{'Date':<11}"
+    widths = {}
+    for col in cols:
+        widths[col] = max(9, len(col))
+        header += f" {col:>{widths[col]}}"
+    logging.info("\n" + header)
+    logging.info("-" * len(header))
+    for i, d in enumerate(report_dates):
+        date = d.strftime("%Y-%m-%d")
+        row = f"{date:<11}"
+        for col in cols:
+            n_cells = (
+                str(n_grid_cells_for_logging[col][i])
+                if n_grid_cells_for_logging[col][i] > 0
+                else "-"
+            )
+            row += f" {n_cells:>{widths[col]}}"
+        logging.info(row)
+    logging.info("")
+
+
 def _find_distances_per_time_step(
     attribute_key: str,
     calculation_type: CalculationType,
@@ -737,20 +776,21 @@ def _find_distances_per_time_step(
     """
     n_time_steps = len(unrst.report_steps)
     dist_per_group = {}
+    n_grid_cells_for_logging = {}
 
     n_cells = len(unrst[attribute_key][0].numpy_view())
-    print(f"n_cells = {n_cells}")
+    # print(f"n_cells = {n_cells}")
     prev_groups = PlumeGroups(n_cells)
 
     for i in range(n_time_steps):
-        print(f"\n\ni = {i}")
+        # print(f"\n\ni = {i}")
         data = unrst[attribute_key][i].numpy_view()
         cells_with_co2 = np.where(data > threshold)[0]
         cells_with_co2 = _temp_add_well3(i, cells_with_co2)
-        print(f"Number of grid cells with CO2 this time step: {len(cells_with_co2)}")
+        # print(f"Number of grid cells with CO2 this time step: {len(cells_with_co2)}")
 
-        print("Previous group:")
-        prev_groups._temp_print()
+        # print("Previous group:")
+        # prev_groups._temp_print()
         groups = PlumeGroups(n_cells)
         for index in cells_with_co2:
             if prev_groups.cells[index].has_co2():
@@ -769,11 +809,11 @@ def _find_distances_per_time_step(
                         break
                 if not found:
                     groups.cells[index].set_undetermined()
-        print("Current group:")
-        groups._temp_print()
+        # print("Current group:")
+        # groups._temp_print()
 
         groups_to_merge = groups.resolve_undetermined_cells(grid)
-        print(f"Groups to merge: {groups_to_merge}")
+        # print(f"Groups to merge: {groups_to_merge}")
 
         for full_group in groups_to_merge:
             new_group = [x for y in full_group for x in y]
@@ -784,16 +824,18 @@ def _find_distances_per_time_step(
                         if set(cell.all_groups) & set(g):
                             cell.all_groups = new_group
 
-        print("Current group after resolving undetermined cells:")
-        groups._temp_print()
+        # print("Current group after resolving undetermined cells:")
+        # groups._temp_print()
 
         unique_groups = groups._find_unique_groups()
-        print(f"Unique groups: {unique_groups}")
+        # print(f"Unique groups: {unique_groups}")
         for g in unique_groups:
             if g == [-1]:
                 continue
             # Calculate distance metric for this group
-            indices_this_group = [i for i in cells_with_co2 if groups.cells[i].all_groups == g]
+            indices_this_group = [
+                i for i in cells_with_co2 if groups.cells[i].all_groups == g
+            ]
             if len(indices_this_group) == 0:
                 result = {}
                 for single_inj_number in g:  # Can do this in a better way?
@@ -820,12 +862,23 @@ def _find_distances_per_time_step(
             group_string = "+".join(
                 [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
             )
-            print(f"group_string: {group_string}")
+            # print(f"group_string: {group_string}")
             if group_string not in dist_per_group:
-                dist_per_group[group_string] = {s: np.zeros(shape=(n_time_steps,)) for s in g}
+                dist_per_group[group_string] = {
+                    s: np.zeros(shape=(n_time_steps,)) for s in g
+                }
+                n_grid_cells_for_logging[group_string] = [
+                    0
+                ] * n_time_steps  # np.zeros(shape=(n_time_steps,))
             for s in g:
                 dist_per_group[group_string][s][i] = result[s]
+                n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
+
         prev_groups = groups.copy()
+
+    _log_number_of_grid_cells(
+        n_grid_cells_for_logging, unrst.report_dates, attribute_key
+    )
 
     outputs = {}
     for group_name, single_group_distances in dist_per_group.items():
@@ -833,12 +886,12 @@ def _find_distances_per_time_step(
         for single_group, distances in single_group_distances.items():
             # Find well name:
             well_name = [x.name for x in inj_wells if x.number == single_group][0]
-            print("well_name")
-            print(well_name)
             outputs[group_name][well_name] = []
             for i, d in enumerate(unrst.report_dates):
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
                 outputs[group_name][well_name].append(date_and_result)
+
+    logging.info(f"Done calculating plume extent for {attribute_key}.")
     return outputs
 
 
@@ -855,14 +908,17 @@ def _log_results(
     df: pd.DataFrame,
 ) -> None:
     dfs = df.sort_values("date")
+    col_width = 1 + max(31, max([len(c) for c in df]))
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates {' '*27}: {len(dfs['date'].unique()):>11}")
-    logging.info(f"First date      {' '*27}: {dfs['date'].iloc[0]:>11}")
-    logging.info(f"Last date       {' '*27}: {dfs['date'].iloc[-1]:>11}")
+    logging.info(
+        f"Number of dates {' '*(col_width-5)}: {len(dfs['date'].unique()):>11}"
+    )
+    logging.info(f"First date      {' '*(col_width-5)}: {dfs['date'].iloc[0]:>11}")
+    logging.info(f"Last date       {' '*(col_width-5)}: {dfs['date'].iloc[-1]:>11}")
 
     for col in df.drop("date", axis=1).columns:
-        logging.info(f"End state {col:>32} : {dfs[col].iloc[-1]:>11.1f}")
+        logging.info(f"End state {col:<{col_width}} : {dfs[col].iloc[-1]:>11.1f}")
 
 
 def _find_dates(all_results: List[Tuple[dict, Optional[dict], Optional[str]]]):
