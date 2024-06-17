@@ -760,6 +760,9 @@ def _log_number_of_grid_cells(
             row += f" {n_cells:>{widths[col]}}"
         logging.info(row)
     logging.info("")
+    if "?" in n_grid_cells_for_logging:
+        logging.warning("Warning: Plume group not found for some grid cells with CO2.")
+        logging.warning("See table above, under column '?'.\n")
 
 
 def _find_distances_per_time_step(
@@ -829,9 +832,13 @@ def _find_distances_per_time_step(
         # groups._temp_print()
 
         unique_groups = groups._find_unique_groups()
-        # print(f"Unique groups: {unique_groups}")
         for g in unique_groups:
             if g == [-1]:
+                if "?" not in n_grid_cells_for_logging:
+                    n_grid_cells_for_logging["?"] = [0] * n_time_steps
+                n_grid_cells_for_logging["?"][i] = len(
+                    [i for i in cells_with_co2 if groups.cells[i].all_groups == [-1]]
+                )
                 continue
             # Calculate distance metric for this group
             indices_this_group = [
@@ -863,7 +870,6 @@ def _find_distances_per_time_step(
             group_string = "+".join(
                 [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
             )
-            # print(f"group_string: {group_string}")
             if group_string not in dist_per_group:
                 dist_per_group[group_string] = {
                     s: np.zeros(shape=(n_time_steps,)) for s in g

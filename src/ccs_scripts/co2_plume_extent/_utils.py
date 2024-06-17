@@ -94,7 +94,6 @@ class PlumeGroups:
                             updated = True
                             break
                 if updated:
-                    # print("CONTINUE")
                     updated_ind_to_resolve = [
                         ind
                         for ind, group in enumerate(self.cells)
@@ -104,7 +103,6 @@ class PlumeGroups:
                     counter += 1
                     continue
                 else:
-                    # print("BREAK")
                     break
             ind_to_resolve = updated_ind_to_resolve
             counter += 1
@@ -115,9 +113,6 @@ class PlumeGroups:
 
         # Resolve groups to merge:
         new_groups_to_merge = []
-        # groups_to_merge = [ [ [1,2],[3,4],[5] ]  , [[10],[11],[12]] , [ [3,4],[6],[7] ], [[8], [9]] ]
-        # groups_to_merge = [ [ [1],[2],[3,4] ] ]
-        # print(groups_to_merge)
         for g in groups_to_merge:
             merged = False
             for c in g:
@@ -156,6 +151,8 @@ class PlumeGroups:
             if cell.has_co2():
                 if cell.all_groups not in unique_groups:
                     unique_groups.append(cell.all_groups)
+            elif cell.is_undetermined():
+                unique_groups.append([-1])
         return unique_groups
 
     def _temp_print(self):
