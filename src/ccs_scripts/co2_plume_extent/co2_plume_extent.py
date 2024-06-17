@@ -701,7 +701,7 @@ def calculate_distances(
             config.injection_wells,
         )
         all_results.append((a, b, c))
-        logging.info(f"\nDone calculating distances for configuration number: {i}\n")
+        logging.info(f"Done calculating distances for configuration number: {i}\n")
     return all_results
 
 
@@ -782,8 +782,9 @@ def _find_distances_per_time_step(
     # print(f"n_cells = {n_cells}")
     prev_groups = PlumeGroups(n_cells)
 
+    logging.info(f"Progress ({n_time_steps} time steps):")
+    logging.info(f"{0:>6.1f} %")
     for i in range(n_time_steps):
-        # print(f"\n\ni = {i}")
         data = unrst[attribute_key][i].numpy_view()
         cells_with_co2 = np.where(data > threshold)[0]
         cells_with_co2 = _temp_add_well3(i, cells_with_co2)
@@ -875,6 +876,9 @@ def _find_distances_per_time_step(
                 n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
 
         prev_groups = groups.copy()
+        percent = (i + 1) / n_time_steps
+        logging.info(f"{percent*100:>6.1f} %")
+    logging.info("")
 
     _log_number_of_grid_cells(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key
@@ -891,7 +895,7 @@ def _find_distances_per_time_step(
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
                 outputs[group_name][well_name].append(date_and_result)
 
-    logging.info(f"Done calculating plume extent for {attribute_key}.")
+    logging.info(f"Done calculating plume extent for {attribute_key}.\n")
     return outputs
 
 
