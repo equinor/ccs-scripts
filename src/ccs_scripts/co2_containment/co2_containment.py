@@ -355,6 +355,12 @@ def get_parser() -> argparse.ArgumentParser:
         help="Compute mass/volume of trapped CO2 in gas phase.",
         action="store_true",
     )
+    parser.add_argument(
+        "--readable_output",
+        help="Generate output csv-file that is easier to parse than the standard"
+             " output. Currently the same as the old output (WIP).",
+        action="store_true",
+    )
 
     return parser
 
@@ -811,18 +817,19 @@ def main() -> None:
         data_frame,
     )
     # Save also old output - WIP to make this better
-    df_old_output = convert_data_frame(
-        data_frame,
-        zone_info,
-        region_info,
-        arguments_processed.calc_type_input,
-        arguments_processed.residual_trapping,
-    )
-    export_output_to_csv(
-        arguments_processed.out_dir,
-        arguments_processed.calc_type_input,
-        df_old_output,
-    )
+    if arguments_processed.readable_output:
+        df_old_output = convert_data_frame(
+            data_frame,
+            zone_info,
+            region_info,
+            arguments_processed.calc_type_input,
+            arguments_processed.residual_trapping,
+        )
+        export_output_to_csv(
+            arguments_processed.out_dir,
+            arguments_processed.calc_type_input,
+            df_old_output,
+        )
 
 
 if __name__ == "__main__":
