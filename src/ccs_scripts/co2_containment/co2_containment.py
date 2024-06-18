@@ -358,7 +358,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--readable_output",
         help="Generate output csv-file that is easier to parse than the standard"
-             " output. Currently the same as the old output (WIP).",
+        " output. Currently the same as the old output (WIP).",
         action="store_true",
     )
 
