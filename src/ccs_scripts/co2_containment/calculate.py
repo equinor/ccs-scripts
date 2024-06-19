@@ -76,7 +76,7 @@ def calculate_co2_containment(
         region_info (Dict): Dictionary containing region information
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
-        residual_trapping (bool): Indicate if residual trapping is calculated
+        residual_trapping (bool): Indicate if residual trapping should be calculated
 
     Returns:
         List[ContainedCo2]
@@ -117,9 +117,7 @@ def calculate_co2_containment(
                             region,
                         )
                     ]
-    logging.info(
-        f"Done calculating contained CO2 {calc_type.name.lower()} using input polygons"
-    )
+    logging.info(f"Done calculating contained CO2 {calc_type.name.lower()}")
     return containment
 
 
@@ -195,7 +193,7 @@ def _lists_of_phases(
 ) -> List[str]:
     """
     Returns a list of the relevant phases depending on calculation type and whether
-    residual trapping is calculated
+    residual trapping should be calculated
     """
     if calc_type == CalculationType.CELL_VOLUME:
         phases = ["undefined"]
@@ -212,7 +210,7 @@ def _lists_of_co2_for_each_phase(
 ) -> List[np.ndarray]:
     """
     Returns a list of the relevant arrays of different phases of co2 depending on
-    calculation type and whether residual trapping is calculated
+    calculation type and whether residual trapping should be calculated
     """
     if calc_type == CalculationType.CELL_VOLUME:
         arrays = [co2_at_date.volume_coverage]

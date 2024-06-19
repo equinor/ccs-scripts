@@ -138,7 +138,7 @@ def calculate_from_co2_data(
         calc_type_input (str): Choose mass / cell_volume / actual_volume
         zone_info (Dict): Dictionary containing zone information
         region_info (Dict): Dictionary containing region information
-        residual_trapping (bool): Indicate if residual trapping is calculated
+        residual_trapping (bool): Indicate if residual trapping should be calculated
 
     Returns:
         pd.DataFrame
@@ -580,6 +580,10 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     logging.info(f"UNRST file          : {arguments_processed.unrst}")
     logging.info(f"INIT file           : {arguments_processed.init}")
     logging.info(f"Zone file           : {arguments_processed.zonefile}")
+    logging.info(
+        f"Residual trapping   : "
+        f"{'yes' if arguments_processed.residual_trapping else 'no'}\n"
+    )
 
 
 # pylint: disable = too-many-statements
@@ -766,7 +770,7 @@ def export_output_to_csv(
     if "amount" in data_frame.columns:
         file_name = f"plume_{calc_type_input}.csv"
     else:
-        file_name = f"OLD_OUTPUT_plume_{calc_type_input}.csv"
+        file_name = f"plume_{calc_type_input}_OLD_OUTPUT.csv"
     logging.info(f"\nExport results to CSV file: {file_name}")
     file_path = os.path.join(out_dir, file_name)
     if os.path.isfile(file_path):
