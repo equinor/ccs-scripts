@@ -403,6 +403,10 @@ def process_args() -> argparse.Namespace:
     args = get_parser().parse_args()
     args.calc_type_input = args.calc_type_input.lower()
 
+    # NBNB: Remove this when residual trapping is added for other calculation types
+    if args.residual_trapping and args.calc_type_input != "mass":
+        args.residual_trapping = False
+
     _replace_default_dummies_from_ert(args)
 
     if args.root_dir is None:
@@ -596,7 +600,7 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
     last_date = max(df["date"])
     df_subset = dfs[dfs["date"] == last_date]
     df_subset = df_subset[(df_subset["zone"] == "all") & (df_subset["region"] == "all")]
-    total = get_end_value(df_subset, "total", "total", cell_volume)
+    total = extract_amount(df_subset, "total", "total", cell_volume)
     n = len(f"{total:.1f}")
 
     logging.info("\nSummary of results:")
@@ -607,26 +611,26 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
     logging.info(f"End state total       : {total:{n}.1f}")
     if not cell_volume:
         if "gas" in list(df_subset["phase"]):
-            value = get_end_value(df_subset, "total", "gas")
+            value = extract_amount(df_subset, "total", "gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(f"End state gaseous     : {value:{n}.1f}  ({percent:.1f} %)")
         else:
-            value = get_end_value(df_subset, "total", "free_gas")
+            value = extract_amount(df_subset, "total", "free_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(f"End state free gas    : {value:{n}.1f}  ({percent:.1f} %)")
-            value = get_end_value(df_subset, "total", "trapped_gas")
+            value = extract_amount(df_subset, "total", "trapped_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(f"End state trapped gas : {value:{n}.1f}  ({percent:.1f} %)")
-        value = get_end_value(df_subset, "total", "aqueous")
+        value = extract_amount(df_subset, "total", "aqueous")
         percent = 100.0 * value / total if total > 0.0 else 0.0
         logging.info(f"End state aqueous     : {value:{n}.1f}  ({percent:.1f} %)")
-    value = get_end_value(df_subset, "contained", "total", cell_volume)
+    value = extract_amount(df_subset, "contained", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(f"End state contained   : {value:{n}.1f}  ({percent:.1f} %)")
-    value = get_end_value(df_subset, "outside", "total", cell_volume)
+    value = extract_amount(df_subset, "outside", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(f"End state outside     : {value:{n}.1f}  ({percent:.1f} %)")
-    value = get_end_value(df_subset, "hazardous", "total", cell_volume)
+    value = extract_amount(df_subset, "hazardous", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(f"End state hazardous   : {value:{n}.1f}  ({percent:.1f} %)")
     if "zone" in dfs:
@@ -653,19 +657,20 @@ def log_summary_of_results(df: pd.DataFrame) -> None:
         logging.info("Split into regions?   : no")
 
 
-def get_end_value(
+def extract_amount(
     df: pd.DataFrame,
     c: str,
     p: str,
     cv: Optional[bool] = False,
+    ind: int = -1,
 ) -> float:
     """
     Return the total co2 amount in grid nodes with the specified to phase and location
-    at the latest recorded date
+    at the latest recorded date (or at a specified index 'ind')
     """
     if cv:
-        return df[df["containment"] == c]["amount"].iloc[-1]
-    return df[(df["containment"] == c) & (df["phase"] == p)]["amount"].iloc[-1]
+        return df[df["containment"] == c]["amount"].iloc[ind]
+    return df[(df["containment"] == c) & (df["phase"] == p)]["amount"].iloc[ind]
 
 
 def sort_and_replace_nones(
