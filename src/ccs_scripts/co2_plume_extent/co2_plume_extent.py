@@ -693,7 +693,6 @@ def _collect_results_into_dataframe(
     all_results: List[Tuple[List[List], Optional[List[List]], Optional[str]]],
     config: Configuration,
 ) -> pd.DataFrame:
-
     dates = [[date] for (date, _) in all_results[0][0]]
     df = pd.DataFrame.from_records(dates, columns=["date"])
 
