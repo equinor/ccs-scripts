@@ -14,7 +14,11 @@ from ccs_scripts.co2_containment.co2_calculation import (
     _calculate_co2_data_from_source_data,
     _extract_source_data,
 )
-from ccs_scripts.co2_containment.co2_containment import calculate_from_co2_data
+from ccs_scripts.co2_containment.co2_containment import (
+    calculate_from_co2_data,
+    extract_amount,
+    sort_and_replace_nones,
+)
 
 zone_info = {
     "source": None,
@@ -89,14 +93,15 @@ def _calc_and_compare(poly, masses, poly_hazardous=None):
         co2_data=masses,
         containment_polygon=poly,
         hazardous_polygon=poly_hazardous,
-        compact=False,
         calc_type_input="mass",
         zone_info=zone_info,
         region_info=region_info,
     )
-    difference = np.sum(
-        [x - y for x, y in zip(contained.total.values, list(totals.values()))]
-    )
+    sort_and_replace_nones(contained)
+    total_values = contained[
+        (contained["phase"] == "total") & (contained["containment"] == "total")
+    ]["amount"]
+    difference = np.sum([x - y for x, y in zip(total_values, list(totals.values()))])
     assert difference == pytest.approx(0.0, abs=1e-8)
     return contained
 
@@ -116,11 +121,19 @@ def test_single_poly_co2_containment():
             [7.1, 7.0],
         ]
     )
-    contained = _calc_and_compare(poly, dummy_co2_masses)
-    assert contained.gas_contained.values[-1] == pytest.approx(90.262207)
-    assert contained.aqueous_contained.values[-1] == pytest.approx(172.72921760648467)
-    assert contained.gas_hazardous.values[-1] == pytest.approx(0.0)
-    assert contained.aqueous_hazardous.values[-1] == pytest.approx(0.0)
+    table = _calc_and_compare(poly, dummy_co2_masses)
+    assert extract_amount(table, "contained", "gas") == pytest.approx(90.262207)
+    assert extract_amount(
+        table,
+        "contained",
+        "aqueous",
+    ) == pytest.approx(172.72921760648467)
+    assert extract_amount(table, "hazardous", "gas") == pytest.approx(0.0)
+    assert extract_amount(
+        table,
+        "hazardous",
+        "aqueous",
+    ) == pytest.approx(0.0)
 
 
 def test_multi_poly_co2_containment():
@@ -150,11 +163,23 @@ def test_multi_poly_co2_containment():
             ),
         ]
     )
-    contained = _calc_and_compare(poly, dummy_co2_masses)
-    assert contained.gas_contained.values[-1] == pytest.approx(123.70267352027123)
-    assert contained.aqueous_contained.values[-1] == pytest.approx(252.79970312163525)
-    assert contained.gas_hazardous.values[-1] == pytest.approx(0.0)
-    assert contained.aqueous_hazardous.values[-1] == pytest.approx(0.0)
+    table = _calc_and_compare(poly, dummy_co2_masses)
+    assert extract_amount(
+        table,
+        "contained",
+        "gas",
+    ) == pytest.approx(123.70267352027123)
+    assert extract_amount(
+        table,
+        "contained",
+        "aqueous",
+    ) == pytest.approx(252.79970312163525)
+    assert extract_amount(table, "hazardous", "gas") == pytest.approx(0.0)
+    assert extract_amount(
+        table,
+        "hazardous",
+        "aqueous",
+    ) == pytest.approx(0.0)
 
 
 def test_hazardous_poly_co2_containment():
@@ -180,11 +205,23 @@ def test_hazardous_poly_co2_containment():
             [9.1, 9.0],
         ]
     )
-    contained = _calc_and_compare(poly, dummy_co2_masses, poly_hazardous)
-    assert contained.gas_contained.values[-1] == pytest.approx(90.262207)
-    assert contained.aqueous_contained.values[-1] == pytest.approx(172.72921760648467)
-    assert contained.gas_hazardous.values[-1] == pytest.approx(12.687891108274542)
-    assert contained.aqueous_hazardous.values[-1] == pytest.approx(20.33893251315071)
+    table = _calc_and_compare(poly, dummy_co2_masses, poly_hazardous)
+    assert extract_amount(table, "contained", "gas") == pytest.approx(90.262207)
+    assert extract_amount(
+        table,
+        "contained",
+        "aqueous",
+    ) == pytest.approx(172.72921760648467)
+    assert extract_amount(
+        table,
+        "hazardous",
+        "gas",
+    ) == pytest.approx(12.687891108274542)
+    assert extract_amount(
+        table,
+        "hazardous",
+        "aqueous",
+    ) == pytest.approx(20.33893251315071)
 
 
 def test_reek_grid():
@@ -241,17 +278,23 @@ def test_reek_grid():
         co2_data=masses,
         containment_polygon=reek_poly,
         hazardous_polygon=reek_poly_hazardous,
-        compact=False,
         calc_type_input="mass",
         zone_info=zone_info,
         region_info=region_info,
     )
-    assert table.total.values[0] == pytest.approx(696171.20388324)
-    assert table.total_gas.values[0] == pytest.approx(7650.233009712884)
-    assert table.total_aqueous.values[0] == pytest.approx(688520.9708735272)
-    assert table.gas_contained.values[0] == pytest.approx(115.98058252427084)
-    assert table.total_hazardous.values[0] == pytest.approx(10282.11650485436)
-    assert table.gas_hazardous.values[0] == pytest.approx(112.99029126213496)
+    sort_and_replace_nones(table)
+    cs = ["total"] * 3 + ["contained"] + ["hazardous"] * 2
+    ps = ["total", "gas", "aqueous", "gas", "total", "gas"]
+    amounts = [
+        696171.20388324,
+        7650.233009712884,
+        688520.9708735272,
+        115.98058252427084,
+        10282.11650485436,
+        112.99029126213496,
+    ]
+    for c, p, amount in zip(cs, ps, amounts):
+        assert extract_amount(table, c, p, 0) == pytest.approx(amount)
 
     volumes = _calculate_co2_data_from_source_data(
         source_data,
@@ -261,17 +304,66 @@ def test_reek_grid():
         co2_data=volumes,
         containment_polygon=reek_poly,
         hazardous_polygon=reek_poly_hazardous,
-        compact=False,
         calc_type_input="actual_volume",
         zone_info=zone_info,
         region_info=region_info,
     )
-    assert table2.total.values[0] == pytest.approx(1018.524203883313)
-    assert table2.total_gas.values[0] == pytest.approx(330.0032330095245)
-    assert table2.total_aqueous.values[0] == pytest.approx(688.5209708737885)
-    assert table2.gas_contained.values[0] == pytest.approx(5.002980582524296)
-    assert table2.total_hazardous.values[0] == pytest.approx(15.043116504854423)
-    assert table2.gas_hazardous.values[0] == pytest.approx(4.873990291262155)
+    sort_and_replace_nones(table2)
+    amounts2 = [
+        1018.524203883313,
+        330.0032330095245,
+        688.5209708737885,
+        5.002980582524296,
+        15.043116504854423,
+        4.873990291262155,
+    ]
+    for c, p, amount in zip(cs, ps, amounts2):
+        assert extract_amount(table2, c, p, 0) == pytest.approx(amount)
+
+    source_data_with_trapping = SourceData(
+        x_coord,
+        y_coord,
+        PORV={"2042": np.ones_like(poro) * 0.1},
+        VOL=vol,
+        DATES=["2042"],
+        SWAT={"2042": np.ones_like(poro) * 0.1},
+        DWAT={"2042": np.ones_like(poro) * 1000.0},
+        SGAS={"2042": np.ones_like(poro) * 0.1},
+        SGSTRAND={"2042": np.ones_like(poro) * 0.06},
+        DGAS={"2042": np.ones_like(poro) * 100.0},
+        AMFG={"2042": np.ones_like(poro) * 0.1},
+        YMFG={"2042": np.ones_like(poro) * 0.1},
+    )
+
+    masses_with_trapping = _calculate_co2_data_from_source_data(
+        source_data_with_trapping, CalculationType.MASS
+    )
+    table3 = calculate_from_co2_data(
+        co2_data=masses_with_trapping,
+        containment_polygon=reek_poly,
+        hazardous_polygon=reek_poly_hazardous,
+        calc_type_input="mass",
+        zone_info=zone_info,
+        region_info=region_info,
+        residual_trapping=True,
+    )
+    sort_and_replace_nones(table3)
+    cs3 = ["total"] * 4 + ["contained"] * 2 + ["hazardous"] * 3
+    gas_part = ["trapped_gas", "free_gas"]
+    ps3 = ["total"] + gas_part + ["aqueous"] + gas_part + ["total"] + gas_part
+    amounts3 = [
+        696171.20388324,
+        4590.13980582773,
+        3060.093203885154,
+        688520.9708735272,
+        69.58834951456248,
+        46.39223300970832,
+        10282.11650485436,
+        67.79417475728094,
+        45.19611650485396,
+    ]
+    for c, p, amount in zip(cs3, ps3, amounts3):
+        assert extract_amount(table3, c, p, 0) == pytest.approx(amount)
 
     source_data_with_trapping = SourceData(
         x_coord,
