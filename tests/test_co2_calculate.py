@@ -378,6 +378,7 @@ def test_reek_grid():
         region_info=region_info,
         residual_trapping=True,
     )
+    print(table4)
     sort_and_replace_nones(table4)
     cs4 = ["total"] * 4 + ["contained"] * 2 + ["hazardous"] * 3
     print(cs4)
