@@ -968,8 +968,12 @@ def _calculate_co2_data_from_source_data(
                     value[0],
                     value[1],
                     np.zeros_like(value[0]),
-                    np.zeros_like(value[0]),
-                    np.zeros_like(value[0]),
+                    np.zeros_like(value[0])
+                    if source_data.SGSTRAND is None and source_data.SGTRH is None
+                    else value[2],
+                    np.zeros_like(value[0])
+                    if source_data.SGSTRAND is None and source_data.SGTRH is None
+                    else value[3],
                 )
                 for key, value in co2_mass_cell.items()
             ],
@@ -1053,8 +1057,12 @@ def _calculate_co2_data_from_source_data(
                         np.array(vols_co2[t][0]),
                         np.array(vols_co2[t][1]),
                         np.zeros_like(np.array(vols_co2[t][0])),
-                        np.zeros_like(np.array(vols_co2[t][0])),
-                        np.zeros_like(np.array(vols_co2[t][0])),
+                        np.zeros_like(np.array(vols_co2[t][0]))
+                        if source_data.SGSTRAND is None and source_data.SGTRH is None
+                        else np.array(vols_co2[t][2]),
+                        np.zeros_like(np.array(vols_co2[t][0]))
+                        if source_data.SGSTRAND is None and source_data.SGTRH is None
+                        else np.array(vols_co2[t][3]),
                     )
                     for t in vols_co2
                 ],
