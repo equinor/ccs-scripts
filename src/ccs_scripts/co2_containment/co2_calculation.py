@@ -1047,8 +1047,8 @@ def _calculate_co2_data_from_source_data(
                 [
                     co2_mass_output.data_list[t].aqu_phase,
                     co2_mass_output.data_list[t].gas_phase,
-                    co2_mass_output.data_list[t].free_gas_phase,
                     co2_mass_output.data_list[t].trapped_gas_phase,
+                    co2_mass_output.data_list[t].free_gas_phase,
                 ]
                                                     )
                 for t in range(0, len(co2_mass_output.data_list))
