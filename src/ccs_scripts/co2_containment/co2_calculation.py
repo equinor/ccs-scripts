@@ -803,7 +803,7 @@ def _pflotran_co2_molar_volume(
             for x, y in zip(co2_molar_vol[date][1], ymfg[date])
         ]
         if source_data.SGSTRAND is None and source_data.SGTRH is None:
-            co2_molar_vol[date][2] = co2_molar_vol[date][1]
+            co2_molar_vol[date].append(co2_molar_vol[date][1])
     return co2_molar_vol
 
 
