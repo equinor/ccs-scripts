@@ -334,7 +334,7 @@ def test_reek_grid():
         AMFG={"2042": np.ones_like(poro) * 0.1},
         YMFG={"2042": np.ones_like(poro) * 0.1},
     )
-    """
+
     masses_with_trapping = _calculate_co2_data_from_source_data(
         source_data_with_trapping, CalculationType.MASS
     )
@@ -347,6 +347,7 @@ def test_reek_grid():
         region_info=region_info,
         residual_trapping=True,
     )
+    print(table3)
     sort_and_replace_nones(table3)
     cs3 = ["total"] * 4 + ["contained"] * 2 + ["hazardous"] * 3
     gas_part = ["trapped_gas", "free_gas"]
@@ -364,7 +365,7 @@ def test_reek_grid():
     ]
     for c, p, amount in zip(cs3, ps3, amounts3):
         assert extract_amount(table3, c, p, 0) == pytest.approx(amount)
-    """
+
     volumes_with_trapping = _calculate_co2_data_from_source_data(
         source_data_with_trapping, CalculationType.ACTUAL_VOLUME
     )
