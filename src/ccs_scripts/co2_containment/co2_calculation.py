@@ -802,7 +802,7 @@ def _pflotran_co2_molar_volume(
             0 if x < 0 or y == 0 else x
             for x, y in zip(co2_molar_vol[date][1], ymfg[date])
         ]
-        if source_data.SGSTRAND is not None or source_data.SGTRH is not None:
+        if source_data.SGSTRAND is not None:
             co2_molar_vol[date].extend([co2_molar_vol[date][1], co2_molar_vol[date][1]])
     return co2_molar_vol
 
@@ -870,6 +870,8 @@ def _eclipse_co2_molar_volume(
             0 if x < 0 or y == 0 else x
             for x, y in zip(co2_molar_vol[date][1], ymf2[date])
         ]
+    if source_data.SGTRH is not None:
+        co2_molar_vol[date].extend([co2_molar_vol[date][1], co2_molar_vol[date][1]])
     return co2_molar_vol
 
 
@@ -957,44 +959,28 @@ def _calculate_co2_data_from_source_data(
             )
         else:
             co2_mass_cell = _eclipse_co2mass(source_data, co2_molar_mass)
-        if source_data.SGSTRAND is None and source_data.SGTRH is None:
-            co2_mass_output = Co2Data(
-                source_data.x_coord,
-                source_data.y_coord,
-                [
-                    Co2DataAtTimeStep(
-                        key,
-                        value[0],
-                        value[1],
-                        np.zeros_like(value[1]),
-                        np.zeros_like(value[1]),
-                        np.zeros_like(value[1]),
-                    )
-                    for key, value in co2_mass_cell.items()
-                ],
-                "kg",
-                source_data.get_zone(),
-                source_data.get_region(),
-            )
-        else:
-            co2_mass_output = Co2Data(
-                source_data.x_coord,
-                source_data.y_coord,
-                [
-                    Co2DataAtTimeStep(
-                        key,
-                        value[0],
-                        value[1],
-                        np.zeros_like(value[1]),
-                        value[2],
-                        value[3],
-                    )
-                    for key, value in co2_mass_cell.items()
-                ],
-                "kg",
-                source_data.get_zone(),
-                source_data.get_region(),
-            )
+        co2_mass_output = Co2Data(
+            source_data.x_coord,
+            source_data.y_coord,
+            [
+                Co2DataAtTimeStep(
+                    key,
+                    value[0],
+                    value[1],
+                    np.zeros_like(value[0]),
+                    np.zeros_like(value[0])
+                    if source_data.SGSTRAND is None and source_data.SGTRH is None
+                    else value[2],
+                    np.zeros_like(value[0])
+                    if source_data.SGSTRAND is None and source_data.SGTRH is None
+                    else value[3],
+                )
+                for key, value in co2_mass_cell.items()
+            ],
+            "kg",
+            source_data.get_zone(),
+            source_data.get_region(),
+        )
         if calc_type != CalculationType.MASS:
             if source == "PFlotran":
                 y = source_data.get_amfg()[source_data.DATES[0]]
@@ -1055,9 +1041,6 @@ def _calculate_co2_data_from_source_data(
                 )
                 for t in range(0, len(co2_mass_output.data_list))
             }
-            print("Checking out errors")
-            print([len(molar_vols_co2[t]) for t in co2_mass])
-            print([len(co2_mass[t]) for t in co2_mass])
             vols_co2 = {
                 t: [
                     a * b / (co2_molar_mass / 1000)
@@ -1065,35 +1048,24 @@ def _calculate_co2_data_from_source_data(
                 ]
                 for t in co2_mass
             }
-            print(vols_co2)
-            if source_data.SGSTRAND is None and source_data.SGTRH is None:
-                co2data_at_time_steps = [
-                    Co2DataAtTimeStep(
-                        t,
-                        np.array(vols_co2[t][0]),
-                        np.array(vols_co2[t][1]),
-                        np.zeros_like(np.array(vols_co2[t][1])),
-                        np.zeros_like(np.array(vols_co2[t][1])),
-                        np.zeros_like(np.array(vols_co2[t][1])),
-                    )
-                    for t in vols_co2
-                ]
-            else:
-                co2data_at_time_steps = [
+            co2_amount = Co2Data(
+                source_data.x_coord,
+                source_data.y_coord,
+                [
                     Co2DataAtTimeStep(
                         t,
                         np.array(vols_co2[t][0]),
                         np.array(vols_co2[t][1]),
                         np.zeros_like(np.array(vols_co2[t][0])),
-                        np.array(vols_co2[t][2]),
-                        np.array(vols_co2[t][3]),
+                        np.zeros_like(np.array(vols_co2[t][0]))
+                        if source_data.SGSTRAND is None and source_data.SGTRH is None
+                        else np.array(vols_co2[t][2]),
+                        np.zeros_like(np.array(vols_co2[t][0]))
+                        if source_data.SGSTRAND is None and source_data.SGTRH is None
+                        else np.array(vols_co2[t][3]),
                     )
                     for t in vols_co2
-                ]
-            co2_amount = Co2Data(
-                source_data.x_coord,
-                source_data.y_coord,
-                co2data_at_time_steps,
+                ],
                 "m3",
                 source_data.get_zone(),
                 source_data.get_region(),
