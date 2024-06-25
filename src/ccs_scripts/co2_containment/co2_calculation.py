@@ -1088,6 +1088,11 @@ def _calculate_co2_data_from_source_data(
                     )
                     for t in vols_co2
                 ]
+                print("double checking")
+                print([sum(vols_co2[t][0]) for t in vols_co2])
+                print([sum(vols_co2[t][1]) for t in vols_co2])
+                print([sum(vols_co2[t][2]) for t in vols_co2])
+                print([sum(vols_co2[t][3]) for t in vols_co2])
             co2_amount = Co2Data(
                 source_data.x_coord,
                 source_data.y_coord,
