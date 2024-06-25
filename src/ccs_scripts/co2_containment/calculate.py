@@ -104,6 +104,8 @@ def calculate_co2_containment(
                 calc_type,
                 residual_trapping,
             )
+            print("Checking")
+            print(co2_amounts_for_each_phase)
             for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
                 for location, is_in_location in locations.items():
                     amount = sum(co2_amount[is_in_section & is_in_location])
