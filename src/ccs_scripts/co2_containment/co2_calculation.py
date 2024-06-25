@@ -870,8 +870,8 @@ def _eclipse_co2_molar_volume(
             0 if x < 0 or y == 0 else x
             for x, y in zip(co2_molar_vol[date][1], ymf2[date])
         ]
-    if source_data.SGTRH is not None:
-        co2_molar_vol[date].extend([co2_molar_vol[date][1], co2_molar_vol[date][1]])
+        if source_data.SGTRH is not None:
+            co2_molar_vol[date].extend([co2_molar_vol[date][1], co2_molar_vol[date][1]])
     return co2_molar_vol
 
 
@@ -968,12 +968,8 @@ def _calculate_co2_data_from_source_data(
                     value[0],
                     value[1],
                     np.zeros_like(value[0]),
-                    np.zeros_like(value[0])
-                    if source_data.SGSTRAND is None and source_data.SGTRH is None
-                    else value[2],
-                    np.zeros_like(value[0])
-                    if source_data.SGSTRAND is None and source_data.SGTRH is None
-                    else value[3],
+                    np.zeros_like(value[0]),
+                    np.zeros_like(value[0]),
                 )
                 for key, value in co2_mass_cell.items()
             ],
