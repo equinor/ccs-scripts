@@ -1053,12 +1053,8 @@ def _calculate_co2_data_from_source_data(
                         np.array(vols_co2[t][0]),
                         np.array(vols_co2[t][1]),
                         np.zeros_like(np.array(vols_co2[t][0])),
-                        np.zeros_like(np.array(vols_co2[t][0]))
-                        if source_data.SGSTRAND is None and source_data.SGTRH is None
-                        else np.array(vols_co2[t][2]),
-                        np.zeros_like(np.array(vols_co2[t][0]))
-                        if source_data.SGSTRAND is None and source_data.SGTRH is None
-                        else np.array(vols_co2[t][3]),
+                        np.zeros_like(np.array(vols_co2[t][0])),
+                        np.zeros_like(np.array(vols_co2[t][0])),
                     )
                     for t in vols_co2
                 ],
