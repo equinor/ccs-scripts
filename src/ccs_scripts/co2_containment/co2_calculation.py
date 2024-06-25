@@ -803,7 +803,7 @@ def _pflotran_co2_molar_volume(
             for x, y in zip(co2_molar_vol[date][1], ymfg[date])
         ]
         if source_data.SGSTRAND is not None or source_data.SGTRH is not None:
-            co2_molar_vol[date].append(co2_molar_vol[date][1])
+            co2_molar_vol[date].extend(co2_molar_vol[date][1],co2_molar_vol[date][1])
     return co2_molar_vol
 
 
@@ -1046,6 +1046,7 @@ def _calculate_co2_data_from_source_data(
                 ] if source_data.SGSTRAND is None and source_data.SGTRH is None else
                 [
                     co2_mass_output.data_list[t].aqu_phase,
+                    co2_mass_output.data_list[t].gas_phase,
                     co2_mass_output.data_list[t].free_gas_phase,
                     co2_mass_output.data_list[t].trapped_gas_phase,
                 ]
@@ -1080,10 +1081,10 @@ def _calculate_co2_data_from_source_data(
                     Co2DataAtTimeStep(
                         t,
                         np.array(vols_co2[t][0]),
-                        np.zeros_like(np.array(vols_co2[t][0])),
-                        np.zeros_like(np.array(vols_co2[t][0])),
                         np.array(vols_co2[t][1]),
+                        np.zeros_like(np.array(vols_co2[t][0])),
                         np.array(vols_co2[t][2]),
+                        np.array(vols_co2[t][3]),
                     )
                     for t in vols_co2
                 ]
