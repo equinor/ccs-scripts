@@ -1,0 +1,40 @@
+name: Black Code Formatter
+
+on:
+  push:
+    branches:
+      - residual_trapping
+  pull_request:
+    branches:
+      - residual_trapping
+
+jobs:
+  black:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'  # Specify the Python version you are using
+
+      - name: Install Black
+        run: pip install black
+
+      - name: Run Black
+        run: black . --check --diff
+
+      - name: Run Black and Fix
+        if: ${{ steps.black.outcome == 'failure' }}
+        run: |
+          black .
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m 'Automatically formatted code with Black'
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
