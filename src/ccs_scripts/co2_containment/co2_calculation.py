@@ -1038,10 +1038,16 @@ def _calculate_co2_data_from_source_data(
                     water_molar_mass,
                 )
             co2_mass = {
-                co2_mass_output.data_list[t].date: [
+                co2_mass_output.data_list[t].date: ([
                     co2_mass_output.data_list[t].aqu_phase,
                     co2_mass_output.data_list[t].gas_phase,
+                ] if source_data.SGSTRAND is None and source_data.SGTRH is None else
+                [
+                    co2_mass_output.data_list[t].aqu_phase,
+                    co2_mass_output.data_list[t].free_gas_phase,
+                    co2_mass_output.data_list[t].trapped_gas_phase,
                 ]
+                                                    )
                 for t in range(0, len(co2_mass_output.data_list))
             }
             vols_co2 = {
@@ -1051,10 +1057,8 @@ def _calculate_co2_data_from_source_data(
                 ]
                 for t in co2_mass
             }
-            co2_amount = Co2Data(
-                source_data.x_coord,
-                source_data.y_coord,
-                [
+            if source_data.SGSTRAND is None and source_data.SGTRH is None:
+                co2data_at_time_steps = [
                     Co2DataAtTimeStep(
                         t,
                         np.array(vols_co2[t][0]),
@@ -1064,7 +1068,23 @@ def _calculate_co2_data_from_source_data(
                         np.zeros_like(np.array(vols_co2[t][1])),
                     )
                     for t in vols_co2
-                ],
+                ]
+            else:
+                co2data_at_time_steps = [
+                    Co2DataAtTimeStep(
+                        t,
+                        np.array(vols_co2[t][0]),
+                        np.zeros_like(np.array(vols_co2[t][0])),
+                        np.zeros_like(np.array(vols_co2[t][0])),
+                        np.array(vols_co2[t][1]),
+                        np.array(vols_co2[t][2]),
+                    )
+                    for t in vols_co2
+                ]
+            co2_amount = Co2Data(
+                source_data.x_coord,
+                source_data.y_coord,
+                co2data_at_time_steps,
                 "m3",
                 source_data.get_zone(),
                 source_data.get_region(),
