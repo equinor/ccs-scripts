@@ -1052,6 +1052,9 @@ def _calculate_co2_data_from_source_data(
                                                     )
                 for t in range(0, len(co2_mass_output.data_list))
             }
+            print("Checking out errors")
+            print([len(molar_vols_co2[t]) for t in co2_mass])
+            print([len(co2_mass[t]) for t in co2_mass])
             vols_co2 = {
                 t: [
                     a * b / (co2_molar_mass / 1000)
