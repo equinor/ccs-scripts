@@ -380,8 +380,10 @@ def test_reek_grid():
     )
     sort_and_replace_nones(table4)
     cs4 = ["total"] * 4 + ["contained"] * 2 + ["hazardous"] * 3
+    print(cs4)
     gas_part = ["trapped_gas", "free_gas"]
     ps4 = ["total"] + gas_part + ["aqueous"] + gas_part + ["total"] + gas_part
+    print(ps4)
     amounts4 = [
         1018.524203883313,
         198.0019398057147,
