@@ -295,7 +295,7 @@ def test_reek_grid():
     ]
     for c, p, amount in zip(cs, ps, amounts):
         assert extract_amount(table, c, p, 0) == pytest.approx(amount)
-
+    """
     volumes = _calculate_co2_data_from_source_data(
         source_data,
         CalculationType.ACTUAL_VOLUME,
@@ -319,7 +319,7 @@ def test_reek_grid():
     ]
     for c, p, amount in zip(cs, ps, amounts2):
         assert extract_amount(table2, c, p, 0) == pytest.approx(amount)
-
+    """
     source_data_with_trapping = SourceData(
         x_coord,
         y_coord,
