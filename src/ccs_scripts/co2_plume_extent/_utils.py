@@ -1,4 +1,5 @@
 from enum import Enum
+import logging
 from typing import Optional
 
 from resdata.grid import Grid
@@ -59,19 +60,14 @@ class PlumeGroups:
         counter = 1
         groups_to_merge = []  # A list of list of groups to merge
         while len(ind_to_resolve) > 0 and counter <= MAX_STEPS_RESOLVE_CELLS:
-            # print(f"counter        : {counter}")
-            # print(f"left to resolve: {len(ind_to_resolve)}")
             for ind in ind_to_resolve:
                 ijk = grid.get_ijk(active_index=ind)
                 groups_nearby = self._find_nearest_groups(ijk, grid)
                 if [-1] in groups_nearby:
                     groups_nearby = [x for x in groups_nearby if x != [-1]]
-                    # print("----------------> SKIP MERGE WITH UNKNOWN GROUP")
                 if len(groups_nearby) == 1:
                     self.cells[ind].set_cell_groups(groups_nearby[0])
                 elif len(groups_nearby) >= 2:
-                    # print("----------------> NEED TO MERGE")
-                    # print(groups_nearby)
                     if groups_nearby not in groups_to_merge:
                         groups_to_merge.append(groups_nearby)
                     # Set to first group, but will be overwritten by merge later
@@ -129,7 +125,6 @@ class PlumeGroups:
                         break
             if not merged:
                 new_groups_to_merge.append(g)
-        # print(new_groups_to_merge)
 
         return new_groups_to_merge
 
@@ -151,21 +146,20 @@ class PlumeGroups:
             if cell.has_co2():
                 if cell.all_groups not in unique_groups:
                     unique_groups.append(cell.all_groups)
-            elif cell.is_undetermined():
+            elif cell.is_undetermined() and [-1] not in unique_groups:
                 unique_groups.append([-1])
         return unique_groups
 
-    def _temp_print(self):
-        # Find the groups:
+    def _debug_print(self):
         unique_groups = self._find_unique_groups()
         unique_groups.sort()
-        print(
+        logging.debug(
             f"Count '-'              : {len([c for c in self.cells if c.has_no_co2()])}"
         )
-        print(
+        logging.debug(
             f"Count '?'              : {len([c for c in self.cells if c.is_undetermined()])}"
         )
         for unique_group in unique_groups:
-            print(
+            logging.debug(
                 f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {len([c for c in self.cells if c.has_co2() and c.all_groups == unique_group])}"
             )

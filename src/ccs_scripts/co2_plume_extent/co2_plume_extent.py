@@ -686,7 +686,7 @@ def calculate_single_distances(
     sgas_results = _find_distances_per_time_step(
         "SGAS", calculation_type, threshold_sgas, unrst, grid, dist, inj_wells, do_plume_tracking
     )
-    if False and "AMFG" in unrst:
+    if "AMFG" in unrst:
         amfg_results = _find_distances_per_time_step(
             "AMFG", calculation_type, threshold_amfg, unrst, grid, dist, inj_wells, do_plume_tracking
         )
@@ -817,7 +817,6 @@ def _find_distances_per_time_step(
     n_grid_cells_for_logging = {}
 
     n_cells = len(unrst[attribute_key][0].numpy_view())
-    # print(f"n_cells = {n_cells}")
     prev_groups = PlumeGroups(n_cells)
 
     logging.info(f"\nStart calculating plume extent for {attribute_key}.\n")
@@ -827,10 +826,9 @@ def _find_distances_per_time_step(
         data = unrst[attribute_key][i].numpy_view()
         cells_with_co2 = np.where(data > threshold)[0]
         cells_with_co2 = _temp_add_well3(i, cells_with_co2)  # NBNB-AS
-        # print(f"Number of grid cells with CO2 this time step: {len(cells_with_co2)}")
 
-        # print("Previous group:")
-        # prev_groups._temp_print()
+        logging.debug("Previous group:")
+        prev_groups._debug_print()
         groups = PlumeGroups(n_cells)
         for index in cells_with_co2:
             if prev_groups.cells[index].has_co2():
@@ -851,13 +849,12 @@ def _find_distances_per_time_step(
                     if not found:
                         groups.cells[index].set_undetermined()
                 else:
-                    groups.cells[index].set_cell_groups([-999]) # NBNB-AS: Change this?
-        # print("Current group:")
-        # groups._temp_print()
+                    groups.cells[index].set_cell_groups([-999])
+        logging.debug("Current group:")
+        groups._debug_print()
 
         if do_plume_tracking:
             groups_to_merge = groups.resolve_undetermined_cells(grid)
-            # print(f"Groups to merge: {groups_to_merge}")
 
             for full_group in groups_to_merge:
                 new_group = [x for y in full_group for x in y]
@@ -868,14 +865,11 @@ def _find_distances_per_time_step(
                             if set(cell.all_groups) & set(g):
                                 cell.all_groups = new_group
 
-            # print("Current group after resolving undetermined cells:")
-            # groups._temp_print()
+            logging.debug("Current group after resolving undetermined cells:")
+            groups._debug_print()
 
         unique_groups = groups._find_unique_groups()
-        print(f"\n\ni            : {i}")
-        print(f"unique_groups:")
         for g in unique_groups:
-            print(f"  group: {g}")
             if g == [-1]:
                 if "?" not in n_grid_cells_for_logging:
                     n_grid_cells_for_logging["?"] = [0] * n_time_steps
@@ -883,19 +877,15 @@ def _find_distances_per_time_step(
                     [i for i in cells_with_co2 if groups.cells[i].all_groups == [-1]]
                 )
                 continue
-            # Calculate distance metric for this group
-            # print(dist)
-            # exit()
             if do_plume_tracking:
                 indices_this_group = [
                     i for i in cells_with_co2 if groups.cells[i].all_groups == g
                 ]
             else:
                 indices_this_group = cells_with_co2
-            print(f"  len(indices_this_group): {len(indices_this_group)}")
             if len(indices_this_group) == 0:
                 result = {}
-                for single_inj_number in g:  # Can do this in a better way?
+                for single_inj_number in g:
                     result[single_inj_number] = np.nan
             else:
                 result = {}
@@ -909,14 +899,7 @@ def _find_distances_per_time_step(
                                 indices_this_group
                             ].max()
                     else:
-                        # max_dist = 0.0
                         for well_name in dist.keys():
-                            # print(dist[well_name][
-                            #     indices_this_group
-                            # ].max())
-                            # max_dist = max(max_dist, dist[well_name][
-                            #     indices_this_group
-                            # ].max())
                             result[well_name] = dist[well_name][
                                 indices_this_group
                             ].max()
@@ -928,17 +911,12 @@ def _find_distances_per_time_step(
                         indices_this_group
                     ].min()
 
-            print(f"  result (this group):")
-            print(result)
-            print([c for c in dist_per_group])
-
             if do_plume_tracking:
                 group_string = "+".join(
                     [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
                 )
             else:
                 group_string = "ALL"
-            print(f"  group_string: {group_string}")
             if group_string not in dist_per_group:
                 if calculation_type == CalculationType.PLUME_EXTENT:
                     if do_plume_tracking:
@@ -958,9 +936,7 @@ def _find_distances_per_time_step(
                     }
                 n_grid_cells_for_logging[group_string] = [
                     0
-                ] * n_time_steps  # np.zeros(shape=(n_time_steps,))
-            print([c for c in dist_per_group])
-            print(dist_per_group)
+                ] * n_time_steps
             if calculation_type == CalculationType.PLUME_EXTENT:
                 if do_plume_tracking:
                     for s in g:
@@ -974,25 +950,6 @@ def _find_distances_per_time_step(
             ):
                 dist_per_group[group_string]["ALL"][i] = result["ALL"]
             n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
-            # for s in g:
-            #     dist_per_group[group_string][s][i] = result[s]
-        # else:
-        #     # NBNB-AS: Copied from above
-        #     if len(cells_with_co2) == 0:
-        #         result = {}
-        #         result["ALL"] = np.nan
-        #     else:
-        #         if calculation_type == CalculationType.PLUME_EXTENT:
-        #                 result[single_inj_number] = dist[well_name][ # <-----
-        #                     cells_with_co2
-        #                 ].max()
-        #         elif calculation_type in (
-        #                 CalculationType.POINT,
-        #                 CalculationType.LINE,
-        #         ):
-        #             result["ALL"] = dist["ALL"][
-        #                 cells_with_co2
-        #             ].min()
 
         prev_groups = groups.copy()
         percent = (i + 1) / n_time_steps
@@ -1005,10 +962,8 @@ def _find_distances_per_time_step(
 
     outputs = {}
     for group_name, single_group_distances in dist_per_group.items():
-        print(f"group_name: {group_name}")
         outputs[group_name] = {}
         for single_group, distances in single_group_distances.items():
-            print(f"  single_group: {single_group}")
             well_name = "ALL"
             if calculation_type == CalculationType.PLUME_EXTENT:
                 if do_plume_tracking:
@@ -1022,13 +977,6 @@ def _find_distances_per_time_step(
             for i, d in enumerate(unrst.report_dates):
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
                 outputs[group_name][well_name].append(date_and_result)
-
-    # for key, value in outputs.items():
-    #     print(key)
-    #     for key2, value2 in value.items():
-    #         print(key2)
-    #         print(value2)
-    # exit()
 
     logging.info(f"Done calculating plume extent for {attribute_key}.")
     return outputs
@@ -1095,14 +1043,6 @@ def _collect_results_into_dataframe(
     ):
         (sgas_results, amfg_results, amfg_key) = result
 
-        # NBNB-AS:
-        # for key, value in sgas_results.items():
-        #     print(f"key: {key}")
-        #     for key2, value2 in value.items():
-        #         print(f"  key2: {key2}")
-        #         print(f"   {value2}")
-        # exit()
-
         col = _find_column_name(single_config, len(config.distance_calculations), i)
 
         for group_str, sgas_results in sgas_results.items():
@@ -1137,7 +1077,6 @@ def _collect_results_into_dataframe(
                             amfg_result, columns=["date", full_col_name]
                         )
                         df = pd.merge(df, amfg_df, on="date")
-    print(df.keys())
     return df
 
 
