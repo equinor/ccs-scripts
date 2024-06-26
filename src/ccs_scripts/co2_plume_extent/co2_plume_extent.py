@@ -590,30 +590,35 @@ def _calculate_grid_cell_distances(
     nactive: int,
     calculation_type: CalculationType,
     grid: Grid,
-    direction: LineDirection,
+    config: Calculation,
 ):
+    # Note: Currently we loop over injection wells even for POINT and LINE,
+    #       but this should not be necessary.
     dist = {}
     for well in inj_wells:
         name = well.name
-        x = well.x
-        y = well.y
-
         dist[name] = np.zeros(shape=(nactive,))
         if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
+            if calculation_type == CalculationType.PLUME_EXTENT:
+                x0 = well.x
+                y0 = well.y
+            else:
+                x0 = config.x
+                y0 = config.y
             for i in range(nactive):
                 center = grid.get_xyz(active_index=i)
                 dist[well.name][i] = np.sqrt(
-                    (center[0] - x) ** 2 + (center[1] - y) ** 2
+                    (center[0] - x0) ** 2 + (center[1] - y0) ** 2
                 )
         elif calculation_type == CalculationType.LINE:
-            line_value = x
+            line_value = config.x
             ind = 0  # Use x-coordinate
-            if direction in (LineDirection.NORTH, LineDirection.SOUTH):
-                line_value = y
+            if config.direction in (LineDirection.NORTH, LineDirection.SOUTH):
+                line_value = config.y
                 ind = 1  # Use y-coordinate
 
             factor = 1
-            if direction in (LineDirection.WEST, LineDirection.SOUTH):
+            if config.direction in (LineDirection.WEST, LineDirection.SOUTH):
                 factor = -1
 
             for i in range(nactive):
@@ -652,19 +657,19 @@ def calculate_single_distances(
     threshold_amfg: float,
     config: Calculation,
     inj_wells: list[InjectionWellData],
+    do_plume_tracking: bool,
 ):
     calculation_type = config.type
-    x = config.x  # NBNB-AS: Remove these later
-    y = config.y  # NBNB-AS: Remove these later
 
+    # First calculate distance from point/line to center of all cells
     dist = _calculate_grid_cell_distances(
-        inj_wells, nactive, calculation_type, grid, config.direction
+        inj_wells, nactive, calculation_type, grid, config
     )
 
     sgas_results = _find_distances_per_time_step(
         "SGAS", calculation_type, threshold_sgas, unrst, grid, dist, inj_wells
     )
-    if "AMFG" in unrst:
+    if False and "AMFG" in unrst:
         amfg_results = _find_distances_per_time_step(
             "AMFG", calculation_type, threshold_amfg, unrst, grid, dist, inj_wells
         )
@@ -696,7 +701,6 @@ def calculate_distances(
     grid = Grid(f"{case}.EGRID")
     unrst = ResdataFile(f"{case}.UNRST")
 
-    # First calculate distance from point/line to center of all cells
     nactive = grid.get_num_active()
     logging.info(f"Number of active grid cells: {nactive}")
 
@@ -711,6 +715,7 @@ def calculate_distances(
             threshold_amfg,
             single_config,
             config.injection_wells,
+            config.do_plume_tracking,
         )
         all_results.append((a, b, c))
         logging.info(f"Done calculating distances for configuration number: {i}\n")
@@ -797,6 +802,7 @@ def _find_distances_per_time_step(
     # print(f"n_cells = {n_cells}")
     prev_groups = PlumeGroups(n_cells)
 
+    logging.info(f"\nStart calculating plume extent for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
     for i in range(n_time_steps):
@@ -913,7 +919,7 @@ def _find_distances_per_time_step(
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
                 outputs[group_name][well_name].append(date_and_result)
 
-    logging.info(f"Done calculating plume extent for {attribute_key}.\n")
+    logging.info(f"Done calculating plume extent for {attribute_key}.")
     return outputs
 
 
@@ -978,6 +984,14 @@ def _collect_results_into_dataframe(
     ):
         (sgas_results, amfg_results, amfg_key) = result
 
+        # NBNB-AS:
+        # for key, value in sgas_results.items():
+        #     print(f"key: {key}")
+        #     for key2, value2 in value.items():
+        #         print(f"  key2: {key2}")
+        #         print(f"   {value2}")
+        # exit()
+
         col = _find_column_name(single_config, len(config.distance_calculations), i)
 
         for group_str, sgas_results in sgas_results.items():
@@ -989,26 +1003,27 @@ def _collect_results_into_dataframe(
                     sgas_result, columns=["date", full_col_name]
                 )
                 df = pd.merge(df, sgas_df, on="date")
-        for group_str, amfg_results in amfg_results.items():
-            for well_name, amfg_result in amfg_results.items():
-                if amfg_result is not None:
-                    if amfg_key is None:
-                        amfg_key_str = "?"
-                    else:
-                        amfg_key_str = amfg_key
-                    full_col_name = (
-                        col
-                        + "_"
-                        + amfg_key_str
-                        + "_GROUP_"
-                        + group_str
-                        + "_FROM_"
-                        + well_name
-                    )
-                    amfg_df = pd.DataFrame.from_records(
-                        amfg_result, columns=["date", full_col_name]
-                    )
-                    df = pd.merge(df, amfg_df, on="date")
+        if amfg_results is not None:
+            for group_str, amfg_results in amfg_results.items():
+                for well_name, amfg_result in amfg_results.items():
+                    if amfg_result is not None:
+                        if amfg_key is None:
+                            amfg_key_str = "?"
+                        else:
+                            amfg_key_str = amfg_key
+                        full_col_name = (
+                            col
+                            + "_"
+                            + amfg_key_str
+                            + "_GROUP_"
+                            + group_str
+                            + "_FROM_"
+                            + well_name
+                        )
+                        amfg_df = pd.DataFrame.from_records(
+                            amfg_result, columns=["date", full_col_name]
+                        )
+                        df = pd.merge(df, amfg_df, on="date")
     return df
 
 
