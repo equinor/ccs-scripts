@@ -167,6 +167,7 @@ class Configuration:
                 "\nWARNING: Plume tracking activated, but no injection_wells specified."
                 "\n         Plume tracking will therefore be switched off."
             )
+            self.do_plume_tracking = False
         if "injection_wells" in input_dict:
             for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
                 args_required = ["name", "x", "y"]
@@ -1013,7 +1014,10 @@ def _find_distances_per_time_step(
                 if do_plume_tracking:
                     well_name = [x.name for x in inj_wells if x.number == single_group][0]
                 else:
-                    well_name = [x.name for x in inj_wells if x.name == single_group][0]
+                    if len(inj_wells) != 0:
+                        well_name = [x.name for x in inj_wells if x.name == single_group][0]
+                    else:
+                        well_name = "WELL"
             outputs[group_name][well_name] = []
             for i, d in enumerate(unrst.report_dates):
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
