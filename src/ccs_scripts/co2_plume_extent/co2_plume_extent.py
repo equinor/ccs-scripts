@@ -167,23 +167,24 @@ class Configuration:
                 "\nWARNING: Plume tracking activated, but no injection_wells specified."
                 "\n         Plume tracking will therefore be switched off."
             )
-        for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
-            args_required = ["name", "x", "y"]
-            for arg in args_required:
-                if arg not in injection_well_info:
-                    logging.error(
-                        f'\nERROR: Missing "{arg}" under "injection_wells" for injection well number {i}.'
-                    )
-                    sys.exit(1)
+        if "injection_wells" in input_dict:
+            for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
+                args_required = ["name", "x", "y"]
+                for arg in args_required:
+                    if arg not in injection_well_info:
+                        logging.error(
+                            f'\nERROR: Missing "{arg}" under "injection_wells" for injection well number {i}.'
+                        )
+                        sys.exit(1)
 
-            self.injection_wells.append(
-                InjectionWellData(
-                    name=injection_well_info["name"],
-                    x=injection_well_info["x"],
-                    y=injection_well_info["y"],
-                    number=len(self.injection_wells) + 1,
+                self.injection_wells.append(
+                    InjectionWellData(
+                        name=injection_well_info["name"],
+                        x=injection_well_info["x"],
+                        y=injection_well_info["y"],
+                        number=len(self.injection_wells) + 1,
+                    )
                 )
-            )
 
         if "distance_calculations" not in input_dict:
             logging.error(
@@ -594,16 +595,27 @@ def _calculate_grid_cell_distances(
 ):
     dist = {}
     if calculation_type == CalculationType.PLUME_EXTENT:
-        for well in inj_wells:
-            name = well.name
-            x0 = well.x
-            y0 = well.y
-            dist[name] = np.zeros(shape=(nactive,))  # NBNB-AS: dist["ALL"] if no plume tracking is activated?
+        if len(inj_wells) == 0:
+            # Also needed when no config file is used
+            x0 = config.x
+            y0 = config.y
+            dist["WELL"] = np.zeros(shape=(nactive,))
             for i in range(nactive):
                 center = grid.get_xyz(active_index=i)
-                dist[well.name][i] = np.sqrt(
+                dist["WELL"][i] = np.sqrt(
                     (center[0] - x0) ** 2 + (center[1] - y0) ** 2
                 )
+        else:
+            for well in inj_wells:
+                name = well.name
+                x0 = well.x
+                y0 = well.y
+                dist[name] = np.zeros(shape=(nactive,))
+                for i in range(nactive):
+                    center = grid.get_xyz(active_index=i)
+                    dist[well.name][i] = np.sqrt(
+                        (center[0] - x0) ** 2 + (center[1] - y0) ** 2
+                    )
     elif calculation_type == CalculationType.POINT:
         dist["ALL"] = np.zeros(shape=(nactive,))
         x0 = config.x
@@ -629,37 +641,6 @@ def _calculate_grid_cell_distances(
             center = grid.get_xyz(active_index=i)
             dist["ALL"][i] = factor * (line_value - center[ind])
         dist["ALL"][dist["ALL"] < 0] = 0.0
-
-    #for well in inj_wells:
-    #    name = well.name
-    #    dist[name] = np.zeros(shape=(nactive,))
-    #    if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
-    #        if calculation_type == CalculationType.PLUME_EXTENT:
-    #            x0 = well.x
-    #            y0 = well.y
-    #        else:
-    #            x0 = config.x
-    #            y0 = config.y
-    #        for i in range(nactive):
-    #            center = grid.get_xyz(active_index=i)
-    #            dist[well.name][i] = np.sqrt(
-    #                (center[0] - x0) ** 2 + (center[1] - y0) ** 2
-    #            )
-    #    elif calculation_type == CalculationType.LINE:
-    #        line_value = config.x
-    #        ind = 0  # Use x-coordinate
-    #        if config.direction in (LineDirection.NORTH, LineDirection.SOUTH):
-    #            line_value = config.y
-    #            ind = 1  # Use y-coordinate
-
-    #        factor = 1
-    #        if config.direction in (LineDirection.WEST, LineDirection.SOUTH):
-    #            factor = -1
-
-    #        for i in range(nactive):
-    #            center = grid.get_xyz(active_index=i)
-    #            dist[name][i] = factor * (line_value - center[ind])
-    #        dist[name][dist[name] < 0] = 0.0
 
     text = ""
     if calculation_type == CalculationType.PLUME_EXTENT:
