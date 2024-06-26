@@ -25,7 +25,6 @@ from resdata.resfile import ResdataFile
 
 from ccs_scripts.co2_plume_extent._utils import CellGroup, PlumeGroups
 
-
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
 INJ_POINT_LATERAL_THRESHOLD = 60.0

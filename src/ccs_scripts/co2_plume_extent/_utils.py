@@ -1,9 +1,8 @@
-from enum import Enum
 import logging
+from enum import Enum
 from typing import Optional
 
 from resdata.grid import Grid
-
 
 MAX_STEPS_RESOLVE_CELLS = 20
 MAX_NEAREST_GROUPS_SEARCH_DISTANCE = 3
