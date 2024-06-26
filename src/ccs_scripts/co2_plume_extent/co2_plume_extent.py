@@ -578,7 +578,9 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
         )
     logging.info("")
 
-    logging.info(f"\nPlume tracking activated: {'yes' if config.do_plume_tracking else 'no'}")
+    logging.info(
+        f"\nPlume tracking activated: {'yes' if config.do_plume_tracking else 'no'}"
+    )
     logging.info("\nInjection well data:")
     logging.info(f"\n{'Number':<8} {'Name':<15} {'x':<15} {'y':<15}")
     logging.info("-" * 56)
@@ -603,9 +605,7 @@ def _calculate_grid_cell_distances(
             dist["WELL"] = np.zeros(shape=(nactive,))
             for i in range(nactive):
                 center = grid.get_xyz(active_index=i)
-                dist["WELL"][i] = np.sqrt(
-                    (center[0] - x0) ** 2 + (center[1] - y0) ** 2
-                )
+                dist["WELL"][i] = np.sqrt((center[0] - x0) ** 2 + (center[1] - y0) ** 2)
         else:
             for well in inj_wells:
                 name = well.name
@@ -623,9 +623,7 @@ def _calculate_grid_cell_distances(
         y0 = config.y
         for i in range(nactive):
             center = grid.get_xyz(active_index=i)
-            dist["ALL"][i] = np.sqrt(
-                (center[0] - x0) ** 2 + (center[1] - y0) ** 2
-            )
+            dist["ALL"][i] = np.sqrt((center[0] - x0) ** 2 + (center[1] - y0) ** 2)
     elif calculation_type == CalculationType.LINE:
         dist["ALL"] = np.zeros(shape=(nactive,))
         line_value = config.x
@@ -684,16 +682,37 @@ def calculate_single_distances(
     )
 
     sgas_results = _find_distances_per_time_step(
-        "SGAS", calculation_type, threshold_sgas, unrst, grid, dist, inj_wells, do_plume_tracking
+        "SGAS",
+        calculation_type,
+        threshold_sgas,
+        unrst,
+        grid,
+        dist,
+        inj_wells,
+        do_plume_tracking,
     )
     if "AMFG" in unrst:
         amfg_results = _find_distances_per_time_step(
-            "AMFG", calculation_type, threshold_amfg, unrst, grid, dist, inj_wells, do_plume_tracking
+            "AMFG",
+            calculation_type,
+            threshold_amfg,
+            unrst,
+            grid,
+            dist,
+            inj_wells,
+            do_plume_tracking,
         )
         amfg_key = "AMFG"
     elif "XMF2" in unrst:
         amfg_results = _find_distances_per_time_step(
-            "XMF2", calculation_type, threshold_amfg, unrst, grid, dist, inj_wells, do_plume_tracking
+            "XMF2",
+            calculation_type,
+            threshold_amfg,
+            unrst,
+            grid,
+            dist,
+            inj_wells,
+            do_plume_tracking,
         )
         amfg_key = "XMF2"
     else:
@@ -844,7 +863,9 @@ def _find_distances_per_time_step(
                             and abs(y - well.y) <= INJ_POINT_LATERAL_THRESHOLD
                         ):
                             found = True
-                            groups.cells[index].set_cell_groups(new_groups=[well.number])
+                            groups.cells[index].set_cell_groups(
+                                new_groups=[well.number]
+                            )
                             break
                     if not found:
                         groups.cells[index].set_undetermined()
@@ -893,7 +914,9 @@ def _find_distances_per_time_step(
                     if do_plume_tracking:
                         for single_inj_number in g:
                             well_name = [
-                                x.name for x in inj_wells if x.number == single_inj_number
+                                x.name
+                                for x in inj_wells
+                                if x.number == single_inj_number
                             ][0]
                             result[single_inj_number] = dist[well_name][
                                 indices_this_group
@@ -907,9 +930,7 @@ def _find_distances_per_time_step(
                     CalculationType.POINT,
                     CalculationType.LINE,
                 ):
-                    result["ALL"] = dist["ALL"][
-                        indices_this_group
-                    ].min()
+                    result["ALL"] = dist["ALL"][indices_this_group].min()
 
             if do_plume_tracking:
                 group_string = "+".join(
@@ -925,7 +946,8 @@ def _find_distances_per_time_step(
                         }
                     else:
                         dist_per_group[group_string] = {
-                            well_name: np.zeros(shape=(n_time_steps,)) for well_name in dist.keys()
+                            well_name: np.zeros(shape=(n_time_steps,))
+                            for well_name in dist.keys()
                         }
                 elif calculation_type in (
                     CalculationType.POINT,
@@ -934,9 +956,7 @@ def _find_distances_per_time_step(
                     dist_per_group[group_string] = {
                         "ALL": np.zeros(shape=(n_time_steps,))
                     }
-                n_grid_cells_for_logging[group_string] = [
-                    0
-                ] * n_time_steps
+                n_grid_cells_for_logging[group_string] = [0] * n_time_steps
             if calculation_type == CalculationType.PLUME_EXTENT:
                 if do_plume_tracking:
                     for s in g:
@@ -967,10 +987,14 @@ def _find_distances_per_time_step(
             well_name = "ALL"
             if calculation_type == CalculationType.PLUME_EXTENT:
                 if do_plume_tracking:
-                    well_name = [x.name for x in inj_wells if x.number == single_group][0]
+                    well_name = [x.name for x in inj_wells if x.number == single_group][
+                        0
+                    ]
                 else:
                     if len(inj_wells) != 0:
-                        well_name = [x.name for x in inj_wells if x.name == single_group][0]
+                        well_name = [
+                            x.name for x in inj_wells if x.name == single_group
+                        ][0]
                     else:
                         well_name = "WELL"
             outputs[group_name][well_name] = []
@@ -1049,7 +1073,7 @@ def _collect_results_into_dataframe(
             for well_name, sgas_result in sgas_results.items():
                 full_col_name = col + "_SGAS"
                 if group_str != "ALL":
-                    full_col_name +=  "_GROUP_" + group_str
+                    full_col_name += "_GROUP_" + group_str
                 if well_name != "ALL":
                     full_col_name += "_FROM_" + well_name
                 sgas_df = pd.DataFrame.from_records(
