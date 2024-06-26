@@ -592,39 +592,74 @@ def _calculate_grid_cell_distances(
     grid: Grid,
     config: Calculation,
 ):
-    # Note: Currently we loop over injection wells even for POINT and LINE,
-    #       but this should not be necessary.
     dist = {}
-    for well in inj_wells:
-        name = well.name
-        dist[name] = np.zeros(shape=(nactive,))
-        if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
-            if calculation_type == CalculationType.PLUME_EXTENT:
-                x0 = well.x
-                y0 = well.y
-            else:
-                x0 = config.x
-                y0 = config.y
+    if calculation_type == CalculationType.PLUME_EXTENT:
+        for well in inj_wells:
+            name = well.name
+            x0 = well.x
+            y0 = well.y
+            dist[name] = np.zeros(shape=(nactive,))  # NBNB-AS: dist["ALL"] if no plume tracking is activated?
             for i in range(nactive):
                 center = grid.get_xyz(active_index=i)
                 dist[well.name][i] = np.sqrt(
                     (center[0] - x0) ** 2 + (center[1] - y0) ** 2
                 )
-        elif calculation_type == CalculationType.LINE:
-            line_value = config.x
-            ind = 0  # Use x-coordinate
-            if config.direction in (LineDirection.NORTH, LineDirection.SOUTH):
-                line_value = config.y
-                ind = 1  # Use y-coordinate
+    elif calculation_type == CalculationType.POINT:
+        dist["ALL"] = np.zeros(shape=(nactive,))
+        x0 = config.x
+        y0 = config.y
+        for i in range(nactive):
+            center = grid.get_xyz(active_index=i)
+            dist["ALL"][i] = np.sqrt(
+                (center[0] - x0) ** 2 + (center[1] - y0) ** 2
+            )
+    elif calculation_type == CalculationType.LINE:
+        dist["ALL"] = np.zeros(shape=(nactive,))
+        line_value = config.x
+        ind = 0  # Use x-coordinate
+        if config.direction in (LineDirection.NORTH, LineDirection.SOUTH):
+            line_value = config.y
+            ind = 1  # Use y-coordinate
 
-            factor = 1
-            if config.direction in (LineDirection.WEST, LineDirection.SOUTH):
-                factor = -1
+        factor = 1
+        if config.direction in (LineDirection.WEST, LineDirection.SOUTH):
+            factor = -1
 
-            for i in range(nactive):
-                center = grid.get_xyz(active_index=i)
-                dist[name][i] = factor * (line_value - center[ind])
-            dist[name][dist[name] < 0] = 0.0
+        for i in range(nactive):
+            center = grid.get_xyz(active_index=i)
+            dist["ALL"][i] = factor * (line_value - center[ind])
+        dist["ALL"][dist["ALL"] < 0] = 0.0
+
+    #for well in inj_wells:
+    #    name = well.name
+    #    dist[name] = np.zeros(shape=(nactive,))
+    #    if calculation_type in (CalculationType.PLUME_EXTENT, CalculationType.POINT):
+    #        if calculation_type == CalculationType.PLUME_EXTENT:
+    #            x0 = well.x
+    #            y0 = well.y
+    #        else:
+    #            x0 = config.x
+    #            y0 = config.y
+    #        for i in range(nactive):
+    #            center = grid.get_xyz(active_index=i)
+    #            dist[well.name][i] = np.sqrt(
+    #                (center[0] - x0) ** 2 + (center[1] - y0) ** 2
+    #            )
+    #    elif calculation_type == CalculationType.LINE:
+    #        line_value = config.x
+    #        ind = 0  # Use x-coordinate
+    #        if config.direction in (LineDirection.NORTH, LineDirection.SOUTH):
+    #            line_value = config.y
+    #            ind = 1  # Use y-coordinate
+
+    #        factor = 1
+    #        if config.direction in (LineDirection.WEST, LineDirection.SOUTH):
+    #            factor = -1
+
+    #        for i in range(nactive):
+    #            center = grid.get_xyz(active_index=i)
+    #            dist[name][i] = factor * (line_value - center[ind])
+    #        dist[name][dist[name] < 0] = 0.0
 
     text = ""
     if calculation_type == CalculationType.PLUME_EXTENT:
@@ -850,7 +885,10 @@ def _find_distances_per_time_step(
         # groups._temp_print()
 
         unique_groups = groups._find_unique_groups()
+        print(f"\n\ni            : {i}")
+        print(f"unique_groups:")
         for g in unique_groups:
+            print(f"  group: {g}")
             if g == [-1]:
                 if "?" not in n_grid_cells_for_logging:
                     n_grid_cells_for_logging["?"] = [0] * n_time_steps
@@ -862,42 +900,79 @@ def _find_distances_per_time_step(
             indices_this_group = [
                 i for i in cells_with_co2 if groups.cells[i].all_groups == g
             ]
+            print(f"  len(indices_this_group): {len(indices_this_group)}")
             if len(indices_this_group) == 0:
                 result = {}
                 for single_inj_number in g:  # Can do this in a better way?
                     result[single_inj_number] = np.nan
             else:
                 result = {}
-                for single_inj_number in g:
-                    well_name = [
-                        x.name for x in inj_wells if x.number == single_inj_number
-                    ][0]
-                    result[single_inj_number] = 0.0
-                    if calculation_type == CalculationType.PLUME_EXTENT:
+                if calculation_type == CalculationType.PLUME_EXTENT:
+                    for single_inj_number in g:
+                        well_name = [
+                            x.name for x in inj_wells if x.number == single_inj_number
+                        ][0]
                         result[single_inj_number] = dist[well_name][
                             indices_this_group
                         ].max()
-                    elif calculation_type in (
-                        CalculationType.POINT,
-                        CalculationType.LINE,
-                    ):
-                        result[single_inj_number] = dist[well_name][
-                            indices_this_group
-                        ].min()
+                elif calculation_type in (
+                    CalculationType.POINT,
+                    CalculationType.LINE,
+                ):
+                    result["ALL"] = dist["ALL"][
+                        indices_this_group
+                    ].min()
+
+                # for single_inj_number in g:
+                #     well_name = [
+                #         x.name for x in inj_wells if x.number == single_inj_number
+                #     ][0]
+                #     result[single_inj_number] = 0.0
+                #     if calculation_type == CalculationType.PLUME_EXTENT:
+                #         result[single_inj_number] = dist[well_name][
+                #             indices_this_group
+                #         ].max()
+                #     elif calculation_type in (
+                #         CalculationType.POINT,
+                #         CalculationType.LINE,
+                #     ):
+                #         result["ALL"] = dist["ALL"][
+                #             indices_this_group
+                #         ].min()
+
+            print(f"  result (this group):")
+            print(result)
 
             group_string = "+".join(
                 [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
             )
+            print(f"  group_string: {group_string}")
             if group_string not in dist_per_group:
-                dist_per_group[group_string] = {
-                    s: np.zeros(shape=(n_time_steps,)) for s in g
-                }
+                if calculation_type == CalculationType.PLUME_EXTENT:
+                    dist_per_group[group_string] = {
+                        s: np.zeros(shape=(n_time_steps,)) for s in g
+                    }
+                elif calculation_type in (
+                    CalculationType.POINT,
+                    CalculationType.LINE,
+                ):
+                    dist_per_group[group_string] = {
+                        "ALL": np.zeros(shape=(n_time_steps,))
+                    }
                 n_grid_cells_for_logging[group_string] = [
                     0
                 ] * n_time_steps  # np.zeros(shape=(n_time_steps,))
-            for s in g:
-                dist_per_group[group_string][s][i] = result[s]
-                n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
+            if calculation_type == CalculationType.PLUME_EXTENT:
+                for s in g:
+                    dist_per_group[group_string][s][i] = result[s]
+            elif calculation_type in (
+                CalculationType.POINT,
+                CalculationType.LINE,
+            ):
+                dist_per_group[group_string]["ALL"][i] = result["ALL"]
+            n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
+            # for s in g:
+            #     dist_per_group[group_string][s][i] = result[s]
 
         prev_groups = groups.copy()
         percent = (i + 1) / n_time_steps
@@ -912,12 +987,20 @@ def _find_distances_per_time_step(
     for group_name, single_group_distances in dist_per_group.items():
         outputs[group_name] = {}
         for single_group, distances in single_group_distances.items():
-            # Find well name:
-            well_name = [x.name for x in inj_wells if x.number == single_group][0]
+            well_name = "ALL"
+            if calculation_type == CalculationType.PLUME_EXTENT:
+                well_name = [x.name for x in inj_wells if x.number == single_group][0]
             outputs[group_name][well_name] = []
             for i, d in enumerate(unrst.report_dates):
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
                 outputs[group_name][well_name].append(date_and_result)
+
+    # for key, value in outputs.items():
+    #     print(key)
+    #     for key2, value2 in value.items():
+    #         print(key2)
+    #         print(value2)
+    # exit()
 
     logging.info(f"Done calculating plume extent for {attribute_key}.")
     return outputs
@@ -997,8 +1080,10 @@ def _collect_results_into_dataframe(
         for group_str, sgas_results in sgas_results.items():
             for well_name, sgas_result in sgas_results.items():
                 full_col_name = (
-                    col + "_SGAS_" + "GROUP_" + group_str + "_FROM_" + well_name
+                        col + "_SGAS_" + "GROUP_" + group_str
                 )
+                if well_name != "ALL":
+                    full_col_name += "_FROM_" + well_name
                 sgas_df = pd.DataFrame.from_records(
                     sgas_result, columns=["date", full_col_name]
                 )
@@ -1024,6 +1109,7 @@ def _collect_results_into_dataframe(
                             amfg_result, columns=["date", full_col_name]
                         )
                         df = pd.merge(df, amfg_df, on="date")
+    print(df.keys())
     return df
 
 
