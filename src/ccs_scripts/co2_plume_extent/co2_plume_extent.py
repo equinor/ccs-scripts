@@ -122,8 +122,10 @@ class Configuration:
         name: str,
         case: str,
     ):
-        self.injection_wells: List[InjectionWellData] = []
         self.distance_calculations: List[Calculation] = []
+        self.injection_wells: List[InjectionWellData] = []
+        self.do_plume_tracking: bool = False  # Only available when using a config file
+
         if config_file != "":
             input_dict = self.read_config_file(config_file)
             self.make_config_from_input_dict(input_dict, case)
@@ -149,6 +151,10 @@ class Configuration:
                 sys.exit(1)
 
     def make_config_from_input_dict(self, input_dict: Dict, case: str):
+        if "do_plume_tracking" in input_dict:
+            self.do_plume_tracking = bool(input_dict["do_plume_tracking"])
+        else:
+            self.do_plume_tracking = False
         if "injection_wells" in input_dict:
             if not isinstance(input_dict["injection_wells"], list):
                 logging.error(
@@ -156,6 +162,11 @@ class Configuration:
                     "input YAML file is not a list."
                 )
                 sys.exit(1)
+        elif self.do_plume_tracking:
+            logging.warning(
+                "\nWARNING: Plume tracking activated, but no injection_wells specified."
+                "\n         Plume tracking will therefore be switched off."
+            )
         for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
             args_required = ["name", "x", "y"]
             for arg in args_required:
@@ -565,7 +576,8 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
         )
     logging.info("")
 
-    logging.info("\nInjection well data for plume tracking:")
+    logging.info(f"\nPlume tracking activated: {'yes' if config.do_plume_tracking else 'no'}")
+    logging.info("\nInjection well data:")
     logging.info(f"\n{'Number':<8} {'Name':<15} {'x':<15} {'y':<15}")
     logging.info("-" * 56)
     for i, well in enumerate(config.injection_wells, 1):
