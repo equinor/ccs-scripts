@@ -153,12 +153,17 @@ class PlumeGroups:
         unique_groups = self._find_unique_groups()
         unique_groups.sort()
         logging.debug(
-            f"Count '-'              : {len([c for c in self.cells if c.has_no_co2()])}"
+            f"Count '-'              : "
+            f"{len([c for c in self.cells if c.has_no_co2()])}"
         )
         logging.debug(
-            f"Count '?'              : {len([c for c in self.cells if c.is_undetermined()])}"
+            f"Count '?'              : "
+            f"{len([c for c in self.cells if c.is_undetermined()])}"
         )
         for unique_group in unique_groups:
+            n = len(
+                [c for c in self.cells if c.has_co2() and c.all_groups == unique_group]
+            )
             logging.debug(
-                f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {len([c for c in self.cells if c.has_co2() and c.all_groups == unique_group])}"
+                f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {n}"
             )

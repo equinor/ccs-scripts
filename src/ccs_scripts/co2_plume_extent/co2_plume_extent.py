@@ -23,7 +23,7 @@ import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
-from ccs_scripts.co2_plume_extent._utils import CellGroup, PlumeGroups
+from ccs_scripts.co2_plume_extent._utils import PlumeGroups
 
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
@@ -173,7 +173,8 @@ class Configuration:
                 for arg in args_required:
                     if arg not in injection_well_info:
                         logging.error(
-                            f'\nERROR: Missing "{arg}" under "injection_wells" for injection well number {i}.'
+                            f'\nERROR: Missing "{arg}" under "injection_wells" '
+                            f"for injection well number {i}."
                         )
                         sys.exit(1)
 
@@ -656,7 +657,8 @@ def _calculate_grid_cell_distances(
             f"    Largest distance grid cell to {text}  : {max(distance):>10.1f}"
         )
         logging.info(
-            f"    Average distance grid cell to {text}  : {sum(distance) / len(distance):>10.1f}"
+            f"    Average distance grid cell to {text}  : "
+            f"{sum(distance) / len(distance):>10.1f}"
         )
     logging.info("")
 
@@ -790,7 +792,8 @@ def _log_number_of_grid_cells(
     n_grid_cells_for_logging: dict[str, list[int]], report_dates, attribute_key
 ):
     logging.info(
-        f"Number of grid cells with {attribute_key} above threshold for the different plumes:"
+        f"Number of grid cells with {attribute_key} above threshold "
+        f"for the different plumes:"
     )
     cols = [c for c in n_grid_cells_for_logging]
     header = f"{'Date':<11}"
