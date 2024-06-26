@@ -1004,11 +1004,16 @@ def _find_distances_per_time_step(
 
     outputs = {}
     for group_name, single_group_distances in dist_per_group.items():
+        print(f"group_name: {group_name}")
         outputs[group_name] = {}
         for single_group, distances in single_group_distances.items():
+            print(f"  single_group: {single_group}")
             well_name = "ALL"
             if calculation_type == CalculationType.PLUME_EXTENT:
-                well_name = [x.name for x in inj_wells if x.number == single_group][0]
+                if do_plume_tracking:
+                    well_name = [x.name for x in inj_wells if x.number == single_group][0]
+                else:
+                    well_name = [x.name for x in inj_wells if x.name == single_group][0]
             outputs[group_name][well_name] = []
             for i, d in enumerate(unrst.report_dates):
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
@@ -1098,9 +1103,9 @@ def _collect_results_into_dataframe(
 
         for group_str, sgas_results in sgas_results.items():
             for well_name, sgas_result in sgas_results.items():
-                full_col_name = (
-                        col + "_SGAS_" + "GROUP_" + group_str
-                )
+                full_col_name = col + "_SGAS"
+                if group_str != "ALL":
+                    full_col_name +=  "_GROUP_" + group_str
                 if well_name != "ALL":
                     full_col_name += "_FROM_" + well_name
                 sgas_df = pd.DataFrame.from_records(
