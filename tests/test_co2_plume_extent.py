@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-import numpy as np
 import pandas
 import pytest
 
@@ -49,7 +48,9 @@ def test_calc_plume_extents():
         config,
         threshold_sgas=0.1,
     )[0]
-    sgas_results = sgas_results["ALL"]["WELL"]  # Get results for "ALL groups" to "single injection WELL"
+    sgas_results = sgas_results["ALL"][
+        "WELL"
+    ]  # Get results for "ALL groups" to "single injection WELL"
     assert len(sgas_results) == 4
     assert sgas_results[0][1] == pytest.approx(0.0)
     assert sgas_results[-1][1] == pytest.approx(1269.1237856341113)
@@ -193,9 +194,7 @@ def test_export_to_csv():
     df = pandas.read_csv(out_file)
     assert "MAX_PLUME_EXTENT_SGAS" in df.keys()
     assert "MAX_PLUME_EXTENT_AMFG" not in df.keys()
-    assert df["MAX_PLUME_EXTENT_SGAS"].iloc[-1] == pytest.approx(
-        1269.1237856341113
-    )
+    assert df["MAX_PLUME_EXTENT_SGAS"].iloc[-1] == pytest.approx(1269.1237856341113)
 
     os.remove(out_file)
 
@@ -231,9 +230,7 @@ def test_plume_extent(mocker):
     df = pandas.read_csv(output_path)
     assert "MAX_PLUME_EXTENT_SGAS" in df.keys()
     assert "MAX_PLUME_EXTENT_AMFG" not in df.keys()
-    assert df["MAX_PLUME_EXTENT_SGAS"].iloc[-1] == pytest.approx(
-        1915.5936794783647
-    )
+    assert df["MAX_PLUME_EXTENT_SGAS"].iloc[-1] == pytest.approx(1915.5936794783647)
 
     os.remove(output_path)
 
