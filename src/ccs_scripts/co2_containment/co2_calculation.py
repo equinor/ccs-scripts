@@ -1155,6 +1155,7 @@ def calculate_co2(
       CO2Data
 
     """
+    print("This is residual trapping")
     ##NBNB: Fix this
     global PROPERTIES_NEEDED_ECLIPSE
     global PROPERTIES_NEEDED_PFLOTRAN
@@ -1163,6 +1164,7 @@ def calculate_co2(
         PROPERTIES_TO_EXTRACT.extend(["SGSTRAND", "SGTRH"])
         PROPERTIES_NEEDED_ECLIPSE.append("SGTRH")
         PROPERTIES_NEEDED_PFLOTRAN.append("SGSTRAND")
+    print(PROPERTIES_TO_EXTRACT)
     source_data = _extract_source_data(
         grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_info, region_info, init_file
     )
