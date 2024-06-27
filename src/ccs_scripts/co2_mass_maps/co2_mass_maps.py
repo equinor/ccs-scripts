@@ -217,6 +217,8 @@ def main(arguments=None):
     if config_.co2_mass_settings is None:
         raise ValueError("CO2 mass computation needs co2_mass_settings as input")
 
+    print("This is relevant properties")
+    print(RELEVANT_PROPERTIES)
     generate_co2_mass_maps(config_)
 
 
