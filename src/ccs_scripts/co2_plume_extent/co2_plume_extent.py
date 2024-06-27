@@ -599,18 +599,14 @@ def _calculate_grid_cell_distances(
     dist = {}
     if calculation_type == CalculationType.PLUME_EXTENT:
         if len(inj_wells) == 0:
-            print("A")
             # Also needed when no config file is used
             x0 = config.x
             y0 = config.y
-            print(f"x0 = {x0}")
-            print(f"y0 = {y0}")
             dist["WELL"] = np.zeros(shape=(nactive,))
             for i in range(nactive):
                 center = grid.get_xyz(active_index=i)
                 dist["WELL"][i] = np.sqrt((center[0] - x0) ** 2 + (center[1] - y0) ** 2)
         else:
-            print("B")
             for well in inj_wells:
                 name = well.name
                 x0 = well.x
@@ -763,35 +759,6 @@ def calculate_distances(
     return all_results
 
 
-def _temp_add_well3(i, plumeix):
-    # Temp add cells with co2 for made up injection well 3:
-    if i > 11 and True:
-        temp_inj3_list = [
-            584,
-            585,
-            586,
-            609,
-            610,
-            611,
-            636,
-            637,
-            638,
-            1333,
-            1334,
-            1335,
-            1357,
-            1358,
-            1379,
-            1380,
-        ]
-        if i > 14:
-            temp_inj3_list += [587, 612]
-        if i > 20:
-            temp_inj3_list += [588, 613]
-        plumeix = np.concatenate((plumeix, np.array(temp_inj3_list)))
-    return plumeix
-
-
 def _log_number_of_grid_cells(
     n_grid_cells_for_logging: dict[str, list[int]], report_dates, attribute_key
 ):
@@ -837,7 +804,6 @@ def _find_distances_per_time_step(
     """
     Find value of distance metric for each step
     """
-    print(f"do_plume_tracking: {do_plume_tracking}")
     n_time_steps = len(unrst.report_steps)
     dist_per_group = {}
     n_grid_cells_for_logging = {}
@@ -849,10 +815,9 @@ def _find_distances_per_time_step(
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
     for i in range(n_time_steps):
-        print(f"\ni = {i}")
+        # _find_distances_at_time_step()
         data = unrst[attribute_key][i].numpy_view()
         cells_with_co2 = np.where(data > threshold)[0]
-        # cells_with_co2 = _temp_add_well3(i, cells_with_co2)  # NBNB-AS
 
         logging.debug("Previous group:")
         prev_groups._debug_print()
@@ -940,9 +905,6 @@ def _find_distances_per_time_step(
                 ):
                     result["ALL"] = dist["ALL"][indices_this_group].min()
 
-            print("\nresult:")
-            print(result)
-
             if do_plume_tracking:
                 group_string = "+".join(
                     [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
@@ -991,9 +953,6 @@ def _find_distances_per_time_step(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key
     )
 
-    print("\ndist_per_group:")
-    print(dist_per_group)
-
     # Handle groups not found above, fill in zero:
     if do_plume_tracking:
         for well_name in dist.keys():
@@ -1027,11 +986,11 @@ def _find_distances_per_time_step(
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
                 outputs[group_name][well_name].append(date_and_result)
 
-    print("\noutputs:")
-    print(outputs)
-
     logging.info(f"Done calculating plume extent for {attribute_key}.")
     return outputs
+
+# def _find_distances_at_time_step()
+
 
 
 def _find_output_file(output: str, case: str):
@@ -1290,7 +1249,7 @@ def main():
         config,
     )
     _log_results(df)
-    df.to_csv(output_file, index=False, na_rep=0.0)
+    df.to_csv(output_file, index=False, na_rep="0.0")
     logging.info("\nDone exporting results to CSV file.\n")
 
     return 0
