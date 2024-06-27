@@ -15,7 +15,7 @@ DEFAULT_WATER_MOLAR_MASS = 18.0
 TRESHOLD_SGAS = 1e-16
 TRESHOLD_AMFG = 1e-16
 PROPERTIES_NEEDED_PFLOTRAN = ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
-PROPERTIES_NEEDED_ELCIPSE = ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
+PROPERTIES_NEEDED_ECLIPSE = ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
 
 RELEVANT_PROPERTIES = [
     "RPORV",
@@ -29,8 +29,6 @@ RELEVANT_PROPERTIES = [
     "YMFG",
     "XMF2",
     "YMF2",
-    "SGSTRAND",
-    "SGTRH",
 ]
 
 
@@ -909,14 +907,13 @@ def _calculate_co2_data_from_source_data(
         [getattr(source_data, x) is not None for x in props_check]
     )[0]
     active_props = [props_check[i] for i in active_props_idx]
-
     if _is_subset(["SGAS"], active_props):
         if _is_subset(["PORV", "RPORV"], active_props):
             active_props.remove("PORV")
             logging.info("Using attribute RPORV instead of PORV")
         if _is_subset(PROPERTIES_NEEDED_PFLOTRAN, active_props):
             source = "PFlotran"
-        elif _is_subset(PROPERTIES_NEEDED_ELCIPSE, active_props):
+        elif _is_subset(PROPERTIES_NEEDED_ECLIPSE, active_props):
             source = "Eclipse"
         elif any(prop in PROPERTIES_NEEDED_PFLOTRAN for prop in active_props):
             missing_props = [
@@ -927,9 +924,9 @@ def _calculate_co2_data_from_source_data(
             error_text += "\nMissing properties: "
             error_text += ", ".join(missing_props)
             raise ValueError(error_text)
-        elif any(prop in PROPERTIES_NEEDED_ELCIPSE for prop in active_props):
+        elif any(prop in PROPERTIES_NEEDED_ECLIPSE for prop in active_props):
             missing_props = [
-                x for x in PROPERTIES_NEEDED_ELCIPSE if x not in active_props
+                x for x in PROPERTIES_NEEDED_ECLIPSE if x not in active_props
             ]
             error_text = "Lacking some required properties to compute CO2 mass/volume."
             error_text += "\nAssumed source: Eclipse"
@@ -942,7 +939,7 @@ def _calculate_co2_data_from_source_data(
             error_text += f"\n  PFlotran: \
                 {', '.join(PROPERTIES_NEEDED_PFLOTRAN)}"
             error_text += f"\n  Eclipse : \
-                {', '.join(PROPERTIES_NEEDED_ELCIPSE)}"
+                {', '.join(PROPERTIES_NEEDED_ECLIPSE)}"
             raise ValueError(error_text)
     else:
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."
@@ -1158,12 +1155,14 @@ def calculate_co2(
       CO2Data
 
     """
-
+    ##NBNB: Fix this
+    global PROPERTIES_NEEDED_ECLIPSE
+    global PROPERTIES_NEEDED_PFLOTRAN
     PROPERTIES_TO_EXTRACT = RELEVANT_PROPERTIES
-    if not residual_trapping:
-        PROPERTIES_TO_EXTRACT = [
-            prop for prop in RELEVANT_PROPERTIES if prop not in ["SGSTRAND", "SGTRH"]
-        ]
+    if residual_trapping:
+        PROPERTIES_TO_EXTRACT.extend(["SGSTRAND", "SGTRH"])
+        PROPERTIES_NEEDED_ECLIPSE.append("SGTRH")
+        PROPERTIES_NEEDED_PFLOTRAN.append("SGSTRAND")
     source_data = _extract_source_data(
         grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_info, region_info, init_file
     )
