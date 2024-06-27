@@ -844,6 +844,7 @@ def _find_distances_per_time_step(
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
     for i in range(n_time_steps):
+        print(f"\ni = {i}")
         data = unrst[attribute_key][i].numpy_view()
         cells_with_co2 = np.where(data > threshold)[0]
         cells_with_co2 = _temp_add_well3(i, cells_with_co2)  # NBNB-AS
@@ -934,6 +935,9 @@ def _find_distances_per_time_step(
                 ):
                     result["ALL"] = dist["ALL"][indices_this_group].min()
 
+            print("\nresult:")
+            print(result)
+
             if do_plume_tracking:
                 group_string = "+".join(
                     [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
@@ -982,6 +986,23 @@ def _find_distances_per_time_step(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key
     )
 
+    print("\ndist_per_group:")
+    print(dist_per_group)
+
+    # Handle groups not found above, fill in zero:
+    if do_plume_tracking:
+        for well_name in dist.keys():
+            if well_name not in dist_per_group:
+                dist_per_group[well_name] = {
+                    well_name: np.zeros(shape=(n_time_steps,))
+                }
+    else:
+        if "ALL" not in dist_per_group:
+            dist_per_group["ALL"] = {
+                well_name: np.zeros(shape=(n_time_steps,))
+                for well_name in dist.keys()
+            }
+
     outputs = {}
     for group_name, single_group_distances in dist_per_group.items():
         outputs[group_name] = {}
@@ -1003,6 +1024,9 @@ def _find_distances_per_time_step(
             for i, d in enumerate(unrst.report_dates):
                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
                 outputs[group_name][well_name].append(date_and_result)
+
+    print("\noutputs:")
+    print(outputs)
 
     logging.info(f"Done calculating plume extent for {attribute_key}.")
     return outputs

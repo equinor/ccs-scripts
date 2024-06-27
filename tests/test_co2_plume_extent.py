@@ -49,31 +49,18 @@ def test_calc_plume_extents():
         config,
         threshold_sgas=0.1,
     )[0]
-    # print(sgas_results)
     sgas_results = sgas_results["ALL"]["WELL"]  # Get results for "ALL groups" to "single injection WELL"
-    # print(sgas_results)
-    # print(sgas_results[0][1])
-
     assert len(sgas_results) == 4
-    # assert np.isnan(sgas_results[0][1])  # NBNB-AS
+    assert sgas_results[0][1] == pytest.approx(0.0)
     assert sgas_results[-1][1] == pytest.approx(1269.1237856341113)
-
-    a = calculate_distances(
-        case_path,
-        config,
-        threshold_sgas=0.05,
-    )
-    print(a)
-    assert False
 
     sgas_results_2, _, _ = calculate_distances(
         case_path,
         config,
     )[0]
-    print(sgas_results_2)
     sgas_results_2 = sgas_results_2["ALL"]["WELL"]
     assert len(sgas_results_2) == 4
-    # assert np.isnan(sgas_results_2[-1][1])
+    assert sgas_results_2[-1][1] == pytest.approx(0.0)
 
     sgas_results_3, _, _ = calculate_distances(
         case_path,
@@ -107,8 +94,9 @@ def test_calc_distances_to_point():
         config,
         threshold_sgas=0.1,
     )[0]
+    sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
-    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[0][1] == pytest.approx(0.0)
     assert sgas_results[-1][1] == pytest.approx(4465.953446894702)
 
 
@@ -134,8 +122,9 @@ def test_calc_distances_to_line():
         config,
         threshold_sgas=0.1,
     )[0]
+    sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
-    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[0][1] == pytest.approx(0.0)
     assert sgas_results[-1][1] == pytest.approx(4331.578703680541)
 
     config.distance_calculations[0].direction = LineDirection.WEST
@@ -144,8 +133,9 @@ def test_calc_distances_to_line():
         config,
         threshold_sgas=0.1,
     )[0]
+    sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
-    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[0][1] == 0.0
     assert sgas_results[-1][1] == 0.0
 
     config.distance_calculations[0].direction = LineDirection.NORTH
@@ -156,8 +146,9 @@ def test_calc_distances_to_line():
         config,
         threshold_sgas=0.1,
     )[0]
+    sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
-    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[0][1] == pytest.approx(0.0)
     assert sgas_results[-1][1] == pytest.approx(498.06528236251324)
 
     config.distance_calculations[0].direction = LineDirection.SOUTH
@@ -166,8 +157,9 @@ def test_calc_distances_to_line():
         config,
         threshold_sgas=0.1,
     )[0]
+    sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
-    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[0][1] == pytest.approx(0.0)
     assert sgas_results[-1][1] == pytest.approx(0.0)
 
 
@@ -199,9 +191,9 @@ def test_export_to_csv():
     df.to_csv(out_file, index=False)
 
     df = pandas.read_csv(out_file)
-    assert "MAX_DISTANCE_plume_extent_1_SGAS" in df.keys()
-    assert "MAX_DISTANCE_plume_extent_1_AMFG" not in df.keys()
-    assert df["MAX_DISTANCE_plume_extent_1_SGAS"].iloc[-1] == pytest.approx(
+    assert "MAX_PLUME_EXTENT_SGAS" in df.keys()
+    assert "MAX_PLUME_EXTENT_AMFG" not in df.keys()
+    assert df["MAX_PLUME_EXTENT_SGAS"].iloc[-1] == pytest.approx(
         1269.1237856341113
     )
 
@@ -237,9 +229,9 @@ def test_plume_extent(mocker):
     main()
 
     df = pandas.read_csv(output_path)
-    assert "MAX_DISTANCE_plume_extent_1_SGAS" in df.keys()
-    assert "MAX_DISTANCE_plume_extent_1_AMFG" not in df.keys()
-    assert df["MAX_DISTANCE_plume_extent_1_SGAS"].iloc[-1] == pytest.approx(
+    assert "MAX_PLUME_EXTENT_SGAS" in df.keys()
+    assert "MAX_PLUME_EXTENT_AMFG" not in df.keys()
+    assert df["MAX_PLUME_EXTENT_SGAS"].iloc[-1] == pytest.approx(
         1915.5936794783647
     )
 
@@ -288,7 +280,6 @@ def test_plume_extent_eclipse_using_well_name(mocker):
     main()
 
     df = pandas.read_csv(output_path)
-    os.remove(output_path)
 
     answer_file = str(
         Path(__file__).parents[0]
@@ -405,6 +396,8 @@ def test_plume_extent_pflotran_using_well_name(mocker):
 
     df = df.sort_values("date")
     df_answer = df_answer.sort_values("date")
+    print(df)
+    print(df_answer)
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
