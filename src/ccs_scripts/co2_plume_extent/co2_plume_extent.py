@@ -760,7 +760,9 @@ def calculate_distances(
 
 
 def _log_number_of_grid_cells(
-    n_grid_cells_for_logging: dict[str, list[int]], report_dates, attribute_key
+    n_grid_cells_for_logging: dict[str, list[int]],
+    report_dates: list[datetime],
+    attribute_key: str,
 ):
     logging.info(
         f"Number of grid cells with {attribute_key} above threshold "
@@ -814,24 +816,22 @@ def _find_distances_per_time_step(
     logging.info(f"{0:>6.1f} %")
     prev_groups = PlumeGroups(n_cells)
     for i in range(n_time_steps):
-        groups = PlumeGroups(n_cells)
         _find_distances_at_time_step(
+            dist_per_group,
             unrst,
             grid,
             attribute_key,
             i,
             threshold,
             prev_groups,
-            groups,
+            n_cells,
             do_plume_tracking,
             inj_wells,
             n_grid_cells_for_logging,
             n_time_steps,
             calculation_type,
             dist,
-            dist_per_group,
         )
-        prev_groups = groups.copy()
         percent = (i + 1) / n_time_steps
         logging.info(f"{percent*100:>6.1f} %")
     logging.info("")
@@ -851,54 +851,41 @@ def _find_distances_per_time_step(
                 well_name: np.zeros(shape=(n_time_steps,)) for well_name in dist.keys()
             }
 
-    outputs = {}
-    _make_output_with_dates()
-    for group_name, single_group_distances in dist_per_group.items():
-        outputs[group_name] = {}
-        for single_group, distances in single_group_distances.items():
-            well_name = "ALL"
-            if calculation_type == CalculationType.PLUME_EXTENT:
-                if do_plume_tracking:
-                    well_name = [x.name for x in inj_wells if x.number == single_group][
-                        0
-                    ]
-                else:
-                    if len(inj_wells) != 0:
-                        well_name = [
-                            x.name for x in inj_wells if x.name == single_group
-                        ][0]
-                    else:
-                        well_name = "WELL"
-            outputs[group_name][well_name] = []
-            for i, d in enumerate(unrst.report_dates):
-                date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
-                outputs[group_name][well_name].append(date_and_result)
+    outputs = _organize_output_with_dates(
+        dist_per_group,
+        calculation_type,
+        do_plume_tracking,
+        inj_wells,
+        unrst.report_dates,
+    )
 
     logging.info(f"Done calculating plume extent for {attribute_key}.")
     return outputs
 
 
 def _find_distances_at_time_step(
+    dist_per_group: dict[str, dict[str, np.ndarray]],
     unrst: ResdataFile,
     grid: Grid,
     attribute_key: str,
     i: int,
     threshold: float,
     prev_groups: PlumeGroups,
-    groups: PlumeGroups,
+    n_cells: int,
     do_plume_tracking: bool,
     inj_wells: list[InjectionWellData],
     n_grid_cells_for_logging: dict[str, list[int]],
     n_time_steps: int,
     calculation_type: CalculationType,
     dist: dict[str, np.ndarray],
-    dist_per_group: dict,
 ):
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
 
     logging.debug("Previous group:")
     prev_groups._debug_print()
+
+    groups = PlumeGroups(n_cells)
     for index in cells_with_co2:
         if prev_groups.cells[index].has_co2():
             groups.cells[index] = prev_groups.cells[index]
@@ -1013,9 +1000,38 @@ def _find_distances_at_time_step(
             dist_per_group[group_string]["ALL"][i] = result["ALL"]
         n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
 
+    prev_groups = groups.copy()
 
-def _make_output_with_dates():
-    pass
+
+def _organize_output_with_dates(
+    dist_per_group: dict[str, dict[str, np.ndarray]],
+    calculation_type: CalculationType,
+    do_plume_tracking: bool,
+    inj_wells: list[InjectionWellData],
+    report_dates: list[datetime],
+):
+    outputs = {}
+    for group_name, single_group_distances in dist_per_group.items():
+        outputs[group_name] = {}
+        for single_group, distances in single_group_distances.items():
+            well_name = "ALL"
+            if calculation_type == CalculationType.PLUME_EXTENT:
+                if do_plume_tracking:
+                    well_name = [x.name for x in inj_wells if x.number == single_group][
+                        0
+                    ]
+                else:
+                    if len(inj_wells) != 0:
+                        well_name = [
+                            x.name for x in inj_wells if x.name == single_group
+                        ][0]
+                    else:
+                        well_name = "WELL"
+            outputs[group_name][well_name] = []
+            for i, d in enumerate(report_dates):
+                date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
+                outputs[group_name][well_name].append(date_and_result)
+    return outputs
 
 
 def _find_output_file(output: str, case: str):
