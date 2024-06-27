@@ -30,7 +30,7 @@ CATEGORY = "modelling.reservoir"
 #   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
 # """
 
-PROPERTIES_TO_EXTRACT = [
+RELEVANT_PROPERTIES = [
     "RPORV",
     "PORV",
     "SGAS",
@@ -76,7 +76,7 @@ def generate_co2_mass_maps(config_):
         co2_data,
         grid_file,
         co2_mass_settings,
-        PROPERTIES_TO_EXTRACT,
+        RELEVANT_PROPERTIES,
         config_.output.mapfolder + "/grid",
     )
     config_.zonation.zranges, all_zrange = process_zonation(
