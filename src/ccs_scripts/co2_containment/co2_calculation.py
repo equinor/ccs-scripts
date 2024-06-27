@@ -1156,6 +1156,7 @@ def calculate_co2(
 
     """
     print("This is residual trapping")
+    print(residual_trapping)
     ##NBNB: Fix this
     global PROPERTIES_NEEDED_ECLIPSE
     global PROPERTIES_NEEDED_PFLOTRAN
