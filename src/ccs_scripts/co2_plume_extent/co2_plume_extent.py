@@ -599,14 +599,18 @@ def _calculate_grid_cell_distances(
     dist = {}
     if calculation_type == CalculationType.PLUME_EXTENT:
         if len(inj_wells) == 0:
+            print("A")
             # Also needed when no config file is used
             x0 = config.x
             y0 = config.y
+            print(f"x0 = {x0}")
+            print(f"y0 = {y0}")
             dist["WELL"] = np.zeros(shape=(nactive,))
             for i in range(nactive):
                 center = grid.get_xyz(active_index=i)
                 dist["WELL"][i] = np.sqrt((center[0] - x0) ** 2 + (center[1] - y0) ** 2)
         else:
+            print("B")
             for well in inj_wells:
                 name = well.name
                 x0 = well.x
@@ -833,6 +837,7 @@ def _find_distances_per_time_step(
     """
     Find value of distance metric for each step
     """
+    print(f"do_plume_tracking: {do_plume_tracking}")
     n_time_steps = len(unrst.report_steps)
     dist_per_group = {}
     n_grid_cells_for_logging = {}
@@ -847,7 +852,7 @@ def _find_distances_per_time_step(
         print(f"\ni = {i}")
         data = unrst[attribute_key][i].numpy_view()
         cells_with_co2 = np.where(data > threshold)[0]
-        cells_with_co2 = _temp_add_well3(i, cells_with_co2)  # NBNB-AS
+        # cells_with_co2 = _temp_add_well3(i, cells_with_co2)  # NBNB-AS
 
         logging.debug("Previous group:")
         prev_groups._debug_print()

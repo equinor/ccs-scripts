@@ -498,4 +498,6 @@ def test_yaml_file_pflotran(mocker):
 
     df = df.sort_values("date")
     df_answer = df_answer.sort_values("date")
+    print(df)
+    print(df_answer)
     pandas.testing.assert_frame_equal(df, df_answer)
