@@ -965,7 +965,7 @@ def _find_distances_per_time_step(
                     CalculationType.LINE,
                 ):
                     dist_per_group[group_string] = {
-                        "ALL": np.zeros(shape=(n_time_steps,))
+                        "ALL": np.full(n_time_steps, np.nan)
                     }
                 n_grid_cells_for_logging[group_string] = [0] * n_time_steps
             if calculation_type == CalculationType.PLUME_EXTENT:
@@ -1290,7 +1290,7 @@ def main():
         config,
     )
     _log_results(df)
-    df.to_csv(output_file, index=False, na_rep="0.0")  # How to handle nan-values?
+    df.to_csv(output_file, index=False, na_rep=0.0)
     logging.info("\nDone exporting results to CSV file.\n")
 
     return 0

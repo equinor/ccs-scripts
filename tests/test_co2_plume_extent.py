@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas
 import pytest
 
@@ -97,7 +98,7 @@ def test_calc_distances_to_point():
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
-    assert sgas_results[0][1] == pytest.approx(0.0)
+    assert np.isnan(sgas_results[0][1])
     assert sgas_results[-1][1] == pytest.approx(4465.953446894702)
 
 
@@ -125,7 +126,7 @@ def test_calc_distances_to_line():
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
-    assert sgas_results[0][1] == pytest.approx(0.0)
+    assert np.isnan(sgas_results[0][1])
     assert sgas_results[-1][1] == pytest.approx(4331.578703680541)
 
     config.distance_calculations[0].direction = LineDirection.WEST
@@ -136,8 +137,8 @@ def test_calc_distances_to_line():
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
-    assert sgas_results[0][1] == 0.0
-    assert sgas_results[-1][1] == 0.0
+    assert np.isnan(sgas_results[0][1])
+    assert sgas_results[-1][1] == pytest.approx(0.0)
 
     config.distance_calculations[0].direction = LineDirection.NORTH
     config.distance_calculations[0].x = None
@@ -149,7 +150,7 @@ def test_calc_distances_to_line():
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
-    assert sgas_results[0][1] == pytest.approx(0.0)
+    assert np.isnan(sgas_results[0][1])
     assert sgas_results[-1][1] == pytest.approx(498.06528236251324)
 
     config.distance_calculations[0].direction = LineDirection.SOUTH
@@ -160,7 +161,7 @@ def test_calc_distances_to_line():
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
-    assert sgas_results[0][1] == pytest.approx(0.0)
+    assert np.isnan(sgas_results[0][1])
     assert sgas_results[-1][1] == pytest.approx(0.0)
 
 
