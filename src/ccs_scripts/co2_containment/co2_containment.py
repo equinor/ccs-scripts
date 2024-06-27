@@ -403,8 +403,8 @@ def process_args() -> argparse.Namespace:
     args = get_parser().parse_args()
     args.calc_type_input = args.calc_type_input.lower()
 
-    # NBNB: Remove this when residual trapping is added for other calculation types
-    if args.residual_trapping and args.calc_type_input != "mass":
+    # NBNB: Remove this when residual trapping is added for cell_volume
+    if args.residual_trapping and args.calc_type_input == "cell_volume":
         args.residual_trapping = False
 
     _replace_default_dummies_from_ert(args)
