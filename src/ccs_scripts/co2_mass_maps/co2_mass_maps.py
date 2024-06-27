@@ -61,8 +61,6 @@ def generate_co2_mass_maps(config_):
     grid_file = config_.input.grid
     zone_info = {"source": None, "zranges": None}
     region_info = {"source": None, "property_name": None}
-    print("This is relevant properties")
-    print(RELEVANT_PROPERTIES)
     co2_data = calculate_co2(
         grid_file=grid_file,
         unrst_file=co2_mass_settings.unrst_source,
@@ -213,7 +211,7 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
-
+    print(config_)
     if config_.input.properties:
         raise ValueError("CO2 mass computation does not take a property as input")
     if config_.co2_mass_settings is None:
