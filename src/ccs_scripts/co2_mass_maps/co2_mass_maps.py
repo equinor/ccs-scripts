@@ -61,6 +61,7 @@ def generate_co2_mass_maps(config_):
     grid_file = config_.input.grid
     zone_info = {"source": None, "zranges": None}
     region_info = {"source": None, "property_name": None}
+    print("RELEVANT_PROPERTIES in generate_co2_mass_maps")
     print(RELEVANT_PROPERTIES)
     co2_data = calculate_co2(
         grid_file=grid_file,
