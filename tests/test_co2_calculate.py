@@ -336,7 +336,7 @@ def test_reek_grid():
     )
 
     masses_with_trapping = _calculate_co2_data_from_source_data(
-        source_data_with_trapping, CalculationType.MASS
+        source_data_with_trapping, CalculationType.MASS, residual_trapping=True
     )
     table3 = calculate_from_co2_data(
         co2_data=masses_with_trapping,
@@ -364,6 +364,36 @@ def test_reek_grid():
     ]
     for c, p, amount in zip(cs3, ps3, amounts3):
         assert extract_amount(table3, c, p, 0) == pytest.approx(amount)
+
+    volumes_with_trapping = _calculate_co2_data_from_source_data(
+        source_data_with_trapping, CalculationType.ACTUAL_VOLUME, residual_trapping=True
+    )
+    table4 = calculate_from_co2_data(
+        co2_data=volumes_with_trapping,
+        containment_polygon=reek_poly,
+        hazardous_polygon=reek_poly_hazardous,
+        calc_type_input="actual_volume",
+        zone_info=zone_info,
+        region_info=region_info,
+        residual_trapping=True,
+    )
+    sort_and_replace_nones(table4)
+    cs4 = ["total"] * 4 + ["contained"] * 2 + ["hazardous"] * 3
+    gas_part = ["trapped_gas", "free_gas"]
+    ps4 = ["total"] + gas_part + ["aqueous"] + gas_part + ["total"] + gas_part
+    amounts4 = [
+        1018.524203883313,
+        198.0019398057147,
+        132.0012932038098,
+        688.5209708737885,
+        3.001788349514578,
+        2.001192233009718,
+        15.043116504854423,
+        2.924394174757293,
+        1.949596116504862,
+    ]
+    for c, p, amount in zip(cs4, ps4, amounts4):
+        assert extract_amount(table4, c, p, 0) == pytest.approx(amount)
 
 
 def test_reek_grid_extract_source_data():

@@ -654,3 +654,107 @@ def test_synthetic_case_pflotran_cell_volume(mocker):
     df = _sort_dataframe(df)
     df_answer = _sort_dataframe(df_answer)
     pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_synthetic_case_pflotran_mass_residual_trapping(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        zone_file_path,
+    ) = _get_synthetic_case_paths("pflotran")
+    args = [
+        "sys.argv",
+        case_path,
+        "mass",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+        "--zonefile",
+        zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
+        "--residual_trapping",
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(main_path / "share" / "results" / "tables" / "plume_mass.csv")
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_mass_pflotran_residual_trapping.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_synthetic_case_pflotran_actual_volume_residual_trapping(mocker):
+    (
+        main_path,
+        case_path,
+        root_dir,
+        containment_polygon,
+        hazardous_polygon,
+        output_dir,
+        zone_file_path,
+    ) = _get_synthetic_case_paths("pflotran")
+    args = [
+        "sys.argv",
+        case_path,
+        "actual_volume",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        output_dir,
+        "--containment_polygon",
+        containment_polygon,
+        "--hazardous_polygon",
+        hazardous_polygon,
+        "--zonefile",
+        zone_file_path,
+        "--region_property",
+        REGION_PROPERTY,
+        "--residual_trapping",
+    ]
+    mocker.patch(
+        "sys.argv",
+        args,
+    )
+    main()
+
+    output_path = str(
+        main_path / "share" / "results" / "tables" / "plume_actual_volume.csv"
+    )
+    df = pandas.read_csv(output_path)
+    os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_actual_volume_pflotran_residual_trapping.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = _sort_dataframe(df)
+    df_answer = _sort_dataframe(df_answer)
+    pandas.testing.assert_frame_equal(df, df_answer)
