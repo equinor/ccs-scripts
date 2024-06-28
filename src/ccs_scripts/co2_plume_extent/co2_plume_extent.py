@@ -1012,7 +1012,7 @@ def _find_distances_at_time_step(
 
 
 def _organize_output_with_dates(
-    dist_per_group: Dict[str, dict[str, np.ndarray]],
+    dist_per_group: Dict[str, Dict[str, np.ndarray]],
     calculation_type: CalculationType,
     do_plume_tracking: bool,
     inj_wells: List[InjectionWellData],
