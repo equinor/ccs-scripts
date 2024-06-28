@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple
 
 import xtgeo
 import yaml
+import importlib
 from grid3d_maps.aggregate import grid3d_aggregate_map
 from grid3d_maps.aggregate._config import AggregationMethod
 
