@@ -243,7 +243,9 @@ class Configuration:
             )
 
             if calculation_type == CalculationType.POINT or (
-                calculation_type == CalculationType.PLUME_EXTENT and well_name is None and len(self.injection_wells) == 0
+                calculation_type == CalculationType.PLUME_EXTENT
+                and well_name is None
+                and len(self.injection_wells) == 0
             ):
                 if x is None:
                     logging.error(
@@ -815,8 +817,8 @@ def _find_distances_per_time_step(
     Find value of distance metric for each step
     """
     n_time_steps = len(unrst.report_steps)
-    dist_per_group = {}
-    n_grid_cells_for_logging = {}
+    dist_per_group: dict[str, dict[str, np.ndarray]] = {}
+    n_grid_cells_for_logging: dict[str, list[int]] = {}
     n_cells = len(unrst[attribute_key][0].numpy_view())
 
     logging.info(f"\nStart calculating plume extent for {attribute_key}.\n")
@@ -946,7 +948,7 @@ def _find_distances_at_time_step(
                 i for i in cells_with_co2 if groups.cells[i].all_groups == g
             ]
         else:
-            indices_this_group = cells_with_co2
+            indices_this_group = list(cells_with_co2)
         if len(indices_this_group) == 0:
             result = {}
             for single_inj_number in g:
@@ -1015,8 +1017,8 @@ def _organize_output_with_dates(
     do_plume_tracking: bool,
     inj_wells: list[InjectionWellData],
     report_dates: list[datetime],
-):
-    outputs = {}
+) -> dict:
+    outputs: dict = {}
     for group_name, single_group_distances in dist_per_group.items():
         outputs[group_name] = {}
         for single_group, distances in single_group_distances.items():
@@ -1024,9 +1026,11 @@ def _organize_output_with_dates(
             if calculation_type == CalculationType.PLUME_EXTENT:
                 if do_plume_tracking:
                     # NBNB-AS: x.name here should probably be handled earlier
-                    well_name = [x.name for x in inj_wells if x.number == single_group or x.name == single_group][
-                        0
-                    ]
+                    well_name = [
+                        x.name
+                        for x in inj_wells
+                        if x.number == single_group or x.name == single_group
+                    ][0]
                 else:
                     if len(inj_wells) != 0:
                         well_name = [
@@ -1104,21 +1108,21 @@ def _collect_results_into_dataframe(
 
         col = _find_column_name(single_config, len(config.distance_calculations), i)
 
-        for group_str, sgas_results in sgas_results.items():
-            for well_name, sgas_result in sgas_results.items():
+        for group_str, results in sgas_results.items():
+            for well_name, result in results.items():
                 full_col_name = col + "_SGAS"
                 if group_str != "ALL":
                     full_col_name += "_PLUME_" + group_str
                 if well_name != "ALL" and well_name != "WELL":
                     full_col_name += "_FROM_INJ_" + well_name
                 sgas_df = pd.DataFrame.from_records(
-                    sgas_result, columns=["date", full_col_name]
+                    result, columns=["date", full_col_name]
                 )
                 df = pd.merge(df, sgas_df, on="date")
         if amfg_results is not None:
-            for group_str, amfg_results in amfg_results.items():
-                for well_name, amfg_result in amfg_results.items():
-                    if amfg_result is not None:
+            for group_str, results in amfg_results.items():
+                for well_name, result in results.items():
+                    if result is not None:
                         if amfg_key is None:
                             amfg_key_str = "?"
                         else:
@@ -1129,7 +1133,7 @@ def _collect_results_into_dataframe(
                         if well_name != "ALL" and well_name != "WELL":
                             full_col_name += "_FROM_INJ_" + well_name
                         amfg_df = pd.DataFrame.from_records(
-                            amfg_result, columns=["date", full_col_name]
+                            result, columns=["date", full_col_name]
                         )
                         df = pd.merge(df, amfg_df, on="date")
     return df

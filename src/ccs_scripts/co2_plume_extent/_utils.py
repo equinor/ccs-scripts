@@ -16,12 +16,11 @@ class Status(Enum):
 
 class CellGroup:
     def __init__(self, groups: Optional[list[int]] = None):
+        self.status: Status = Status.NO_CO2
+        self.all_groups: list[int] = []
         if groups is not None:
-            self.status: Status = Status.HAS_CO2
-            self.all_groups: list[int] = groups.copy()
-        else:
-            self.status: Status = Status.NO_CO2
-            self.all_groups: list[int] = []
+            self.status = Status.HAS_CO2
+            self.all_groups = groups.copy()
 
     def set_cell_groups(self, new_groups: list[int]):
         self.status = Status.HAS_CO2
@@ -43,7 +42,9 @@ class CellGroup:
 
 class PlumeGroups:
     def __init__(self, number_of_grid_cells: int):
-        self.cells: list[CellGroup] = [CellGroup() for _ in range(0, number_of_grid_cells)]
+        self.cells: list[CellGroup] = [
+            CellGroup() for _ in range(0, number_of_grid_cells)
+        ]
 
     def copy(self):
         out = PlumeGroups(len(self.cells))
@@ -105,7 +106,7 @@ class PlumeGroups:
             self.cells[ind].set_cell_groups([-1])
 
         # Resolve groups to merge:
-        new_groups_to_merge = []
+        new_groups_to_merge: list = []
         for g in groups_to_merge:
             merged = False
             for c in g:
