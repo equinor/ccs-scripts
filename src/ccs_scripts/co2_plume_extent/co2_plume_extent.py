@@ -1100,9 +1100,9 @@ def _collect_results_into_dataframe(
             for well_name, sgas_result in sgas_results.items():
                 full_col_name = col + "_SGAS"
                 if group_str != "ALL":
-                    full_col_name += "_GROUP_" + group_str
+                    full_col_name += "_PLUME_" + group_str
                 if well_name != "ALL" and well_name != "WELL":
-                    full_col_name += "_FROM_" + well_name
+                    full_col_name += "_FROM_INJ_" + well_name
                 sgas_df = pd.DataFrame.from_records(
                     sgas_result, columns=["date", full_col_name]
                 )
@@ -1117,9 +1117,9 @@ def _collect_results_into_dataframe(
                             amfg_key_str = amfg_key
                         full_col_name = col + "_" + amfg_key_str
                         if group_str != "ALL":
-                            full_col_name += "_GROUP_" + group_str
+                            full_col_name += "_PLUME_" + group_str
                         if well_name != "ALL" and well_name != "WELL":
-                            full_col_name += "_FROM_" + well_name
+                            full_col_name += "_FROM_INJ_" + well_name
                         amfg_df = pd.DataFrame.from_records(
                             amfg_result, columns=["date", full_col_name]
                         )
