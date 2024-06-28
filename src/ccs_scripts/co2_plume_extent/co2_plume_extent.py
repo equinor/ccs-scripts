@@ -600,7 +600,7 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
 
 
 def _calculate_grid_cell_distances(
-    inj_wells: list[InjectionWellData],
+    inj_wells: List[InjectionWellData],
     nactive: int,
     calculation_type: CalculationType,
     grid: Grid,
@@ -682,7 +682,7 @@ def calculate_single_distances(
     threshold_sgas: float,
     threshold_amfg: float,
     config: Calculation,
-    inj_wells: list[InjectionWellData],
+    inj_wells: List[InjectionWellData],
     do_plume_tracking: bool,
 ):
     calculation_type = config.type
@@ -770,8 +770,8 @@ def calculate_distances(
 
 
 def _log_number_of_grid_cells(
-    n_grid_cells_for_logging: dict[str, list[int]],
-    report_dates: list[datetime],
+    n_grid_cells_for_logging: Dict[str, List[int]],
+    report_dates: List[datetime],
     attribute_key: str,
 ):
     logging.info(
@@ -809,16 +809,16 @@ def _find_distances_per_time_step(
     threshold: float,
     unrst: ResdataFile,
     grid: Grid,
-    dist: dict[str, np.ndarray],
-    inj_wells: list[InjectionWellData],
+    dist: Dict[str, np.ndarray],
+    inj_wells: List[InjectionWellData],
     do_plume_tracking: bool,
 ) -> dict:
     """
     Find value of distance metric for each step
     """
     n_time_steps = len(unrst.report_steps)
-    dist_per_group: dict[str, dict[str, np.ndarray]] = {}
-    n_grid_cells_for_logging: dict[str, list[int]] = {}
+    dist_per_group: Dict[str, Dict[str, np.ndarray]] = {}
+    n_grid_cells_for_logging: Dict[str, List[int]] = {}
     n_cells = len(unrst[attribute_key][0].numpy_view())
 
     logging.info(f"\nStart calculating plume extent for {attribute_key}.\n")
@@ -876,7 +876,7 @@ def _find_distances_per_time_step(
 
 
 def _find_distances_at_time_step(
-    dist_per_group: dict[str, dict[str, np.ndarray]],
+    dist_per_group: Dict[str, Dict[str, np.ndarray]],
     unrst: ResdataFile,
     grid: Grid,
     attribute_key: str,
@@ -885,11 +885,11 @@ def _find_distances_at_time_step(
     prev_groups: PlumeGroups,
     groups: PlumeGroups,
     do_plume_tracking: bool,
-    inj_wells: list[InjectionWellData],
-    n_grid_cells_for_logging: dict[str, list[int]],
+    inj_wells: List[InjectionWellData],
+    n_grid_cells_for_logging: Dict[str, List[int]],
     n_time_steps: int,
     calculation_type: CalculationType,
-    dist: dict[str, np.ndarray],
+    dist: Dict[str, np.ndarray],
 ):
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
@@ -1012,11 +1012,11 @@ def _find_distances_at_time_step(
 
 
 def _organize_output_with_dates(
-    dist_per_group: dict[str, dict[str, np.ndarray]],
+    dist_per_group: Dict[str, dict[str, np.ndarray]],
     calculation_type: CalculationType,
     do_plume_tracking: bool,
-    inj_wells: list[InjectionWellData],
-    report_dates: list[datetime],
+    inj_wells: List[InjectionWellData],
+    report_dates: List[datetime],
 ) -> dict:
     outputs: dict = {}
     for group_name, single_group_distances in dist_per_group.items():

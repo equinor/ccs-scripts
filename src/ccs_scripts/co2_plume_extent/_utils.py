@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 from resdata.grid import Grid
 
@@ -15,14 +15,14 @@ class Status(Enum):
 
 
 class CellGroup:
-    def __init__(self, groups: Optional[list[int]] = None):
+    def __init__(self, groups: Optional[List[int]] = None):
         self.status: Status = Status.NO_CO2
-        self.all_groups: list[int] = []
+        self.all_groups: List[int] = []
         if groups is not None:
             self.status = Status.HAS_CO2
             self.all_groups = groups.copy()
 
-    def set_cell_groups(self, new_groups: list[int]):
+    def set_cell_groups(self, new_groups: List[int]):
         self.status = Status.HAS_CO2
         self.all_groups = new_groups.copy()
 
@@ -42,7 +42,7 @@ class CellGroup:
 
 class PlumeGroups:
     def __init__(self, number_of_grid_cells: int):
-        self.cells: list[CellGroup] = [
+        self.cells: List[CellGroup] = [
             CellGroup() for _ in range(0, number_of_grid_cells)
         ]
 
@@ -126,7 +126,7 @@ class PlumeGroups:
 
         return new_groups_to_merge
 
-    def _find_nearest_groups(self, ijk, grid, tol: int = 1) -> list[list[int]]:
+    def _find_nearest_groups(self, ijk, grid, tol: int = 1) -> List[List[int]]:
         out = []
         (i1, j1, k1) = ijk
         cells_with_co2 = [i for i in range(len(self.cells)) if self.cells[i].has_co2()]
