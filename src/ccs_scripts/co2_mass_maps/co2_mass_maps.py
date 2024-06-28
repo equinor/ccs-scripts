@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-import importlib
-from ccs_scripts.co2_containment import co2_calculation
-importlib.reload(co2_calculation)
 import sys
 from typing import Dict, List, Tuple
 
@@ -34,7 +31,7 @@ CATEGORY = "modelling.reservoir"
 #   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
 # """
 
-
+print(RELEVANT_PROPERTIES)
 def generate_co2_mass_maps(config_):
     """
     Calculates and exports 2D and 3D CO2 mass properties from the provided config file
