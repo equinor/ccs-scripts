@@ -7,6 +7,7 @@ import yaml
 from grid3d_maps.aggregate import grid3d_aggregate_map
 from grid3d_maps.aggregate._config import AggregationMethod
 
+importlib.reload(first)
 from ccs_scripts.co2_containment.co2_calculation import calculate_co2, RELEVANT_PROPERTIES
 from ccs_scripts.co2_mass_maps import _config, _parser
 from ccs_scripts.co2_mass_maps._co2_mass import translate_co2data_to_property
