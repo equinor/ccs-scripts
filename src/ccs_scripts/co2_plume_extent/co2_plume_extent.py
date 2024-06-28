@@ -239,7 +239,7 @@ class Configuration:
             )
 
             if calculation_type == CalculationType.POINT or (
-                calculation_type == CalculationType.PLUME_EXTENT and well_name is None
+                calculation_type == CalculationType.PLUME_EXTENT and well_name is None and len(self.injection_wells) == 0
             ):
                 if x is None:
                     logging.error(
@@ -816,6 +816,7 @@ def _find_distances_per_time_step(
     logging.info(f"{0:>6.1f} %")
     prev_groups = PlumeGroups(n_cells)
     for i in range(n_time_steps):
+        groups = PlumeGroups(n_cells)
         _find_distances_at_time_step(
             dist_per_group,
             unrst,
@@ -824,7 +825,7 @@ def _find_distances_per_time_step(
             i,
             threshold,
             prev_groups,
-            n_cells,
+            groups,
             do_plume_tracking,
             inj_wells,
             n_grid_cells_for_logging,
@@ -832,6 +833,7 @@ def _find_distances_per_time_step(
             calculation_type,
             dist,
         )
+        prev_groups = groups.copy()
         percent = (i + 1) / n_time_steps
         logging.info(f"{percent*100:>6.1f} %")
     logging.info("")
@@ -871,7 +873,7 @@ def _find_distances_at_time_step(
     i: int,
     threshold: float,
     prev_groups: PlumeGroups,
-    n_cells: int,
+    groups: PlumeGroups,
     do_plume_tracking: bool,
     inj_wells: list[InjectionWellData],
     n_grid_cells_for_logging: dict[str, list[int]],
@@ -885,7 +887,6 @@ def _find_distances_at_time_step(
     logging.debug("Previous group:")
     prev_groups._debug_print()
 
-    groups = PlumeGroups(n_cells)
     for index in cells_with_co2:
         if prev_groups.cells[index].has_co2():
             groups.cells[index] = prev_groups.cells[index]
@@ -911,7 +912,6 @@ def _find_distances_at_time_step(
 
     if do_plume_tracking:
         groups_to_merge = groups.resolve_undetermined_cells(grid)
-
         for full_group in groups_to_merge:
             new_group = [x for y in full_group for x in y]
             new_group.sort()
@@ -1000,8 +1000,6 @@ def _find_distances_at_time_step(
             dist_per_group[group_string]["ALL"][i] = result["ALL"]
         n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
 
-    prev_groups = groups.copy()
-
 
 def _organize_output_with_dates(
     dist_per_group: dict[str, dict[str, np.ndarray]],
@@ -1017,7 +1015,8 @@ def _organize_output_with_dates(
             well_name = "ALL"
             if calculation_type == CalculationType.PLUME_EXTENT:
                 if do_plume_tracking:
-                    well_name = [x.name for x in inj_wells if x.number == single_group][
+                    # NBNB-AS: x.name here should probably be handled earlier
+                    well_name = [x.name for x in inj_wells if x.number == single_group or x.name == single_group][
                         0
                     ]
                 else:

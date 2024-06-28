@@ -124,7 +124,7 @@ FLUID_PROPERTY
   DIFFUSION_COEFFICIENT 2.0d-5
 /
 
-BRINE 0.3 MASS
+!BRINE 1.092 MOLAL
 
 EOS WATER
  SURFACE_DENSITY 1000.00 kg/m^3
@@ -154,10 +154,29 @@ WELL_DATA injg
   SHUT 
   DATE 1 JAN 2027            ! Open injector 2 years after simulation starts
   OPEN
-  TARG_GM 0.682 Mt/y
-  DATE 1 JAN 2031            ! Shut well 4 years after injection started
+  TARG_GM 0.2 Mt/y
+  DATE 1 JAN 2030            ! Shut well 4 years after injection started
   SHUT
 END
+
+WELL_DATA injg2
+  CIJK_D  30 1 4  4
+  CIJK_D  29 2 4  4   
+  CIJK_D  28 3 4  4   
+  CIJK_D  27 4 4  4 
+  CIJK_D  26 5 4  4     
+  CONST_DRILL_DIR DIR_X
+  DIAMETER 0.1524 m
+  WELL_TYPE GAS_INJECTOR
+  BHPL     400    Bar
+  SHUT 
+  DATE 1 JAN 2080            ! Open injector 2 years after simulation starts
+  OPEN
+  TARG_GM 0.1 Mt/y
+  DATE 1 JAN 2083            ! Shut well 4 years after injection started
+  SHUT
+END
+
 
 WELL_DATA prod
   CIJK_D 1 1 1 12 

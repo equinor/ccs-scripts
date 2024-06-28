@@ -236,17 +236,17 @@ def test_plume_extent(mocker):
     os.remove(output_path)
 
 
-def _get_synthetic_case_paths(case: str):
+def _get_synthetic_case_paths(case: str, realization: int = 0):
     file_name = ""
     if case == "eclipse":
-        file_name = "E_FLT_01-0"
+        file_name = "E_FLT_01-"+str(realization)
     elif case == "pflotran":
-        file_name = "P_FLT_01-0"
+        file_name = "P_FLT_01-"+str(realization)
     case_path = str(
         Path(__file__).parents[1]
         / "tests"
         / "synthetic_model"
-        / "realization-0"
+        / ("realization-"+str(realization))
         / "iter-0"
         / case
         / "model"
@@ -484,6 +484,41 @@ def test_yaml_file_pflotran(mocker):
 
     df = pandas.read_csv(output_path)
     os.remove(output_path)
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "plume_extent"
+        / "plume_extent_pflotran_yaml_file.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df = df.sort_values("date")
+    df_answer = df_answer.sort_values("date")
+    pandas.testing.assert_frame_equal(df, df_answer)
+
+
+def test_yaml_file_pflotran_plume_tracking(mocker):
+    (case_path, output_path) = _get_synthetic_case_paths("pflotran", realization=2)
+    config_path = str(
+        Path(__file__).parents[1] / "tests" / "yaml" / "config_co2_plume_extent_plume_tracking.yml"
+    )
+    output_path = "temp.csv"
+    mocker.patch(
+        "sys.argv",
+        [
+            "--case",
+            case_path,
+            "--config_file",
+            config_path,
+            "--output",
+            output_path,
+        ],
+    )
+    main()
+
+    df = pandas.read_csv(output_path)
+    # os.remove(output_path)
 
     answer_file = str(
         Path(__file__).parents[0]
