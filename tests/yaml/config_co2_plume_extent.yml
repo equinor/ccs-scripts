@@ -1,32 +1,32 @@
 distance_calculations:
 - type: plume_extent
-  name: PlumeExtent1
+  column_name: PlumeExtent1
   x: 2150.0
   y: 2150.0
 - type: plume_extent
-  name: PlumeExtent2
+  column_name: PlumeExtent2
   well_name: INJ
 - type: point
-  name: Point1
+  column_name: Point1
   x: 500.0
   y: 500.0
 - type: point
-  name: Point2
+  column_name: Point2
   x: 2500.0
   y: 500.0
-- name: LineWest
+- column_name: LineWest
   type: line
   direction: west
   x: 300.0
-- name: LineEast
+- column_name: LineEast
   type: line
   direction: east
   x: 3500.0
-- name: LineSouth
+- column_name: LineSouth
   type: line
   direction: south
   y: 200.0
-- name: LineNorth
+- column_name: LineNorth
   type: line
   direction: north
   y: 3400.0

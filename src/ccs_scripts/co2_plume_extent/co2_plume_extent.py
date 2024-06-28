@@ -95,7 +95,7 @@ class LineDirection(Enum):
 class Calculation:
     type: CalculationType
     direction: Optional[LineDirection]
-    name: str
+    column_name: str
     x: Optional[float]
     y: Optional[float]
 
@@ -118,7 +118,7 @@ class Configuration:
         config_file: str,
         calculation_type: str,
         injection_point_info: str,
-        name: str,
+        column_name: str,
         case: str,
     ):
         self.distance_calculations: List[Calculation] = []
@@ -130,7 +130,7 @@ class Configuration:
             self.make_config_from_input_dict(input_dict, case)
         if injection_point_info != "":
             self.make_config_from_input_args(
-                calculation_type, injection_point_info, name, case
+                calculation_type, injection_point_info, column_name, case
             )
 
         if len(self.distance_calculations) == 0:
@@ -208,7 +208,11 @@ class Configuration:
             CalculationType.check_for_key(type_str)
             calculation_type = CalculationType[type_str]
 
-            name = single_calculation["name"] if "name" in single_calculation else ""
+            column_name = (
+                single_calculation["column_name"]
+                if "column_name" in single_calculation
+                else ""
+            )
 
             direction = None
             if calculation_type == CalculationType.LINE:
@@ -281,14 +285,18 @@ class Configuration:
             calculation = Calculation(
                 type=calculation_type,
                 direction=direction,
-                name=name,
+                column_name=column_name,
                 x=x,
                 y=y,
             )
             self.distance_calculations.append(calculation)
 
     def make_config_from_input_args(
-        self, calculation_type_str: str, injection_point_info: str, name: str, case: str
+        self,
+        calculation_type_str: str,
+        injection_point_info: str,
+        column_name: str,
+        case: str,
     ):
         type_str = calculation_type_str.upper()
         CalculationType.check_for_key(type_str)
@@ -307,21 +315,21 @@ class Configuration:
             if len(values) != 2:
                 if calculation_type == CalculationType.PLUME_EXTENT:
                     logging.error(
-                        "ERROR: Invalid input. injection_point_info must be on"
+                        "ERROR: Invalid input. inj_point must be on"
                         ' the format "[x,y]" or "well_name" when '
-                        "calculation_type is 'plume_extent'."
+                        "calc_type is 'plume_extent'."
                     )
                 elif calculation_type == CalculationType.POINT:
                     logging.error(
-                        "ERROR: Invalid input. injection_point_info must be on"
-                        ' the format "[x,y]" when calculation_type is '
+                        "ERROR: Invalid input. inj_point must be on"
+                        ' the format "[x,y]" when calc_type is '
                         "'point'."
                     )
                 elif calculation_type == CalculationType.LINE:
                     logging.error(
-                        "Invalid input: injection_point_info must be on the "
+                        "Invalid input: inj_point must be on the "
                         'format "[direction, x or y]" when '
-                        "calculation_type is 'line'."
+                        "calc_type is 'line'."
                     )
                 sys.exit(1)
 
@@ -376,7 +384,7 @@ class Configuration:
         calculation = Calculation(
             type=calculation_type,
             direction=direction,
-            name=name,
+            column_name=column_name,
             x=x,
             y=y,
         )
@@ -435,8 +443,8 @@ def _make_parser() -> argparse.ArgumentParser:
         default="",
     )
     parser.add_argument(
-        "--injection_point_info",
-        help="Input depends on calculation_type. \
+        "--inj_point",
+        help="Input depends on calc_type. \
         For 'plume_extent': Either the name of the injection well (string) or \
         the x and y coordinates (two floats, '[x,y]') to calculate plume extent from. \
         For 'point': the x and y coordinates (two floats, '[x,y]'). \
@@ -446,7 +454,7 @@ def _make_parser() -> argparse.ArgumentParser:
         default="",
     )
     parser.add_argument(
-        "--calculation_type",
+        "--calc_type",
         help="Options: \
         'plume_extent': Maximum distance of plume from input (injection) coordinate. \
         'point': Minimum distance from plume to a point, e.g. plume approaching \
@@ -457,7 +465,7 @@ def _make_parser() -> argparse.ArgumentParser:
         type=str,
     )
     parser.add_argument(
-        "--output",
+        "--output_csv",
         help="Path to output CSV file",
         default=None,
     )
@@ -474,7 +482,7 @@ def _make_parser() -> argparse.ArgumentParser:
         help="Threshold for AMFG",
     )
     parser.add_argument(
-        "--name",
+        "--column_name",
         default="",
         type=str,
         help="Name that will be included in the column of the CSV file",
@@ -540,21 +548,21 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
         f"Configuration YAML-file : "
         f"{arguments.config_file if arguments.config_file != '' else 'Not specified'}"
     )
-    if arguments.injection_point_info != "":
+    if arguments.inj_point != "":
         logging.info("Configuration from args :")
-        logging.info(f"    Injection point info: {arguments.injection_point_info}")
-        logging.info(f"    Calculation type    : {arguments.calculation_type}")
-        if arguments.name != "":
+        logging.info(f"    Injection point info: {arguments.inj_point}")
+        logging.info(f"    Calculation type    : {arguments.calc_type}")
+        col = arguments.column_name
+        if col != "":
             logging.info(
-                f"    Column name         : "
-                f"{arguments.name if arguments.name != '' else 'Not specified'}"
+                f"    Column name         : " f"{col if col != '' else 'Not specified'}"
             )
     else:
         logging.info("Configuration from args : Not specified")
-    if arguments.name != "":
+    if arguments.output_csv is None or arguments.output_csv == "":
         text = "Not specified, using default"
     else:
-        text = arguments.output
+        text = arguments.output_csv
     logging.info(f"Output CSV file         : {text}")
     logging.info(f"Threshold SGAS          : {arguments.threshold_sgas}")
     logging.info(f"Threshold AMFG          : {arguments.threshold_amfg}\n")
@@ -568,12 +576,12 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
     )
     logging.info("-" * 84)
     for i, calc in enumerate(config.distance_calculations, 1):
-        name = calc.name if calc.name != "" else "-"
+        column_name = calc.column_name if calc.column_name != "" else "-"
         direction = calc.direction.name.lower() if calc.direction is not None else "-"
         x = calc.x if calc.x is not None else "-"
         y = calc.y if calc.y is not None else "-"
         logging.info(
-            f"{i:<8} {calc.type.name.lower():<14} {name:<15} {direction:<12} "
+            f"{i:<8} {calc.type.name.lower():<14} {column_name:<15} {direction:<12} "
             f"{x:<15} {y:<15}"
         )
     logging.info("")
@@ -1215,8 +1223,8 @@ def _find_input_point(injection_point_info: str) -> Tuple[float, float]:
                 )
                 sys.exit(1)
     logging.error(
-        "Invalid input: injection_point_info must be on the format [x,y]"
-        "when calculation_type is 'point'"
+        "Invalid input: inj_point must be on the format [x,y]"
+        "when calc_type is 'point'"
     )
     sys.exit(1)
 
@@ -1243,14 +1251,14 @@ def _find_input_line(injection_point_info: str) -> Tuple[str, float]:
                 return coordinates
             except ValueError as error:
                 logging.error(
-                    "Invalid input: injection_point_info must be on the format "
-                    "[direction, value] when calculation_type is 'line'."
+                    "Invalid input: inj_point must be on the format "
+                    "[direction, value] when calc_type is 'line'."
                 )
                 logging.error(error)
                 sys.exit(1)
     logging.error(
-        "Invalid input: injection_point_info must be on the format "
-        "[direction, value] when calculation_type is 'line'"
+        "Invalid input: inj_point must be on the format "
+        "[direction, value] when calc_type is 'line'"
     )
     sys.exit(1)
 
@@ -1262,15 +1270,17 @@ def main():
     date written to a CSV file.
     """
     args = _make_parser().parse_args()
-    args.name = args.name.upper() if args.name is not None else None
+    args.column_name = (
+        args.column_name.upper() if args.column_name is not None else None
+    )
     _setup_log_configuration(args)
     _log_input_configuration(args)
 
     config = Configuration(
         args.config_file,
-        args.calculation_type,
-        args.injection_point_info,
-        args.name,
+        args.calc_type,
+        args.inj_point,
+        args.column_name,
         args.case,
     )
     _log_distance_calculation_configurations(config)
@@ -1282,7 +1292,7 @@ def main():
         args.threshold_amfg,
     )
 
-    output_file = _find_output_file(args.output, args.case)
+    output_file = _find_output_file(args.output_csv, args.case)
 
     df = _collect_results_into_dataframe(
         all_results,

@@ -1,17 +1,17 @@
 EXECUTABLE   co2_plume_extent
 
-DEFAULT <CONFIG_FILE> ""
-DEFAULT <INJECTION_POINT_INFO> ""
-DEFAULT <CALCULATION_TYPE> plume_extent
-DEFAULT <OUTPUT>  share/results/tables/plume_extent.csv
+DEFAULT <CONFIG_PLUME_EXTENT> ""
+DEFAULT <INJ_POINT> ""
+DEFAULT <CALC_TYPE> plume_extent
+DEFAULT <OUTPUT_CSV>  share/results/tables/plume_extent.csv
 DEFAULT <THRESHOLD_SGAS> 0.2
 DEFAULT <THRESHOLD_AMFG> 0.0005
-DEFAULT <NAME> ""
+DEFAULT <COLUMN_NAME> ""
 
 ARG_TYPE 0 STRING
 ARG_TYPE 1 STRING
 
-ARGLIST   <CASE> "--config_file" <CONFIG_FILE>  "--injection_point_info"  <INJECTION_POINT_INFO>  "--calculation_type" <CALCULATION_TYPE> "--output" <OUTPUT> "--threshold_sgas" <THRESHOLD_SGAS> "--threshold_amfg" <THRESHOLD_AMFG> "--name" <NAME> "--verbose" "--debug"
+ARGLIST   <CASE> "--config_file" <CONFIG_PLUME_EXTENT>  "--inj_point"  <INJ_POINT>  "--calc_type" <CALC_TYPE> "--output_csv" <OUTPUT_CSV> "--threshold_sgas" <THRESHOLD_SGAS> "--threshold_amfg" <THRESHOLD_AMFG> "--column_name" <COLUMN_NAME> "--verbose"
 
 MIN_ARG 1
-MAX_ARG 10
+MAX_ARG 9
