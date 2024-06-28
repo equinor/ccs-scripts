@@ -1163,6 +1163,7 @@ def calculate_co2(
     global PROPERTIES_NEEDED_PFLOTRAN
     PROPERTIES_TO_EXTRACT = RELEVANT_PROPERTIES
     if residual_trapping:
+        print("Extending")
         PROPERTIES_TO_EXTRACT.extend(["SGSTRAND", "SGTRH"])
         PROPERTIES_NEEDED_ECLIPSE.append("SGTRH")
         PROPERTIES_NEEDED_PFLOTRAN.append("SGSTRAND")
