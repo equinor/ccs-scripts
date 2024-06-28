@@ -4,11 +4,13 @@ from typing import Dict, List, Tuple
 
 import xtgeo
 import yaml
-
 from grid3d_maps.aggregate import grid3d_aggregate_map
 from grid3d_maps.aggregate._config import AggregationMethod
 
-from ccs_scripts.co2_containment.co2_calculation import calculate_co2, RELEVANT_PROPERTIES
+from ccs_scripts.co2_containment.co2_calculation import (
+    RELEVANT_PROPERTIES,
+    calculate_co2,
+)
 from ccs_scripts.co2_mass_maps import _config, _parser
 from ccs_scripts.co2_mass_maps._co2_mass import translate_co2data_to_property
 
@@ -31,7 +33,7 @@ CATEGORY = "modelling.reservoir"
 #   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
 # """
 
-print(RELEVANT_PROPERTIES)
+
 def generate_co2_mass_maps(config_):
     """
     Calculates and exports 2D and 3D CO2 mass properties from the provided config file
@@ -48,8 +50,6 @@ def generate_co2_mass_maps(config_):
     grid_file = config_.input.grid
     zone_info = {"source": None, "zranges": None}
     region_info = {"source": None, "property_name": None}
-    print("RELEVANT_PROPERTIES in generate_co2_mass_maps")
-    print(RELEVANT_PROPERTIES)
     co2_data = calculate_co2(
         grid_file=grid_file,
         unrst_file=co2_mass_settings.unrst_source,
@@ -115,7 +115,6 @@ def co2_mass_property_to_map(
                         None,
                     )
                 )
-    print(config_)
     grid3d_aggregate_map.generate_from_config(config_)
 
 

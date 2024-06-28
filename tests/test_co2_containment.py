@@ -682,7 +682,7 @@ def test_synthetic_case_pflotran_mass_residual_trapping(mocker):
         zone_file_path,
         "--region_property",
         REGION_PROPERTY,
-        "--residual_trapping"
+        "--residual_trapping",
     ]
     mocker.patch(
         "sys.argv",
@@ -733,7 +733,7 @@ def test_synthetic_case_pflotran_actual_volume_residual_trapping(mocker):
         zone_file_path,
         "--region_property",
         REGION_PROPERTY,
-        "--residual_trapping"
+        "--residual_trapping",
     ]
     mocker.patch(
         "sys.argv",
@@ -758,4 +758,3 @@ def test_synthetic_case_pflotran_actual_volume_residual_trapping(mocker):
     df = _sort_dataframe(df)
     df_answer = _sort_dataframe(df_answer)
     pandas.testing.assert_frame_equal(df, df_answer)
-

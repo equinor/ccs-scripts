@@ -421,7 +421,7 @@ def process_args() -> argparse.Namespace:
     adict = vars(args)
     paths = [
         "case",
-        "out_dir",
+        # "out_dir",
         "egrid",
         "unrst",
         "init",

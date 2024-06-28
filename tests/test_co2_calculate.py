@@ -336,7 +336,7 @@ def test_reek_grid():
     )
 
     masses_with_trapping = _calculate_co2_data_from_source_data(
-        source_data_with_trapping, CalculationType.MASS
+        source_data_with_trapping, CalculationType.MASS, residual_trapping=True
     )
     table3 = calculate_from_co2_data(
         co2_data=masses_with_trapping,
@@ -366,7 +366,7 @@ def test_reek_grid():
         assert extract_amount(table3, c, p, 0) == pytest.approx(amount)
 
     volumes_with_trapping = _calculate_co2_data_from_source_data(
-        source_data_with_trapping, CalculationType.ACTUAL_VOLUME
+        source_data_with_trapping, CalculationType.ACTUAL_VOLUME, residual_trapping=True
     )
     table4 = calculate_from_co2_data(
         co2_data=volumes_with_trapping,

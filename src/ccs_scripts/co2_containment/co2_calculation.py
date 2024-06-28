@@ -391,8 +391,7 @@ def _extract_source_data(
     init_file: Optional[str] = None,
 ) -> SourceData:
     # pylint: disable=too-many-locals, too-many-statements
-    """
-    Extracts the properties in properties_to_extract from Grid files
+    """Extracts the properties in properties_to_extract from Grid files
 
     Args:
       grid_file (str): Path to EGRID-file
@@ -878,6 +877,7 @@ def _calculate_co2_data_from_source_data(
     calc_type: CalculationType,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
+    residual_trapping: Optional[bool] = False,
 ) -> Co2Data:
     """
     Calculates a given calc_type (mass/cell_volume/actual_volume)
@@ -890,6 +890,7 @@ def _calculate_co2_data_from_source_data(
                                      actual_volume)
         co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
         water_molar_mass (float): Water molar mass - Default is 18 g/mol
+        residual_trapping (bool): Indicate if residual trapping should be calculated
 
     Returns:
       Co2Data
@@ -898,6 +899,11 @@ def _calculate_co2_data_from_source_data(
     # pylint: disable-msg=too-many-branches
     # pylint: disable-msg=too-many-statements
     logging.info(f"Start calculating CO2 {calc_type.name.lower()} from source data")
+    properties_needed_pflotran = PROPERTIES_NEEDED_PFLOTRAN.copy()
+    properties_needed_eclipse = PROPERTIES_NEEDED_ECLIPSE.copy()
+    if residual_trapping:
+        properties_needed_pflotran.append("SGSTRAND")
+        properties_needed_eclipse.append("SGTRH")
     props_check = [
         x.name
         for x in fields(source_data)
@@ -911,22 +917,22 @@ def _calculate_co2_data_from_source_data(
         if _is_subset(["PORV", "RPORV"], active_props):
             active_props.remove("PORV")
             logging.info("Using attribute RPORV instead of PORV")
-        if _is_subset(PROPERTIES_NEEDED_PFLOTRAN, active_props):
+        if _is_subset(properties_needed_pflotran, active_props):
             source = "PFlotran"
-        elif _is_subset(PROPERTIES_NEEDED_ECLIPSE, active_props):
+        elif _is_subset(properties_needed_eclipse, active_props):
             source = "Eclipse"
-        elif any(prop in PROPERTIES_NEEDED_PFLOTRAN for prop in active_props):
+        elif any(prop in properties_needed_pflotran for prop in active_props):
             missing_props = [
-                x for x in PROPERTIES_NEEDED_PFLOTRAN if x not in active_props
+                x for x in properties_needed_pflotran if x not in active_props
             ]
             error_text = "Lacking some required properties to compute CO2 mass/volume."
             error_text += "\nAssumed source: PFlotran"
             error_text += "\nMissing properties: "
             error_text += ", ".join(missing_props)
             raise ValueError(error_text)
-        elif any(prop in PROPERTIES_NEEDED_ECLIPSE for prop in active_props):
+        elif any(prop in properties_needed_eclipse for prop in active_props):
             missing_props = [
-                x for x in PROPERTIES_NEEDED_ECLIPSE if x not in active_props
+                x for x in properties_needed_eclipse if x not in active_props
             ]
             error_text = "Lacking some required properties to compute CO2 mass/volume."
             error_text += "\nAssumed source: Eclipse"
@@ -937,9 +943,9 @@ def _calculate_co2_data_from_source_data(
             error_text = "Lacking all required properties to compute CO2 mass/volume."
             error_text += "\nNeed either:"
             error_text += f"\n  PFlotran: \
-                {', '.join(PROPERTIES_NEEDED_PFLOTRAN)}"
+                {', '.join(properties_needed_pflotran)}"
             error_text += f"\n  Eclipse : \
-                {', '.join(PROPERTIES_NEEDED_ECLIPSE)}"
+                {', '.join(properties_needed_eclipse)}"
             raise ValueError(error_text)
     else:
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."
@@ -1155,24 +1161,16 @@ def calculate_co2(
       CO2Data
 
     """
-    print("This is residual trapping")
-    print(residual_trapping)
-    print(RELEVANT_PROPERTIES)
-    ##NBNB: Fix this
-    global PROPERTIES_NEEDED_ECLIPSE
-    global PROPERTIES_NEEDED_PFLOTRAN
     PROPERTIES_TO_EXTRACT = RELEVANT_PROPERTIES.copy()
     if residual_trapping:
-        print("Extending")
         PROPERTIES_TO_EXTRACT.extend(["SGSTRAND", "SGTRH"])
-        PROPERTIES_NEEDED_ECLIPSE.append("SGTRH")
-        PROPERTIES_NEEDED_PFLOTRAN.append("SGSTRAND")
-    print(PROPERTIES_TO_EXTRACT)
     source_data = _extract_source_data(
         grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_info, region_info, init_file
     )
     calc_type = _set_calc_type_from_input_string(calc_type_input)
-    co2_data = _calculate_co2_data_from_source_data(source_data, calc_type=calc_type)
+    co2_data = _calculate_co2_data_from_source_data(
+        source_data, calc_type=calc_type, residual_trapping=residual_trapping
+    )
     return co2_data
 
 
