@@ -1161,7 +1161,7 @@ def calculate_co2(
     ##NBNB: Fix this
     global PROPERTIES_NEEDED_ECLIPSE
     global PROPERTIES_NEEDED_PFLOTRAN
-    PROPERTIES_TO_EXTRACT = RELEVANT_PROPERTIES
+    PROPERTIES_TO_EXTRACT = RELEVANT_PROPERTIES.copy()
     if residual_trapping:
         print("Extending")
         PROPERTIES_TO_EXTRACT.extend(["SGSTRAND", "SGTRH"])
