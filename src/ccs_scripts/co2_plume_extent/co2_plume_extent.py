@@ -1078,7 +1078,9 @@ def _find_dates(all_results: List[Tuple[dict, Optional[dict], Optional[str]]]):
     return dates
 
 
-def _find_column_name(single_config, n_calculations: int, calculation_number: int):
+def _find_column_name(
+    single_config: Calculation, n_calculations: int, calculation_number: int
+):
     if single_config.type == CalculationType.PLUME_EXTENT:
         col = "MAX_"
     elif single_config.type in (CalculationType.POINT, CalculationType.LINE):
@@ -1086,8 +1088,8 @@ def _find_column_name(single_config, n_calculations: int, calculation_number: in
     else:
         col = "?"
 
-    if single_config.name != "":
-        col = col + single_config.name
+    if single_config.column_name != "":
+        col = col + single_config.column_name
     else:
         calc_number = "" if n_calculations == 1 else str(calculation_number)
         col = col + f"{single_config.type.name.upper()}{calc_number}"
