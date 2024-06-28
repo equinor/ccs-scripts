@@ -503,7 +503,6 @@ def test_yaml_file_pflotran_plume_tracking(mocker):
     config_path = str(
         Path(__file__).parents[1] / "tests" / "yaml" / "config_co2_plume_extent_plume_tracking.yml"
     )
-    output_path = "temp.csv"
     mocker.patch(
         "sys.argv",
         [
@@ -513,18 +512,20 @@ def test_yaml_file_pflotran_plume_tracking(mocker):
             config_path,
             "--output",
             output_path,
+            "--threshold_sgas",
+            "0.25",  # To avoid having two plume groups that immediately merge
         ],
     )
     main()
 
     df = pandas.read_csv(output_path)
-    # os.remove(output_path)
+    os.remove(output_path)
 
     answer_file = str(
         Path(__file__).parents[0]
         / "answers"
         / "plume_extent"
-        / "plume_extent_pflotran_yaml_file.csv"
+        / "plume_extent_pflotran_yaml_file_plume_tracking.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 
