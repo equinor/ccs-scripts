@@ -7,7 +7,7 @@ import yaml
 from grid3d_maps.aggregate import grid3d_aggregate_map
 from grid3d_maps.aggregate._config import AggregationMethod
 
-from ccs_scripts.co2_containment.co2_calculation import calculate_co2
+from ccs_scripts.co2_containment.co2_calculation import calculate_co2, RELEVANT_PROPERTIES
 from ccs_scripts.co2_mass_maps import _config, _parser
 from ccs_scripts.co2_mass_maps._co2_mass import translate_co2data_to_property
 
@@ -29,20 +29,6 @@ CATEGORY = "modelling.reservoir"
 #
 #   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
 # """
-
-RELEVANT_PROPERTIES = [
-    "RPORV",
-    "PORV",
-    "SGAS",
-    "DGAS",
-    "BGAS",
-    "DWAT",
-    "BWAT",
-    "AMFG",
-    "YMFG",
-    "XMF2",
-    "YMF2",
-]
 
 
 def generate_co2_mass_maps(config_):
