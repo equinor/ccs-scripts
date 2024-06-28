@@ -29,6 +29,8 @@ RELEVANT_PROPERTIES = [
     "YMFG",
     "XMF2",
     "YMF2",
+    "SGSTRAND",
+    "SGTRH",
 ]
 
 
