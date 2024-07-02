@@ -1,12 +1,12 @@
 import pytest
 import xtgeo
-from ccs_scripts.aggregate import grid3d_migration_time
+from ccs_scripts.aggregate import grid3d_migration_time_maps
 
 
 def test_migration_time1(datatree):
     result = datatree / "migration_time1_folder"
     result.mkdir(parents=True)
-    grid3d_migration_time.main(
+    grid3d_migration_time_maps.main(
         [
             "--config",
             "tests/yaml/config_migration_time1.yml",
@@ -21,7 +21,7 @@ def test_migration_time1(datatree):
 def test_migration_time2(datatree):
     result = datatree / "migration_time2_folder"
     result.mkdir(parents=True)
-    grid3d_migration_time.main(
+    grid3d_migration_time_maps.main(
         [
             "--config",
             "tests/yaml/config_migration_time2.yml",
