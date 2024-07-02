@@ -1,5 +1,5 @@
 input:
-  eclroot: data/reek/eclipse/model/2_R001_REEK-0
+  eclroot: tests/data/reek/eclipse/model/2_R001_REEK-0
   grid: $eclroot.EGRID
 
 co2_mass_settings:
