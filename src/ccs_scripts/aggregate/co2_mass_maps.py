@@ -4,7 +4,7 @@ from typing import Dict, List, Tuple
 
 import xtgeo
 import yaml
-from ccs_scripts.aggregate import grid3d_aggregate_map, _config, _parser
+from ccs_scripts.aggregate import grid3d_aggregate_maps, _config, _parser
 from ccs_scripts.aggregate._config import AggregationMethod
 
 from ccs_scripts.co2_containment.co2_calculation import (
@@ -89,7 +89,7 @@ def co2_mass_property_to_map(
 ):
     """
     Aggregates with SUM and writes a list of CO2 mass property to files
-    using `grid3d_aggregate_map`.
+    using `grid3d_aggregate_maps`.
 
     Args:
         config_: Arguments in the config file
@@ -114,7 +114,7 @@ def co2_mass_property_to_map(
                         None,
                     )
                 )
-    grid3d_aggregate_map.generate_from_config(config_)
+    grid3d_aggregate_maps.generate_from_config(config_)
 
 
 def process_zonation(
