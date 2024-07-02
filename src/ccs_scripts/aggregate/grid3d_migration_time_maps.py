@@ -68,7 +68,7 @@ def migration_time_property_to_map(
         if config_.input.properties is not None:
             config_.input.properties.append(_config.Property(temp_path,None,None))
         prop.to_file(temp_path)
-    grid3d_aggregate_map.generate_from_config(config_)
+    grid3d_aggregate_maps.generate_from_config(config_)
     os.unlink(temp_path)
 
 
