@@ -7,8 +7,10 @@ import yaml
 from ccs_scripts.aggregate import grid3d_aggregate_map, _config, _parser
 from ccs_scripts.aggregate._config import AggregationMethod
 
-from ccs_scripts.co2_containment.co2_calculation import calculate_co2
-#from ccs_scripts.co2_mass_maps import _config, _parser
+from ccs_scripts.co2_containment.co2_calculation import (
+    RELEVANT_PROPERTIES,
+    calculate_co2
+)
 from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
 
 # Module variables for ERT hook implementation:
@@ -29,20 +31,6 @@ CATEGORY = "modelling.reservoir"
 #
 #   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
 # """
-
-PROPERTIES_TO_EXTRACT = [
-    "RPORV",
-    "PORV",
-    "SGAS",
-    "DGAS",
-    "BGAS",
-    "DWAT",
-    "BWAT",
-    "AMFG",
-    "YMFG",
-    "XMF2",
-    "YMF2",
-]
 
 
 def generate_co2_mass_maps(config_):
@@ -76,7 +64,7 @@ def generate_co2_mass_maps(config_):
         co2_data,
         grid_file,
         co2_mass_settings,
-        PROPERTIES_TO_EXTRACT,
+        RELEVANT_PROPERTIES,
         config_.output.mapfolder + "/grid",
     )
     config_.zonation.zranges, all_zrange = process_zonation(
@@ -126,7 +114,6 @@ def co2_mass_property_to_map(
                         None,
                     )
                 )
-    print(config_)
     grid3d_aggregate_map.generate_from_config(config_)
 
 
@@ -211,7 +198,6 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
-
     if config_.input.properties:
         raise ValueError("CO2 mass computation does not take a property as input")
     if config_.co2_mass_settings is None:

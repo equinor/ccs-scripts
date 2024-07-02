@@ -9,7 +9,6 @@ import numpy as np
 import xtgeo
 import yaml
 
-from ccs_scripts.aggregate import _config
 from ccs_scripts.aggregate._config import (
     CO2MassSettings,
     ComputeSettings,
@@ -24,6 +23,7 @@ from ccs_scripts.aggregate._config import (
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
+
 
 def parse_arguments(arguments):
     """
@@ -256,7 +256,8 @@ def _zonation_from_zproperty(
 
 
 def create_map_template(
-    map_settings: _config.MapSettings,
+    #map_settings: _config.MapSettings,
+    map_settings: MapSettings,
 ) -> Union[xtgeo.RegularSurface, float]:
     """
     Creates the map template to use based on the provided settings. May instead return a
