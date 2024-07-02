@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 import xtgeo
-from ccs_scripts.aggregate import aggregate_maps
+from ccs_scripts.aggregate import grid3d_aggregate_maps
 
 
 def test_aggregated_map1(datatree):
@@ -29,7 +29,7 @@ def test_aggregated_map2(datatree):
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate2.yml"
 
-    aggregate_maps.main(
+    grid3d_aggregate_maps.main(
         [
             "--config",
             cfg,
