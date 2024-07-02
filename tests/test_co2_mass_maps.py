@@ -4,7 +4,7 @@ from pathlib import Path
 
 from resdata.resfile import FortIO, ResdataFile, openFortIO
 
-from ccs_scripts.aggregate import co2_mass_maps
+from ccs_scripts.co2_mass_maps import co2_mass_maps
 
 
 def adapt_reek_grid_for_co2_mass_maps_test():
