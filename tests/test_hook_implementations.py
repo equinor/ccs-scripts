@@ -16,7 +16,6 @@ def expected_jobs():
     """dictionary of installed jobs with location to config"""
     expected_job_names = [
         "CO2_CONTAINMENT",
-        "CO2_MASS_MAPS",
         "CO2_PLUME_AREA",
         "CO2_PLUME_EXTENT",
     ]
@@ -86,7 +85,6 @@ def test_hook_implementations_job_docs():
     installable_jobs = plugin_m.get_installable_jobs()
 
     docs = plugin_m.get_documentation_for_jobs()
-
     assert set(docs.keys()) == set(installable_jobs.keys())
 
     for job_name in installable_jobs.keys():
