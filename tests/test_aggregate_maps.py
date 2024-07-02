@@ -10,7 +10,7 @@ def test_aggregated_map1(datatree):
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate1.yml"
 
-    aggregate_maps.main(
+    grid3d_aggregate_maps.main(
         [
             "--config",
             cfg,
@@ -48,7 +48,7 @@ def test_aggregated_map3(datatree):
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate3.yml"
 
-    aggregate_maps.main(
+    grid3d_aggregate_maps.main(
         [
             "--config",
             cfg,
@@ -67,7 +67,7 @@ def test_aggregated_map4(datatree):
     result.mkdir(parents=True)
     yml = "tests/yaml/config_aggregate4.yml"
 
-    aggregate_maps.main(
+    grid3d_aggregate_maps.main(
         [
             "--config",
             yml,
@@ -89,7 +89,7 @@ def test_aggregated_map5(datatree):
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate5.yml"
 
-    aggregate_maps.main(
+    grid3d_aggregate_maps.main(
         [
             "--config",
             cfg,
@@ -108,7 +108,7 @@ def test_aggregated_map6(datatree):
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate6.yml"
 
-    aggregate_maps.main(
+    grid3d_aggregate_maps.main(
         [
             "--config",
             cfg,
