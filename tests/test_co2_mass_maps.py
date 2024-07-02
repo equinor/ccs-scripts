@@ -65,7 +65,13 @@ def adapt_reek_grid_for_co2_mass_maps_test():
             for i in range(0, len(a)):
                 a[i] = 1000
             y.fwrite(f)
+    print("Done creating the new file. This is what data/reek/eclipse/model contains")
+    path = Path(__file__).absolute().parent / "data" / "reek" / "eclipse" / "model"
 
+    # Iterate over all files in the directory
+    for file in path.iterdir():
+        if file.is_file():  # Check if it's a regular file
+            print(file.name)
 
 def test_co2_mass_maps_reek_grid():
     """
@@ -73,6 +79,7 @@ def test_co2_mass_maps_reek_grid():
     Tests both mass and actual_volume calculations.
     """
     adapt_reek_grid_for_co2_mass_maps_test()
+    print("Done here?")
     result = str(Path(__file__).absolute().parent / "answers" / "mass_maps")
     co2_mass_maps.main(
         [
