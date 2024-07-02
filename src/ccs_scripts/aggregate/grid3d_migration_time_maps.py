@@ -10,7 +10,7 @@ from ccs_scripts.aggregate import (
     _config,
     _migration_time,
     _parser,
-    grid3d_aggregate_map,
+    grid3d_aggregate_maps,
 )
 
 MIGRATION_TIME_PROPERTIES = ["AMFG","AMFW","YMFG","YMFW","XMF1","XMF2","YMF1","YMF2","SGAS","SWAT"]
