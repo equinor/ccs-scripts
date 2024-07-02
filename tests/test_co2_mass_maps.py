@@ -80,6 +80,7 @@ def test_co2_mass_maps_reek_grid():
     """
     adapt_reek_grid_for_co2_mass_maps_test()
     print("This is what's available right now:")
+    print ("in"+str(Path(__file__).absolute().parent))
     path = Path(__file__).absolute().parent / "data" / "reek" / "eclipse" / "model"
 
     # Iterate over all files in the directory
