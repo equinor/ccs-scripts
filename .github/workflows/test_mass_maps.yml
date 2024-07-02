@@ -26,4 +26,4 @@ jobs:
 
       - name: Run the script
         run: |
-          python tests/test_co2_mass_maps.py  # Adjust the path to your specific file
+          pytest -s tests/test_co2_mass_maps.py  # Adjust the path to your specific file
