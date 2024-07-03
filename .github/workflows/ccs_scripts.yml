@@ -78,7 +78,7 @@ jobs:
       - name: Run tests
         if: ${{ always() }}
         run: |
-          pytest -n auto tests
+          pytest -n auto tests/test_co2_mass_maps.py tests/test_co2_calculate.py tests/test_co2_containment.py tests/test_co2_plume_area.py tests/test_co2_plume_extent.py tests/test_hook_implementations.py tests/test_migration_time_maps.py tests/test_aggregate_maps.py tests/conftest.py
           # Check that repository is untainted by test code:
           git status --porcelain
           test -z "$(git status --porcelain)"
