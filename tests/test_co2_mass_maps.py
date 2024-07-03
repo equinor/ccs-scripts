@@ -66,6 +66,7 @@ def adapt_reek_grid_for_co2_mass_maps_test():
                 a[i] = 1000
             y.fwrite(f)
 
+
 def test_co2_mass_maps_reek_grid():
     """
     Test CO2 containment code, with eclipse Reek data.
@@ -73,19 +74,19 @@ def test_co2_mass_maps_reek_grid():
     """
     adapt_reek_grid_for_co2_mass_maps_test()
     print("This is what's available right now:")
-    print ("in"+str(Path(__file__).absolute().parent))
+    print("in" + str(Path(__file__).absolute().parent))
     path = Path(__file__).absolute().parent / "data" / "reek" / "eclipse" / "model"
 
     # Iterate over all files in the directory
     for file in path.iterdir():
         if file.is_file():  # Check if it's a regular file
             print(file.name)
-    #path1 = Path("/tests/data/reek/eclipse/model")
-    #for file in path1.iterdir():
+    # path1 = Path("/tests/data/reek/eclipse/model")
+    # for file in path1.iterdir():
     #    if file.is_file():  # Check if it's a regular file
     #        print(file.name)
-    #path2 = Path("home/runner/work/ccs-scripts/ccs-scripts/tests/data/reek/eclipse/model")
-    #for file in path2.iterdir():
+    # path2 = Path("home/runner/work/ccs-scripts/ccs-scripts/tests/data/reek/eclipse/model")
+    # for file in path2.iterdir():
     #    if file.is_file():  # Check if it's a regular file
     #        print(file.name)
 

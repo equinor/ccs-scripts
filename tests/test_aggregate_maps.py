@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 import xtgeo
+
 from ccs_scripts.aggregate import grid3d_aggregate_maps
 
 

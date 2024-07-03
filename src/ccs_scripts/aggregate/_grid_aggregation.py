@@ -55,7 +55,7 @@ def aggregate_maps(
     )
     # Iterate filters
     results = _properties_to_maps(
-        inclusion_filters,	
+        inclusion_filters,
         props,
         weights,
         method,

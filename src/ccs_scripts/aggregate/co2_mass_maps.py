@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 import sys
-from typing import Dict, List, Tuple
 from pathlib import Path
+from typing import Dict, List, Tuple
+
 import xtgeo
 import yaml
-from ccs_scripts.aggregate import grid3d_aggregate_maps, _config, _parser
-from ccs_scripts.aggregate._config import AggregationMethod
 
+from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_maps
+from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
+from ccs_scripts.aggregate._config import AggregationMethod
 from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
-    calculate_co2
+    calculate_co2,
 )
-from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
 
 # Module variables for ERT hook implementation:
 DESCRIPTION = """

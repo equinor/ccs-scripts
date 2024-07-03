@@ -1,5 +1,6 @@
 import pytest
 import xtgeo
+
 from ccs_scripts.aggregate import grid3d_migration_time_maps
 
 
