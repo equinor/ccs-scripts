@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import sys
-from pathlib import Path
 from typing import Dict, List, Tuple
 
 import xtgeo

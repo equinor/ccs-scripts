@@ -1,4 +1,5 @@
 import datetime
+import logging
 from typing import List, Union
 
 import numpy as np
@@ -28,18 +29,18 @@ def generate_migration_time_property(
         co2_threshold = [co2_threshold]
     if len(co2_threshold) != len(unique_prop_names):
         if len(co2_threshold) == 1:
-            print(
-                "Only one value of co2_threshold for "
-                + str(len(unique_prop_names))
-                + " properties. The same threshold will be assumed for all the properties"
+            logging.info(
+                f"Only one value of co2_threshold for {str(len(unique_prop_names))}."
+                f"properties. The same threshold will be assumed for all the"
+                f"properties."
             )
             co2_threshold = [co2_threshold[0] for x in unique_prop_names]
         else:
             error_text = (
-                str(len(co2_threshold))
-                + " values of co2_threshold provided, but "
-                + str(len(unique_prop_names))
-                + " properties in config file input\nfix the amount of values in co2_threshold or the amount of properties in config file"
+                f"{str(len(co2_threshold))} values of co2_threshold provided,"
+                f" but {str(len(unique_prop_names))} properties in config file"
+                f" input. Fix the amount of values in co2_threshold or "
+                f" the amount of properties in config file"
             )
             raise Exception(error_text)
     co2_thresholds = {}
