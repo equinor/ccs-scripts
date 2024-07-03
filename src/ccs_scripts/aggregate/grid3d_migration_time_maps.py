@@ -2,7 +2,7 @@ import glob
 import os
 import sys
 import tempfile
-from typing import List, Optional, Union, Dict
+from typing import Dict, List, Optional, Union
 
 import xtgeo
 
