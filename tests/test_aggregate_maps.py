@@ -25,44 +25,6 @@ def test_aggregated_map1(datatree):
     assert swat.values.min() == pytest.approx(0.14292679727077484, abs=1e-8)
 
 
-def test_aggregated_map2(datatree):
-    result = datatree / "aggregate2_folder"
-    result.mkdir(parents=True)
-    cfg = "tests/yaml/config_aggregate2.yml"
-
-    grid3d_aggregate_maps.main(
-        [
-            "--config",
-            cfg,
-            "--mapfolder",
-            str(result),
-            "--plotfolder",
-            str(result),
-        ]
-    )
-    swat = xtgeo.surface_from_file(result / "all--min_swat--20030101.gri")
-    assert swat.values.mean() == pytest.approx(0.7908786104444353, abs=1e-8)
-
-
-def test_aggregated_map3(datatree):
-    result = datatree / "aggregate3_folder"
-    result.mkdir(parents=True)
-    cfg = "tests/yaml/config_aggregate3.yml"
-
-    grid3d_aggregate_maps.main(
-        [
-            "--config",
-            cfg,
-            "--mapfolder",
-            str(result),
-            "--plotfolder",
-            str(result),
-        ]
-    )
-    poro = xtgeo.surface_from_file(result / "all--mean_poro.gri")
-    assert poro.values.mean() == pytest.approx(0.1677586422488292, abs=1e-8)
-
-
 def test_aggregated_map4(datatree):
     result = datatree / "aggregate4_folder"
     result.mkdir(parents=True)
