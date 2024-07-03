@@ -80,7 +80,7 @@ def test_co2_mass_maps_reek_grid():
     for file in path.iterdir():
         if file.is_file():  # Check if it's a regular file
             print(file.name)
-    path1 = Path("tests/data/reek/eclipse/model")
+    path1 = Path("./tests/data/reek/eclipse/model")
     for file in path1.iterdir():
         if file.is_file():  # Check if it's a regular file
             print(file.name)
