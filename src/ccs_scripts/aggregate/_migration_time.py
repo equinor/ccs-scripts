@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import List, Union
+from typing import List, Union, Dict
 
 import numpy as np
 import xtgeo
@@ -43,7 +43,7 @@ def generate_migration_time_property(
                 f" the amount of properties in config file"
             )
             raise Exception(error_text)
-    co2_thresholds = {}
+    co2_thresholds: Dict[str,float] = {}
     for index, value in enumerate(prop_names):
         if value not in props_idx:
             props_idx[value] = [index]

@@ -1,6 +1,6 @@
 import pathlib
 import sys
-from typing import List, Optional
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import xtgeo
@@ -98,7 +98,7 @@ def generate_maps(
     _XTG.say("Reading grid, properties and zone(s)")
     grid = xtgeo.grid_from_file(input_.grid)
     properties = extract_properties(input_.properties, grid, input_.dates)
-    _filters = []
+    _filters: List[Tuple[str, Optional[Union[np.ndarray, None]]]] = []
     if computesettings.all:
         _filters.append(("all", None))
     if computesettings.zone:

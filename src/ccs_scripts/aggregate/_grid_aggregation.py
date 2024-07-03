@@ -72,8 +72,11 @@ def _read_properties_and_find_active_cells(
     active = grid.actnum_array.flatten().astype(bool)
     props = [p.values1d[active] for p in grid_props]
     all_masked = np.all([p.mask for p in props], axis=0)
-    if not any(i is None for i in inclusion_filters):
-        all_masked |= ~np.any(inclusion_filters, axis=0)
+    non_none_inclusion_filters = [
+        filter for filter in inclusion_filters if filter is not None
+    ]
+    if non_none_inclusion_filters:
+        all_masked |= ~np.any(non_none_inclusion_filters, axis=0)
     active[active] = ~all_masked
     props = [p[~all_masked] for p in props]
     inclusion_filters = [
@@ -306,7 +309,8 @@ def _property_to_map(
         rows = rows[~invalid]
         cols = cols[~invalid]
         data = data[~invalid]
-        weights = weights[~invalid]
+        if weights is not None:
+            weights = weights[~invalid]
 
     nx, ny = conn_data.x_nodes.size, conn_data.y_nodes.size
     if data.size == 0:
