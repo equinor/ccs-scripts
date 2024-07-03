@@ -1,3 +1,4 @@
+# pylint: disable-msg=too-many-lines
 """Methods for CO2 containment calculations"""
 
 import logging
