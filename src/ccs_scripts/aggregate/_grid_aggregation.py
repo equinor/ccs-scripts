@@ -76,7 +76,7 @@ def _read_properties_and_find_active_cells(
         filter for filter in inclusion_filters if filter is None
     ]
     if len(non_none_inclusion_filters)==0:
-        all_masked |= ~np.any(non_none_inclusion_filters, axis=0)
+        all_masked |= ~np.any(inclusion_filters, axis=0)
     active[active] = ~all_masked
     props = [p[~all_masked] for p in props]
     inclusion_filters = [
