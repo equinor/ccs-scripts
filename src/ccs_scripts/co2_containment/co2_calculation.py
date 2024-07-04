@@ -511,6 +511,12 @@ def _process_zones(
                 xtg_grid.nlay,
             )
             zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
+            try:
+                zone_name_dict = zone.codes
+                zone_values = list(zone_name_dict.keys())
+            except AttributeError:
+                zone_name_dict = {}
+                zone_values = []
             zone = zone.values.data.flatten(order="F")
             zonevals = np.unique(zone)
             intvals = np.array(zonevals, dtype=int)
@@ -523,7 +529,14 @@ def _process_zones(
             zone_info["int_to_zone"] = [None] * (np.max(intvals) + 1)
             for zv in intvals:
                 if zv >= 0:
-                    zone_info["int_to_zone"][zv] = f"Zone_{zv}"
+                    if zv in zone_values:
+                        zone_info["int_to_zone"][zv] = zone_name_dict[zv]
+                    else:
+                        zone_info["int_to_zone"][zv] = f"Zone_{zv}"
+                        logging.info(
+                            f"Value {zv} in roff-grid not found in Codes."
+                            f" Using generic zone name Zone_{zv}."
+                        )
                 else:
                     logging.info("Ignoring negative value in grid from zone file.")
             zone = np.array(zone[global_active_idx], dtype=int)
@@ -550,6 +563,12 @@ def _process_regions(
             xtg_grid.nlay,
         )
         region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
+        try:
+            region_name_dict = region.codes
+            region_values = list(region_name_dict.keys())
+        except AttributeError:
+            region_name_dict = {}
+            region_values = []
         region = region.values.data.flatten(order="F")
         regvals = np.unique(region)
         intvals = np.array(regvals, dtype=int)
@@ -562,7 +581,14 @@ def _process_regions(
         region_info["int_to_region"] = [None] * (np.max(intvals) + 1)
         for rv in intvals:
             if rv >= 0:
-                region_info["int_to_region"][rv] = f"Region_{rv}"
+                if rv in region_values:
+                    region_info["int_to_region"][rv] = region_name_dict[rv]
+                else:
+                    region_info["int_to_region"][rv] = f"Region_{rv}"
+                    logging.info(
+                        f"Value {rv} in roff-grid not found in Codes."
+                        f" Using generic region name Region_{rv}."
+                    )
             else:
                 logging.info("Ignoring negative value in grid from region file.")
         region = np.array(region[active[~gasless]], dtype=int)
