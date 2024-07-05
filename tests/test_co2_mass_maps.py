@@ -76,9 +76,15 @@ def test_co2_mass_maps_reek_grid():
     print("This is what's available right now:")
     print("in" + str(Path(__file__).absolute().parent))
     path = Path(__file__).absolute().parent / "data" / "reek" / "eclipse" / "model"
-
+    #path = Path("tests/data/reek/eclipse/model")
     # Iterate over all files in the directory
     for file in path.iterdir():
+        if file.is_file():  # Check if it's a regular file
+            print(file.name)
+
+    path1 = Path("tests/data/reek/eclipse/model")
+    # Iterate over all files in the directory
+    for file in path1.iterdir():
         if file.is_file():  # Check if it's a regular file
             print(file.name)
 
