@@ -1,13 +1,13 @@
 from pathlib import Path
-
+import shutil
 import pytest
 import xtgeo
 
 from ccs_scripts.aggregate import grid3d_aggregate_maps
 
 
-def test_aggregated_map1(datatree):
-    result = datatree / "aggregate1_folder"
+def test_aggregated_map1():
+    result = Path(__file__).absolute().parent / "aggregate1_folder"
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate1.yml"
 
@@ -23,10 +23,10 @@ def test_aggregated_map1(datatree):
     )
     swat = xtgeo.surface_from_file(result / "all--max_swat--20030101.gri")
     assert swat.values.min() == pytest.approx(0.14292679727077484, abs=1e-8)
+    shutil.rmtree(str(Path(result)))
 
-
-def test_aggregated_map2(datatree):
-    result = datatree / "aggregate2_folder"
+def test_aggregated_map2():
+    result = Path(__file__).absolute().parent / "aggregate2_folder"
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate2.yml"
 
@@ -42,10 +42,11 @@ def test_aggregated_map2(datatree):
     )
     swat = xtgeo.surface_from_file(result / "all--min_swat--20030101.gri")
     assert swat.values.mean() == pytest.approx(0.7908786104444353, abs=1e-8)
+    shutil.rmtree(str(Path(result)))
 
 
-def test_aggregated_map3(datatree):
-    result = datatree / "aggregate3_folder"
+def test_aggregated_map3():
+    result = Path(__file__).absolute().parent / "aggregate3_folder"
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate3.yml"
 
@@ -61,10 +62,11 @@ def test_aggregated_map3(datatree):
     )
     poro = xtgeo.surface_from_file(result / "all--mean_poro.gri")
     assert poro.values.mean() == pytest.approx(0.1677586422488292, abs=1e-8)
+    shutil.rmtree(str(Path(result)))
 
 
-def test_aggregated_map4(datatree):
-    result = datatree / "aggregate4_folder"
+def test_aggregated_map4():
+    result = Path(__file__).absolute().parent / "aggregate4_folder"
     result.mkdir(parents=True)
     yml = "tests/yaml/config_aggregate4.yml"
 
@@ -83,10 +85,11 @@ def test_aggregated_map4(datatree):
     assert (result / "all--max_swat--20030101.gri").is_file()
     assert (result / "zone2--max_swat--20030101.gri").is_file()
     assert (result / "zone3--max_swat--20030101.gri").is_file()
+    shutil.rmtree(str(Path(result)))
 
 
-def test_aggregated_map5(datatree):
-    result = datatree / "aggregate5_folder"
+def test_aggregated_map5():
+    result = Path(__file__).absolute().parent / "aggregate5_folder"
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate5.yml"
 
@@ -102,10 +105,11 @@ def test_aggregated_map5(datatree):
     )
     poro = xtgeo.surface_from_file(result / "all--mean_poro.gri")
     assert poro.values.mean() == pytest.approx(0.1648792893163274, abs=1e-8)
+    shutil.rmtree(str(Path(result)))
 
 
-def test_aggregated_map6(datatree):
-    result = datatree / "aggregate6_folder"
+def test_aggregated_map6():
+    result = Path(__file__).absolute().parent / "aggregate6_folder"
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate6.yml"
 
@@ -132,3 +136,4 @@ def test_aggregated_map6(datatree):
             "thirdzone--max_swat--20030101",
         ]
     )
+    shutil.rmtree(str(Path(result)))
