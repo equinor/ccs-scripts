@@ -95,8 +95,6 @@ def parse_yaml(
         if "co2_mass_settings" not in config
         else CO2MassSettings(**config.get("co2_mass_settings", {}))
     )
-    if co2_mass_settings is not None:
-        co2_mass_settings.unrst_source = str(Path(os.getcwd())) + "/" +  co2_mass_settings.unrst_source
     return RootConfig(
         input=Input(**config["input"]),
         output=Output(**config["output"]),
