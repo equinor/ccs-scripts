@@ -4,7 +4,7 @@ import logging
 import pathlib
 import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
-
+from pathlib import Path
 import numpy as np
 import xtgeo
 import yaml
@@ -94,6 +94,8 @@ def parse_yaml(
         if "co2_mass_settings" not in config
         else CO2MassSettings(**config.get("co2_mass_settings", {}))
     )
+    if co2_mass_settings is not None:
+        co2_mass_settings.unrst_source = str(Path(co2_mass_settings.unrst_source).resolve())
     return RootConfig(
         input=Input(**config["input"]),
         output=Output(**config["output"]),
