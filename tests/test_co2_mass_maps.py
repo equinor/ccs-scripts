@@ -67,7 +67,7 @@ def adapt_reek_grid_for_co2_mass_maps_test():
             y.fwrite(f)
 
 
-def test_co2_mass_maps_reek_grid():
+def test_co2_mass_maps_reek_grid(datatree):
     """
     Test CO2 containment code, with eclipse Reek data.
     Tests both mass and actual_volume calculations.
