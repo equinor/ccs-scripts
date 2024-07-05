@@ -417,12 +417,10 @@ def process_args() -> argparse.Namespace:
             if <root_dir> is not provided."
             raise InputError(error_text)
         args.root_dir = p[2]
-    if args.out_dir is None:
-        args.out_dir = os.path.join(args.root_dir, "share", "results", "tables")
     adict = vars(args)
     paths = [
         "case",
-        # "out_dir",
+        "out_dir",
         "egrid",
         "unrst",
         "init",
@@ -434,6 +432,8 @@ def process_args() -> argparse.Namespace:
     for key in paths:
         if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
             adict[key] = os.path.join(args.root_dir, adict[key])
+    if args.out_dir is None:
+        args.out_dir = os.path.join(args.root_dir, "share", "results", "tables")
 
     if args.egrid is None:
         args.egrid = args.case
