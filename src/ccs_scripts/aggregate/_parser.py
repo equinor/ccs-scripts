@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import xtgeo
 import yaml
+import os
 
 from ccs_scripts.aggregate._config import (
     CO2MassSettings,
@@ -95,7 +96,7 @@ def parse_yaml(
         else CO2MassSettings(**config.get("co2_mass_settings", {}))
     )
     if co2_mass_settings is not None:
-        co2_mass_settings.unrst_source = str(Path(co2_mass_settings.unrst_source).absolute())
+        co2_mass_settings.unrst_source = str(Path(os.getcwd())) + "/" +  co2_mass_settings.unrst_source
     return RootConfig(
         input=Input(**config["input"]),
         output=Output(**config["output"]),
