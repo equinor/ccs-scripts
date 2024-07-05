@@ -83,7 +83,7 @@ def test_co2_mass_maps_reek_grid():
                 / "config_co2_mass_maps_reek.yml"
             ),
             "--mapfolder",
-            str(result)
+            str(result),
         ]
     )
     dissolved_co2_file = (

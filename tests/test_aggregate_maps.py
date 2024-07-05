@@ -1,5 +1,6 @@
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 import pytest
 import xtgeo
 
@@ -24,6 +25,7 @@ def test_aggregated_map1():
     swat = xtgeo.surface_from_file(result / "all--max_swat--20030101.gri")
     assert swat.values.min() == pytest.approx(0.14292679727077484, abs=1e-8)
     shutil.rmtree(str(Path(result)))
+
 
 def test_aggregated_map2():
     result = Path(__file__).absolute().parent / "aggregate2_folder"

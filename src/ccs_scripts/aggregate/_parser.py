@@ -3,12 +3,12 @@ import datetime
 import logging
 import pathlib
 import sys
+
 from typing import Any, Dict, List, Optional, Tuple, Union
-from pathlib import Path
+
 import numpy as np
 import xtgeo
 import yaml
-import os
 
 from ccs_scripts.aggregate._config import (
     CO2MassSettings,

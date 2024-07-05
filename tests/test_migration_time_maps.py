@@ -1,7 +1,9 @@
-import pytest
-import xtgeo
 import shutil
 from pathlib import Path
+
+import pytest
+import xtgeo
+
 from ccs_scripts.aggregate import grid3d_migration_time_maps
 
 
