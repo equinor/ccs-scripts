@@ -78,9 +78,7 @@ jobs:
       - name: Run tests
         if: ${{ always() }}
         run: |
-          pwd
-          ls -la
-          pytest -s tests
+          pytest -n auto tests
           # Check that repository is untainted by test code:
           git status --porcelain
           test -z "$(git status --porcelain)"
