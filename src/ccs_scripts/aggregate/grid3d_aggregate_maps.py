@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import pathlib
 import sys
 from typing import List, Optional, Tuple, Union
