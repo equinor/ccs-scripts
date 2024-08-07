@@ -256,7 +256,6 @@ def _zonation_from_zproperty(
 
 
 def create_map_template(
-    # map_settings: _config.MapSettings,
     map_settings: MapSettings,
 ) -> Union[xtgeo.RegularSurface, float]:
     """
