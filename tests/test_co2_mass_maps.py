@@ -4,7 +4,7 @@ from pathlib import Path
 
 from resdata.resfile import FortIO, ResdataFile, openFortIO
 
-from ccs_scripts.co2_mass_maps import co2_mass_maps
+from ccs_scripts.aggregate import co2_mass_maps
 
 
 def adapt_reek_grid_for_co2_mass_maps_test():
@@ -104,8 +104,8 @@ def test_co2_mass_maps_reek_grid():
         / "mass_maps"
         / "all--co2-mass-total--20010801.gri"
     )
-    assert dissolved_co2_file.exists()
     assert free_co2_file.exists()
+    assert dissolved_co2_file.exists()
     assert total_co2_file.exists()
     shutil.rmtree(str(Path(__file__).absolute().parent / "answers" / "mass_maps"))
     os.remove(

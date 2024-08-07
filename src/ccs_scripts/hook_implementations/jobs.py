@@ -47,8 +47,14 @@ def _get_module_variable_if_exists(
     try:
         script_module = importlib.import_module(module_name)
     except ImportError:
-        return default
-
+        module_name_parts = module_name.split(".")
+        module_name_parts[1] = "aggregate"
+        modified_string = ".".join(module_name_parts)
+        module_name = modified_string
+        try:
+            script_module = importlib.import_module(module_name)
+        except ImportError:
+            return default
     return getattr(script_module, variable_name, default)
 
 
