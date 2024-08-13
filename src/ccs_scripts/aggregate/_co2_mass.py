@@ -94,7 +94,7 @@ def translate_co2data_to_property(
                 grid_out_dir + "/CO2_MASS_TOTAL--" + date + ".roff",
                 fformat="roff",
             )
-            total_mass_list.append(mass_as_grids["MASS-TOTAL"])
+            total_mass_list.append(mass_as_grids["MASS_TOTAL"])
         if store_all or "dissolved_co2" in maps:
             mass_as_grids["MASS_AQU_PHASE"].to_file(
                 grid_out_dir + "/CO2_MASS_AQU_PHASE--" + date + ".roff",
