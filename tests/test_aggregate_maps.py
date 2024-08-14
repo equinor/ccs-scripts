@@ -140,6 +140,7 @@ def test_aggregated_map6():
     )
     shutil.rmtree(str(Path(result)))
 
+
 def test_aggregated_map7():
     result = Path(__file__).absolute().parent / "aggregate7_folder"
     result.mkdir(parents=True)
