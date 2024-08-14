@@ -84,6 +84,8 @@ def translate_co2data_to_property(
     total_mass_list = []
     dissolved_mass_list = []
     free_mass_list = []
+    free_gas_mass_list = []
+    trapped_gas_mass_list = []
 
     store_all = "all" in maps or len(maps) == 0
     for co2_at_date in co2_data.data_list:
@@ -101,17 +103,31 @@ def translate_co2data_to_property(
                 fformat="roff",
             )
             dissolved_mass_list.append(mass_as_grids["MASS_AQU_PHASE"])
-        if store_all or "free_co2" in maps:
+        if (
+            store_all or "free_co2" in maps
+        ) and not co2_mass_settings.residual_trapping:
             mass_as_grids["MASS_GAS_PHASE"].to_file(
                 grid_out_dir + "/CO2_MASS_GAS_PHASE--" + date + ".roff",
                 fformat="roff",
             )
             free_mass_list.append(mass_as_grids["MASS_GAS_PHASE"])
+        if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
+            mass_as_grids["MASS_FREE_GAS_PHASE--"].to_file(
+                grid_out_dir + "/CO2_MASS_FREE_GAS_PHASE--" + date + ".roff",
+                fformat="roff",
+            )
+            free_gas_mass_list.append(mass_as_grids["MASS_FREE_GAS_PHASE"])
+            mass_as_grids["MASS_TRAPPED_GAS_PHASE"].to_file(
+                grid_out_dir + "/CO2_MASS_TRAPPED_GAS_PHASE--" + date + ".roff",
+                fformat="roff",
+            )
 
     return [
         free_mass_list,
         dissolved_mass_list,
         total_mass_list,
+        free_gas_mass_list,
+        trapped_gas_mass_list,
     ]
 
 
@@ -169,8 +185,20 @@ def _convert_to_grid(
     grids = {}
     date = str(co2_at_date.date)
     for mass, name in zip(
-        [co2_at_date.total_mass(), co2_at_date.aqu_phase, co2_at_date.gas_phase],
-        ["MASS_TOTAL", "MASS_AQU_PHASE", "MASS_GAS_PHASE"],
+        [
+            co2_at_date.total_mass(),
+            co2_at_date.aqu_phase,
+            co2_at_date.gas_phase,
+            co2_at_date.trapped_gas_phase,
+            co2_at_date.free_gas_phase,
+        ],
+        [
+            "MASS_TOTAL",
+            "MASS_AQU_PHASE",
+            "MASS_GAS_PHASE",
+            "MASS_TRAPPED_GAS_PHASE",
+            "MASS_FREE_GAS_PHASE",
+        ],
     ):
         mass_array = np.zeros(dimensions)
         for i, triplet in enumerate(triplets):

@@ -88,6 +88,7 @@ class CO2MassSettings:
     init_source: str
     maps: Optional[List[str]] = None
     zones: Optional[List[str]] = None
+    residual_trapping: Optional[bool] = False
 
     def __post_init__(self):
         pass
