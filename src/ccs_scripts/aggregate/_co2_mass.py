@@ -112,7 +112,7 @@ def translate_co2data_to_property(
             )
             free_mass_list.append(mass_as_grids["MASS_GAS_PHASE"])
         if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
-            mass_as_grids["MASS_FREE_GAS_PHASE--"].to_file(
+            mass_as_grids["MASS_FREE_GAS_PHASE"].to_file(
                 grid_out_dir + "/CO2_MASS_FREE_GAS_PHASE--" + date + ".roff",
                 fformat="roff",
             )
@@ -121,6 +121,7 @@ def translate_co2data_to_property(
                 grid_out_dir + "/CO2_MASS_TRAPPED_GAS_PHASE--" + date + ".roff",
                 fformat="roff",
             )
+            trapped_gas_mass_list.append(mass_as_grids["MASS_TRAPPED_GAS_PHASE"])
 
     return [
         free_mass_list,
