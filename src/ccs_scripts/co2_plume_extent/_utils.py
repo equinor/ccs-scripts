@@ -55,12 +55,16 @@ class PlumeGroups:
         ind_to_resolve = [
             ind for ind, group in enumerate(self.cells) if group.is_undetermined()
         ]
+        logging.debug(f"\nNumber of indices to resolve (A): {len(ind_to_resolve)}")
         counter = 1
         groups_to_merge = []  # A list of list of groups to merge
         while len(ind_to_resolve) > 0 and counter <= MAX_STEPS_RESOLVE_CELLS:
+            logging.debug(f"Step counter: {counter}")
             for ind in ind_to_resolve:
                 ijk = grid.get_ijk(active_index=ind)
+                logging.debug(f"  ind: {ind}  -  {ijk[0]}-{ijk[1]}-{ijk[2]}")
                 groups_nearby = self._find_nearest_groups(ijk, grid)
+                logging.debug(f"  groups nearby: {groups_nearby}")
                 if [-1] in groups_nearby:
                     groups_nearby = [x for x in groups_nearby if x != [-1]]
                 if len(groups_nearby) == 1:
@@ -74,6 +78,9 @@ class PlumeGroups:
             updated_ind_to_resolve = [
                 ind for ind, group in enumerate(self.cells) if group.is_undetermined()
             ]
+            logging.debug(
+                f"Number of indices to resolve (B): {len(updated_ind_to_resolve)}"
+            )
             if len(updated_ind_to_resolve) == len(ind_to_resolve):
                 updated = False
                 for ind in ind_to_resolve:
@@ -100,6 +107,9 @@ class PlumeGroups:
                     break
             ind_to_resolve = updated_ind_to_resolve
             counter += 1
+
+        logging.debug(f"Number of indices to resolve (C): {len(ind_to_resolve)}")
+        logging.debug(f"Groups to merge: {groups_to_merge}")
 
         # Any unresolved grid cells?
         for ind in ind_to_resolve:
@@ -132,7 +142,7 @@ class PlumeGroups:
         cells_with_co2 = [i for i in range(len(self.cells)) if self.cells[i].has_co2()]
         for ind in cells_with_co2:
             (i2, j2, k2) = grid.get_ijk(active_index=ind)
-            if abs(i2 - i1) <= tol and abs(j2 - j1) <= tol and abs(k2 - k2) <= tol:
+            if abs(i2 - i1) <= tol and abs(j2 - j1) <= tol and abs(k2 - k1) <= tol:
                 all_groups = self.cells[ind].all_groups
                 if all_groups not in out:
                     out.append(all_groups.copy())
