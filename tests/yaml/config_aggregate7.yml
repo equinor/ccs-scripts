@@ -1,0 +1,12 @@
+input:
+  grid: "tests/synthetic_model/realization-0/iter-0/pflotran/model/P_FLT_01-0.EGRID"
+  dates:
+    - 24000101
+    - 25000101
+  properties:
+    - source: "tests/synthetic_model/realization-0/iter-0/pflotran/model/P_FLT_01-0.UNRST"
+      name: "SGSTRAND"
+      lower_threshold: 1e-12
+
+output:
+  mapfolder: tmp
