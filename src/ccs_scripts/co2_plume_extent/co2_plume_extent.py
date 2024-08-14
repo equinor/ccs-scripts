@@ -894,7 +894,7 @@ def _find_distances_at_time_step(
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
 
-    logging.debug("Previous group:")
+    logging.debug("\nPrevious group:")
     prev_groups._debug_print()
 
     for index in cells_with_co2:
@@ -917,7 +917,7 @@ def _find_distances_at_time_step(
                     groups.cells[index].set_undetermined()
             else:
                 groups.cells[index].set_cell_groups([-999])
-    logging.debug("Current group:")
+    logging.debug("\nCurrent group:")
     groups._debug_print()
 
     if do_plume_tracking:
@@ -931,7 +931,7 @@ def _find_distances_at_time_step(
                         if set(cell.all_groups) & set(g):
                             cell.all_groups = new_group
 
-        logging.debug("Current group after resolving undetermined cells:")
+        logging.debug("\nCurrent group after resolving undetermined cells:")
         groups._debug_print()
 
     unique_groups = groups._find_unique_groups()
