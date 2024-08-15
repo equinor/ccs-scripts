@@ -894,23 +894,6 @@ def _find_distances_at_time_step(
 ):
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
-    # if i == 12:
-    #     exit()
-    logging.debug(f"\n\nNew time step: {i}")
-    logging.debug(f"-----------------")
-
-    # Temp add cells with co2 for made up injection well 3:
-    # if i >= 0 and True:
-    #     temp_inj3_list = [2596, 2597, 2622, 2623]
-    #     cells_with_co2 = np.concatenate((cells_with_co2, np.array(temp_inj3_list)))
-
-    # print("\n\n")
-    # for index in range(len(data)):
-    #     c = grid.get_ijk(active_index=index)
-    #     d = grid.get_xyz(active_index=index)
-    #     if (c[0] == 8 or c[0] == 9) and (c[1] == 13 or c[1] == 14) and (c[2] == 3):
-    #         print(f"{index} - {c[0]} - {c[1]} - {c[2]} - {d[0]} - {d[1]} - {d[2]}")
-    # exit()
 
     logging.debug("\nPrevious group:")
     prev_groups._debug_print()
@@ -929,12 +912,9 @@ def _find_distances_at_time_step(
 
     if do_plume_tracking:
         groups_to_merge = groups.resolve_undetermined_cells(grid)
-        if len(groups_to_merge) > 0:
-            logging.debug("\nMerging the following groups:")
         for full_group in groups_to_merge:
             new_group = [x for y in full_group for x in y]
             new_group.sort()
-            logging.debug(f"  * {full_group}  --->  {new_group}")
             for cell in groups.cells:
                 if cell.has_co2():
                     for g in full_group:
