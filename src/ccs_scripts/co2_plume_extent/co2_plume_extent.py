@@ -1028,9 +1028,9 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                 if not found:
                     groups.cells[index].set_undetermined()
             else:
-                groups.cells[index].set_cell_groups(
-                    [-999]
-                )  # Use group number -999 for all cells with co2 when plume tracking is not activated
+                # Use group number -999 for all cells with co2 when
+                # plume tracking is not activated
+                groups.cells[index].set_cell_groups([-999])
 
 
 def _organize_output_with_dates(
