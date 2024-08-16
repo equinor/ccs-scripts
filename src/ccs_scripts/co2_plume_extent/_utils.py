@@ -132,7 +132,7 @@ class PlumeGroups:
         cells_with_co2 = [i for i in range(len(self.cells)) if self.cells[i].has_co2()]
         for ind in cells_with_co2:
             (i2, j2, k2) = grid.get_ijk(active_index=ind)
-            if abs(i2 - i1) <= tol and abs(j2 - j1) <= tol and abs(k2 - k2) <= tol:
+            if abs(i2 - i1) <= tol and abs(j2 - j1) <= tol and abs(k2 - k1) <= tol:
                 all_groups = self.cells[ind].all_groups
                 if all_groups not in out:
                     out.append(all_groups.copy())
