@@ -171,6 +171,8 @@ class Configuration:
         if "injection_wells" in input_dict:
             for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
                 args_required = ["name", "x", "y"]
+                if self.do_plume_tracking:
+                    args_required += "z"
                 for arg in args_required:
                     if arg not in injection_well_info:
                         logging.error(
