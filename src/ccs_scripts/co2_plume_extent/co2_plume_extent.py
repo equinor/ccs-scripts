@@ -808,8 +808,17 @@ def _log_number_of_grid_cells(
         logging.info(row)
     logging.info("")
     if "?" in n_grid_cells_for_logging:
-        logging.warning("Warning: Plume group not found for some grid cells with CO2.")
-        logging.warning("See table above, under column '?'.\n")
+        no_groups = len(n_grid_cells_for_logging) == 1
+        logging.warning(
+            f"WARNING: Plume group not found for {'any' if no_groups else 'some'} grid cells with CO2."
+        )
+        logging.warning("         See table above, under column '?'.")
+        if no_groups:
+            logging.warning(
+                "         The reason might be incorrect coordinates for the injection wells.\n"
+            )
+        else:
+            logging.warning("")  # Line ending
 
 
 def _find_distances_per_time_step(
