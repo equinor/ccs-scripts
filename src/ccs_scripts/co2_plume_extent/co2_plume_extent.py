@@ -27,7 +27,7 @@ from ccs_scripts.co2_plume_extent._utils import PlumeGroups
 
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
-INJ_POINT_LATERAL_THRESHOLD = 60.0
+INJ_POINT_THRESHOLD = 60.0
 
 DESCRIPTION = """
 Calculates the maximum lateral distance of the CO2 plume from a given location,
@@ -105,6 +105,7 @@ class InjectionWellData:
     name: str
     x: float
     y: float
+    z: Optional[float]  # Needed for plume tracking
     number: int
 
 
@@ -170,6 +171,8 @@ class Configuration:
         if "injection_wells" in input_dict:
             for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
                 args_required = ["name", "x", "y"]
+                if self.do_plume_tracking:
+                    args_required += "z"
                 for arg in args_required:
                     if arg not in injection_well_info:
                         logging.error(
@@ -183,6 +186,11 @@ class Configuration:
                         name=injection_well_info["name"],
                         x=injection_well_info["x"],
                         y=injection_well_info["y"],
+                        z=(
+                            injection_well_info["z"]
+                            if "z" in injection_well_info
+                            else None
+                        ),
                         number=len(self.injection_wells) + 1,
                     )
                 )
@@ -592,10 +600,11 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
         f"\nPlume tracking activated: {'yes' if config.do_plume_tracking else 'no'}"
     )
     logging.info("\nInjection well data:")
-    logging.info(f"\n{'Number':<8} {'Name':<15} {'x':<15} {'y':<15}")
-    logging.info("-" * 56)
+    logging.info(f"\n{'Number':<8} {'Name':<15} {'x':<15} {'y':<15} {'z':<15}")
+    logging.info("-" * 72)
     for i, well in enumerate(config.injection_wells, 1):
-        logging.info(f"{i:<8} {well.name:<15} {well.x:<15} {well.y:<15}")
+        z_str = f"{well.z:<15}" if well.z is not None else "-"
+        logging.info(f"{i:<8} {well.name:<15} {well.x:<15} {well.y:<15} {z_str}")
     logging.info("")
 
 
@@ -799,8 +808,19 @@ def _log_number_of_grid_cells(
         logging.info(row)
     logging.info("")
     if "?" in n_grid_cells_for_logging:
-        logging.warning("Warning: Plume group not found for some grid cells with CO2.")
-        logging.warning("See table above, under column '?'.\n")
+        no_groups = len(n_grid_cells_for_logging) == 1
+        logging.warning(
+            f"WARNING: Plume group not found for "
+            f"{'any' if no_groups else 'some'} grid cells with CO2."
+        )
+        logging.warning("         See table above, under column '?'.")
+        if no_groups:
+            logging.warning(
+                "         The reason might be incorrect coordinates "
+                "for the injection wells.\n"
+            )
+        else:
+            logging.warning("")  # Line ending
 
 
 def _find_distances_per_time_step(
@@ -1009,19 +1029,28 @@ def _initialize_groups_from_prev_step_and_inj_wells(
     inj_wells: List[InjectionWellData],
     groups: PlumeGroups,
 ):
+    # NBNB-AS: Temp location, can move later:
+    inj_wells_grid_indices = {}
+    for well in inj_wells:
+        inj_wells_grid_indices[well.name] = grid.find_cell(x=well.x, y=well.y, z=well.z)
+
     for index in cells_with_co2:
         if prev_groups.cells[index].has_co2():
             groups.cells[index] = prev_groups.cells[index]
         else:
             # This grid cell did not have CO2 in the last time step
             if do_plume_tracking:
-                (x, y, _) = grid.get_xyz(active_index=index)
+                (i, j, k) = grid.get_ijk(active_index=index)
+                (x, y, z) = grid.get_xyz(active_index=index)
                 found = False
                 for well in inj_wells:
-                    if (
-                        abs(x - well.x) <= INJ_POINT_LATERAL_THRESHOLD
-                        and abs(y - well.y) <= INJ_POINT_LATERAL_THRESHOLD
-                    ):
+                    same_cell = (i, j, k) == inj_wells_grid_indices[well.name]
+                    xyz_close = (
+                        abs(x - well.x) <= INJ_POINT_THRESHOLD
+                        and abs(y - well.y) <= INJ_POINT_THRESHOLD
+                        and abs(z - well.z) <= INJ_POINT_THRESHOLD
+                    )
+                    if same_cell or xyz_close:
                         found = True
                         groups.cells[index].set_cell_groups(new_groups=[well.number])
                         break
