@@ -1027,21 +1027,28 @@ def _initialize_groups_from_prev_step_and_inj_wells(
     inj_wells: List[InjectionWellData],
     groups: PlumeGroups,
 ):
+    # NBNB-AS: Temp location, can move later:
+    inj_wells_grid_indices = {}
+    for well in inj_wells:
+        inj_wells_grid_indices[well.name] = grid.find_cell(x=well.x, y=well.y, z=well.z)
+
     for index in cells_with_co2:
         if prev_groups.cells[index].has_co2():
             groups.cells[index] = prev_groups.cells[index]
         else:
             # This grid cell did not have CO2 in the last time step
             if do_plume_tracking:
+                (i, j, k) = grid.get_ijk(active_index=index)
                 (x, y, z) = grid.get_xyz(active_index=index)
-                # (i, j, k) = grid.get_ijk(active_index=index)
                 found = False
                 for well in inj_wells:
-                    if (
+                    same_cell = (i, j, k) == inj_wells_grid_indices[well.name]
+                    xyz_close = (
                         abs(x - well.x) <= INJ_POINT_THRESHOLD
                         and abs(y - well.y) <= INJ_POINT_THRESHOLD
                         and abs(z - well.z) <= INJ_POINT_THRESHOLD
-                    ):
+                    )
+                    if same_cell or xyz_close:
                         found = True
                         groups.cells[index].set_cell_groups(new_groups=[well.number])
                         break
