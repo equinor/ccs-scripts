@@ -810,12 +810,14 @@ def _log_number_of_grid_cells(
     if "?" in n_grid_cells_for_logging:
         no_groups = len(n_grid_cells_for_logging) == 1
         logging.warning(
-            f"WARNING: Plume group not found for {'any' if no_groups else 'some'} grid cells with CO2."
+            f"WARNING: Plume group not found for "
+            f"{'any' if no_groups else 'some'} grid cells with CO2."
         )
         logging.warning("         See table above, under column '?'.")
         if no_groups:
             logging.warning(
-                "         The reason might be incorrect coordinates for the injection wells.\n"
+                "         The reason might be incorrect coordinates "
+                "for the injection wells.\n"
             )
         else:
             logging.warning("")  # Line ending
