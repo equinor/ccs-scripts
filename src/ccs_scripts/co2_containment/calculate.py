@@ -33,7 +33,7 @@ class ContainedCo2:
     """
 
     date: str
-    amount: np.float64
+    amount: Union[np.float64, np.int64]
     phase: str
     containment: str
     zone: Optional[str] = None
@@ -106,9 +106,14 @@ def calculate_co2_containment(
             )
             for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
                 for location, is_in_location in locations.items():
+                    dtype = (
+                        np.int64
+                        if calc_type == CalculationType.CELL_VOLUME
+                        else np.float64
+                    )
                     amount = np.sum(
                         co2_amount[is_in_section & is_in_location],
-                        dtype=np.float64,
+                        dtype=dtype,
                     )
                     containment += [
                         ContainedCo2(
