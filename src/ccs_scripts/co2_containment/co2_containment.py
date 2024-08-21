@@ -392,6 +392,7 @@ class InputError(Exception):
     """Raised for various mistakes in the provided input."""
 
 
+# pylint: disable-msg=too-many-branches
 def process_args() -> argparse.Namespace:
     """
     Process arguments and do some minor conversions.
@@ -416,8 +417,6 @@ def process_args() -> argparse.Namespace:
             if <root_dir> is not provided."
             raise InputError(error_text)
         args.root_dir = p[2]
-    if args.out_dir is None:
-        args.out_dir = os.path.join(args.root_dir, "share", "results", "tables")
     adict = vars(args)
     paths = [
         "case",
@@ -433,15 +432,25 @@ def process_args() -> argparse.Namespace:
     for key in paths:
         if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
             adict[key] = os.path.join(args.root_dir, adict[key])
+    if args.out_dir is None:
+        args.out_dir = os.path.join(args.root_dir, "share", "results", "tables")
 
     if args.egrid is None:
         args.egrid = args.case
-        if not args.case.endswith(".EGRID"):
+        if not args.egrid.endswith(".EGRID"):
             args.egrid += ".EGRID"
     if args.unrst is None:
-        args.unrst = args.egrid.replace(".EGRID", ".UNRST")
+        args.unrst = args.case
+        if args.unrst.endswith(".EGRID"):
+            args.unrst = args.unrst.replace(".EGRID", ".UNRST")
+        else:
+            args.unrst += ".UNRST"
     if args.init is None:
-        args.init = args.egrid.replace(".EGRID", ".INIT")
+        args.init = args.case
+        if args.init.endswith(".EGRID"):
+            args.init = args.init.replace(".EGRID", ".INIT")
+        else:
+            args.init += ".INIT"
 
     if args.debug:
         logging.basicConfig(format="%(message)s", level=logging.DEBUG)
@@ -712,52 +721,45 @@ def convert_data_frame(
         calc_type,
         residual_trapping,
     )
-    data = {}
-    if zone_info["source"] is not None:
-        data["zone"] = {
-            z: _merge_date_rows(g, calc_type, residual_trapping)
-            for z, g in data_frame[data_frame["zone"] != "all"]
-            .drop(columns=["region"])
-            .groupby("zone")
-        }
+    data: Dict[str, Dict] = {}
+    zones = []
+    regions = []
+    if zone_info["int_to_zone"] is not None:
+        zones = [z for z in zone_info["int_to_zone"] if z is not None]
+        data["zone"] = {}
+        for z in zones:
+            data["zone"][z] = _merge_date_rows(
+                data_frame[data_frame["zone"] == z],
+                calc_type,
+                residual_trapping,
+            )
     if region_info["int_to_region"] is not None:
-        data["region"] = {
-            r: _merge_date_rows(g, calc_type, residual_trapping)
-            for r, g in data_frame[data_frame["region"] != "all"]
-            .drop(columns=["zone"])
-            .groupby("region")
-        }
+        regions = [r for r in region_info["int_to_region"] if r is not None]
+        data["region"] = {}
+        for r in regions:
+            data["region"][r] = _merge_date_rows(
+                data_frame[data_frame["region"] == r],
+                calc_type,
+                residual_trapping,
+            )
 
     zone_df = pd.DataFrame()
     region_df = pd.DataFrame()
-    if zone_info["source"] is not None:
+    if zone_info["int_to_zone"] is not None:
         total_df["zone"] = ["all"] * total_df.shape[0]
-        assert zone_info["int_to_zone"] is not None
-        zone_keys = list(data["zone"].keys())
-        for key in filter(None, zone_info["int_to_zone"]):  # type: str
-            if key in zone_keys:
-                _df = data["zone"][key]
-            else:
-                _df = data["zone"][zone_keys[0]]
-                numeric_cols = _df.select_dtypes(include=["number"]).columns
-                _df[numeric_cols] = 0
-            _df["zone"] = [key] * _df.shape[0]
+        for z in zones:
+            _df = data["zone"][z]
+            _df["zone"] = [z] * _df.shape[0]
             zone_df = pd.concat([zone_df, _df])
         if region_info["int_to_region"] is not None:
             zone_df["region"] = ["all"] * zone_df.shape[0]
     if region_info["int_to_region"] is not None:
         total_df["region"] = ["all"] * total_df.shape[0]
-        region_keys = list(data["region"].keys())
-        for key in filter(None, region_info["int_to_region"]):
-            if key in region_keys:
-                _df = data["region"][key]
-            else:
-                _df = data["region"][region_keys[0]]
-                numeric_cols = _df.select_dtypes(include=["number"]).columns
-                _df[numeric_cols] = 0
-            _df["region"] = [key] * _df.shape[0]
+        for r in regions:
+            _df = data["region"][r]
+            _df["region"] = [r] * _df.shape[0]
             region_df = pd.concat([region_df, _df])
-        if zone_info["source"] is not None:
+        if zone_info["int_to_zone"] is not None:
             region_df["zone"] = ["all"] * region_df.shape[0]
     combined_df = pd.concat([total_df, zone_df, region_df])
     return combined_df
@@ -775,7 +777,7 @@ def export_output_to_csv(
     if "amount" in data_frame.columns:
         file_name = f"plume_{calc_type_input}.csv"
     else:
-        file_name = f"plume_{calc_type_input}_OLD_OUTPUT.csv"
+        file_name = f"plume_{calc_type_input}_summary_format.csv"
     logging.info(f"\nExport results to CSV file: {file_name}")
     file_path = os.path.join(out_dir, file_name)
     if os.path.isfile(file_path):

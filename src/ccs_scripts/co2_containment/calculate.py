@@ -33,7 +33,7 @@ class ContainedCo2:
     """
 
     date: str
-    amount: float
+    amount: Union[np.float64, np.int64]
     phase: str
     containment: str
     zone: Optional[str] = None
@@ -106,7 +106,15 @@ def calculate_co2_containment(
             )
             for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
                 for location, is_in_location in locations.items():
-                    amount = sum(co2_amount[is_in_section & is_in_location])
+                    dtype = (
+                        np.int64
+                        if calc_type == CalculationType.CELL_VOLUME
+                        else np.float64
+                    )
+                    amount = np.sum(
+                        co2_amount[is_in_section & is_in_location],
+                        dtype=dtype,
+                    )
                     containment += [
                         ContainedCo2(
                             co2_at_timestep.date,
@@ -237,8 +245,8 @@ def _zone_map(co2_data: Co2Data, zone_info: Dict) -> Dict:
             if zone_info["int_to_zone"] is None
             else {
                 zone_info["int_to_zone"][z]: np.array(co2_data.zone == z)
-                for z in np.unique(co2_data.zone)
-                if z >= 0 and zone_info["int_to_zone"][z] is not None
+                for z in range(len(zone_info["int_to_zone"]))
+                if zone_info["int_to_zone"][z] is not None
             }
         )
     )
@@ -258,8 +266,8 @@ def _region_map(co2_data: Co2Data, region_info: Dict) -> Dict:
             if region_info["int_to_region"] is None
             else {
                 region_info["int_to_region"][r]: np.array(co2_data.region == r)
-                for r in np.unique(co2_data.region)
-                if r >= 0 and region_info["int_to_region"][r] is not None
+                for r in range(len(region_info["int_to_region"]))
+                if region_info["int_to_region"][r] is not None
             }
         )
     )
