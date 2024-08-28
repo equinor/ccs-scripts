@@ -15,7 +15,7 @@ import socket
 import subprocess
 import sys
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, TextIO, Union
 
 import numpy as np
 import pandas as pd
@@ -772,18 +772,150 @@ def export_output_to_csv(
 ):
     """
     Exports the results to a csv file, named according to the calculation type
-    (mass / cell_volume / actual_volume)
+    (mass / cell_volume / actual_volume).
     """
-    if "amount" in data_frame.columns:
-        file_name = f"plume_{calc_type_input}.csv"
-    else:
-        file_name = f"plume_{calc_type_input}_summary_format.csv"
+    file_name = f"plume_{calc_type_input}.csv"
     logging.info(f"\nExport results to CSV file: {file_name}")
     file_path = os.path.join(out_dir, file_name)
     if os.path.isfile(file_path):
         logging.info(f"Output CSV file already exists. Overwriting: {file_path}")
 
     data_frame.to_csv(file_path, index=False)
+
+
+def export_readable_output(
+    df: pd.DataFrame,
+    zone_info: dict,
+    region_info: dict,
+    out_dir: str,
+    calc_type_input: str,
+    residual_trapping: bool,
+):
+    """
+    Exports the results to a more readable text file than the standard csv output,
+    named according to the calculation type (mass / cell_volume / actual_volume)
+    """
+    file_name = f"plume_{calc_type_input}_summary_format.txt"
+    logging.info(f"\nExport results to readable text file: {file_name}")
+    file_path = os.path.join(out_dir, file_name)
+    if os.path.isfile(file_path):
+        logging.info(f"Output text file already exists. Overwriting: {file_path}")
+    details = prepare_writing_details(df, calc_type_input, residual_trapping)
+    for column in details["number_cols"]:
+        df[column] /= details["scale"]
+
+    zones = []
+    regions = []
+    if zone_info["int_to_zone"] is not None:
+        zones += [zone for zone in zone_info["int_to_zone"] if zone is not None]
+    if region_info["int_to_region"] is not None:
+        regions += [
+            region for region in region_info["int_to_region"] if region is not None
+        ]
+    with open(file_path, "w", encoding="utf-8") as file:
+        file.write(f"Calculation type: {calc_type_input}, unit: {details['unit']}\n")
+        write_lines(file, df, "all", "all", details)
+        if len(zones) > 0:
+            file.write("\nFiltered by zone:")
+        for zone in zones:
+            write_lines(file, df, zone, "all", details)
+        if len(regions) > 0:
+            file.write("\nFiltered by region:")
+        for region in regions:
+            write_lines(file, df, "all", region, details)
+
+
+def prepare_writing_details(
+    df: pd.DataFrame,
+    calc_type: str,
+    residual_trapping: bool,
+):
+    """
+    Prepare headers and other information to be written in the summary file.
+    """
+    phase = (
+        "|Free gas    |Trapped gas |Aqueous     |"
+        if residual_trapping
+        else "|Gas         |Aqueous     |"
+    )
+    details: Dict = {
+        "num_phase": 3 if residual_trapping else 2,
+        "number_cols": [
+            col for col in df.columns if col not in ["date", "zone", "region"]
+        ],
+    }
+    blank = "             " * (details["num_phase"] - 1)
+    blank2 = "             " * 2
+    tot = "|Total       "
+    cont = "|Contained   "
+    out = "|Outside     "
+    haz = "|Hazardous   "
+    if calc_type == "cell_volume":
+        details["over_header"] = " " * 40 + "|"
+        details["header"] = "\nDate       |" + tot + "|" + cont + out + haz + "|"
+        details["dashes"] = "\n" + "-" * 66
+        details["extra_line"] = [0, 3]
+    else:
+        details["over_header"] = "|"
+        details["over_header"] += "|".join(
+            [tot + blank, tot + blank2, cont + blank, out + blank, haz + blank]
+        )
+        details["over_header"] += "|"
+        details["header"] = (
+            "\nDate       |" + tot + "|" + phase + cont + out + haz + "|" + phase * 3
+        )
+        details["dashes"] = "\n" + "-" * (70 + 52 * details["num_phase"])
+        details["extra_line"] = np.cumsum(
+            [0, details["num_phase"], 3] + [details["num_phase"]] * 3
+        )
+    if calc_type == "mass":
+        details["unit"] = "Megatons"
+        details["scale"] = 1e9
+        details["decimals"] = 3
+    elif calc_type == "actual_volume":
+        details["unit"] = "Cubic kilometers"
+        details["scale"] = 1e9
+        details["decimals"] = 6
+    else:
+        details["unit"] = "Number of cells (in millions)"
+        details["scale"] = 1e6
+        details["decimals"] = 2
+    return details
+
+
+def write_lines(
+    file: TextIO,
+    data_frame: pd.DataFrame,
+    zone: str,
+    region: str,
+    details: dict,
+):
+    """
+    Write lines for the section of the containment output corresponding to the area
+    defined by the specified region or zone (or the total across all).
+    """
+    df = data_frame[(data_frame["zone"] == zone) & (data_frame["region"] == region)]
+    if zone == "all" and region == "all":
+        over_header = "\n" + " " * 25 + details["over_header"]
+    elif region != "all":
+        over_header = f"\n{region:<25}" + details["over_header"]
+    else:
+        over_header = f"\n{zone:<25}" + details["over_header"]
+
+    file.write(details["dashes"])
+    file.write(over_header)
+    file.write(details["dashes"])
+    file.write(details["header"])
+    file.write(details["dashes"])
+    for lines_done in range(df.shape[0]):
+        line = f"\n{df['date'].values[lines_done]} |"
+        values = df[details["number_cols"]].values[lines_done]
+        for val_ind, value in enumerate(values):
+            line += f"|{value:>11.{details['decimals']}f} "
+            if val_ind in details["extra_line"]:
+                line += "|"
+        file.write(line)
+    file.write(details["dashes"] + "\n")
 
 
 def main() -> None:
@@ -836,10 +968,13 @@ def main() -> None:
             arguments_processed.calc_type_input,
             arguments_processed.residual_trapping,
         )
-        export_output_to_csv(
+        export_readable_output(
+            df_old_output,
+            zone_info,
+            region_info,
             arguments_processed.out_dir,
             arguments_processed.calc_type_input,
-            df_old_output,
+            arguments_processed.residual_trapping,
         )
 
 
