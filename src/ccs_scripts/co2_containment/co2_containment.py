@@ -357,8 +357,8 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--readable_output",
-        help="Generate output csv-file that is easier to parse than the standard"
-        " output. Currently the same as the old output (WIP).",
+        help="Generate output text-file that is easier to parse than the standard"
+        " output.",
         action="store_true",
     )
 
@@ -703,16 +703,7 @@ def convert_data_frame(
     residual_trapping: bool,
 ) -> pd.DataFrame:
     """
-    Convert output format to human-readable state
-
-    Work in progress
-    TODO:
-        - Formatting
-            * Column widths
-            * Number formats
-            * Units
-        - Consider handling of zones and regions
-            * Possible to do separate files
+    Convert output format to human-readable state.
     """
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     logging.info("\nMerge data rows for data frame")
@@ -959,7 +950,6 @@ def main() -> None:
         arguments_processed.calc_type_input,
         data_frame,
     )
-    # Save also old output - WIP to make this better
     if arguments_processed.readable_output:
         df_old_output = convert_data_frame(
             data_frame,
