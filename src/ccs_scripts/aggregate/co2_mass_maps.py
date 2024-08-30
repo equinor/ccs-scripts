@@ -114,7 +114,7 @@ def co2_mass_property_to_map(
                         None,
                     )
                 )
-    grid3d_aggregate_maps.generate_from_config(config_)
+    grid3d_aggregate_map.generate_from_config(config_)
 
 
 def process_zonation(
