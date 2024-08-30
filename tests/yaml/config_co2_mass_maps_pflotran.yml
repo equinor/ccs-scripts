@@ -1,0 +1,14 @@
+input:
+  eclroot: tests/synthetic_model/realization-0/iter-0/pflotran/model/P_FLT_01-0
+  grid: $eclroot.EGRID
+
+co2_mass_settings:
+  unrst_source: $eclroot.UNRST
+  init_source: $eclroot.INIT
+  maps: ["free_co2"]
+  residual_trapping: yes
+
+output:
+  mapfolder: tmp
+
+

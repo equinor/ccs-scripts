@@ -84,34 +84,51 @@ def translate_co2data_to_property(
     total_mass_list = []
     dissolved_mass_list = []
     free_mass_list = []
+    free_gas_mass_list = []
+    trapped_gas_mass_list = []
 
     store_all = "all" in maps or len(maps) == 0
     for co2_at_date in co2_data.data_list:
         date = str(co2_at_date.date)
         mass_as_grids = _convert_to_grid(co2_at_date, dimensions, triplets)
         if store_all or "total_co2" in maps:
-            mass_as_grids["MASS-TOTAL"].to_file(
-                grid_out_dir + "/CO2-MASS-TOTAL--" + date + ".roff",
+            mass_as_grids["MASS_TOTAL"].to_file(
+                grid_out_dir + "/CO2_MASS_TOTAL--" + date + ".roff",
                 fformat="roff",
             )
-            total_mass_list.append(mass_as_grids["MASS-TOTAL"])
+            total_mass_list.append(mass_as_grids["MASS_TOTAL"])
         if store_all or "dissolved_co2" in maps:
-            mass_as_grids["MASS-AQU-PHASE"].to_file(
-                grid_out_dir + "/CO2-MASS-AQU-PHASE--" + date + ".roff",
+            mass_as_grids["MASS_AQU_PHASE"].to_file(
+                grid_out_dir + "/CO2_MASS_AQU_PHASE--" + date + ".roff",
                 fformat="roff",
             )
-            dissolved_mass_list.append(mass_as_grids["MASS-AQU-PHASE"])
-        if store_all or "free_co2" in maps:
-            mass_as_grids["MASS-GAS-PHASE"].to_file(
-                grid_out_dir + "/CO2-MASS-GAS-PHASE--" + date + ".roff",
+            dissolved_mass_list.append(mass_as_grids["MASS_AQU_PHASE"])
+        if (
+            store_all or "free_co2" in maps
+        ) and not co2_mass_settings.residual_trapping:
+            mass_as_grids["MASS_GAS_PHASE"].to_file(
+                grid_out_dir + "/CO2_MASS_GAS_PHASE--" + date + ".roff",
                 fformat="roff",
             )
-            free_mass_list.append(mass_as_grids["MASS-GAS-PHASE"])
+            free_mass_list.append(mass_as_grids["MASS_GAS_PHASE"])
+        if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
+            mass_as_grids["MASS_FREE_GAS_PHASE"].to_file(
+                grid_out_dir + "/CO2_MASS_FREE_GAS_PHASE--" + date + ".roff",
+                fformat="roff",
+            )
+            free_gas_mass_list.append(mass_as_grids["MASS_FREE_GAS_PHASE"])
+            mass_as_grids["MASS_TRAPPED_GAS_PHASE"].to_file(
+                grid_out_dir + "/CO2_MASS_TRAPPED_GAS_PHASE--" + date + ".roff",
+                fformat="roff",
+            )
+            trapped_gas_mass_list.append(mass_as_grids["MASS_TRAPPED_GAS_PHASE"])
 
     return [
         free_mass_list,
         dissolved_mass_list,
         total_mass_list,
+        free_gas_mass_list,
+        trapped_gas_mass_list,
     ]
 
 
@@ -169,13 +186,25 @@ def _convert_to_grid(
     grids = {}
     date = str(co2_at_date.date)
     for mass, name in zip(
-        [co2_at_date.total_mass(), co2_at_date.aqu_phase, co2_at_date.gas_phase],
-        ["MASS-TOTAL", "MASS-AQU-PHASE", "MASS-GAS-PHASE"],
+        [
+            co2_at_date.total_mass(),
+            co2_at_date.aqu_phase,
+            co2_at_date.gas_phase,
+            co2_at_date.trapped_gas_phase,
+            co2_at_date.free_gas_phase,
+        ],
+        [
+            "MASS_TOTAL",
+            "MASS_AQU_PHASE",
+            "MASS_GAS_PHASE",
+            "MASS_TRAPPED_GAS_PHASE",
+            "MASS_FREE_GAS_PHASE",
+        ],
     ):
         mass_array = np.zeros(dimensions)
         for i, triplet in enumerate(triplets):
             mass_array[triplet] = mass[i]
-        mass_name = "CO2-" + name
+        mass_name = "CO2_" + name
         grids[name] = xtgeo.grid3d.GridProperty(
             ncol=dimensions[0],
             nrow=dimensions[1],

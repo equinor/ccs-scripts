@@ -55,6 +55,7 @@ def generate_co2_mass_maps(config_):
         init_file=co2_mass_settings.init_source,
         zone_info=zone_info,
         region_info=region_info,
+        residual_trapping=co2_mass_settings.residual_trapping,
     )
     dates = config_.input.dates
     if len(dates) > 0:
