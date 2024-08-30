@@ -139,3 +139,28 @@ def test_aggregated_map6():
         ]
     )
     shutil.rmtree(str(Path(result)))
+
+
+def test_aggregated_map7():
+    result = Path(__file__).absolute().parent / "aggregate7_folder"
+    result.mkdir(parents=True)
+    cfg = "tests/yaml/config_aggregate7.yml"
+
+    grid3d_aggregate_maps.main(
+        [
+            "--config",
+            cfg,
+            "--mapfolder",
+            str(result),
+            "--plotfolder",
+            str(result),
+        ]
+    )
+    gri_files = [p.stem for p in Path(result).glob("*.gri")]
+    assert sorted(gri_files) == sorted(
+        [
+            "all--max_sgstrand--24000101",
+            "all--max_sgstrand--25000101",
+        ]
+    )
+    shutil.rmtree(str(Path(result)))
