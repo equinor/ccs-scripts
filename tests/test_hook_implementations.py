@@ -20,7 +20,7 @@ def expected_jobs():
         "CO2_PLUME_EXTENT",
         "CO2_MASS_MAPS",
         "GRID3D_AGGREGATE_MAP",
-        "GRID3D_MIGRATION_TIME_MAP",
+        "GRID3D_MIGRATION_TIME",
     ]
     return {
         name: path.join(path.dirname(ccs_scripts.__file__), "config_jobs", name)
