@@ -447,10 +447,7 @@ def _find_distances_at_time_step(
             [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
         )
         if group_string not in group_names:
-            group_names.update(g)
-            # dist_per_group[group_string] = {
-            #     s: np.zeros(shape=(n_time_steps,)) for s in g
-            # }
+            group_names.add(group_string)
             n_grid_cells_for_logging[group_string] = [0] * n_time_steps
         n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
 
