@@ -141,7 +141,8 @@ class Configuration:
             )
             sys.exit(1)
 
-    def read_config_file(self, config_file: str) -> Dict:
+    @staticmethod
+    def read_config_file(config_file: str) -> Dict:
         with open(config_file, "r", encoding="utf8") as stream:
             try:
                 config = yaml.safe_load(stream)
