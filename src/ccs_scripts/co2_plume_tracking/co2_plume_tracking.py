@@ -267,6 +267,69 @@ def calculate_plume_groups(
     grid = Grid(f"{case}.EGRID")
     unrst = ResdataFile(f"{case}.UNRST")
 
+#     if False:
+#         unrst = ResdataFile(f"{case}.UNRST")
+#
+#         print(grid)
+#         print(unrst)
+#         # sgas = unrst.SGAS()
+#         print(unrst.report_list)
+#         print(unrst.report_dates[15])
+#         print(unrst.size)
+#         print(unrst.unique_size)
+#         print(unrst.keys())
+#         swat_kw = unrst.iget_named_kw("SWAT", 0)
+#         print(swat_kw)
+#         print(unrst.has_kw("sgas"))
+#         print(unrst.has_kw("SGAS"))
+#         print(unrst.has_kw("dummy"))
+#         # unrst.save_kw()  # Se dokumentasjon i koden
+#         print("\n\n")
+#         data = unrst["SGAS"]
+#         print(type(data))
+#         print(type(data[15]))
+#         print(data[15])
+#         a = data[15].numpy_view()
+#         print(a.shape)
+#         print(a)
+#         print(len([x for x in a if x != 0]))
+#         print(max(a))
+#
+#     print("\n"*10)
+#     from resdata import FileMode
+#     unrst2 = ResdataFile(f"{case}.UNRST", flags=FileMode.WRITABLE)
+#     # print(unrst)
+#     print(unrst2)
+#     print(unrst2.keys())
+#     sgas_prop = unrst2["SGAS"]
+#     print(sgas_prop)
+#     print(type(sgas_prop))
+#     sgas_at_date = sgas_prop[15]
+#     print(sgas_at_date)
+#     print(type(sgas_at_date))
+#
+#     new_prop = sgas_at_date.copy()
+#     print(new_prop)
+#     print(type(new_prop))
+#     print(new_prop.set_name("new_prop"))
+#     print(new_prop)
+#     b = new_prop.numpy_view()
+#     print(sum(b) / len(b))
+#     b *= 7
+#     print(sum(b) / len(b))
+#
+#     if False:
+#         for x in sgas_prop:
+#             c = x.numpy_view()
+#             c -= 1.0
+#             unrst2.save_kw(x)  # This overwrites the sgas property
+#
+#     # from resdata.resfile import FortIO
+#     # fortio = FortIO(f"{case}.UNRST")
+#
+#
+#     exit()
+
     logging.info(f"Number of active grid cells: {grid.get_num_active()}")
 
     all_results = []
@@ -343,6 +406,10 @@ def _find_distances_per_time_step(
     logging.info(f"\nStart calculating plume tracking for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
+
+    # results: dict[str, np.ndarray] = {}
+    # results: dict[str, dict[str, List[int]]] = {}  # First key: date, second key: plume group, list: group number(s)
+    results: list[dict[str, List[int]]] = []
     group_names: set[str] = set()
     prev_groups = PlumeGroups(n_cells)
     for i in range(n_time_steps):
@@ -360,10 +427,37 @@ def _find_distances_per_time_step(
             group_names,
             n_grid_cells_for_logging,
         )
+
+        # Use groups to make list:
+        a = {}
+        for j, cell in enumerate(groups.cells):
+            all_groups = cell.all_groups
+            if all_groups:
+                # all_groups_str = "+".join([str(x) for x in all_groups])
+                group_string = "+".join(
+                    [str([x.name for x in inj_wells if x.number == y][0] if y != -1 else "?") for y in all_groups]
+                )
+                if group_string not in a:
+                    a[group_string] = []
+                a[group_string].append(j)
+        results.append(a)
+
+        # date = unrst.report_dates[i].strftime("%Y-%m-%d")
+        # results[date] = ...
+        # a = [cell.all_groups for cell in groups.cells]
+        # print(len(a))
+        # print(len([x for x in a if len(x) != 0]))
+
         prev_groups = groups.copy()
         percent = (i + 1) / n_time_steps
         logging.info(f"{percent*100:>6.1f} %")
     logging.info("")
+
+    print([x.keys() for x in results])
+
+    import json
+    with open(f"plume_groups_{attribute_key}.json", "w") as file:
+        json.dump(results, file, indent=4)
 
     _log_number_of_grid_cells(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key
