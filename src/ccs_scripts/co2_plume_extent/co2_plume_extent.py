@@ -23,8 +23,6 @@ import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
-from ccs_scripts.co2_plume_extent._utils import PlumeGroups
-
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
 INJ_POINT_THRESHOLD = 60.0
@@ -865,8 +863,6 @@ def _find_distances_per_time_step(
     n_time_steps = len(unrst.report_steps)
     dist_per_group: Dict[str, Dict[str, np.ndarray]] = {}
 
-    # print(plume_groups)
-
     logging.info(f"\nStart calculating plume extent for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
@@ -877,7 +873,6 @@ def _find_distances_per_time_step(
             i,
             threshold,
             do_plume_tracking,
-            inj_wells,
             n_time_steps,
             calculation_type,
             dist,
@@ -917,7 +912,6 @@ def _find_distances_at_time_step(
     i: int,
     threshold: float,
     do_plume_tracking: bool,
-    inj_wells: List[InjectionWellData],
     n_time_steps: int,
     calculation_type: CalculationType,
     dist: Dict[str, np.ndarray],
@@ -929,28 +923,17 @@ def _find_distances_at_time_step(
     cells_with_co2 = np.where(data > threshold)[0]
 
     print("\nplume_groups:")
-    # print(plume_groups.keys()   )
     if do_plume_tracking:
         for group_name, indices_this_group in plume_groups.items():
             print(group_name)
             print(len(indices_this_group))
             if group_name == "?":
                 continue
-            # if len(indices_this_group) == 0:
-            #     result = {}
-            #     print("A")
-            #     print(group_name.split("+"))
-            #     for single_inj_number in group_name.split("+"):
-            #         print(single_inj_number)
-            #         result[single_inj_number] = np.nan
 
             result = {}
             if calculation_type == CalculationType.PLUME_EXTENT:
                 if do_plume_tracking:
                     for well_name in group_name.split("+"):
-                        # well_name = [
-                        #     x.name for x in inj_wells if x.number == single_inj_number
-                        # ][0]
                         result[well_name] = dist[well_name][
                             indices_this_group
                         ].max()
@@ -984,81 +967,6 @@ def _find_distances_at_time_step(
                 dist_per_group[group_name]["ALL"][i] = result["ALL"]
     else:
         indices_this_group = list(cells_with_co2)
-
-
-    return
-    for g in unique_groups:
-        if g == [-1]:
-            if "?" not in n_grid_cells_for_logging:
-                n_grid_cells_for_logging["?"] = [0] * n_time_steps
-            n_grid_cells_for_logging["?"][i] = len(
-                [i for i in cells_with_co2 if groups.cells[i].all_groups == [-1]]
-            )
-            continue
-        if do_plume_tracking:
-            indices_this_group = [
-                i for i in cells_with_co2 if groups.cells[i].all_groups == g
-            ]
-        else:
-            indices_this_group = list(cells_with_co2)
-        if len(indices_this_group) == 0:
-            result = {}
-            for single_inj_number in g:
-                result[single_inj_number] = np.nan
-        else:
-            result = {}
-            if calculation_type == CalculationType.PLUME_EXTENT:
-                if do_plume_tracking:
-                    for single_inj_number in g:
-                        well_name = [
-                            x.name for x in inj_wells if x.number == single_inj_number
-                        ][0]
-                        result[single_inj_number] = dist[well_name][
-                            indices_this_group
-                        ].max()
-                else:
-                    for well_name in dist.keys():
-                        result[well_name] = dist[well_name][indices_this_group].max()
-            elif calculation_type in (
-                CalculationType.POINT,
-                CalculationType.LINE,
-            ):
-                result["ALL"] = dist["ALL"][indices_this_group].min()
-
-        if do_plume_tracking:
-            group_string = "+".join(
-                [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
-            )
-        else:
-            group_string = "ALL"
-        if group_string not in dist_per_group:
-            if calculation_type == CalculationType.PLUME_EXTENT:
-                if do_plume_tracking:
-                    dist_per_group[group_string] = {
-                        s: np.zeros(shape=(n_time_steps,)) for s in g
-                    }
-                else:
-                    dist_per_group[group_string] = {
-                        well_name: np.zeros(shape=(n_time_steps,))
-                        for well_name in dist.keys()
-                    }
-            elif calculation_type in (
-                CalculationType.POINT,
-                CalculationType.LINE,
-            ):
-                dist_per_group[group_string] = {"ALL": np.full(n_time_steps, np.nan)}
-        if calculation_type == CalculationType.PLUME_EXTENT:
-            if do_plume_tracking:
-                for s in g:
-                    dist_per_group[group_string][s][i] = result[s]
-            else:
-                for well_name, value in result.items():
-                    dist_per_group[group_string][well_name][i] = value
-        elif calculation_type in (
-            CalculationType.POINT,
-            CalculationType.LINE,
-        ):
-            dist_per_group[group_string]["ALL"][i] = result["ALL"]
 
 
 def _organize_output_with_dates(
