@@ -221,7 +221,7 @@ def calculate_single_distances(
     threshold_amfg: float,
     inj_wells: List[InjectionWellData],
 ):
-    sgas_results = _find_distances_per_time_step(  # NBNB-AS
+    _find_distances_per_time_step(  # NBNB-AS
         "SGAS",
         threshold_sgas,
         unrst,
@@ -229,7 +229,7 @@ def calculate_single_distances(
         inj_wells,
     )
     if "AMFG" in unrst:
-        amfg_results = _find_distances_per_time_step(
+        _find_distances_per_time_step(
             "AMFG",
             threshold_amfg,
             unrst,
@@ -238,7 +238,7 @@ def calculate_single_distances(
         )
         amfg_key = "AMFG"
     elif "XMF2" in unrst:
-        amfg_results = _find_distances_per_time_step(
+        _find_distances_per_time_step(
             "XMF2",
             threshold_amfg,
             unrst,
@@ -247,11 +247,7 @@ def calculate_single_distances(
         )
         amfg_key = "XMF2"
     else:
-        amfg_results = None
-        amfg_key = None
         logging.warning("WARNING: Neither AMFG nor XMF2 exists as properties.")
-
-    return sgas_results, amfg_results, amfg_key
 
 
 def calculate_plume_groups(
@@ -259,7 +255,7 @@ def calculate_plume_groups(
     config: Configuration,
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
-) -> List[Tuple[dict, Optional[dict], Optional[str]]]:
+):
     """
     NBNB-AS
     """
@@ -267,81 +263,15 @@ def calculate_plume_groups(
     grid = Grid(f"{case}.EGRID")
     unrst = ResdataFile(f"{case}.UNRST")
 
-#     if False:
-#         unrst = ResdataFile(f"{case}.UNRST")
-#
-#         print(grid)
-#         print(unrst)
-#         # sgas = unrst.SGAS()
-#         print(unrst.report_list)
-#         print(unrst.report_dates[15])
-#         print(unrst.size)
-#         print(unrst.unique_size)
-#         print(unrst.keys())
-#         swat_kw = unrst.iget_named_kw("SWAT", 0)
-#         print(swat_kw)
-#         print(unrst.has_kw("sgas"))
-#         print(unrst.has_kw("SGAS"))
-#         print(unrst.has_kw("dummy"))
-#         # unrst.save_kw()  # Se dokumentasjon i koden
-#         print("\n\n")
-#         data = unrst["SGAS"]
-#         print(type(data))
-#         print(type(data[15]))
-#         print(data[15])
-#         a = data[15].numpy_view()
-#         print(a.shape)
-#         print(a)
-#         print(len([x for x in a if x != 0]))
-#         print(max(a))
-#
-#     print("\n"*10)
-#     from resdata import FileMode
-#     unrst2 = ResdataFile(f"{case}.UNRST", flags=FileMode.WRITABLE)
-#     # print(unrst)
-#     print(unrst2)
-#     print(unrst2.keys())
-#     sgas_prop = unrst2["SGAS"]
-#     print(sgas_prop)
-#     print(type(sgas_prop))
-#     sgas_at_date = sgas_prop[15]
-#     print(sgas_at_date)
-#     print(type(sgas_at_date))
-#
-#     new_prop = sgas_at_date.copy()
-#     print(new_prop)
-#     print(type(new_prop))
-#     print(new_prop.set_name("new_prop"))
-#     print(new_prop)
-#     b = new_prop.numpy_view()
-#     print(sum(b) / len(b))
-#     b *= 7
-#     print(sum(b) / len(b))
-#
-#     if False:
-#         for x in sgas_prop:
-#             c = x.numpy_view()
-#             c -= 1.0
-#             unrst2.save_kw(x)  # This overwrites the sgas property
-#
-#     # from resdata.resfile import FortIO
-#     # fortio = FortIO(f"{case}.UNRST")
-#
-#
-#     exit()
-
     logging.info(f"Number of active grid cells: {grid.get_num_active()}")
 
-    all_results = []
-    (a, b, c) = calculate_single_distances(  # NBNB-AS
+    calculate_single_distances(  # NBNB-AS
         grid,
         unrst,
         threshold_sgas,
         threshold_amfg,
         config.injection_wells,
     )
-    all_results.append((a, b, c))
-    return all_results
 
 
 def _log_number_of_grid_cells(
@@ -407,8 +337,6 @@ def _find_distances_per_time_step(
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
 
-    # results: dict[str, np.ndarray] = {}
-    # results: dict[str, dict[str, List[int]]] = {}  # First key: date, second key: plume group, list: group number(s)
     results: list[dict[str, List[int]]] = []
     group_names: set[str] = set()
     prev_groups = PlumeGroups(n_cells)
@@ -442,18 +370,10 @@ def _find_distances_per_time_step(
                 a[group_string].append(j)
         results.append(a)
 
-        # date = unrst.report_dates[i].strftime("%Y-%m-%d")
-        # results[date] = ...
-        # a = [cell.all_groups for cell in groups.cells]
-        # print(len(a))
-        # print(len([x for x in a if len(x) != 0]))
-
         prev_groups = groups.copy()
         percent = (i + 1) / n_time_steps
         logging.info(f"{percent*100:>6.1f} %")
     logging.info("")
-
-    print([x.keys() for x in results])
 
     import json
     with open(f"plume_groups_{attribute_key}.json", "w") as file:
@@ -463,21 +383,7 @@ def _find_distances_per_time_step(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key
     )
 
-    # # Handle groups not found above, fill in zero:
-    # for well_name in dist.keys():
-    #     if well_name not in dist_per_group:
-    #         dist_per_group[well_name] = {well_name: np.zeros(shape=(n_time_steps,))}
-#
-    # outputs = _organize_output_with_dates(
-    #     dist_per_group,
-    #     calculation_type,
-    #     do_plume_tracking,
-    #     inj_wells,
-    #     unrst.report_dates,
-    # )
-
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
-    # return outputs
 
 
 def _find_distances_at_time_step(
@@ -581,49 +487,6 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                 groups.cells[index].set_undetermined()
 
 
-# def _organize_output_with_dates(
-#     dist_per_group: Dict[str, Dict[str, np.ndarray]],
-#     calculation_type: CalculationType,
-#     do_plume_tracking: bool,
-#     inj_wells: List[InjectionWellData],
-#     report_dates: List[datetime],
-# ) -> dict:
-#     outputs: dict = {}
-#     for group_name, single_group_distances in dist_per_group.items():
-#         outputs[group_name] = {}
-#         for single_group, distances in single_group_distances.items():
-#             well_name = "ALL"
-#             if calculation_type == CalculationType.PLUME_EXTENT:
-#                 if do_plume_tracking:
-#                     # NBNB-AS: x.name here should probably be handled earlier
-#                     well_name = [
-#                         x.name
-#                         for x in inj_wells
-#                         if x.number == single_group or x.name == single_group
-#                     ][0]
-#                 else:
-#                     if len(inj_wells) != 0:
-#                         well_name = [
-#                             x.name for x in inj_wells if x.name == single_group
-#                         ][0]
-#                     else:
-#                         well_name = "WELL"
-#             outputs[group_name][well_name] = []
-#             for i, d in enumerate(report_dates):
-#                 date_and_result = [d.strftime("%Y-%m-%d"), distances[i]]
-#                 outputs[group_name][well_name].append(date_and_result)
-#     return outputs
-
-
-# def _find_output_file(output: str, case: str):
-#     if output is None:
-#         p = Path(case).parents[2]
-#         p2 = p / "share" / "results" / "tables" / "plume_extent.csv"
-#         return str(p2)
-#     else:
-#         return output
-
-
 def _log_results(
     df: pd.DataFrame,
 ) -> None:
@@ -648,197 +511,6 @@ def _find_dates(all_results: List[Tuple[dict, Optional[dict], Optional[str]]]):
     return dates
 
 
-# def _find_column_name(
-#     single_config: Calculation, n_calculations: int, calculation_number: int
-# ):
-#     if single_config.type == CalculationType.PLUME_EXTENT:
-#         col = "MAX_"
-#     elif single_config.type in (CalculationType.POINT, CalculationType.LINE):
-#         col = "MIN_"
-#     else:
-#         col = "?"
-#
-#     if single_config.column_name != "":
-#         col = col + single_config.column_name
-#     else:
-#         calc_number = "" if n_calculations == 1 else str(calculation_number)
-#         col = col + f"{single_config.type.name.upper()}{calc_number}"
-#
-#     return col
-
-
-# def _collect_results_into_dataframe(
-#     all_results: List[Tuple[dict, Optional[dict], Optional[str]]],
-#     config: Configuration,
-# ) -> pd.DataFrame:
-#     dates = _find_dates(all_results)
-#     df = pd.DataFrame.from_records(dates, columns=["date"])
-#     for i, (result, single_config) in enumerate(
-#         zip(all_results, config.distance_calculations), 1
-#     ):
-#         (sgas_results, amfg_results, amfg_key) = result
-#
-#         col = _find_column_name(single_config, len(config.distance_calculations), i)
-#
-#         for group_str, results in sgas_results.items():
-#             for well_name, result in results.items():
-#                 full_col_name = col + "_SGAS"
-#                 if group_str != "ALL":
-#                     full_col_name += "_PLUME_" + group_str
-#                 if well_name != "ALL" and well_name != "WELL":
-#                     full_col_name += "_FROM_INJ_" + well_name
-#                 sgas_df = pd.DataFrame.from_records(
-#                     result, columns=["date", full_col_name]
-#                 )
-#                 df = pd.merge(df, sgas_df, on="date")
-#         if amfg_results is not None:
-#             for group_str, results in amfg_results.items():
-#                 for well_name, result in results.items():
-#                     if result is not None:
-#                         if amfg_key is None:
-#                             amfg_key_str = "?"
-#                         else:
-#                             amfg_key_str = amfg_key
-#                         full_col_name = col + "_" + amfg_key_str
-#                         if group_str != "ALL":
-#                             full_col_name += "_PLUME_" + group_str
-#                         if well_name != "ALL" and well_name != "WELL":
-#                             full_col_name += "_FROM_INJ_" + well_name
-#                         amfg_df = pd.DataFrame.from_records(
-#                             result, columns=["date", full_col_name]
-#                         )
-#                         df = pd.merge(df, amfg_df, on="date")
-#     return df
-
-
-# def _calculate_well_coordinates(
-#     case: str, injection_point_info: str, well_picks_path: Optional[str] = None
-# ) -> Tuple[float, float]:
-#     """
-#     Find coordinates of injection point
-#     """
-#     if (
-#         len(injection_point_info) > 0
-#         and injection_point_info[0] == "["
-#         and injection_point_info[-1] == "]"
-#     ):
-#         coords = injection_point_info[1:-1].split(",")
-#         if len(coords) == 2:
-#             try:
-#                 coordinates = (float(coords[0]), float(coords[1]))
-#                 logging.info(
-#                     f"Using injection coordinates: [{coordinates[0]}, {coordinates[1]}]"
-#                 )
-#                 return coordinates
-#             except ValueError:
-#                 logging.error(
-#                     "Invalid input: When providing two arguments (x and y coordinates)\
-#                     for injection point info they need to be floats."
-#                 )
-#                 sys.exit(1)
-#     well_name = injection_point_info
-#     logging.info(f"Using well to find coordinates: {well_name}")
-#
-#     if well_picks_path is None:
-#         p = Path(case).parents[2]
-#         p2 = p / "share" / "results" / "wells" / "well_picks.csv"
-#         logging.info(f"Using default well picks path : {p2}")
-#     else:
-#         p2 = Path(well_picks_path)
-#
-#     df = pd.read_csv(p2)
-#     logging.info("Done reading well picks CSV file")
-#     logging.debug("Well picks read from CSV file:")
-#     logging.debug(df)
-#
-#     if well_name not in list(df["WELL"]):
-#         logging.error(
-#             f"No matches for well name {well_name}, input is either mistyped "
-#             "or well does not exist."
-#         )
-#         sys.exit(1)
-#
-#     df = df[df["WELL"] == well_name]
-#     logging.info(f"Number of well picks for well {well_name}: {len(df)}")
-#     logging.info("Using the well pick with the largest measured depth.")
-#
-#     df = df[df["X_UTME"].notna()]
-#     df = df[df["Y_UTMN"].notna()]
-#
-#     max_id = df["MD"].idxmax()
-#     max_md_row = df.loc[max_id]
-#     x = max_md_row["X_UTME"]
-#     y = max_md_row["Y_UTMN"]
-#     md = max_md_row["MD"]
-#     surface = max_md_row["HORIZON"] if "HORIZON" in max_md_row else "-"
-#     logging.info(
-#         f"Injection coordinates: [{x:.2f}, {y:.2f}] (surface: {surface}, MD: {md:.2f})"
-#     )
-#
-#     return (x, y)
-
-
-# def _find_input_point(injection_point_info: str) -> Tuple[float, float]:
-#     if (
-#         len(injection_point_info) > 0
-#         and injection_point_info[0] == "["
-#         and injection_point_info[-1] == "]"
-#     ):
-#         coords = injection_point_info[1:-1].split(",")
-#         if len(coords) == 2:
-#             try:
-#                 coordinates = (float(coords[0]), float(coords[1]))
-#                 logging.info(
-#                     f"Using point coordinates: [{coordinates[0]}, {coordinates[1]}]"
-#                 )
-#                 return coordinates
-#             except ValueError:
-#                 logging.error(
-#                     "Invalid input: When providing two arguments (x and y coordinates) "
-#                     "for point they need to be floats."
-#                 )
-#                 sys.exit(1)
-#     logging.error(
-#         "Invalid input: inj_point must be on the format [x,y]"
-#         "when calc_type is 'point'"
-#     )
-#     sys.exit(1)
-
-
-# def _find_input_line(injection_point_info: str) -> Tuple[str, float]:
-#     if (
-#         len(injection_point_info) > 0
-#         and injection_point_info[0] == "["
-#         and injection_point_info[-1] == "]"
-#     ):
-#         coords = injection_point_info[1:-1].split(",")
-#         if len(coords) == 2:
-#             try:
-#                 direction = coords[0]
-#                 direction = direction.lower()
-#                 if direction not in ["east", "west", "north", "south"]:
-#                     raise ValueError(
-#                         "Invalid line direction. Choose from "
-#                         "'east'/'west'/'north'/'south'"
-#                     )
-#                 value = float(coords[1])
-#                 coordinates = (direction, value)
-#                 logging.info(f"Using line data: [{direction}, {value}]")
-#                 return coordinates
-#             except ValueError as error:
-#                 logging.error(
-#                     "Invalid input: inj_point must be on the format "
-#                     "[direction, value] when calc_type is 'line'."
-#                 )
-#                 logging.error(error)
-#                 sys.exit(1)
-#     logging.error(
-#         "Invalid input: inj_point must be on the format "
-#         "[direction, value] when calc_type is 'line'"
-#     )
-#     sys.exit(1)
-
-
 def main():
     """
     NBNB-AS
@@ -853,22 +525,12 @@ def main():
     )
     _log_configuration(config)
 
-    all_results = calculate_plume_groups(
+    calculate_plume_groups(
         args.case,
         config,
         args.threshold_sgas,
         args.threshold_amfg,
     )
-
-    # output_file = _find_output_file(args.output_csv, args.case)
-
-    # df = _collect_results_into_dataframe(
-    #     all_results,
-    #     config,
-    # )
-    # _log_results(df)
-    # df.to_csv(output_file, index=False, na_rep="0.0")
-    # logging.info("\nDone exporting results to CSV file.\n")
 
     return 0
 
