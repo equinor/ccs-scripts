@@ -694,6 +694,8 @@ def calculate_single_distances(
     config: Calculation,
     inj_wells: List[InjectionWellData],
     do_plume_tracking: bool,
+    plume_groups_sgas: Optional[List[dict[str, List[int]]]] = None,
+    plume_groups_amfg: Optional[List[dict[str, List[int]]]] = None,
 ):
     calculation_type = config.type
 
@@ -711,6 +713,7 @@ def calculate_single_distances(
         dist,
         inj_wells,
         do_plume_tracking,
+        plume_groups_sgas,
     )
     if "AMFG" in unrst:
         amfg_results = _find_distances_per_time_step(
@@ -722,6 +725,7 @@ def calculate_single_distances(
             dist,
             inj_wells,
             do_plume_tracking,
+            plume_groups_amfg,
         )
         amfg_key = "AMFG"
     elif "XMF2" in unrst:
@@ -734,6 +738,7 @@ def calculate_single_distances(
             dist,
             inj_wells,
             do_plume_tracking,
+            plume_groups_amfg,
         )
         amfg_key = "XMF2"
     else:
@@ -744,11 +749,32 @@ def calculate_single_distances(
     return (sgas_results, amfg_results, amfg_key)
 
 
+def load_plume_tracking_groups() -> Tuple[List[dict[str, List[int]]], List[dict[str, List[int]]]]:
+    import json  # NBNB-AS
+
+    temp_bool = True  # NBNB-AS
+    if temp_bool:
+        with open("plume_groups_SGAS.json", "r") as json_file:
+            plume_groups_sgas = json.load(json_file)
+    else:
+        plume_groups_sgas = None
+
+    if temp_bool:
+        with open("plume_groups_AMFG.json", "r") as json_file:
+            plume_groups_amfg = json.load(json_file)
+    else:
+        plume_groups_amfg = None
+
+    return plume_groups_sgas, plume_groups_amfg
+
+
 def calculate_distances(
     case: str,
     config: Configuration,
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
+    plume_groups_sgas: Optional[List[dict[str, List[int]]]] = None,
+    plume_groups_amfg: Optional[List[dict[str, List[int]]]] = None,
 ) -> List[Tuple[dict, Optional[dict], Optional[str]]]:
     """
     Find distance (plume extent / distance to point / distance to line) per
@@ -773,6 +799,8 @@ def calculate_distances(
             single_config,
             config.injection_wells,
             config.do_plume_tracking,
+            plume_groups_sgas,
+            plume_groups_amfg,
         )
         all_results.append((a, b, c))
         logging.info(f"Done calculating distances for configuration number: {i}\n")
@@ -833,6 +861,7 @@ def _find_distances_per_time_step(
     dist: Dict[str, np.ndarray],
     inj_wells: List[InjectionWellData],
     do_plume_tracking: bool,
+    plume_groups: Optional[List[dict[str, List[int]]]],
 ) -> dict:
     """
     Find value of distance metric for each step
@@ -841,6 +870,8 @@ def _find_distances_per_time_step(
     dist_per_group: Dict[str, Dict[str, np.ndarray]] = {}
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
     n_cells = len(unrst[attribute_key][0].numpy_view())
+
+    print(plume_groups)
 
     logging.info(f"\nStart calculating plume extent for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
@@ -1343,11 +1374,18 @@ def main():
     )
     _log_distance_calculation_configurations(config)
 
+    if config.do_plume_tracking:
+        (plume_groups_sgas, plume_groups_amfg) = load_plume_tracking_groups()
+    else:
+        (plume_groups_sgas, plume_groups_amfg) = (None, None)
+
     all_results = calculate_distances(
         args.case,
         config,
         args.threshold_sgas,
         args.threshold_amfg,
+        plume_groups_sgas,
+        plume_groups_amfg,
     )
 
     output_file = _find_output_file(args.output_csv, args.case)
