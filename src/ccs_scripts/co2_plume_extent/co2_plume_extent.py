@@ -5,6 +5,7 @@ using SGAS and AMFG/XMF2.
 """
 import argparse
 import getpass
+import json
 import logging
 import os
 import platform
@@ -691,7 +692,6 @@ def calculate_single_distances(
     threshold_amfg: float,
     config: Calculation,
     inj_wells: List[InjectionWellData],
-    do_plume_tracking: bool,
     plume_groups_sgas: Optional[List[dict[str, List[int]]]] = None,
     plume_groups_amfg: Optional[List[dict[str, List[int]]]] = None,
 ):
@@ -709,7 +709,6 @@ def calculate_single_distances(
         unrst,
         dist,
         inj_wells,
-        do_plume_tracking,
         plume_groups_sgas,
     )
     if "AMFG" in unrst:
@@ -720,7 +719,6 @@ def calculate_single_distances(
             unrst,
             dist,
             inj_wells,
-            do_plume_tracking,
             plume_groups_amfg,
         )
         amfg_key = "AMFG"
@@ -732,7 +730,6 @@ def calculate_single_distances(
             unrst,
             dist,
             inj_wells,
-            do_plume_tracking,
             plume_groups_amfg,
         )
         amfg_key = "XMF2"
@@ -741,23 +738,23 @@ def calculate_single_distances(
         amfg_key = None
         logging.warning("WARNING: Neither AMFG nor XMF2 exists as properties.")
 
-    return (sgas_results, amfg_results, amfg_key)
+    return sgas_results, amfg_results, amfg_key
 
 
 def load_plume_tracking_groups() -> Tuple[List[dict[str, List[int]]], List[dict[str, List[int]]]]:
-    import json  # NBNB-AS
-
-    temp_bool = True  # NBNB-AS
-    if temp_bool:
-        with open("plume_groups_SGAS.json", "r") as json_file:
+    file_name_sgas = "plume_groups_SGAS.json"
+    file_name_amfg = "plume_groups_AMFG.json"
+    if os.path.exists(file_name_sgas):
+        with open(file_name_sgas, "r") as json_file:
             plume_groups_sgas = json.load(json_file)
     else:
+        logging.warning("WARNING: No file found for plume groups (SGAS)")
         plume_groups_sgas = None
-
-    if temp_bool:
-        with open("plume_groups_AMFG.json", "r") as json_file:
+    if os.path.exists(file_name_amfg):
+        with open(file_name_amfg, "r") as json_file:
             plume_groups_amfg = json.load(json_file)
     else:
+        logging.warning("WARNING: No file found for plume groups (AMFG)")
         plume_groups_amfg = None
 
     return plume_groups_sgas, plume_groups_amfg
@@ -765,7 +762,8 @@ def load_plume_tracking_groups() -> Tuple[List[dict[str, List[int]]], List[dict[
 
 def calculate_distances(
     case: str,
-    config: Configuration,
+    distance_calculations: List[Calculation],
+    injection_wells: List[InjectionWellData],
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
     plume_groups_sgas: Optional[List[dict[str, List[int]]]] = None,
@@ -783,7 +781,7 @@ def calculate_distances(
     logging.info(f"Number of active grid cells: {nactive}")
 
     all_results = []
-    for i, single_config in enumerate(config.distance_calculations, 1):
+    for i, single_config in enumerate(distance_calculations, 1):
         logging.info(f"\nCalculating distances for configuration number: {i}\n")
         (a, b, c) = calculate_single_distances(
             nactive,
@@ -792,8 +790,7 @@ def calculate_distances(
             threshold_sgas,
             threshold_amfg,
             single_config,
-            config.injection_wells,
-            config.do_plume_tracking,
+            injection_wells,
             plume_groups_sgas,
             plume_groups_amfg,
         )
@@ -854,12 +851,12 @@ def _find_distances_per_time_step(
     unrst: ResdataFile,
     dist: Dict[str, np.ndarray],
     inj_wells: List[InjectionWellData],
-    do_plume_tracking: bool,
     plume_groups: Optional[List[dict[str, List[int]]]],
 ) -> dict:
     """
     Find value of distance metric for each step
     """
+    do_plume_tracking = plume_groups is not None
     n_time_steps = len(unrst.report_steps)
     dist_per_group: Dict[str, Dict[str, np.ndarray]] = {}
 
@@ -1256,7 +1253,8 @@ def main():
 
     all_results = calculate_distances(
         args.case,
-        config,
+        config.distance_calculations,
+        config.injection_wells,
         args.threshold_sgas,
         args.threshold_amfg,
         plume_groups_sgas,
