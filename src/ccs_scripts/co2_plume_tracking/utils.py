@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import logging
 from enum import Enum
 from typing import List, Optional
@@ -6,6 +7,15 @@ from resdata.grid import Grid
 
 MAX_STEPS_RESOLVE_CELLS = 20
 MAX_NEAREST_GROUPS_SEARCH_DISTANCE = 3
+
+
+@dataclass
+class InjectionWellData:
+    name: str
+    x: float
+    y: float
+    z: float  # NBNB-AS: Make optional
+    number: int
 
 
 class Status(Enum):

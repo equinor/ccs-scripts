@@ -10,7 +10,6 @@ import platform
 import socket
 import subprocess
 import sys
-from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -22,7 +21,7 @@ import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
-from ccs_scripts.co2_plume_tracking.utils import PlumeGroups
+from ccs_scripts.co2_plume_tracking.utils import InjectionWellData, PlumeGroups
 
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
@@ -34,15 +33,6 @@ DESCRIPTION = """
 """
 
 CATEGORY = "modelling.reservoir"
-
-
-@dataclass
-class InjectionWellData:
-    name: str
-    x: float
-    y: float
-    z: float  # NBNB-AS: Make optional
-    number: int
 
 
 class Configuration:
@@ -214,14 +204,14 @@ def _log_configuration(config: Configuration) -> None:
     logging.info("")
 
 
-def calculate_single_distances(
+def calculate_all_plume_groups(
     grid: Grid,
     unrst: ResdataFile,
     threshold_sgas: float,
     threshold_amfg: float,
     inj_wells: List[InjectionWellData],
 ):
-    _find_distances_per_time_step(  # NBNB-AS
+    pg_prop_sgas = _calculate_plume_groups(
         "SGAS",
         threshold_sgas,
         unrst,
@@ -229,7 +219,7 @@ def calculate_single_distances(
         inj_wells,
     )
     if "AMFG" in unrst:
-        _find_distances_per_time_step(
+        pg_prop_amfg = _calculate_plume_groups(
             "AMFG",
             threshold_amfg,
             unrst,
@@ -238,7 +228,7 @@ def calculate_single_distances(
         )
         amfg_key = "AMFG"
     elif "XMF2" in unrst:
-        _find_distances_per_time_step(
+        pg_prop_amfg = _calculate_plume_groups(
             "XMF2",
             threshold_amfg,
             unrst,
@@ -265,7 +255,7 @@ def calculate_plume_groups(
 
     logging.info(f"Number of active grid cells: {grid.get_num_active()}")
 
-    calculate_single_distances(  # NBNB-AS
+    calculate_all_plume_groups(  # NBNB-AS
         grid,
         unrst,
         threshold_sgas,
@@ -319,13 +309,13 @@ def _log_number_of_grid_cells(
             logging.warning("")  # Line ending
 
 
-def _find_distances_per_time_step(
+def _calculate_plume_groups(
     attribute_key: str,
     threshold: float,
     unrst: ResdataFile,
     grid: Grid,
     inj_wells: List[InjectionWellData],
-) -> None:  # NBNB-AS: dict:
+) -> list[list[str]]:
     """
     NBNB-AS
     """
@@ -337,12 +327,12 @@ def _find_distances_per_time_step(
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
 
-    results: list[dict[str, List[int]]] = []
+    pg_prop: list[list[str]] = [[""] * n_cells] * n_time_steps  # Plume group property
     group_names: set[str] = set()
     prev_groups = PlumeGroups(n_cells)
     for i in range(n_time_steps):
         groups = PlumeGroups(n_cells)
-        _find_distances_at_time_step(
+        _plume_groups_at_time_step(
             unrst,
             grid,
             attribute_key,
@@ -356,37 +346,29 @@ def _find_distances_per_time_step(
             n_grid_cells_for_logging,
         )
 
-        # Use groups to make list:
-        a = {}
         for j, cell in enumerate(groups.cells):
             all_groups = cell.all_groups
             if all_groups:
-                # all_groups_str = "+".join([str(x) for x in all_groups])
                 group_string = "+".join(
                     [str([x.name for x in inj_wells if x.number == y][0] if y != -1 else "?") for y in all_groups]
                 )
-                if group_string not in a:
-                    a[group_string] = []
-                a[group_string].append(j)
-        results.append(a)
+                pg_prop[i][j] = group_string
 
         prev_groups = groups.copy()
         percent = (i + 1) / n_time_steps
         logging.info(f"{percent*100:>6.1f} %")
     logging.info("")
 
-    import json
-    with open(f"plume_groups_{attribute_key}.json", "w") as file:
-        json.dump(results, file, indent=4)
-
+    # NBNB-AS: Can move outside this method
     _log_number_of_grid_cells(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key
     )
 
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
 
+    return pg_prop
 
-def _find_distances_at_time_step(
+def _plume_groups_at_time_step(
     unrst: ResdataFile,
     grid: Grid,
     attribute_key: str,

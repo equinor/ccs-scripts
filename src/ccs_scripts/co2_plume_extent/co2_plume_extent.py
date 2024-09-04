@@ -873,8 +873,8 @@ def _find_distances_per_time_step(
             n_time_steps,
             calculation_type,
             dist,
-            dist_per_group,
             plume_groups[i] if plume_groups is not None else None,
+            dist_per_group,
         )
         percent = (i + 1) / n_time_steps
         logging.info(f"{percent*100:>6.1f} %")
@@ -912,18 +912,29 @@ def _find_distances_at_time_step(
     n_time_steps: int,
     calculation_type: CalculationType,
     dist: Dict[str, np.ndarray],
+    plume_groups: Optional[dict[str, List[int]]],
     # This argument will be updated:
     dist_per_group: Dict[str, Dict[str, np.ndarray]],
-    plume_groups: Optional[dict[str, List[int]]],
 ):
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
+
+    # Have plume groups and distances to grid cells per well (dist)
+    # Want to calculate distance metrics
+    # If we have plume tracking, we want the metric for each plume group
+
+
+    # if calculation_type == CalculationType.PLUME_EXTENT:
+    #     if do_plume_tracking:
+    #         for group_name, indices_this_group in plume_groups.items():
 
     print("\nplume_groups:")
     if do_plume_tracking:
         for group_name, indices_this_group in plume_groups.items():
             print(group_name)
             print(len(indices_this_group))
+
+            # Skip calculating distances for cells that have an undecided plume group
             if group_name == "?":
                 continue
 
@@ -934,9 +945,9 @@ def _find_distances_at_time_step(
                         result[well_name] = dist[well_name][
                             indices_this_group
                         ].max()
-                else:
-                    for well_name in dist.keys():
-                        result[well_name] = dist[well_name][indices_this_group].max()
+                # else:
+                #     for well_name in dist.keys():
+                #         result[well_name] = dist[well_name][indices_this_group].max()
             elif calculation_type in (
                 CalculationType.POINT,
                 CalculationType.LINE,
