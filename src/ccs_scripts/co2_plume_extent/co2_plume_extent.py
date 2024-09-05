@@ -974,7 +974,20 @@ def _find_distances_at_time_step(
         CalculationType.POINT,
         CalculationType.LINE,
     ):
-        pass
+        if do_plume_tracking:
+            pass
+        else:
+            if i == 0:
+                dist_per_group["ALL"] = {}
+                for well_name in dist.keys():
+                    dist_per_group["ALL"][well_name] = np.full(n_time_steps, np.nan)
+            for well_name in dist.keys():
+                if len(cells_with_co2) > 0:
+                    dist_per_group["ALL"][well_name][i] = dist[well_name][
+                        cells_with_co2
+                    ].min()
+                else:
+                    dist_per_group["ALL"][well_name][i] = np.nan  # NBNB-AS
 
     print("TEMP return")
     return
