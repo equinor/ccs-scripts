@@ -11,6 +11,7 @@ import os
 import platform
 import socket
 import subprocess
+import string
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -611,7 +612,7 @@ def _calculate_grid_cell_distances(
 ):
     dist = {}
     if calculation_type == CalculationType.PLUME_EXTENT:
-        if len(inj_wells) == 0:
+        if inj_wells is None or len(inj_wells) == 0:
             # Also needed when no config file is used
             x0 = config.x
             y0 = config.y
@@ -705,7 +706,6 @@ def calculate_single_distances(
         inj_wells,
         plume_groups_sgas,
     )
-    return sgas_results, None, None  # NBNB-AS: Temp
 
     if "AMFG" in unrst:
         amfg_results = _find_distances_per_time_step(
@@ -740,8 +740,8 @@ def calculate_single_distances(
 def calculate_distances(
     case: str,
     distance_calculations: List[Calculation],
-    injection_wells: List[InjectionWellData],
-    do_plume_tracking: bool,
+    injection_wells: List[InjectionWellData] = None,
+    do_plume_tracking: bool = False,
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
 ) -> List[Tuple[dict, Optional[dict], Optional[str]]]:
@@ -968,7 +968,7 @@ def _find_distances_at_time_step(
                         cells_with_co2
                     ].max()
                 else:
-                    dist_per_group["ALL"][well_name][i] = np.nan  # NBNB-AS
+                    dist_per_group["ALL"][well_name][i] = 0.0  # NBNB-AS: Or np.nan
     elif calculation_type in (
         CalculationType.POINT,
         CalculationType.LINE,
@@ -997,57 +997,7 @@ def _find_distances_at_time_step(
                     cells_with_co2
                 ].min()
             else:
-                dist_per_group["ALL"]["ALL"][i] = np.nan  # NBNB-AS
-
-    print("TEMP return")
-    return
-    print("\nplume_groups:")
-    if do_plume_tracking:
-        for group_name, indices_this_group in plume_groups.items():
-            print(group_name)
-            print(len(indices_this_group))
-
-            # Skip calculating distances for cells that have an undecided plume group
-            if group_name == "?":
-                continue
-
-            result = {}
-            if calculation_type == CalculationType.PLUME_EXTENT:
-                if do_plume_tracking:
-                    for well_name in group_name.split("+"):
-                        result[well_name] = dist[well_name][
-                            indices_this_group
-                        ].max()
-                # else:
-                #     for well_name in dist.keys():
-                #         result[well_name] = dist[well_name][indices_this_group].max()
-            elif calculation_type in (
-                CalculationType.POINT,
-                CalculationType.LINE,
-            ):
-                result["ALL"] = dist["ALL"][indices_this_group].min()
-
-            if group_name not in dist_per_group:
-                if calculation_type == CalculationType.PLUME_EXTENT:
-                    dist_per_group[group_name] = {
-                        s: np.zeros(shape=(n_time_steps,)) for s in group_name.split("+")
-                    }
-                elif calculation_type in (
-                        CalculationType.POINT,
-                        CalculationType.LINE,
-                ):
-                    dist_per_group[group_name] = {"ALL": np.full(n_time_steps, np.nan)}
-
-            if calculation_type == CalculationType.PLUME_EXTENT:
-                for s in group_name.split("+"):
-                    dist_per_group[group_name][s][i] = result[s]
-            elif calculation_type in (
-                CalculationType.POINT,
-                CalculationType.LINE,
-            ):
-                dist_per_group[group_name]["ALL"][i] = result["ALL"]
-    else:
-        indices_this_group = list(cells_with_co2)
+                dist_per_group["ALL"]["ALL"][i] = np.nan
 
 
 def _organize_output_with_dates(
@@ -1071,7 +1021,7 @@ def _organize_output_with_dates(
                         if x.number == single_group or x.name == single_group
                     ][0]
                 else:
-                    if len(inj_wells) != 0:
+                    if inj_wells is not None and len(inj_wells) != 0:
                         well_name = [
                             x.name for x in inj_wells if x.name == single_group
                         ][0]
@@ -1108,6 +1058,37 @@ def _log_results(
 
     for col in df.drop("date", axis=1).columns:
         logging.info(f"End state {col:<{col_width}} : {dfs[col].iloc[-1]:>11.1f}")
+
+
+def _log_results_detailed(
+    df: pd.DataFrame
+):
+    dist_cols = [col for col in df.columns if col != "date"]
+    letter_names = list(string.ascii_uppercase)[:len(dist_cols)]
+    col_mapping = dict(zip(dist_cols, letter_names))
+    col_mapping["date"] = "date"
+    df = df.rename(columns=col_mapping)
+    pd.options.display.float_format = '{:.1f}'.format
+    for col in df.columns:
+        if col != "date":
+            df[col] = df[col].round(1)
+
+    logging.info("\nDetailed summary of results:")
+    logging.info("===========================")
+    logging.info("Columns:")
+    for key, value in col_mapping.items():
+        if key != "date":
+            logging.info(f"  {value}: {key}")
+
+    def custom_format(x):
+        if x == 0.0:
+            return "-"
+        else:
+            return f"{x:.1f}"
+    formatters = {col: custom_format if col != "date" else '{: >10}'.format for col in df.columns}
+
+    logging.info("\nResults:")
+    logging.info(df.to_string(index=False, formatters=formatters))
 
 
 def _find_dates(all_results: List[Tuple[dict, Optional[dict], Optional[str]]]):
@@ -1346,6 +1327,7 @@ def main():
         config,
     )
     _log_results(df)
+    _log_results_detailed(df)
     df.to_csv(output_file, index=False, na_rep="0.0")
     logging.info("\nDone exporting results to CSV file.\n")
 
