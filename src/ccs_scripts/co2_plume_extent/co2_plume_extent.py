@@ -949,7 +949,6 @@ def _find_distances_at_time_step(
                     continue
                 # Check for new group name
                 if group_name not in dist_per_group:
-                    print(f"New group name!: {group_name}")
                     dist_per_group[group_name] = {
                         s: np.zeros(shape=(n_time_steps,)) for s in group_name.split("+")
                     }
@@ -975,19 +974,30 @@ def _find_distances_at_time_step(
         CalculationType.LINE,
     ):
         if do_plume_tracking:
-            pass
+            for group_name, indices_this_group in pg_dict.items():
+                # Skip calculating distances for cells that have an undecided plume group
+                if group_name == "?":
+                    continue
+                # Check for new group name
+                if group_name not in dist_per_group:
+                    dist_per_group[group_name] = {
+                        "ALL": np.full(n_time_steps, np.nan)
+                    }
+                # Calculate min distance in this group
+                dist_per_group[group_name]["ALL"][i] = dist["ALL"][
+                    indices_this_group
+                ].min()
         else:
             if i == 0:
                 dist_per_group["ALL"] = {}
                 for well_name in dist.keys():
                     dist_per_group["ALL"][well_name] = np.full(n_time_steps, np.nan)
-            for well_name in dist.keys():
-                if len(cells_with_co2) > 0:
-                    dist_per_group["ALL"][well_name][i] = dist[well_name][
-                        cells_with_co2
-                    ].min()
-                else:
-                    dist_per_group["ALL"][well_name][i] = np.nan  # NBNB-AS
+            if len(cells_with_co2) > 0:
+                dist_per_group["ALL"]["ALL"][i] = dist["ALL"][
+                    cells_with_co2
+                ].min()
+            else:
+                dist_per_group["ALL"]["ALL"][i] = np.nan  # NBNB-AS
 
     print("TEMP return")
     return
