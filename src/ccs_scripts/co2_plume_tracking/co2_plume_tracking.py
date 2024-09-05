@@ -316,6 +316,7 @@ def _calculate_plume_groups(
     grid: Grid,
     inj_wells: List[InjectionWellData],
 ) -> list[list[str]]:
+    print("_calculate_plume_groups()")
     """
     NBNB-AS
     """

@@ -24,6 +24,9 @@ import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
+from ccs_scripts.co2_plume_tracking.co2_plume_tracking import _calculate_plume_groups
+from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
+
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
 INJ_POINT_THRESHOLD = 60.0
@@ -97,15 +100,6 @@ class Calculation:
     column_name: str
     x: Optional[float]
     y: Optional[float]
-
-
-@dataclass
-class InjectionWellData:
-    name: str
-    x: float
-    y: float
-    z: Optional[float]  # Needed for plume tracking
-    number: int
 
 
 class Configuration:
@@ -692,16 +686,25 @@ def calculate_single_distances(
     threshold_amfg: float,
     config: Calculation,
     inj_wells: List[InjectionWellData],
-    plume_groups_sgas: Optional[List[dict[str, List[int]]]] = None,
-    plume_groups_amfg: Optional[List[dict[str, List[int]]]] = None,
+    do_plume_tracking: bool,
 ):
     calculation_type = config.type
 
-    # First calculate distance from point/line to center of all cells
+    # Calculate distance from point/line to center of all cells
     dist = _calculate_grid_cell_distances(
         inj_wells, nactive, calculation_type, grid, config
     )
 
+    if do_plume_tracking:
+        plume_groups_sgas = _calculate_plume_groups(
+            "SGAS",
+            threshold_sgas,
+            unrst,
+            grid,
+            inj_wells
+        )
+    else:
+        plume_groups_sgas = None
     sgas_results = _find_distances_per_time_step(
         "SGAS",
         calculation_type,
@@ -711,7 +714,18 @@ def calculate_single_distances(
         inj_wells,
         plume_groups_sgas,
     )
+
     if "AMFG" in unrst:
+        if do_plume_tracking:
+            plume_groups_amfg = _calculate_plume_groups(
+                "AMFG",
+                threshold_amfg,
+                unrst,
+                grid,
+                inj_wells
+            )
+        else:
+            plume_groups_amfg = None
         amfg_results = _find_distances_per_time_step(
             "AMFG",
             calculation_type,
@@ -723,6 +737,16 @@ def calculate_single_distances(
         )
         amfg_key = "AMFG"
     elif "XMF2" in unrst:
+        if do_plume_tracking:
+            plume_groups_amfg = _calculate_plume_groups(
+                "XMF2",
+                threshold_amfg,
+                unrst,
+                grid,
+                inj_wells
+            )
+        else:
+            plume_groups_amfg = None
         amfg_results = _find_distances_per_time_step(
             "XMF2",
             calculation_type,
@@ -741,33 +765,13 @@ def calculate_single_distances(
     return sgas_results, amfg_results, amfg_key
 
 
-def load_plume_tracking_groups() -> Tuple[List[dict[str, List[int]]], List[dict[str, List[int]]]]:
-    file_name_sgas = "plume_groups_SGAS.json"
-    file_name_amfg = "plume_groups_AMFG.json"
-    if os.path.exists(file_name_sgas):
-        with open(file_name_sgas, "r") as json_file:
-            plume_groups_sgas = json.load(json_file)
-    else:
-        logging.warning("WARNING: No file found for plume groups (SGAS)")
-        plume_groups_sgas = None
-    if os.path.exists(file_name_amfg):
-        with open(file_name_amfg, "r") as json_file:
-            plume_groups_amfg = json.load(json_file)
-    else:
-        logging.warning("WARNING: No file found for plume groups (AMFG)")
-        plume_groups_amfg = None
-
-    return plume_groups_sgas, plume_groups_amfg
-
-
 def calculate_distances(
     case: str,
     distance_calculations: List[Calculation],
     injection_wells: List[InjectionWellData],
+    do_plume_tracking: bool,
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
-    plume_groups_sgas: Optional[List[dict[str, List[int]]]] = None,
-    plume_groups_amfg: Optional[List[dict[str, List[int]]]] = None,
 ) -> List[Tuple[dict, Optional[dict], Optional[str]]]:
     """
     Find distance (plume extent / distance to point / distance to line) per
@@ -791,8 +795,7 @@ def calculate_distances(
             threshold_amfg,
             single_config,
             injection_wells,
-            plume_groups_sgas,
-            plume_groups_amfg,
+            do_plume_tracking,
         )
         all_results.append((a, b, c))
         logging.info(f"Done calculating distances for configuration number: {i}\n")
@@ -1257,19 +1260,13 @@ def main():
     )
     _log_distance_calculation_configurations(config)
 
-    if config.do_plume_tracking:
-        (plume_groups_sgas, plume_groups_amfg) = load_plume_tracking_groups()
-    else:
-        (plume_groups_sgas, plume_groups_amfg) = (None, None)
-
     all_results = calculate_distances(
         args.case,
         config.distance_calculations,
         config.injection_wells,
+        config.do_plume_tracking,
         args.threshold_sgas,
         args.threshold_amfg,
-        plume_groups_sgas,
-        plume_groups_amfg,
     )
 
     output_file = _find_output_file(args.output_csv, args.case)
