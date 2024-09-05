@@ -11,8 +11,6 @@ import socket
 import subprocess
 import sys
 from datetime import datetime
-from enum import Enum
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -328,7 +326,7 @@ def _calculate_plume_groups(
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
 
-    pg_prop: list[list[str]] = [[""] * n_cells] * n_time_steps  # Plume group property
+    pg_prop = [["" for _ in range(n_cells)] for _ in range(n_time_steps)]  # Plume group property
     group_names: set[str] = set()
     prev_groups = PlumeGroups(n_cells)
     for i in range(n_time_steps):
