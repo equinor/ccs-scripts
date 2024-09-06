@@ -5,7 +5,6 @@ using SGAS and AMFG/XMF2.
 """
 import argparse
 import getpass
-import json
 import logging
 import os
 import platform
@@ -26,7 +25,10 @@ from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
 from ccs_scripts.co2_plume_tracking.co2_plume_tracking import calculate_plume_groups
-from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
+from ccs_scripts.co2_plume_tracking.utils import (
+    InjectionWellData,
+    assemble_plume_groups_into_dict,
+)
 
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
@@ -906,17 +908,6 @@ def _find_distances_per_time_step(
 
     logging.info(f"Done calculating plume extent for {attribute_key}.")
     return outputs
-
-
-def assemble_plume_groups_into_dict(plume_groups: List[str]) -> dict[str, List[int]]:
-    pg_dict = {}
-    for ind, group in enumerate(plume_groups):
-        if group != "":
-            if group in pg_dict:
-                pg_dict[group].append(ind)
-            else:
-                pg_dict[group] = [ind]
-    return pg_dict
 
 
 def _find_distances_at_time_step(

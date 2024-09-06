@@ -176,3 +176,14 @@ class PlumeGroups:
             logging.debug(
                 f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {n}"
             )
+
+
+def assemble_plume_groups_into_dict(plume_groups: List[str]) -> dict[str, List[int]]:
+    pg_dict = {}
+    for ind, group in enumerate(plume_groups):
+        if group != "":
+            if group in pg_dict:
+                pg_dict[group].append(ind)
+            else:
+                pg_dict[group] = [ind]
+    return pg_dict

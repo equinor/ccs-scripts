@@ -6,6 +6,7 @@ import argparse
 import getpass
 import logging
 import os
+from pathlib import Path
 import platform
 import socket
 import subprocess
@@ -19,7 +20,11 @@ import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
-from ccs_scripts.co2_plume_tracking.utils import InjectionWellData, PlumeGroups
+from ccs_scripts.co2_plume_tracking.utils import (
+    InjectionWellData,
+    PlumeGroups,
+    assemble_plume_groups_into_dict,
+)
 
 DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
@@ -106,6 +111,11 @@ def _make_parser() -> argparse.ArgumentParser:
         default="",
     )
     parser.add_argument(
+        "--output_csv",
+        help="Path to output CSV file",
+        default=None,
+    )
+    parser.add_argument(
         "--threshold_sgas",
         default=DEFAULT_THRESHOLD_SGAS,
         type=float,
@@ -178,6 +188,11 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
         f"Configuration YAML-file : "
         f"{arguments.config_file if arguments.config_file != '' else 'Not specified'}"
     )
+    if arguments.output_csv is None or arguments.output_csv == "":
+        text = "Not specified, using default"
+    else:
+        text = arguments.output_csv
+    logging.info(f"Output CSV file         : {text}")
     logging.info(f"Threshold SGAS          : {arguments.threshold_sgas}")
     logging.info(f"Threshold AMFG          : {arguments.threshold_amfg}\n")
 
@@ -198,7 +213,7 @@ def calculate_all_plume_groups(
     threshold_sgas: float,
     threshold_amfg: float,
     inj_wells: List[InjectionWellData],
-):
+) -> Tuple[list[list[str]], Optional[list[list[str]]], Optional[str]]:
     pg_prop_sgas = calculate_plume_groups(
         "SGAS",
         threshold_sgas,
@@ -225,7 +240,11 @@ def calculate_all_plume_groups(
         )
         amfg_key = "XMF2"
     else:
+        pg_prop_amfg = None
+        amfg_key = None
         logging.warning("WARNING: Neither AMFG nor XMF2 exists as properties.")
+
+    return pg_prop_sgas, pg_prop_amfg, amfg_key
 
 
 def load_data_and_calculate_plume_groups(
@@ -233,20 +252,22 @@ def load_data_and_calculate_plume_groups(
     config: Configuration,
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
-):
+) -> Tuple[list[list[str]], Optional[list[list[str]]], Optional[str], List[datetime]]:
     logging.info("\nStart calculations for plume tracking")
     grid = Grid(f"{case}.EGRID")
     unrst = ResdataFile(f"{case}.UNRST")
 
     logging.info(f"Number of active grid cells: {grid.get_num_active()}")
 
-    calculate_all_plume_groups(
+    (pg_prop_sgas, pg_prop_amfg, amfg_key) = calculate_all_plume_groups(
         grid,
         unrst,
         threshold_sgas,
         threshold_amfg,
         config.injection_wells,
     )
+
+    return pg_prop_sgas, pg_prop_amfg, amfg_key, unrst.report_dates
 
 
 def _log_number_of_grid_cells(
@@ -485,11 +506,50 @@ def _find_dates(all_results: List[Tuple[dict, Optional[dict], Optional[str]]]):
     return dates
 
 
+def _find_output_file(output: str, case: str):
+    if output is None:
+        p = Path(case).parents[2]
+        p2 = p / "share" / "results" / "tables" / "plume_tracking.csv"
+        return str(p2)
+    else:
+        return output
+
+
+def _collect_results_into_dataframe(
+    report_dates: List[datetime],
+    pg_prop_sgas: list[list[str]],
+    pg_prop_amfg: Optional[list[list[str]]],
+    amfg_key: Optional[str],
+) -> pd.DataFrame:
+    dates = [[d.strftime("%Y-%m-%d")] for d in report_dates]
+    df = pd.DataFrame.from_records(dates, columns=["date"])
+
+    for prop_key, pg_prop in zip(["SGAS", amfg_key], [pg_prop_sgas, pg_prop_amfg]):
+        if pg_prop is None:
+            continue
+        results = {}
+        for i, p in enumerate(pg_prop):
+            pg_dict = assemble_plume_groups_into_dict(p)
+            for group_name, indices in pg_dict.items():
+                group_name = prop_key + "_" + group_name
+                if group_name not in results:
+                    results[group_name] = np.zeros(
+                        shape=(len(dates)),
+                    )
+                results[group_name][i] = len(indices)
+        prop_df = pd.DataFrame(results)
+        df = pd.concat([df, prop_df], axis=1)
+
+    return df
+
+
 def main():
     """
     Calculations for tracking plume groups.
     The method calculate_plume_groups() can be used by other scripts
     that want this functionality.
+    Output from this script is a simple CSV-file counting the number of
+    grid cells in each plume group for each time step.
     """
     args = _make_parser().parse_args()
     _setup_log_configuration(args)
@@ -501,12 +561,25 @@ def main():
     )
     _log_configuration(config)
 
-    load_data_and_calculate_plume_groups(
-        args.case,
-        config,
-        args.threshold_sgas,
-        args.threshold_amfg,
+    (pg_prop_sgas, pg_prop_amfg, amfg_key, dates) = (
+        load_data_and_calculate_plume_groups(
+            args.case,
+            config,
+            args.threshold_sgas,
+            args.threshold_amfg,
+        )
     )
+
+    output_file = _find_output_file(args.output_csv, args.case)
+
+    df = _collect_results_into_dataframe(
+        dates,
+        pg_prop_sgas,
+        pg_prop_amfg,
+        amfg_key,
+    )
+    df.to_csv(output_file, index=False)
+
     return 0
 
 
