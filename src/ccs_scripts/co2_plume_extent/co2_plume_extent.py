@@ -890,7 +890,7 @@ def _find_distances_per_time_step(
     # Handle groups not found above, fill in zero:
     if do_plume_tracking:
         for well_name in dist.keys():
-            if well_name not in dist_per_group:
+            if well_name != "ALL" and well_name not in dist_per_group:
                 dist_per_group[well_name] = {well_name: np.zeros(shape=(n_time_steps,))}
     else:
         if "ALL" not in dist_per_group:
