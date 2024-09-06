@@ -48,9 +48,10 @@ class Configuration:
         input_dict = self.read_config_file(config_file)
         self.make_config_from_input_dict(input_dict, case)
 
-
     @staticmethod
-    def read_config_file(config_file: str) -> Dict:  # NBNB-AS: Move to common utils-file?
+    def read_config_file(
+        config_file: str,
+    ) -> Dict:  # NBNB-AS: Move to common utils-file?
         with open(config_file, "r", encoding="utf8") as stream:
             try:
                 config = yaml.safe_load(stream)
@@ -61,9 +62,7 @@ class Configuration:
 
     def make_config_from_input_dict(self, input_dict: Dict, case: str):
         if not "injection_wells" in input_dict:
-            logging.error(
-                "\nERROR: No injection wells specified."
-            )
+            logging.error("\nERROR: No injection wells specified.")
         else:
             if not isinstance(input_dict["injection_wells"], list):
                 logging.error(
@@ -97,7 +96,9 @@ class Configuration:
 
 
 def _make_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Calculations for tracking plume groups")
+    parser = argparse.ArgumentParser(
+        description="Calculations for tracking plume groups"
+    )
     parser.add_argument("case", help="Name of Eclipse case")
     parser.add_argument(
         "--config_file",
@@ -340,7 +341,14 @@ def calculate_plume_groups(
             all_groups = cell.all_groups
             if all_groups:
                 group_string = "+".join(
-                    [str([x.name for x in inj_wells if x.number == y][0] if y != -1 else "?") for y in all_groups]
+                    [
+                        str(
+                            [x.name for x in inj_wells if x.number == y][0]
+                            if y != -1
+                            else "?"
+                        )
+                        for y in all_groups
+                    ]
                 )
                 pg_prop[i][j] = group_string
 
@@ -355,6 +363,7 @@ def calculate_plume_groups(
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
 
     return pg_prop
+
 
 def _plume_groups_at_time_step(
     unrst: ResdataFile,

@@ -950,7 +950,8 @@ def _find_distances_at_time_step(
                 # Check for new group name
                 if group_name not in dist_per_group:
                     dist_per_group[group_name] = {
-                        s: np.zeros(shape=(n_time_steps,)) for s in group_name.split("+")
+                        s: np.zeros(shape=(n_time_steps,))
+                        for s in group_name.split("+")
                     }
                 # Calculate max distance from each injection well in this group
                 for well_name in group_name.split("+"):
@@ -980,9 +981,7 @@ def _find_distances_at_time_step(
                     continue
                 # Check for new group name
                 if group_name not in dist_per_group:
-                    dist_per_group[group_name] = {
-                        "ALL": np.full(n_time_steps, np.nan)
-                    }
+                    dist_per_group[group_name] = {"ALL": np.full(n_time_steps, np.nan)}
                 # Calculate min distance in this group
                 dist_per_group[group_name]["ALL"][i] = dist["ALL"][
                     indices_this_group
@@ -993,9 +992,7 @@ def _find_distances_at_time_step(
                 for well_name in dist.keys():
                     dist_per_group["ALL"][well_name] = np.full(n_time_steps, np.nan)
             if len(cells_with_co2) > 0:
-                dist_per_group["ALL"]["ALL"][i] = dist["ALL"][
-                    cells_with_co2
-                ].min()
+                dist_per_group["ALL"]["ALL"][i] = dist["ALL"][cells_with_co2].min()
             else:
                 dist_per_group["ALL"]["ALL"][i] = np.nan
 
@@ -1060,15 +1057,13 @@ def _log_results(
         logging.info(f"End state {col:<{col_width}} : {dfs[col].iloc[-1]:>11.1f}")
 
 
-def _log_results_detailed(
-    df: pd.DataFrame
-):
+def _log_results_detailed(df: pd.DataFrame):
     dist_cols = [col for col in df.columns if col != "date"]
-    letter_names = list(string.ascii_uppercase)[:len(dist_cols)]
+    letter_names = list(string.ascii_uppercase)[: len(dist_cols)]
     col_mapping = dict(zip(dist_cols, letter_names))
     col_mapping["date"] = "date"
     df = df.rename(columns=col_mapping)
-    pd.options.display.float_format = '{:.1f}'.format
+    pd.options.display.float_format = "{:.1f}".format
     for col in df.columns:
         if col != "date":
             df[col] = df[col].round(1)
@@ -1085,7 +1080,10 @@ def _log_results_detailed(
             return "-"
         else:
             return f"{x:.1f}"
-    formatters = {col: custom_format if col != "date" else '{: >10}'.format for col in df.columns}
+
+    formatters = {
+        col: custom_format if col != "date" else "{: >10}".format for col in df.columns
+    }
 
     logging.info("\nResults:")
     logging.info(df.to_string(index=False, formatters=formatters))
