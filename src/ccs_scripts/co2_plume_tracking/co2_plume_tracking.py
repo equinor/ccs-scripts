@@ -535,6 +535,7 @@ def _collect_results_into_dataframe(
                 if group_name not in results:
                     results[group_name] = np.zeros(
                         shape=(len(dates)),
+                        dtype=int,
                     )
                 results[group_name][i] = len(indices)
         prop_df = pd.DataFrame(results)
