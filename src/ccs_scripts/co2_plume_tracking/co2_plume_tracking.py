@@ -234,9 +234,6 @@ def load_data_and_calculate_plume_groups(
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
 ):
-    """
-    NBNB-AS
-    """
     logging.info("\nStart calculations for plume tracking")
     grid = Grid(f"{case}.EGRID")
     unrst = ResdataFile(f"{case}.UNRST")
@@ -490,7 +487,9 @@ def _find_dates(all_results: List[Tuple[dict, Optional[dict], Optional[str]]]):
 
 def main():
     """
-    NBNB-AS
+    Calculations for tracking plume groups.
+    The method calculate_plume_groups() can be used by other scripts
+    that want this functionality.
     """
     args = _make_parser().parse_args()
     _setup_log_configuration(args)
@@ -508,7 +507,6 @@ def main():
         args.threshold_sgas,
         args.threshold_amfg,
     )
-
     return 0
 
 

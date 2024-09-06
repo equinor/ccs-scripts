@@ -908,6 +908,17 @@ def _find_distances_per_time_step(
     return outputs
 
 
+def assemble_plume_groups_into_dict(plume_groups: List[str]) -> dict[str, List[int]]:
+    pg_dict = {}
+    for ind, group in enumerate(plume_groups):
+        if group != "":
+            if group in pg_dict:
+                pg_dict[group].append(ind)
+            else:
+                pg_dict[group] = [ind]
+    return pg_dict
+
+
 def _find_distances_at_time_step(
     unrst: ResdataFile,
     attribute_key: str,
@@ -925,24 +936,9 @@ def _find_distances_at_time_step(
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
 
-    # Have plume groups and distances to grid cells per well (dist)
-    # Want to calculate distance metrics
-    # Put results into dist_per_group
-    # If we have plume tracking, we want the metric for each plume group
-
-    if do_plume_tracking:  # NBNB-AS: Move to method, move call below?
-        pg_dict = {}
-        for ind, group in enumerate(plume_groups):
-            if group is not "":
-                if group in pg_dict:
-                    pg_dict[group].append(ind)
-                else:
-                    pg_dict[group] = [ind]
-    else:
-        pg_dict = None
-
     if calculation_type == CalculationType.PLUME_EXTENT:
         if do_plume_tracking:
+            pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that have an undecided plume group
                 if group_name == "?":
@@ -975,6 +971,7 @@ def _find_distances_at_time_step(
         CalculationType.LINE,
     ):
         if do_plume_tracking:
+            pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that have an undecided plume group
                 if group_name == "?":
@@ -1129,20 +1126,20 @@ def _collect_results_into_dataframe(
         col = _find_column_name(single_config, len(config.distance_calculations), i)
 
         for group_str, results in sgas_results.items():
-            for well_name, result in results.items():
+            for well_name, result2 in results.items():
                 full_col_name = col + "_SGAS"
                 if group_str != "ALL":
                     full_col_name += "_PLUME_" + group_str
                 if well_name != "ALL" and well_name != "WELL":
                     full_col_name += "_FROM_INJ_" + well_name
                 sgas_df = pd.DataFrame.from_records(
-                    result, columns=["date", full_col_name]
+                    result2, columns=["date", full_col_name]
                 )
                 df = pd.merge(df, sgas_df, on="date")
         if amfg_results is not None:
             for group_str, results in amfg_results.items():
-                for well_name, result in results.items():
-                    if result is not None:
+                for well_name, result2 in results.items():
+                    if result2 is not None:
                         if amfg_key is None:
                             amfg_key_str = "?"
                         else:
@@ -1153,7 +1150,7 @@ def _collect_results_into_dataframe(
                         if well_name != "ALL" and well_name != "WELL":
                             full_col_name += "_FROM_INJ_" + well_name
                         amfg_df = pd.DataFrame.from_records(
-                            result, columns=["date", full_col_name]
+                            result2, columns=["date", full_col_name]
                         )
                         df = pd.merge(df, amfg_df, on="date")
     return df
