@@ -97,22 +97,11 @@ class Configuration:
 
 
 def _make_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Calculate plume tracking property")
+    parser = argparse.ArgumentParser(description="Calculations for tracking plume groups")
     parser.add_argument("case", help="Name of Eclipse case")
     parser.add_argument(
         "--config_file",
         help="YML file with configurations for plume tracking calculations.",
-        default="",
-    )
-    parser.add_argument(
-        "--inj_point",
-        help="Input depends on calc_type. \
-        For 'plume_extent': Either the name of the injection well (string) or \
-        the x and y coordinates (two floats, '[x,y]') to calculate plume extent from. \
-        For 'point': the x and y coordinates (two floats, '[x,y]'). \
-        For 'line': [direction, value] where direction must be \
-        'east'/'west'/'north'/'south' and value is the \
-        corresponding x or y value that defines this line.",
         default="",
     )
     parser.add_argument(
@@ -209,7 +198,7 @@ def calculate_all_plume_groups(
     threshold_amfg: float,
     inj_wells: List[InjectionWellData],
 ):
-    pg_prop_sgas = _calculate_plume_groups(
+    pg_prop_sgas = calculate_plume_groups(
         "SGAS",
         threshold_sgas,
         unrst,
@@ -217,7 +206,7 @@ def calculate_all_plume_groups(
         inj_wells,
     )
     if "AMFG" in unrst:
-        pg_prop_amfg = _calculate_plume_groups(
+        pg_prop_amfg = calculate_plume_groups(
             "AMFG",
             threshold_amfg,
             unrst,
@@ -226,7 +215,7 @@ def calculate_all_plume_groups(
         )
         amfg_key = "AMFG"
     elif "XMF2" in unrst:
-        pg_prop_amfg = _calculate_plume_groups(
+        pg_prop_amfg = calculate_plume_groups(
             "XMF2",
             threshold_amfg,
             unrst,
@@ -238,7 +227,7 @@ def calculate_all_plume_groups(
         logging.warning("WARNING: Neither AMFG nor XMF2 exists as properties.")
 
 
-def calculate_plume_groups(
+def load_data_and_calculate_plume_groups(
     case: str,
     config: Configuration,
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
@@ -247,13 +236,13 @@ def calculate_plume_groups(
     """
     NBNB-AS
     """
-    logging.info("\nStart calculating distances")
+    logging.info("\nStart calculations for plume tracking")
     grid = Grid(f"{case}.EGRID")
     unrst = ResdataFile(f"{case}.UNRST")
 
     logging.info(f"Number of active grid cells: {grid.get_num_active()}")
 
-    calculate_all_plume_groups(  # NBNB-AS
+    calculate_all_plume_groups(
         grid,
         unrst,
         threshold_sgas,
@@ -307,27 +296,30 @@ def _log_number_of_grid_cells(
             logging.warning("")  # Line ending
 
 
-def _calculate_plume_groups(
+def calculate_plume_groups(
     attribute_key: str,
     threshold: float,
     unrst: ResdataFile,
     grid: Grid,
     inj_wells: List[InjectionWellData],
 ) -> list[list[str]]:
-    print("_calculate_plume_groups()")
     """
-    NBNB-AS
+    Calculates/tracks the plume groups for a single property.
+    The result is a list over the number of time steps, where
+    each element is a list over the number of active grid cells.
+    The string is the name of the plume group, for instance
+    "well_A+well_B" (if well_A and well_B have merged).
     """
     n_time_steps = len(unrst.report_steps)
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
-    n_cells = len(unrst[attribute_key][0].numpy_view())
+    n_cells = len(unrst[attribute_key][0])
 
     logging.info(f"\nStart calculating plume tracking for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
 
-    pg_prop = [["" for _ in range(n_cells)] for _ in range(n_time_steps)]  # Plume group property
-    group_names: set[str] = set()
+    # Plume group property
+    pg_prop = [["" for _ in range(n_cells)] for _ in range(n_time_steps)]
     prev_groups = PlumeGroups(n_cells)
     for i in range(n_time_steps):
         groups = PlumeGroups(n_cells)
@@ -341,7 +333,6 @@ def _calculate_plume_groups(
             inj_wells,
             n_time_steps,
             groups,
-            group_names,
             n_grid_cells_for_logging,
         )
 
@@ -358,11 +349,9 @@ def _calculate_plume_groups(
         logging.info(f"{percent*100:>6.1f} %")
     logging.info("")
 
-    # NBNB-AS: Can move outside this method
     _log_number_of_grid_cells(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key
     )
-
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
 
     return pg_prop
@@ -378,7 +367,6 @@ def _plume_groups_at_time_step(
     n_time_steps: int,
     # These arguments will be updated:
     groups: PlumeGroups,
-    group_names: set[str],
     n_grid_cells_for_logging: Dict[str, List[int]],
 ):
     data = unrst[attribute_key][i].numpy_view()
@@ -417,18 +405,17 @@ def _plume_groups_at_time_step(
             if "?" not in n_grid_cells_for_logging:
                 n_grid_cells_for_logging["?"] = [0] * n_time_steps
             n_grid_cells_for_logging["?"][i] = len(
-                [i for i in cells_with_co2 if groups.cells[i].all_groups == [-1]]
+                [j for j in cells_with_co2 if groups.cells[j].all_groups == [-1]]
             )
             continue
         indices_this_group = [
-            i for i in cells_with_co2 if groups.cells[i].all_groups == g
+            j for j in cells_with_co2 if groups.cells[j].all_groups == g
         ]
 
         group_string = "+".join(
             [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
         )
-        if group_string not in group_names:
-            group_names.add(group_string)
+        if group_string not in n_grid_cells_for_logging:
             n_grid_cells_for_logging[group_string] = [0] * n_time_steps
         n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
 
@@ -506,7 +493,7 @@ def main():
     )
     _log_configuration(config)
 
-    calculate_plume_groups(
+    load_data_and_calculate_plume_groups(
         args.case,
         config,
         args.threshold_sgas,

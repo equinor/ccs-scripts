@@ -25,7 +25,7 @@ import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
-from ccs_scripts.co2_plume_tracking.co2_plume_tracking import _calculate_plume_groups
+from ccs_scripts.co2_plume_tracking.co2_plume_tracking import calculate_plume_groups
 from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
 
 DEFAULT_THRESHOLD_SGAS = 0.2
@@ -754,7 +754,7 @@ def calculate_distances(
     unrst = ResdataFile(f"{case}.UNRST")
 
     if do_plume_tracking:
-        plume_groups_sgas = _calculate_plume_groups(
+        plume_groups_sgas = calculate_plume_groups(
             "SGAS",
             threshold_sgas,
             unrst,
@@ -769,7 +769,7 @@ def calculate_distances(
         else:
             amfg_key = None
         if amfg_key is not None:
-            plume_groups_amfg = _calculate_plume_groups(
+            plume_groups_amfg = calculate_plume_groups(
                 amfg_key,
                 threshold_amfg,
                 unrst,
