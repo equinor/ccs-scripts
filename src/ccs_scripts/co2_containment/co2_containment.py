@@ -703,7 +703,7 @@ def convert_data_frame(
     residual_trapping: bool,
 ) -> pd.DataFrame:
     """
-    Convert output format to human-readable state.
+    Convert output format to human-/Excel-readable state.
     """
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     logging.info("\nMerge data rows for data frame")
@@ -781,18 +781,19 @@ def export_readable_output(
     out_dir: str,
     calc_type_input: str,
     residual_trapping: bool,
-):
+) -> None:
     """
-    Exports the results to a more readable text file than the standard csv output,
-    named according to the calculation type (mass / cell_volume / actual_volume)
+    Exports the results to a more readable csv file than the standard output,
+    both directly in a text editor and when loaded into Excel.
+    Named according to the calculation type (mass / cell_volume / actual_volume)
     """
-    file_name = f"plume_{calc_type_input}_summary_format.txt"
+    file_name = f"plume_{calc_type_input}_summary_format.csv"
     logging.info(f"\nExport results to readable text file: {file_name}")
     file_path = os.path.join(out_dir, file_name)
     if os.path.isfile(file_path):
         logging.info(f"Output text file already exists. Overwriting: {file_path}")
     details = prepare_writing_details(df, calc_type_input, residual_trapping)
-    for column in details["number_cols"]:
+    for column in details["numeric"]:
         df[column] /= details["scale"]
 
     zones = []
@@ -804,14 +805,22 @@ def export_readable_output(
             region for region in region_info["int_to_region"] if region is not None
         ]
     with open(file_path, "w", encoding="utf-8") as file:
-        file.write(f"Calculation type: {calc_type_input}, unit: {details['unit']}\n")
+        file.write(details["type"])
+        file.write(details["unit"])
+        file.write(details["empty"])
         write_lines(file, df, "all", "all", details)
         if len(zones) > 0:
-            file.write("\nFiltered by zone:")
+            file.write(
+                "\nFiltered by zone:,     "
+                + details["blank"] * (details["num_cols"] - 2)
+            )
         for zone in zones:
             write_lines(file, df, zone, "all", details)
         if len(regions) > 0:
-            file.write("\nFiltered by region:")
+            file.write(
+                "\nFiltered by region:,   "
+                + details["blank"] * (details["num_cols"] - 2)
+            )
         for region in regions:
             write_lines(file, df, "all", region, details)
 
@@ -820,57 +829,53 @@ def prepare_writing_details(
     df: pd.DataFrame,
     calc_type: str,
     residual_trapping: bool,
-):
+) -> dict:
     """
     Prepare headers and other information to be written in the summary file.
     """
     phase = (
-        "|Free gas    |Trapped gas |Aqueous     |"
+        ",    Free gas, Trapped gas,     Aqueous"
         if residual_trapping
-        else "|Gas         |Aqueous     |"
+        else ",         Gas,     Aqueous"
     )
+    n_phase = 0 if calc_type == "cell_volume" else 3 if residual_trapping else 2
     details: Dict = {
-        "num_phase": 3 if residual_trapping else 2,
-        "number_cols": [
-            col for col in df.columns if col not in ["date", "zone", "region"]
-        ],
+        "num_phase": n_phase,
+        "num_cols": 5 + 4 * n_phase,
+        "numeric": [c for c in df.columns if c not in ["date", "zone", "region"]],
+        "blank": ",            ",
     }
-    blank = "             " * (details["num_phase"] - 1)
-    blank2 = "             " * 2
-    tot = "|Total       "
-    cont = "|Contained   "
-    out = "|Outside     "
-    haz = "|Hazardous   "
+    dat = "\n      Date"
+    tot = ",       Total"
+    con = ",   Contained"
+    out = ",     Outside"
+    haz = ",   Hazardous"
     if calc_type == "cell_volume":
-        details["over_header"] = " " * 40 + "|"
-        details["header"] = "\nDate       |" + tot + "|" + cont + out + haz + "|"
-        details["dashes"] = "\n" + "-" * 66
-        details["extra_line"] = [0, 3]
+        details["over_header"] = details["blank"] * (details["num_cols"] - 2)
+        details["header"] = dat + tot + con + out + haz
     else:
-        details["over_header"] = "|"
-        details["over_header"] += "|".join(
-            [tot + blank, tot + blank2, cont + blank, out + blank, haz + blank]
+        details["over_header"] = (
+            tot * (n_phase + 3) + con * n_phase + out * n_phase + haz * n_phase
         )
-        details["over_header"] += "|"
-        details["header"] = (
-            "\nDate       |" + tot + "|" + phase + cont + out + haz + "|" + phase * 3
-        )
-        details["dashes"] = "\n" + "-" * (70 + 52 * details["num_phase"])
-        details["extra_line"] = np.cumsum(
-            [0, details["num_phase"], 3] + [details["num_phase"]] * 3
-        )
+        details["header"] = dat + tot + phase + con + out + haz + phase * 3
     if calc_type == "mass":
-        details["unit"] = "Megatons"
+        details["type"] = " Calc type,        Mass"
+        details["unit"] = "\n      Unit,    Megatons,            "
         details["scale"] = 1e9
-        details["decimals"] = 3
+        details["num_decimals"] = 3
     elif calc_type == "actual_volume":
-        details["unit"] = "Cubic kilometers"
+        details["type"] = " Calc type,      Volume"
+        details["unit"] = "\n      Unit, Cubic kilometers,       "
         details["scale"] = 1e9
-        details["decimals"] = 6
+        details["num_decimals"] = 6
     else:
-        details["unit"] = "Number of cells (in millions)"
+        details["type"] = " Calc type, Cell volume"
+        details["unit"] = "\n      Unit, #cells (millions),      "
         details["scale"] = 1e6
-        details["decimals"] = 2
+        details["num_decimals"] = 2
+    details["type"] += details["blank"] * (details["num_cols"] - 2)
+    details["unit"] += details["blank"] * (details["num_cols"] - 3)
+    details["empty"] = "\n          " + details["blank"] * (details["num_cols"] - 1)
     return details
 
 
@@ -880,33 +885,28 @@ def write_lines(
     zone: str,
     region: str,
     details: dict,
-):
+) -> None:
     """
     Write lines for the section of the containment output corresponding to the area
     defined by the specified region or zone (or the total across all).
     """
     df = data_frame[(data_frame["zone"] == zone) & (data_frame["region"] == region)]
     if zone == "all" and region == "all":
-        over_header = "\n" + " " * 25 + details["over_header"]
+        over_header = "\n          ," + " " * 12
     elif region != "all":
-        over_header = f"\n{region:<25}" + details["over_header"]
+        over_header = f"\n{region + ',':<23}"
     else:
-        over_header = f"\n{zone:<25}" + details["over_header"]
+        over_header = f"\n{zone + ',':<23}"
 
-    file.write(details["dashes"])
-    file.write(over_header)
-    file.write(details["dashes"])
+    file.write(over_header + details["over_header"])
     file.write(details["header"])
-    file.write(details["dashes"])
     for lines_done in range(df.shape[0]):
-        line = f"\n{df['date'].values[lines_done]} |"
-        values = df[details["number_cols"]].values[lines_done]
-        for val_ind, value in enumerate(values):
-            line += f"|{value:>11.{details['decimals']}f} "
-            if val_ind in details["extra_line"]:
-                line += "|"
+        line = f"\n{df['date'].values[lines_done]}"
+        values = df[details["numeric"]].values[lines_done]
+        for value in values:
+            line += f",{value:>12.{details['num_decimals']}f}"
         file.write(line)
-    file.write(details["dashes"] + "\n")
+    file.write(details["empty"])
 
 
 def main() -> None:
