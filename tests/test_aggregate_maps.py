@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 import xtgeo
 
-from ccs_scripts.aggregate import grid3d_aggregate_maps
+from ccs_scripts.aggregate import grid3d_aggregate_map
 
 
 def test_aggregated_map1():
@@ -12,7 +12,7 @@ def test_aggregated_map1():
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate1.yml"
 
-    grid3d_aggregate_maps.main(
+    grid3d_aggregate_map.main(
         [
             "--config",
             cfg,
@@ -32,7 +32,7 @@ def test_aggregated_map2():
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate2.yml"
 
-    grid3d_aggregate_maps.main(
+    grid3d_aggregate_map.main(
         [
             "--config",
             cfg,
@@ -52,7 +52,7 @@ def test_aggregated_map3():
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate3.yml"
 
-    grid3d_aggregate_maps.main(
+    grid3d_aggregate_map.main(
         [
             "--config",
             cfg,
@@ -72,7 +72,7 @@ def test_aggregated_map4():
     result.mkdir(parents=True)
     yml = "tests/yaml/config_aggregate4.yml"
 
-    grid3d_aggregate_maps.main(
+    grid3d_aggregate_map.main(
         [
             "--config",
             yml,
@@ -95,7 +95,7 @@ def test_aggregated_map5():
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate5.yml"
 
-    grid3d_aggregate_maps.main(
+    grid3d_aggregate_map.main(
         [
             "--config",
             cfg,
@@ -115,7 +115,7 @@ def test_aggregated_map6():
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate6.yml"
 
-    grid3d_aggregate_maps.main(
+    grid3d_aggregate_map.main(
         [
             "--config",
             cfg,
@@ -146,7 +146,7 @@ def test_aggregated_map7():
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate7.yml"
 
-    grid3d_aggregate_maps.main(
+    grid3d_aggregate_map.main(
         [
             "--config",
             cfg,
