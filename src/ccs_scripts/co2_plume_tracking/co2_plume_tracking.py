@@ -12,7 +12,7 @@ import socket
 import subprocess
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -315,6 +315,24 @@ def _log_number_of_grid_cells(
             logging.warning("")  # Line ending
 
 
+def _find_inj_wells_grid_indices(
+    grid: Grid, inj_wells: List[InjectionWellData]
+) -> dict[str, List[Union[Tuple[int, int], Tuple[int, int, int]]]]:
+    inj_wells_grid_indices = {}
+    for well in inj_wells:
+        if well.z is not None:
+            inj_wells_grid_indices[well.name] = [
+                grid.find_cell(x=well.x, y=well.y, z=well.z)
+            ]
+        else:
+            inj_wells_grid_indices[well.name] = []
+            for k in range(grid.get_nz()):
+                xy = grid.find_cell_xy(x=well.x, y=well.y, k=k)
+                if xy not in inj_wells_grid_indices[well.name]:
+                    inj_wells_grid_indices[well.name].append(xy)
+    return inj_wells_grid_indices
+
+
 def calculate_plume_groups(
     attribute_key: str,
     threshold: float,
@@ -333,6 +351,8 @@ def calculate_plume_groups(
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
     n_cells = len(unrst[attribute_key][0])
 
+    inj_wells_grid_indices = _find_inj_wells_grid_indices(grid, inj_wells)
+
     logging.info(f"\nStart calculating plume tracking for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
@@ -350,6 +370,7 @@ def calculate_plume_groups(
             threshold,
             prev_groups,
             inj_wells,
+            inj_wells_grid_indices,
             n_time_steps,
             groups,
             n_grid_cells_for_logging,
@@ -391,6 +412,9 @@ def _plume_groups_at_time_step(
     threshold: float,
     prev_groups: PlumeGroups,
     inj_wells: List[InjectionWellData],
+    inj_wells_grid_indices: dict[
+        str, List[Union[Tuple[int, int], Tuple[int, int, int]]]
+    ],
     n_time_steps: int,
     # These arguments will be updated:
     groups: PlumeGroups,
@@ -407,6 +431,7 @@ def _plume_groups_at_time_step(
         prev_groups,
         grid,
         inj_wells,
+        inj_wells_grid_indices,
         groups,
     )
 
@@ -452,22 +477,11 @@ def _initialize_groups_from_prev_step_and_inj_wells(
     prev_groups: PlumeGroups,
     grid: Grid,
     inj_wells: List[InjectionWellData],
+    inj_wells_grid_indices: dict[
+        str, List[Union[Tuple[int, int], Tuple[int, int, int]]]
+    ],
     groups: PlumeGroups,
 ):
-    # NBNB-AS: Temp location, can move later:
-    inj_wells_grid_indices = {}
-    for well in inj_wells:
-        if well.z is not None:
-            inj_wells_grid_indices[well.name] = [
-                grid.find_cell(x=well.x, y=well.y, z=well.z)
-            ]
-        else:
-            inj_wells_grid_indices[well.name] = []
-            for k in range(grid.get_nz()):
-                xy = grid.find_cell_xy(x=well.x, y=well.y, k=k)
-                if xy not in inj_wells_grid_indices[well.name]:
-                    inj_wells_grid_indices[well.name].append(xy)
-
     for index in cells_with_co2:
         if prev_groups.cells[index].has_co2():
             groups.cells[index] = prev_groups.cells[index]
