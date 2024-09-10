@@ -14,7 +14,7 @@ class InjectionWellData:
     name: str
     x: float
     y: float
-    z: float  # NBNB-AS: Make optional
+    z: Optional[float]
     number: int
 
 

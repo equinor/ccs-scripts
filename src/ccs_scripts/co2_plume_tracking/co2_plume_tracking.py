@@ -76,7 +76,7 @@ class Configuration:
                 )
                 sys.exit(1)
             for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
-                args_required = ["name", "x", "y", "z"]  # NBNB-AS
+                args_required = ["name", "x", "y"]
                 for arg in args_required:
                     if arg not in injection_well_info:
                         logging.error(
@@ -249,7 +249,7 @@ def calculate_all_plume_groups(
 
 def load_data_and_calculate_plume_groups(
     case: str,
-    config: Configuration,
+    injection_wells: List[InjectionWellData],
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
 ) -> Tuple[list[list[str]], Optional[list[list[str]]], Optional[str], List[datetime]]:
@@ -264,7 +264,7 @@ def load_data_and_calculate_plume_groups(
         unrst,
         threshold_sgas,
         threshold_amfg,
-        config.injection_wells,
+        injection_wells,
     )
 
     return pg_prop_sgas, pg_prop_amfg, amfg_key, unrst.report_dates
@@ -457,7 +457,16 @@ def _initialize_groups_from_prev_step_and_inj_wells(
     # NBNB-AS: Temp location, can move later:
     inj_wells_grid_indices = {}
     for well in inj_wells:
-        inj_wells_grid_indices[well.name] = grid.find_cell(x=well.x, y=well.y, z=well.z)
+        if well.z is not None:
+            inj_wells_grid_indices[well.name] = [
+                grid.find_cell(x=well.x, y=well.y, z=well.z)
+            ]
+        else:
+            inj_wells_grid_indices[well.name] = []
+            for k in range(grid.get_nz()):
+                xy = grid.find_cell_xy(x=well.x, y=well.y, k=k)
+                if xy not in inj_wells_grid_indices[well.name]:
+                    inj_wells_grid_indices[well.name].append(xy)
 
     for index in cells_with_co2:
         if prev_groups.cells[index].has_co2():
@@ -468,12 +477,23 @@ def _initialize_groups_from_prev_step_and_inj_wells(
             (x, y, z) = grid.get_xyz(active_index=index)
             found = False
             for well in inj_wells:
-                same_cell = (i, j, k) == inj_wells_grid_indices[well.name]
-                xyz_close = (
-                    abs(x - well.x) <= INJ_POINT_THRESHOLD
-                    and abs(y - well.y) <= INJ_POINT_THRESHOLD
-                    and abs(z - well.z) <= INJ_POINT_THRESHOLD
-                )
+                if well.z is not None:
+                    same_cell = (i, j, k) == inj_wells_grid_indices[well.name]
+                    xyz_close = (
+                        abs(x - well.x) <= INJ_POINT_THRESHOLD
+                        and abs(y - well.y) <= INJ_POINT_THRESHOLD
+                        and abs(z - well.z) <= INJ_POINT_THRESHOLD
+                    )
+                else:
+                    same_cell = False
+                    for cell_i, cell_j in inj_wells_grid_indices[well.name]:
+                        if (i, j) == (cell_i, cell_j):
+                            same_cell = True
+                            break
+                    xyz_close = (
+                        abs(x - well.x) <= INJ_POINT_THRESHOLD
+                        and abs(y - well.y) <= INJ_POINT_THRESHOLD
+                    )
                 if same_cell or xyz_close:
                     found = True
                     groups.cells[index].set_cell_groups(new_groups=[well.number])
@@ -565,7 +585,7 @@ def main():
     (pg_prop_sgas, pg_prop_amfg, amfg_key, dates) = (
         load_data_and_calculate_plume_groups(
             args.case,
-            config,
+            config.injection_wells,
             args.threshold_sgas,
             args.threshold_amfg,
         )
