@@ -1055,7 +1055,7 @@ def _log_results_detailed(df: pd.DataFrame):
             df[col] = df[col].round(1)
 
     logging.info("\nDetailed summary of results:")
-    logging.info("===========================")
+    logging.info("============================")
     logging.info("Columns:")
     for key, value in col_mapping.items():
         if key != "date":
