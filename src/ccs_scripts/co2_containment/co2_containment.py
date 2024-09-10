@@ -15,7 +15,7 @@ import socket
 import subprocess
 import sys
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TextIO, Union
+from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -792,9 +792,7 @@ def export_readable_output(
     file_path = os.path.join(out_dir, file_name)
     if os.path.isfile(file_path):
         logging.info(f"Output text file already exists. Overwriting: {file_path}")
-    details = prepare_writing_details(df, calc_type_input, residual_trapping)
-    for column in details["numeric"]:
-        df[column] /= details["scale"]
+    df, details = prepare_writing_details(df, calc_type_input, residual_trapping)
 
     zones = []
     regions = []
@@ -811,45 +809,61 @@ def export_readable_output(
         write_lines(file, df, "all", "all", details)
         if len(zones) > 0:
             file.write(
-                "\nFiltered by zone:,     "
+                f"\n{'Filtered by zone:,':<{11 + details['width']}}"
                 + details["blank"] * (details["num_cols"] - 2)
             )
         for zone in zones:
             write_lines(file, df, zone, "all", details)
         if len(regions) > 0:
             file.write(
-                "\nFiltered by region:,   "
+                f"\n{'Filtered by region:,':<{11 + details['width']}}"
                 + details["blank"] * (details["num_cols"] - 2)
             )
         for region in regions:
             write_lines(file, df, "all", region, details)
 
 
+def find_width(num_decimals: int, max_value: Union[int, float]) -> int:
+    """
+    Use wider columns in the summary format if the numbers are large.
+    """
+    return int(max((12, num_decimals + 3 + np.floor(np.log(max_value) / np.log(10)))))
+
+
 def prepare_writing_details(
     df: pd.DataFrame,
     calc_type: str,
     residual_trapping: bool,
-) -> dict:
+) -> Tuple[pd.DataFrame, dict]:
     """
     Prepare headers and other information to be written in the summary file.
     """
+    details: Dict = {
+        "numeric": [c for c in df.columns if c not in ["date", "zone", "region"]],
+        "num_decimals": (
+            3 if calc_type == "mass" else 6 if calc_type == "actual_volume" else 2
+        ),
+    }
+    scale = 1e6 if calc_type == "cell_volume" else 1e9
+    for column in details["numeric"]:
+        df[column] /= scale
+    width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     phase = (
-        ",    Free gas, Trapped gas,     Aqueous"
+        f",{'Free gas':>{width}},{'Trapped gas':>{width}},{'Aqueous':>{width}}"
         if residual_trapping
-        else ",         Gas,     Aqueous"
+        else f",{'Gas':>{width}},{'Aqueous':>{width}}"
     )
     n_phase = 0 if calc_type == "cell_volume" else 3 if residual_trapping else 2
-    details: Dict = {
-        "num_phase": n_phase,
-        "num_cols": 5 + 4 * n_phase,
-        "numeric": [c for c in df.columns if c not in ["date", "zone", "region"]],
-        "blank": ",            ",
-    }
+
+    details["num_phase"] = n_phase
+    details["num_cols"] = 5 + 4 * n_phase
+    details["blank"] = "," + " " * width
+
     dat = "\n      Date"
-    tot = ",       Total"
-    con = ",   Contained"
-    out = ",     Outside"
-    haz = ",   Hazardous"
+    tot = f",{'Total':>{width}}"
+    con = f",{'Contained':>{width}}"
+    out = f",{'Outside':>{width}}"
+    haz = f",{'Hazardous':>{width}}"
     if calc_type == "cell_volume":
         details["over_header"] = details["blank"] * (details["num_cols"] - 2)
         details["header"] = dat + tot + con + out + haz
@@ -859,24 +873,21 @@ def prepare_writing_details(
         )
         details["header"] = dat + tot + phase + con + out + haz + phase * 3
     if calc_type == "mass":
-        details["type"] = " Calc type,        Mass"
-        details["unit"] = "\n      Unit,    Megatons,            "
-        details["scale"] = 1e9
-        details["num_decimals"] = 3
+        c_type = f" Calc type,{'Mass':>{width}}"
+        unit = f"\n      Unit,{'Megatons':>{width}}," + " " * width
     elif calc_type == "actual_volume":
-        details["type"] = " Calc type,      Volume"
-        details["unit"] = "\n      Unit, Cubic kilometers,       "
-        details["scale"] = 1e9
-        details["num_decimals"] = 6
+        c_type = f" Calc type,{'Volume':>{width}}"
+        unit = f"\n      Unit,{'Cubic kilometers':>{max((17, width))}},"
+        unit += " " * (width + min((0, width - 17)))
     else:
-        details["type"] = " Calc type, Cell volume"
-        details["unit"] = "\n      Unit, #cells (millions),      "
-        details["scale"] = 1e6
-        details["num_decimals"] = 2
-    details["type"] += details["blank"] * (details["num_cols"] - 2)
-    details["unit"] += details["blank"] * (details["num_cols"] - 3)
+        c_type = f" Calc type,{'Cell volume':>{width}}"
+        unit = f"\n      Unit,{'#cells (millions)':>{max((18, width))}},"
+        unit += " " * (width + min((0, width - 18)))
+    details["type"] = c_type + details["blank"] * (details["num_cols"] - 2)
+    details["unit"] = unit + details["blank"] * (details["num_cols"] - 3)
     details["empty"] = "\n          " + details["blank"] * (details["num_cols"] - 1)
-    return details
+    details["width"] = width
+    return df, details
 
 
 def write_lines(
@@ -891,12 +902,27 @@ def write_lines(
     defined by the specified region or zone (or the total across all).
     """
     df = data_frame[(data_frame["zone"] == zone) & (data_frame["region"] == region)]
+    max_name_length = 10 + details["width"]
     if zone == "all" and region == "all":
-        over_header = "\n          ," + " " * 12
+        over_header = "\n          ," + " " * details["width"]
     elif region != "all":
-        over_header = f"\n{region + ',':<23}"
+        if len(region) > max_name_length:
+            logging.warning(
+                "Region name is long and will be cut off in the summary format!"
+            )
+            region = region[:max_name_length]
+        over_header = f"\n{region:>10}," + " " * (
+            details["width"] + min((0, 10 - len(region)))
+        )
     else:
-        over_header = f"\n{zone + ',':<23}"
+        if len(zone) > max_name_length:
+            logging.warning(
+                "Zone name is long and will be cut off in the summary format!"
+            )
+            zone = zone[:max_name_length]
+        over_header = f"\n{zone:>10}," + " " * (
+            details["width"] + min((0, 10 - len(zone)))
+        )
 
     file.write(over_header + details["over_header"])
     file.write(details["header"])
@@ -904,7 +930,7 @@ def write_lines(
         line = f"\n{df['date'].values[lines_done]}"
         values = df[details["numeric"]].values[lines_done]
         for value in values:
-            line += f",{value:>12.{details['num_decimals']}f}"
+            line += f",{value:>{details['width']}.{details['num_decimals']}f}"
         file.write(line)
     file.write(details["empty"])
 
