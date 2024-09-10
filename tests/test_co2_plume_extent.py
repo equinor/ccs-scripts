@@ -523,7 +523,6 @@ def test_yaml_file_pflotran_plume_tracking(mocker):
     main()
 
     df = pandas.read_csv(output_path)
-    os.remove(output_path)
 
     answer_file = str(
         Path(__file__).parents[0]
