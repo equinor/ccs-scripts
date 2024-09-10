@@ -824,7 +824,9 @@ def export_readable_output(
 
 
 def find_width(num_decimals: int, max_value: Union[int, float]) -> int:
-    """ Use wider columns in the summary format if the numbers are large """
+    """
+    Use wider columns in the summary format if the numbers are large.
+    """
     return int(max((12, num_decimals + 3 + np.floor(np.log(max_value) / np.log(10)))))
 
 
@@ -838,11 +840,9 @@ def prepare_writing_details(
     """
     details: Dict = {
         "numeric": [c for c in df.columns if c not in ["date", "zone", "region"]],
-        "num_decimals": 3
-        if calc_type == "mass"
-        else 6
-        if calc_type == "actual_volume"
-        else 2,
+        "num_decimals": (
+            3 if calc_type == "mass" else 6 if calc_type == "actual_volume" else 2
+        ),
     }
     scale = 1e6 if calc_type == "cell_volume" else 1e9
     for column in details["numeric"]:
@@ -877,14 +877,12 @@ def prepare_writing_details(
         unit = f"\n      Unit,{'Megatons':>{width}}," + " " * width
     elif calc_type == "actual_volume":
         c_type = f" Calc type,{'Volume':>{width}}"
-        unit = f"\n      Unit,{'Cubic kilometers':>{max((17, width))}}," + " " * (
-            width + min((0, width - 17))
-        )
+        unit = f"\n      Unit,{'Cubic kilometers':>{max((17, width))}},"
+        unit += " " * (width + min((0, width - 17)))
     else:
         c_type = f" Calc type,{'Cell volume':>{width}}"
-        unit = f"\n      Unit,{'#cells (millions)':>{max((18, width))}}," + " " * (
-            width + min((0, width - 18))
-        )
+        unit = f"\n      Unit,{'#cells (millions)':>{max((18, width))}},"
+        unit += " " * (width + min((0, width - 18)))
     details["type"] = c_type + details["blank"] * (details["num_cols"] - 2)
     details["unit"] = unit + details["blank"] * (details["num_cols"] - 3)
     details["empty"] = "\n          " + details["blank"] * (details["num_cols"] - 1)
