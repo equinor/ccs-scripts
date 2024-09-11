@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
-NBNB-AS
+Calculations for tracking the CO2 plumes from different injection wells,
+using SGAS and AMFG/XMF2. Keeps track of which grid cells belong to which
+plume group at each time step, and merges plumes if they meet.
 """
 import argparse
 import getpass
@@ -30,9 +32,14 @@ DEFAULT_THRESHOLD_SGAS = 0.2
 DEFAULT_THRESHOLD_AMFG = 0.0005
 INJ_POINT_THRESHOLD = 60.0
 
-# NBNB-AS
 DESCRIPTION = """
+Calculations for tracking the CO2 plumes from different injection wells,
+using SGAS and AMFG/XMF2. Keeps track of which grid cells belong to which
+plume group at each time step, and merges plumes if they meet.
 
+Output is a table on CSV format, counting the number of grid cells in
+each group at each time step. The functionality is also used by the plume
+extent script, to separate the results into different plume groups.
 """
 
 CATEGORY = "modelling.reservoir"
@@ -41,7 +48,7 @@ CATEGORY = "modelling.reservoir"
 class Configuration:
     """
     Holds the configuration for plume tracking calculations
-    """  # NBNB-AS
+    """
 
     def __init__(
         self,
