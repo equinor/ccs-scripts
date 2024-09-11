@@ -8,12 +8,12 @@ import argparse
 import getpass
 import logging
 import os
-from pathlib import Path
 import platform
 import socket
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -73,7 +73,7 @@ class Configuration:
                 sys.exit(1)
 
     def make_config_from_input_dict(self, input_dict: Dict, case: str):
-        if not "injection_wells" in input_dict:
+        if "injection_wells" not in input_dict:
             logging.error("\nERROR: No injection wells specified.")
         else:
             if not isinstance(input_dict["injection_wells"], list):

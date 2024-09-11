@@ -9,8 +9,8 @@ import logging
 import os
 import platform
 import socket
-import subprocess
 import string
+import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -921,7 +921,8 @@ def _find_distances_at_time_step(
     # This argument will be updated:
     dist_per_group: Dict[str, Dict[str, np.ndarray]],
 ):
-    # NBNB-AS: Only needed if plume tracking is deactivated? If not, we have already done this
+    # NBNB-AS: Only needed if plume tracking is deactivated?
+    #          If not, we have already done this
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
 
@@ -929,7 +930,8 @@ def _find_distances_at_time_step(
         if do_plume_tracking:
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
-                # Skip calculating distances for cells that have an undecided plume group
+                # Skip calculating distances for cells that
+                # have an undecided plume group
                 if group_name == "?":
                     continue
                 # Check for new group name
@@ -962,7 +964,8 @@ def _find_distances_at_time_step(
         if do_plume_tracking:
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
-                # Skip calculating distances for cells that have an undecided plume group
+                # Skip calculating distances for cells that
+                # have an undecided plume group
                 if group_name == "?":
                     continue
                 # Check for new group name
