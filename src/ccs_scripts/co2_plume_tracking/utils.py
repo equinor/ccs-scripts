@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum
+import itertools
 from typing import Dict, List, Optional
 
 from resdata.grid import Grid
@@ -139,10 +140,17 @@ class PlumeGroups:
     def _find_nearest_groups(self, ijk, grid, tol: int = 1) -> List[List[int]]:
         out = []
         (i1, j1, k1) = ijk
-        cells_with_co2 = [i for i in range(len(self.cells)) if self.cells[i].has_co2()]
-        for ind in cells_with_co2:
-            (i2, j2, k2) = grid.get_ijk(active_index=ind)
-            if abs(i2 - i1) <= tol and abs(j2 - j1) <= tol and abs(k2 - k1) <= tol:
+        neigs = list(
+            itertools.product(
+                range(max((i1 - tol), 0), min((i1 + tol), grid.get_nx() - 1) + 1),
+                range(max((j1 - tol), 0), min((j1 + tol), grid.get_ny() - 1) + 1),
+                range(max((k1 - tol), 0), min((k1 + tol), grid.get_nz() - 1) + 1),
+            )
+        )
+
+        for ijk in neigs:
+            ind = grid.get_active_index(ijk=ijk)
+            if ind != -1 and self.cells[ind].has_co2():
                 all_groups = self.cells[ind].all_groups
                 if all_groups not in out:
                     out.append(all_groups.copy())
