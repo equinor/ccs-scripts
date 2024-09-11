@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from resdata.grid import Grid
 
@@ -61,7 +61,7 @@ class PlumeGroups:
         out.cells = self.cells.copy()
         return out
 
-    def resolve_undetermined_cells(self, grid: Grid) -> list:
+    def resolve_undetermined_cells(self, grid: Grid) -> List:
         ind_to_resolve = [
             ind for ind, group in enumerate(self.cells) if group.is_undetermined()
         ]
@@ -116,7 +116,7 @@ class PlumeGroups:
             self.cells[ind].set_cell_groups([-1])
 
         # Resolve groups to merge:
-        new_groups_to_merge: list = []
+        new_groups_to_merge: List = []
         for g in groups_to_merge:
             merged = False
             for c in g:
@@ -178,8 +178,8 @@ class PlumeGroups:
             )
 
 
-def assemble_plume_groups_into_dict(plume_groups: List[str]) -> dict[str, List[int]]:
-    pg_dict = {}
+def assemble_plume_groups_into_dict(plume_groups: List[str]) -> Dict[str, List[int]]:
+    pg_dict: Dict[str, List[int]] = {}
     for ind, group in enumerate(plume_groups):
         if group != "":
             if group in pg_dict:

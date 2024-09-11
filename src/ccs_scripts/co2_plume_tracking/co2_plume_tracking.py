@@ -14,7 +14,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -220,7 +220,7 @@ def calculate_all_plume_groups(
     threshold_sgas: float,
     threshold_amfg: float,
     inj_wells: List[InjectionWellData],
-) -> Tuple[list[list[str]], Optional[list[list[str]]], Optional[str]]:
+) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str]]:
     pg_prop_sgas = calculate_plume_groups(
         "SGAS",
         threshold_sgas,
@@ -259,7 +259,7 @@ def load_data_and_calculate_plume_groups(
     injection_wells: List[InjectionWellData],
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
-) -> Tuple[list[list[str]], Optional[list[list[str]]], Optional[str], List[datetime]]:
+) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str], List[datetime]]:
     logging.info("\nStart calculations for plume tracking")
     grid = Grid(f"{case}.EGRID")
     unrst = ResdataFile(f"{case}.UNRST")
@@ -324,7 +324,7 @@ def _log_number_of_grid_cells(
 
 def _find_inj_wells_grid_indices(
     grid: Grid, inj_wells: List[InjectionWellData]
-) -> dict[str, List[Union[Tuple[int, int], Tuple[int, int, int]]]]:
+) -> Dict[str, List[Tuple[int, int, Optional[int]]]]:
     inj_wells_grid_indices = {}
     for well in inj_wells:
         if well.z is not None:
@@ -336,7 +336,7 @@ def _find_inj_wells_grid_indices(
             for k in range(grid.get_nz()):
                 xy = grid.find_cell_xy(x=well.x, y=well.y, k=k)
                 if xy not in inj_wells_grid_indices[well.name]:
-                    inj_wells_grid_indices[well.name].append(xy)
+                    inj_wells_grid_indices[well.name].append((xy[0], xy[1], None))
     return inj_wells_grid_indices
 
 
@@ -346,7 +346,7 @@ def calculate_plume_groups(
     unrst: ResdataFile,
     grid: Grid,
     inj_wells: List[InjectionWellData],
-) -> list[list[str]]:
+) -> List[List[str]]:
     """
     Calculates/tracks the plume groups for a single property.
     The result is a list over the number of time steps, where
@@ -419,9 +419,7 @@ def _plume_groups_at_time_step(
     threshold: float,
     prev_groups: PlumeGroups,
     inj_wells: List[InjectionWellData],
-    inj_wells_grid_indices: dict[
-        str, List[Union[Tuple[int, int], Tuple[int, int, int]]]
-    ],
+    inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     n_time_steps: int,
     # These arguments will be updated:
     groups: PlumeGroups,
@@ -484,9 +482,7 @@ def _initialize_groups_from_prev_step_and_inj_wells(
     prev_groups: PlumeGroups,
     grid: Grid,
     inj_wells: List[InjectionWellData],
-    inj_wells_grid_indices: dict[
-        str, List[Union[Tuple[int, int], Tuple[int, int, int]]]
-    ],
+    inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     groups: PlumeGroups,
 ):
     for index in cells_with_co2:
@@ -507,7 +503,7 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                     )
                 else:
                     same_cell = False
-                    for cell_i, cell_j in inj_wells_grid_indices[well.name]:
+                    for cell_i, cell_j, _ in inj_wells_grid_indices[well.name]:
                         if (i, j) == (cell_i, cell_j):
                             same_cell = True
                             break
@@ -540,7 +536,7 @@ def _log_results(
         logging.info(f"End state {col:<{col_width}} : {dfs[col].iloc[-1]:>11.1f}")
 
 
-def _find_dates(all_results: List[Tuple[dict, Optional[dict], Optional[str]]]):
+def _find_dates(all_results: List[Tuple[Dict, Optional[Dict], Optional[str]]]):
     one_dict = all_results[0][0][next(iter(all_results[0][0]))]
     one_array = one_dict[next(iter(one_dict))]
     dates = [[date] for (date, _) in one_array]
@@ -558,8 +554,8 @@ def _find_output_file(output: str, case: str):
 
 def _collect_results_into_dataframe(
     report_dates: List[datetime],
-    pg_prop_sgas: list[list[str]],
-    pg_prop_amfg: Optional[list[list[str]]],
+    pg_prop_sgas: List[List[str]],
+    pg_prop_amfg: Optional[List[List[str]]],
     amfg_key: Optional[str],
 ) -> pd.DataFrame:
     dates = [[d.strftime("%Y-%m-%d")] for d in report_dates]
