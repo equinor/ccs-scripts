@@ -159,23 +159,29 @@ class PlumeGroups:
         return unique_groups
 
     def debug_print(self):
-        unique_groups = self.find_unique_groups()
-        unique_groups.sort()
-        logging.debug(
-            f"Count '-'              : "
-            f"{len([c for c in self.cells if c.has_no_co2()])}"
-        )
-        logging.debug(
-            f"Count '?'              : "
-            f"{len([c for c in self.cells if c.is_undetermined()])}"
-        )
-        for unique_group in unique_groups:
-            n = len(
-                [c for c in self.cells if c.has_co2() and c.all_groups == unique_group]
+        logger = logging.getLogger(__name__)
+        if logger.isEnabledFor(logging.DEBUG):
+            unique_groups = self.find_unique_groups()
+            unique_groups.sort()
+            logging.debug(
+                f"Count '-'              : "
+                f"{len([c for c in self.cells if c.has_no_co2()])}"
             )
             logging.debug(
-                f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {n}"
+                f"Count '?'              : "
+                f"{len([c for c in self.cells if c.is_undetermined()])}"
             )
+            for unique_group in unique_groups:
+                n = len(
+                    [
+                        c
+                        for c in self.cells
+                        if c.has_co2() and c.all_groups == unique_group
+                    ]
+                )
+                logging.debug(
+                    f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {n}"
+                )
 
 
 def assemble_plume_groups_into_dict(plume_groups: List[str]) -> Dict[str, List[int]]:
