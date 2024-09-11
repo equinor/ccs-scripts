@@ -604,7 +604,7 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
 
 
 def _calculate_grid_cell_distances(
-    inj_wells: List[InjectionWellData],
+    inj_wells: Optional[List[InjectionWellData]],
     nactive: int,
     calculation_type: CalculationType,
     grid: Grid,
@@ -686,7 +686,7 @@ def calculate_single_distances(
     threshold_sgas: float,
     threshold_amfg: float,
     config: Calculation,
-    inj_wells: List[InjectionWellData],
+    inj_wells: Optional[List[InjectionWellData]],
     plume_groups_sgas: Optional[List[List[str]]],
     plume_groups_amfg: Optional[List[List[str]]],
 ):
@@ -740,7 +740,7 @@ def calculate_single_distances(
 def calculate_distances(
     case: str,
     distance_calculations: List[Calculation],
-    injection_wells: List[InjectionWellData],
+    injection_wells: Optional[List[InjectionWellData]] = None,
     do_plume_tracking: bool = False,
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
@@ -753,7 +753,7 @@ def calculate_distances(
     grid = Grid(f"{case}.EGRID")
     unrst = ResdataFile(f"{case}.UNRST")
 
-    if do_plume_tracking:
+    if do_plume_tracking and injection_wells is not None:
         plume_groups_sgas = calculate_plume_groups(
             "SGAS",
             threshold_sgas,
@@ -855,7 +855,7 @@ def _find_distances_per_time_step(
     threshold: float,
     unrst: ResdataFile,
     dist: Dict[str, np.ndarray],
-    inj_wells: List[InjectionWellData],
+    inj_wells: Optional[List[InjectionWellData]],
     plume_groups: Optional[List[List[str]]],
 ) -> dict:
     """
@@ -990,7 +990,7 @@ def _organize_output_with_dates(
     dist_per_group: Dict[str, Dict[str, np.ndarray]],
     calculation_type: CalculationType,
     do_plume_tracking: bool,
-    inj_wells: List[InjectionWellData],
+    inj_wells: Optional[List[InjectionWellData]],
     report_dates: List[datetime],
 ) -> dict:
     outputs: dict = {}
@@ -999,7 +999,7 @@ def _organize_output_with_dates(
         for single_group, distances in single_group_distances.items():
             well_name = "ALL"
             if calculation_type == CalculationType.PLUME_EXTENT:
-                if do_plume_tracking:
+                if do_plume_tracking and inj_wells is not None:
                     # NBNB-AS: x.name here should probably be handled earlier
                     well_name = [
                         x.name
