@@ -740,7 +740,7 @@ def calculate_single_distances(
 def calculate_distances(
     case: str,
     distance_calculations: List[Calculation],
-    injection_wells: List[InjectionWellData] = None,
+    injection_wells: List[InjectionWellData],
     do_plume_tracking: bool = False,
     threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
     threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
@@ -927,7 +927,7 @@ def _find_distances_at_time_step(
     cells_with_co2 = np.where(data > threshold)[0]
 
     if calculation_type == CalculationType.PLUME_EXTENT:
-        if do_plume_tracking:
+        if do_plume_tracking and plume_groups is not None:
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that
@@ -961,7 +961,7 @@ def _find_distances_at_time_step(
         CalculationType.POINT,
         CalculationType.LINE,
     ):
-        if do_plume_tracking:
+        if do_plume_tracking and plume_groups is not None:
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that

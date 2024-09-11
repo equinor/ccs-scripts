@@ -562,7 +562,7 @@ def _collect_results_into_dataframe(
     df = pd.DataFrame.from_records(dates, columns=["date"])
 
     for prop_key, pg_prop in zip(["SGAS", amfg_key], [pg_prop_sgas, pg_prop_amfg]):
-        if pg_prop is None:
+        if pg_prop is None or prop_key is None:
             continue
         results = {}
         for i, p in enumerate(pg_prop):
