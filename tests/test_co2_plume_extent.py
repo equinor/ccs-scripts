@@ -256,7 +256,7 @@ def _get_synthetic_case_paths(case: str, realization: int = 0):
     output_path = str(
         Path(__file__).parents[1] / "tests" / "testdata_co2_plume" / "plume_extent.csv"
     )
-    return (case_path, output_path)
+    return case_path, output_path
 
 
 def test_plume_extent_eclipse_using_well_name(mocker):
@@ -523,6 +523,7 @@ def test_yaml_file_pflotran_plume_tracking(mocker):
     main()
 
     df = pandas.read_csv(output_path)
+    os.remove(output_path)
 
     answer_file = str(
         Path(__file__).parents[0]
