@@ -46,19 +46,20 @@ def test_calc_plume_extents():
     )
     sgas_results, _, _ = calculate_distances(
         case_path,
-        config,
+        config.distance_calculations,
         threshold_sgas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"][
         "WELL"
     ]  # Get results for "ALL groups" to "single injection WELL"
     assert len(sgas_results) == 4
+    print(sgas_results)
     assert sgas_results[0][1] == pytest.approx(0.0)
     assert sgas_results[-1][1] == pytest.approx(1269.1237856341113)
 
     sgas_results_2, _, _ = calculate_distances(
         case_path,
-        config,
+        config.distance_calculations,
     )[0]
     sgas_results_2 = sgas_results_2["ALL"]["WELL"]
     assert len(sgas_results_2) == 4
@@ -66,7 +67,7 @@ def test_calc_plume_extents():
 
     sgas_results_3, _, _ = calculate_distances(
         case_path,
-        config,
+        config.distance_calculations,
         threshold_sgas=0.0001,
     )[0]
     sgas_results_3 = sgas_results_3["ALL"]["WELL"]
@@ -93,7 +94,7 @@ def test_calc_distances_to_point():
     )
     sgas_results, _, _ = calculate_distances(
         case_path,
-        config,
+        config.distance_calculations,
         threshold_sgas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
@@ -121,7 +122,7 @@ def test_calc_distances_to_line():
     )
     sgas_results, _, _ = calculate_distances(
         case_path,
-        config,
+        config.distance_calculations,
         threshold_sgas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
@@ -132,7 +133,7 @@ def test_calc_distances_to_line():
     config.distance_calculations[0].direction = LineDirection.WEST
     sgas_results, _, _ = calculate_distances(
         case_path,
-        config,
+        config.distance_calculations,
         threshold_sgas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
@@ -145,7 +146,7 @@ def test_calc_distances_to_line():
     config.distance_calculations[0].y = 5934000.0
     sgas_results, _, _ = calculate_distances(
         case_path,
-        config,
+        config.distance_calculations,
         threshold_sgas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
@@ -156,7 +157,7 @@ def test_calc_distances_to_line():
     config.distance_calculations[0].direction = LineDirection.SOUTH
     sgas_results, _, _ = calculate_distances(
         case_path,
-        config,
+        config.distance_calculations,
         threshold_sgas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
@@ -184,7 +185,7 @@ def test_export_to_csv():
     )
     all_results = calculate_distances(
         case_path,
-        config,
+        config.distance_calculations,
         threshold_sgas=0.1,
     )
 
@@ -255,7 +256,7 @@ def _get_synthetic_case_paths(case: str, realization: int = 0):
     output_path = str(
         Path(__file__).parents[1] / "tests" / "testdata_co2_plume" / "plume_extent.csv"
     )
-    return (case_path, output_path)
+    return case_path, output_path
 
 
 def test_plume_extent_eclipse_using_well_name(mocker):
