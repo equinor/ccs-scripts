@@ -53,12 +53,9 @@ class CellGroup:
 
 class PlumeGroups:
     def __init__(self, number_of_grid_cells: Optional[int] = None):
+        self.cells: List[CellGroup] = []
         if number_of_grid_cells is not None:
-            self.cells: List[CellGroup] = [
-                CellGroup() for _ in range(0, number_of_grid_cells)
-            ]
-        else:
-            self.cells: List[CellGroup] = []
+            self.cells = [CellGroup() for _ in range(0, number_of_grid_cells)]
 
     def copy(self):
         out = PlumeGroups()
