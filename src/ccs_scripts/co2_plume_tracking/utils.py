@@ -1,3 +1,4 @@
+import itertools
 import logging
 from dataclasses import dataclass
 from enum import Enum
@@ -51,13 +52,13 @@ class CellGroup:
 
 
 class PlumeGroups:
-    def __init__(self, number_of_grid_cells: int):
-        self.cells: List[CellGroup] = [
-            CellGroup() for _ in range(0, number_of_grid_cells)
-        ]
+    def __init__(self, number_of_grid_cells: Optional[int] = None):
+        self.cells: List[CellGroup] = []
+        if number_of_grid_cells is not None:
+            self.cells = [CellGroup() for _ in range(0, number_of_grid_cells)]
 
     def copy(self):
-        out = PlumeGroups(len(self.cells))
+        out = PlumeGroups()
         out.cells = self.cells.copy()
         return out
 
@@ -139,10 +140,17 @@ class PlumeGroups:
     def _find_nearest_groups(self, ijk, grid, tol: int = 1) -> List[List[int]]:
         out = []
         (i1, j1, k1) = ijk
-        cells_with_co2 = [i for i in range(len(self.cells)) if self.cells[i].has_co2()]
-        for ind in cells_with_co2:
-            (i2, j2, k2) = grid.get_ijk(active_index=ind)
-            if abs(i2 - i1) <= tol and abs(j2 - j1) <= tol and abs(k2 - k1) <= tol:
+        neigs = list(
+            itertools.product(
+                range(max((i1 - tol), 0), min((i1 + tol), grid.get_nx() - 1) + 1),
+                range(max((j1 - tol), 0), min((j1 + tol), grid.get_ny() - 1) + 1),
+                range(max((k1 - tol), 0), min((k1 + tol), grid.get_nz() - 1) + 1),
+            )
+        )
+
+        for ijk in neigs:
+            ind = grid.get_active_index(ijk=ijk)
+            if ind != -1 and self.cells[ind].has_co2():
                 all_groups = self.cells[ind].all_groups
                 if all_groups not in out:
                     out.append(all_groups.copy())
@@ -159,23 +167,29 @@ class PlumeGroups:
         return unique_groups
 
     def debug_print(self):
-        unique_groups = self.find_unique_groups()
-        unique_groups.sort()
-        logging.debug(
-            f"Count '-'              : "
-            f"{len([c for c in self.cells if c.has_no_co2()])}"
-        )
-        logging.debug(
-            f"Count '?'              : "
-            f"{len([c for c in self.cells if c.is_undetermined()])}"
-        )
-        for unique_group in unique_groups:
-            n = len(
-                [c for c in self.cells if c.has_co2() and c.all_groups == unique_group]
+        logger = logging.getLogger(__name__)
+        if logger.isEnabledFor(logging.DEBUG):
+            unique_groups = self.find_unique_groups()
+            unique_groups.sort()
+            logging.debug(
+                f"Count '-'              : "
+                f"{len([c for c in self.cells if c.has_no_co2()])}"
             )
             logging.debug(
-                f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {n}"
+                f"Count '?'              : "
+                f"{len([c for c in self.cells if c.is_undetermined()])}"
             )
+            for unique_group in unique_groups:
+                n = len(
+                    [
+                        c
+                        for c in self.cells
+                        if c.has_co2() and c.all_groups == unique_group
+                    ]
+                )
+                logging.debug(
+                    f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {n}"
+                )
 
 
 def assemble_plume_groups_into_dict(plume_groups: List[str]) -> Dict[str, List[int]]:
