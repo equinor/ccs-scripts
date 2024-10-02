@@ -513,7 +513,13 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                     )
                 if same_cell or xyz_close:
                     found = True
-                    groups.cells[index].set_cell_groups(new_groups=[well.number])
+                    merged_group = groups.check_if_well_is_part_of_larger_group(
+                        well.number
+                    )
+                    if merged_group is None:
+                        groups.cells[index].set_cell_groups(new_groups=[well.number])
+                    else:
+                        groups.cells[index].set_cell_groups(new_groups=merged_group)
                     break
             if not found:
                 groups.cells[index].set_undetermined()

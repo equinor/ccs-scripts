@@ -166,6 +166,14 @@ class PlumeGroups:
                 unique_groups.append([-1])
         return unique_groups
 
+    def check_if_well_is_part_of_larger_group(
+        self, well_number: int
+    ) -> Optional[List[int]]:
+        for group in self.find_unique_groups():
+            if len(group) > 1 and well_number in group:
+                return group
+        return None
+
     def debug_print(self):
         logger = logging.getLogger(__name__)
         if logger.isEnabledFor(logging.DEBUG):
