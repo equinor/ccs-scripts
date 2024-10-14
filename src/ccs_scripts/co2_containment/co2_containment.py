@@ -712,6 +712,8 @@ def convert_data_frame(
         calc_type,
         residual_trapping,
     )
+    total_df["zone"] = ["all"] * total_df.shape[0]
+    total_df["region"] = ["all"] * total_df.shape[0]
     data: Dict[str, Dict] = {}
     zones = []
     regions = []
@@ -737,21 +739,17 @@ def convert_data_frame(
     zone_df = pd.DataFrame()
     region_df = pd.DataFrame()
     if zone_info["int_to_zone"] is not None:
-        total_df["zone"] = ["all"] * total_df.shape[0]
         for z in zones:
             _df = data["zone"][z]
             _df["zone"] = [z] * _df.shape[0]
             zone_df = pd.concat([zone_df, _df])
-        if region_info["int_to_region"] is not None:
-            zone_df["region"] = ["all"] * zone_df.shape[0]
+        zone_df["region"] = ["all"] * zone_df.shape[0]
     if region_info["int_to_region"] is not None:
-        total_df["region"] = ["all"] * total_df.shape[0]
         for r in regions:
             _df = data["region"][r]
             _df["region"] = [r] * _df.shape[0]
             region_df = pd.concat([region_df, _df])
-        if zone_info["int_to_zone"] is not None:
-            region_df["zone"] = ["all"] * region_df.shape[0]
+        region_df["zone"] = ["all"] * region_df.shape[0]
     combined_df = pd.concat([total_df, zone_df, region_df])
     return combined_df
 
