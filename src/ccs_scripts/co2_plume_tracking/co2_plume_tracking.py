@@ -281,15 +281,20 @@ def _log_number_of_grid_cells(
     n_grid_cells_for_logging: Dict[str, List[int]],
     report_dates: List[datetime],
     attribute_key: str,
+    inj_wells: List[InjectionWellData],
 ):
     logging.info(
         f"Number of grid cells with {attribute_key} above threshold "
         f"for the different plumes:"
     )
     cols = [c for c in n_grid_cells_for_logging]
+    sorted_cols = [well.name for well in inj_wells if well.name in cols]
+    for col in cols:
+        if col not in sorted_cols:
+            sorted_cols.append(col)
     header = f"{'Date':<11}"
     widths = {}
-    for col in cols:
+    for col in sorted_cols:
         widths[col] = max(9, len(col))
         header += f" {col:>{widths[col]}}"
     logging.info("\n" + header)
@@ -297,7 +302,7 @@ def _log_number_of_grid_cells(
     for i, d in enumerate(report_dates):
         date = d.strftime("%Y-%m-%d")
         row = f"{date:<11}"
-        for col in cols:
+        for col in sorted_cols:
             n_cells = (
                 str(n_grid_cells_for_logging[col][i])
                 if n_grid_cells_for_logging[col][i] > 0
@@ -404,7 +409,7 @@ def calculate_plume_groups(
     logging.info("")
 
     _log_number_of_grid_cells(
-        n_grid_cells_for_logging, unrst.report_dates, attribute_key
+        n_grid_cells_for_logging, unrst.report_dates, attribute_key, inj_wells
     )
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
 
