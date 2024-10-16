@@ -287,7 +287,20 @@ def _log_number_of_grid_cells(
         f"Number of grid cells with {attribute_key} above threshold "
         f"for the different plumes:"
     )
-    cols = [c for c in n_grid_cells_for_logging]
+
+    def sort_well_names(name: str):
+        wells = name.split("+")
+        if len(wells) > 1:
+            sorted_wells = [well.name for well in inj_wells if well.name in wells]
+            return "+".join(sorted_wells)
+        return name
+
+    modified_dict = {
+        sort_well_names(name): n_cells
+        for name, n_cells in n_grid_cells_for_logging.items()
+    }
+
+    cols = [c for c in modified_dict]
     sorted_cols = [well.name for well in inj_wells if well.name in cols]
     for col in cols:
         if col not in sorted_cols:
@@ -303,16 +316,12 @@ def _log_number_of_grid_cells(
         date = d.strftime("%Y-%m-%d")
         row = f"{date:<11}"
         for col in sorted_cols:
-            n_cells = (
-                str(n_grid_cells_for_logging[col][i])
-                if n_grid_cells_for_logging[col][i] > 0
-                else "-"
-            )
+            n_cells = str(modified_dict[col][i]) if modified_dict[col][i] > 0 else "-"
             row += f" {n_cells:>{widths[col]}}"
         logging.info(row)
     logging.info("")
-    if "?" in n_grid_cells_for_logging:
-        no_groups = len(n_grid_cells_for_logging) == 1
+    if "?" in modified_dict:
+        no_groups = len(modified_dict) == 1
         logging.warning(
             f"WARNING: Plume group not found for "
             f"{'any' if no_groups else 'some'} grid cells with CO2."
