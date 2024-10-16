@@ -98,7 +98,7 @@ class Configuration:
                         x=injection_well_info["x"],
                         y=injection_well_info["y"],
                         z=(
-                            injection_well_info["z"]
+                            [injection_well_info["z"]]
                             if "z" in injection_well_info
                             else None
                         ),
@@ -209,7 +209,7 @@ def _log_configuration(config: Configuration) -> None:
     logging.info(f"\n{'Number':<8} {'Name':<15} {'x':<15} {'y':<15} {'z':<15}")
     logging.info("-" * 72)
     for i, well in enumerate(config.injection_wells, 1):
-        z_str = f"{well.z:<15}" if well.z is not None else "-"
+        z_str = f"{well.z[0]:<15}" if well.z is not None else "-"
         logging.info(f"{i:<8} {well.name:<15} {well.x:<15} {well.y:<15} {z_str}")
     logging.info("")
 
@@ -329,7 +329,7 @@ def _find_inj_wells_grid_indices(
     for well in inj_wells:
         if well.z is not None:
             inj_wells_grid_indices[well.name] = [
-                grid.find_cell(x=well.x, y=well.y, z=well.z)
+                grid.find_cell(x=well.x, y=well.y, z=well.z[0])
             ]
         else:
             inj_wells_grid_indices[well.name] = []
@@ -499,7 +499,12 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                     xyz_close = (
                         abs(x - well.x) <= INJ_POINT_THRESHOLD
                         and abs(y - well.y) <= INJ_POINT_THRESHOLD
-                        and abs(z - well.z) <= INJ_POINT_THRESHOLD
+                        and any(
+                            [
+                                abs(z - well_z) <= INJ_POINT_THRESHOLD
+                                for well_z in well.z
+                            ]
+                        )
                     )
                 else:
                     same_cell = False
@@ -520,6 +525,14 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                         groups.cells[index].set_cell_groups(new_groups=[well.number])
                     else:
                         groups.cells[index].set_cell_groups(new_groups=merged_group)
+                    if well.z is None or z not in well.z:
+                        logging.debug(
+                            f"Found new injection z-coordinate for well {well.name}: {z}"
+                        )
+                        if well.z is None:
+                            well.z = [z]
+                        else:
+                            well.z.append(z)
                     break
             if not found:
                 groups.cells[index].set_undetermined()

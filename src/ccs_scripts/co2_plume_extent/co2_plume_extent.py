@@ -182,7 +182,7 @@ class Configuration:
                         x=injection_well_info["x"],
                         y=injection_well_info["y"],
                         z=(
-                            injection_well_info["z"]
+                            [injection_well_info["z"]]
                             if "z" in injection_well_info
                             else None
                         ),
@@ -598,7 +598,7 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
     logging.info(f"\n{'Number':<8} {'Name':<15} {'x':<15} {'y':<15} {'z':<15}")
     logging.info("-" * 72)
     for i, well in enumerate(config.injection_wells, 1):
-        z_str = f"{well.z:<15}" if well.z is not None else "-"
+        z_str = f"{well.z[0]:<15}" if well.z is not None else "-"
         logging.info(f"{i:<8} {well.name:<15} {well.x:<15} {well.y:<15} {z_str}")
     logging.info("")
 
