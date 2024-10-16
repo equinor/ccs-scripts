@@ -804,51 +804,6 @@ def calculate_distances(
     return all_results
 
 
-def _log_number_of_grid_cells(
-    n_grid_cells_for_logging: Dict[str, List[int]],
-    report_dates: List[datetime],
-    attribute_key: str,
-):
-    logging.info(
-        f"Number of grid cells with {attribute_key} above threshold "
-        f"for the different plumes:"
-    )
-    cols = [c for c in n_grid_cells_for_logging]
-    header = f"{'Date':<11}"
-    widths = {}
-    for col in cols:
-        widths[col] = max(9, len(col))
-        header += f" {col:>{widths[col]}}"
-    logging.info("\n" + header)
-    logging.info("-" * len(header))
-    for i, d in enumerate(report_dates):
-        date = d.strftime("%Y-%m-%d")
-        row = f"{date:<11}"
-        for col in cols:
-            n_cells = (
-                str(n_grid_cells_for_logging[col][i])
-                if n_grid_cells_for_logging[col][i] > 0
-                else "-"
-            )
-            row += f" {n_cells:>{widths[col]}}"
-        logging.info(row)
-    logging.info("")
-    if "?" in n_grid_cells_for_logging:
-        no_groups = len(n_grid_cells_for_logging) == 1
-        logging.warning(
-            f"WARNING: Plume group not found for "
-            f"{'any' if no_groups else 'some'} grid cells with CO2."
-        )
-        logging.warning("         See table above, under column '?'.")
-        if no_groups:
-            logging.warning(
-                "         The reason might be incorrect coordinates "
-                "for the injection wells.\n"
-            )
-        else:
-            logging.warning("")  # Line ending
-
-
 def _find_distances_per_time_step(
     attribute_key: str,
     calculation_type: CalculationType,
