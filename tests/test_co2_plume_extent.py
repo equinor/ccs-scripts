@@ -47,7 +47,7 @@ def test_calc_plume_extents():
     sgas_results, _, _ = calculate_distances(
         case_path,
         config.distance_calculations,
-        threshold_sgas=0.1,
+        threshold_gas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"][
         "WELL"
@@ -68,7 +68,7 @@ def test_calc_plume_extents():
     sgas_results_3, _, _ = calculate_distances(
         case_path,
         config.distance_calculations,
-        threshold_sgas=0.0001,
+        threshold_gas=0.0001,
     )[0]
     sgas_results_3 = sgas_results_3["ALL"]["WELL"]
     assert len(sgas_results_3) == 4
@@ -95,7 +95,7 @@ def test_calc_distances_to_point():
     sgas_results, _, _ = calculate_distances(
         case_path,
         config.distance_calculations,
-        threshold_sgas=0.1,
+        threshold_gas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
@@ -123,7 +123,7 @@ def test_calc_distances_to_line():
     sgas_results, _, _ = calculate_distances(
         case_path,
         config.distance_calculations,
-        threshold_sgas=0.1,
+        threshold_gas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
@@ -134,7 +134,7 @@ def test_calc_distances_to_line():
     sgas_results, _, _ = calculate_distances(
         case_path,
         config.distance_calculations,
-        threshold_sgas=0.1,
+        threshold_gas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
@@ -147,7 +147,7 @@ def test_calc_distances_to_line():
     sgas_results, _, _ = calculate_distances(
         case_path,
         config.distance_calculations,
-        threshold_sgas=0.1,
+        threshold_gas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
@@ -158,7 +158,7 @@ def test_calc_distances_to_line():
     sgas_results, _, _ = calculate_distances(
         case_path,
         config.distance_calculations,
-        threshold_sgas=0.1,
+        threshold_gas=0.1,
     )[0]
     sgas_results = sgas_results["ALL"]["ALL"]
     assert len(sgas_results) == 4
@@ -186,7 +186,7 @@ def test_export_to_csv():
     all_results = calculate_distances(
         case_path,
         config.distance_calculations,
-        threshold_sgas=0.1,
+        threshold_gas=0.1,
     )
 
     out_file = "temp.csv"
@@ -221,7 +221,7 @@ def test_plume_extent(mocker):
             case_path,
             "--inj_point",
             "[462500.0,5933100.0]",
-            "--threshold_sgas",
+            "--threshold_gas",
             "0.02",
             "--output",
             output_path,
@@ -268,9 +268,9 @@ def test_plume_extent_eclipse_using_well_name(mocker):
             case_path,
             "--inj_point",
             "INJ",
-            "--threshold_sgas",
+            "--threshold_gas",
             "0.015",
-            "--threshold_amfg",
+            "--threshold_aqueous",
             "0.0004",
             "--output",
             output_path,
@@ -303,9 +303,9 @@ def test_plume_extent_eclipse_using_coordinates(mocker):
             case_path,
             "--inj_point",
             "[2124.95, 2108.24]",
-            "--threshold_sgas",
+            "--threshold_gas",
             "0.015",
-            "--threshold_amfg",
+            "--threshold_aqueous",
             "0.0004",
             "--output",
             output_path,
@@ -338,9 +338,9 @@ def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
             case_path,
             "--inj_point",
             "[2124.95, 2108.24]",
-            "--threshold_sgas",
+            "--threshold_gas",
             "0.000000001",
-            "--threshold_amfg",
+            "--threshold_aqueous",
             "0.000000001",
             "--output",
             output_path,
@@ -373,9 +373,9 @@ def test_plume_extent_pflotran_using_well_name(mocker):
             case_path,
             "--inj_point",
             "INJ",
-            "--threshold_sgas",
+            "--threshold_gas",
             "0.015",
-            "--threshold_amfg",
+            "--threshold_aqueous",
             "0.0004",
             "--output",
             output_path,
@@ -408,9 +408,9 @@ def test_plume_extent_pflotran_using_coordinates(mocker):
             case_path,
             "--inj_point",
             "[2124.95, 2108.24]",
-            "--threshold_sgas",
+            "--threshold_gas",
             "0.015",
-            "--threshold_amfg",
+            "--threshold_aqueous",
             "0.0004",
             "--output",
             output_path,
@@ -516,7 +516,7 @@ def test_yaml_file_pflotran_plume_tracking(mocker):
             config_path,
             "--output",
             output_path,
-            "--threshold_sgas",
+            "--threshold_gas",
             "0.25",  # To avoid having two plume groups that immediately merge
         ],
     )

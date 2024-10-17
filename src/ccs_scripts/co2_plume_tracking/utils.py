@@ -15,7 +15,9 @@ class InjectionWellData:
     name: str
     x: float
     y: float
-    z: Optional[float]
+    z: Optional[
+        List[float]
+    ]  # Normally only 1 value, but we might keep multiple when z is not provided
     number: int
 
 

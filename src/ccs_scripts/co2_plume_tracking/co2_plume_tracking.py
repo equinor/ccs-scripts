@@ -28,9 +28,10 @@ from ccs_scripts.co2_plume_tracking.utils import (
     assemble_plume_groups_into_dict,
 )
 
-DEFAULT_THRESHOLD_SGAS = 0.2
-DEFAULT_THRESHOLD_AMFG = 0.0005
-INJ_POINT_THRESHOLD = 60.0
+DEFAULT_THRESHOLD_GAS = 0.2
+DEFAULT_THRESHOLD_AQUEOUS = 0.0005
+INJ_POINT_THRESHOLD_LATERAL = 60.0
+INJ_POINT_THRESHOLD_VERTICAL = 10.0
 
 DESCRIPTION = """
 Calculations for tracking the CO2 plumes from different injection wells,
@@ -98,7 +99,7 @@ class Configuration:
                         x=injection_well_info["x"],
                         y=injection_well_info["y"],
                         z=(
-                            injection_well_info["z"]
+                            [injection_well_info["z"]]
                             if "z" in injection_well_info
                             else None
                         ),
@@ -123,16 +124,16 @@ def _make_parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument(
-        "--threshold_sgas",
-        default=DEFAULT_THRESHOLD_SGAS,
+        "--threshold_gas",
+        default=DEFAULT_THRESHOLD_GAS,
         type=float,
-        help="Threshold for SGAS",
+        help="Threshold for gas saturation (SGAS)",
     )
     parser.add_argument(
-        "--threshold_amfg",
-        default=DEFAULT_THRESHOLD_AMFG,
+        "--threshold_aqueous",
+        default=DEFAULT_THRESHOLD_AQUEOUS,
         type=float,
-        help="Threshold for AMFG",
+        help="Threshold for aqueous mole fraction of gas (AMFG or XMF2)",
     )
     parser.add_argument(
         "--verbose",
@@ -200,8 +201,8 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     else:
         text = arguments.output_csv
     logging.info(f"Output CSV file         : {text}")
-    logging.info(f"Threshold SGAS          : {arguments.threshold_sgas}")
-    logging.info(f"Threshold AMFG          : {arguments.threshold_amfg}\n")
+    logging.info(f"Threshold gas           : {arguments.threshold_gas}")
+    logging.info(f"Threshold AMFG          : {arguments.threshold_aqueous}\n")
 
 
 def _log_configuration(config: Configuration) -> None:
@@ -209,7 +210,7 @@ def _log_configuration(config: Configuration) -> None:
     logging.info(f"\n{'Number':<8} {'Name':<15} {'x':<15} {'y':<15} {'z':<15}")
     logging.info("-" * 72)
     for i, well in enumerate(config.injection_wells, 1):
-        z_str = f"{well.z:<15}" if well.z is not None else "-"
+        z_str = f"{well.z[0]:<15}" if well.z is not None else "-"
         logging.info(f"{i:<8} {well.name:<15} {well.x:<15} {well.y:<15} {z_str}")
     logging.info("")
 
@@ -217,13 +218,13 @@ def _log_configuration(config: Configuration) -> None:
 def calculate_all_plume_groups(
     grid: Grid,
     unrst: ResdataFile,
-    threshold_sgas: float,
-    threshold_amfg: float,
+    threshold_gas: float,
+    threshold_aqueous: float,
     inj_wells: List[InjectionWellData],
 ) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str]]:
     pg_prop_sgas = calculate_plume_groups(
         "SGAS",
-        threshold_sgas,
+        threshold_gas,
         unrst,
         grid,
         inj_wells,
@@ -231,7 +232,7 @@ def calculate_all_plume_groups(
     if "AMFG" in unrst:
         pg_prop_amfg = calculate_plume_groups(
             "AMFG",
-            threshold_amfg,
+            threshold_aqueous,
             unrst,
             grid,
             inj_wells,
@@ -240,7 +241,7 @@ def calculate_all_plume_groups(
     elif "XMF2" in unrst:
         pg_prop_amfg = calculate_plume_groups(
             "XMF2",
-            threshold_amfg,
+            threshold_aqueous,
             unrst,
             grid,
             inj_wells,
@@ -257,8 +258,8 @@ def calculate_all_plume_groups(
 def load_data_and_calculate_plume_groups(
     case: str,
     injection_wells: List[InjectionWellData],
-    threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
-    threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
+    threshold_gas: float = DEFAULT_THRESHOLD_GAS,
+    threshold_aqueous: float = DEFAULT_THRESHOLD_AQUEOUS,
 ) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str], List[datetime]]:
     logging.info("\nStart calculations for plume tracking")
     grid = Grid(f"{case}.EGRID")
@@ -269,8 +270,8 @@ def load_data_and_calculate_plume_groups(
     (pg_prop_sgas, pg_prop_amfg, amfg_key) = calculate_all_plume_groups(
         grid,
         unrst,
-        threshold_sgas,
-        threshold_amfg,
+        threshold_gas,
+        threshold_aqueous,
         injection_wells,
     )
 
@@ -281,15 +282,33 @@ def _log_number_of_grid_cells(
     n_grid_cells_for_logging: Dict[str, List[int]],
     report_dates: List[datetime],
     attribute_key: str,
+    inj_wells: List[InjectionWellData],
 ):
     logging.info(
         f"Number of grid cells with {attribute_key} above threshold "
         f"for the different plumes:"
     )
-    cols = [c for c in n_grid_cells_for_logging]
+
+    def sort_well_names(name: str):
+        wells = name.split("+")
+        if len(wells) > 1:
+            sorted_wells = [well.name for well in inj_wells if well.name in wells]
+            return "+".join(sorted_wells)
+        return name
+
+    modified_dict = {
+        sort_well_names(name): n_cells
+        for name, n_cells in n_grid_cells_for_logging.items()
+    }
+
+    cols = [c for c in modified_dict]
+    sorted_cols = [well.name for well in inj_wells if well.name in cols]
+    for col in cols:
+        if col not in sorted_cols:
+            sorted_cols.append(col)
     header = f"{'Date':<11}"
     widths = {}
-    for col in cols:
+    for col in sorted_cols:
         widths[col] = max(9, len(col))
         header += f" {col:>{widths[col]}}"
     logging.info("\n" + header)
@@ -297,17 +316,13 @@ def _log_number_of_grid_cells(
     for i, d in enumerate(report_dates):
         date = d.strftime("%Y-%m-%d")
         row = f"{date:<11}"
-        for col in cols:
-            n_cells = (
-                str(n_grid_cells_for_logging[col][i])
-                if n_grid_cells_for_logging[col][i] > 0
-                else "-"
-            )
+        for col in sorted_cols:
+            n_cells = str(modified_dict[col][i]) if modified_dict[col][i] > 0 else "-"
             row += f" {n_cells:>{widths[col]}}"
         logging.info(row)
     logging.info("")
-    if "?" in n_grid_cells_for_logging:
-        no_groups = len(n_grid_cells_for_logging) == 1
+    if "?" in modified_dict:
+        no_groups = len(modified_dict) == 1
         logging.warning(
             f"WARNING: Plume group not found for "
             f"{'any' if no_groups else 'some'} grid cells with CO2."
@@ -323,21 +338,21 @@ def _log_number_of_grid_cells(
 
 
 def _find_inj_wells_grid_indices(
-    grid: Grid, inj_wells: List[InjectionWellData]
-) -> Dict[str, List[Tuple[int, int, Optional[int]]]]:
-    inj_wells_grid_indices = {}
+    inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
+    grid: Grid,
+    inj_wells: List[InjectionWellData],
+):
     for well in inj_wells:
         if well.z is not None:
             inj_wells_grid_indices[well.name] = [
-                grid.find_cell(x=well.x, y=well.y, z=well.z)
+                grid.find_cell(x=well.x, y=well.y, z=well.z[0])
             ]
         else:
             inj_wells_grid_indices[well.name] = []
             for k in range(grid.get_nz()):
                 xy = grid.find_cell_xy(x=well.x, y=well.y, k=k)
-                if xy not in inj_wells_grid_indices[well.name]:
+                if xy + (None,) not in inj_wells_grid_indices[well.name]:
                     inj_wells_grid_indices[well.name].append((xy[0], xy[1], None))
-    return inj_wells_grid_indices
 
 
 def calculate_plume_groups(
@@ -358,7 +373,8 @@ def calculate_plume_groups(
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
     n_cells = len(unrst[attribute_key][0])
 
-    inj_wells_grid_indices = _find_inj_wells_grid_indices(grid, inj_wells)
+    inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]] = {}
+    _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells)
 
     logging.info(f"\nStart calculating plume tracking for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
@@ -404,7 +420,7 @@ def calculate_plume_groups(
     logging.info("")
 
     _log_number_of_grid_cells(
-        n_grid_cells_for_logging, unrst.report_dates, attribute_key
+        n_grid_cells_for_logging, unrst.report_dates, attribute_key, inj_wells
     )
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
 
@@ -485,6 +501,7 @@ def _initialize_groups_from_prev_step_and_inj_wells(
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     groups: PlumeGroups,
 ):
+    new_z_coords: Dict[str, List[float]] = {}
     for index in cells_with_co2:
         if prev_groups.cells[index].has_co2():
             groups.cells[index] = prev_groups.cells[index]
@@ -497,9 +514,14 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                 if well.z is not None:
                     same_cell = (i, j, k) == inj_wells_grid_indices[well.name]
                     xyz_close = (
-                        abs(x - well.x) <= INJ_POINT_THRESHOLD
-                        and abs(y - well.y) <= INJ_POINT_THRESHOLD
-                        and abs(z - well.z) <= INJ_POINT_THRESHOLD
+                        abs(x - well.x) <= INJ_POINT_THRESHOLD_LATERAL
+                        and abs(y - well.y) <= INJ_POINT_THRESHOLD_LATERAL
+                        and any(
+                            [
+                                abs(z - well_z) <= INJ_POINT_THRESHOLD_VERTICAL
+                                for well_z in well.z
+                            ]
+                        )
                     )
                 else:
                     same_cell = False
@@ -508,8 +530,8 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                             same_cell = True
                             break
                     xyz_close = (
-                        abs(x - well.x) <= INJ_POINT_THRESHOLD
-                        and abs(y - well.y) <= INJ_POINT_THRESHOLD
+                        abs(x - well.x) <= INJ_POINT_THRESHOLD_LATERAL
+                        and abs(y - well.y) <= INJ_POINT_THRESHOLD_LATERAL
                     )
                 if same_cell or xyz_close:
                     found = True
@@ -520,9 +542,38 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                         groups.cells[index].set_cell_groups(new_groups=[well.number])
                     else:
                         groups.cells[index].set_cell_groups(new_groups=merged_group)
+                    if (
+                        well.name not in new_z_coords
+                        or z not in new_z_coords[well.name]
+                    ):
+                        if well.name not in new_z_coords:
+                            new_z_coords[well.name] = [z]
+                        else:
+                            new_z_coords[well.name].append(z)
                     break
             if not found:
                 groups.cells[index].set_undetermined()
+    _update_inj_z_coordinates(inj_wells, new_z_coords)
+    _find_inj_wells_grid_indices(
+        inj_wells_grid_indices, grid, inj_wells
+    )  # Might need an update
+
+
+def _update_inj_z_coordinates(
+    inj_wells: List[InjectionWellData],
+    new_z_coords: Dict[str, List[float]],
+):
+    for well in inj_wells:
+        if well.name in new_z_coords:
+            for z in new_z_coords[well.name]:
+                if well.z is None or z not in well.z and len(well.z) < 5:
+                    logging.debug(
+                        f"Found new injection z-coordinate for well {well.name}: {z}"
+                    )
+                    if well.z is None:
+                        well.z = [z]
+                    else:
+                        well.z.append(z)
 
 
 def _log_results(
@@ -609,8 +660,8 @@ def main():
         load_data_and_calculate_plume_groups(
             args.case,
             config.injection_wells,
-            args.threshold_sgas,
-            args.threshold_amfg,
+            args.threshold_gas,
+            args.threshold_aqueous,
         )
     )
 
