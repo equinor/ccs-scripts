@@ -561,7 +561,7 @@ def _update_inj_z_coordinates(
     for well in inj_wells:
         if well.name in new_z_coords:
             for z in new_z_coords[well.name]:
-                if well.z is None or z not in well.z and len(well.z) < 2:
+                if well.z is None or z not in well.z and len(well.z) < 5:
                     logging.debug(
                         f"Found new injection z-coordinate for well {well.name}: {z}"
                     )
