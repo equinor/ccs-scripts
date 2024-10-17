@@ -28,8 +28,8 @@ from ccs_scripts.co2_plume_tracking.utils import (
     assemble_plume_groups_into_dict,
 )
 
-DEFAULT_THRESHOLD_SGAS = 0.2
-DEFAULT_THRESHOLD_AMFG = 0.0005
+DEFAULT_THRESHOLD_GAS = 0.2
+DEFAULT_THRESHOLD_AQUEOUS = 0.0005
 INJ_POINT_THRESHOLD = 60.0
 
 DESCRIPTION = """
@@ -123,16 +123,16 @@ def _make_parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument(
-        "--threshold_sgas",
-        default=DEFAULT_THRESHOLD_SGAS,
+        "--threshold_gas",
+        default=DEFAULT_THRESHOLD_GAS,
         type=float,
-        help="Threshold for SGAS",
+        help="Threshold for gas saturation (SGAS)",
     )
     parser.add_argument(
-        "--threshold_amfg",
-        default=DEFAULT_THRESHOLD_AMFG,
+        "--threshold_aqueous",
+        default=DEFAULT_THRESHOLD_AQUEOUS,
         type=float,
-        help="Threshold for AMFG",
+        help="Threshold for aqueous mole fraction of gas (AMFG or XMF2)",
     )
     parser.add_argument(
         "--verbose",
@@ -200,8 +200,8 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     else:
         text = arguments.output_csv
     logging.info(f"Output CSV file         : {text}")
-    logging.info(f"Threshold SGAS          : {arguments.threshold_sgas}")
-    logging.info(f"Threshold AMFG          : {arguments.threshold_amfg}\n")
+    logging.info(f"Threshold gas           : {arguments.threshold_gas}")
+    logging.info(f"Threshold AMFG          : {arguments.threshold_aqueous}\n")
 
 
 def _log_configuration(config: Configuration) -> None:
@@ -217,13 +217,13 @@ def _log_configuration(config: Configuration) -> None:
 def calculate_all_plume_groups(
     grid: Grid,
     unrst: ResdataFile,
-    threshold_sgas: float,
-    threshold_amfg: float,
+    threshold_gas: float,
+    threshold_aqueous: float,
     inj_wells: List[InjectionWellData],
 ) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str]]:
     pg_prop_sgas = calculate_plume_groups(
         "SGAS",
-        threshold_sgas,
+        threshold_gas,
         unrst,
         grid,
         inj_wells,
@@ -231,7 +231,7 @@ def calculate_all_plume_groups(
     if "AMFG" in unrst:
         pg_prop_amfg = calculate_plume_groups(
             "AMFG",
-            threshold_amfg,
+            threshold_aqueous,
             unrst,
             grid,
             inj_wells,
@@ -240,7 +240,7 @@ def calculate_all_plume_groups(
     elif "XMF2" in unrst:
         pg_prop_amfg = calculate_plume_groups(
             "XMF2",
-            threshold_amfg,
+            threshold_aqueous,
             unrst,
             grid,
             inj_wells,
@@ -257,8 +257,8 @@ def calculate_all_plume_groups(
 def load_data_and_calculate_plume_groups(
     case: str,
     injection_wells: List[InjectionWellData],
-    threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
-    threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
+    threshold_gas: float = DEFAULT_THRESHOLD_GAS,
+    threshold_aqueous: float = DEFAULT_THRESHOLD_AQUEOUS,
 ) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str], List[datetime]]:
     logging.info("\nStart calculations for plume tracking")
     grid = Grid(f"{case}.EGRID")
@@ -269,8 +269,8 @@ def load_data_and_calculate_plume_groups(
     (pg_prop_sgas, pg_prop_amfg, amfg_key) = calculate_all_plume_groups(
         grid,
         unrst,
-        threshold_sgas,
-        threshold_amfg,
+        threshold_gas,
+        threshold_aqueous,
         injection_wells,
     )
 
@@ -655,8 +655,8 @@ def main():
         load_data_and_calculate_plume_groups(
             args.case,
             config.injection_wells,
-            args.threshold_sgas,
-            args.threshold_amfg,
+            args.threshold_gas,
+            args.threshold_aqueous,
         )
     )
 

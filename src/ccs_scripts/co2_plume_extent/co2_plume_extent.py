@@ -30,8 +30,8 @@ from ccs_scripts.co2_plume_tracking.utils import (
     assemble_plume_groups_into_dict,
 )
 
-DEFAULT_THRESHOLD_SGAS = 0.2
-DEFAULT_THRESHOLD_AMFG = 0.0005
+DEFAULT_THRESHOLD_GAS = 0.2
+DEFAULT_THRESHOLD_AQUEOUS = 0.0005
 INJ_POINT_THRESHOLD = 60.0
 
 DESCRIPTION = """
@@ -475,16 +475,16 @@ def _make_parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument(
-        "--threshold_sgas",
-        default=DEFAULT_THRESHOLD_SGAS,
+        "--threshold_gas",
+        default=DEFAULT_THRESHOLD_GAS,
         type=float,
-        help="Threshold for SGAS",
+        help="Threshold for gas saturation (SGAS)",
     )
     parser.add_argument(
-        "--threshold_amfg",
-        default=DEFAULT_THRESHOLD_AMFG,
+        "--threshold_aqueous",
+        default=DEFAULT_THRESHOLD_AQUEOUS,
         type=float,
-        help="Threshold for AMFG",
+        help="Threshold for aqueous mole fraction of gas (AMFG or XMF2)",
     )
     parser.add_argument(
         "--column_name",
@@ -569,8 +569,8 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     else:
         text = arguments.output_csv
     logging.info(f"Output CSV file         : {text}")
-    logging.info(f"Threshold SGAS          : {arguments.threshold_sgas}")
-    logging.info(f"Threshold AMFG          : {arguments.threshold_amfg}\n")
+    logging.info(f"Threshold gas           : {arguments.threshold_gas}")
+    logging.info(f"Threshold aqueous       : {arguments.threshold_aqueous}\n")
 
 
 def _log_distance_calculation_configurations(config: Configuration) -> None:
@@ -683,8 +683,8 @@ def calculate_single_distances(
     nactive: int,
     grid: Grid,
     unrst: ResdataFile,
-    threshold_sgas: float,
-    threshold_amfg: float,
+    threshold_gas: float,
+    threshold_aqueous: float,
     config: Calculation,
     inj_wells: Optional[List[InjectionWellData]],
     plume_groups_sgas: Optional[List[List[str]]],
@@ -700,7 +700,7 @@ def calculate_single_distances(
     sgas_results = _find_distances_per_time_step(
         "SGAS",
         calculation_type,
-        threshold_sgas,
+        threshold_gas,
         unrst,
         dist,
         inj_wells,
@@ -711,7 +711,7 @@ def calculate_single_distances(
         amfg_results = _find_distances_per_time_step(
             "AMFG",
             calculation_type,
-            threshold_amfg,
+            threshold_aqueous,
             unrst,
             dist,
             inj_wells,
@@ -722,7 +722,7 @@ def calculate_single_distances(
         amfg_results = _find_distances_per_time_step(
             "XMF2",
             calculation_type,
-            threshold_amfg,
+            threshold_aqueous,
             unrst,
             dist,
             inj_wells,
@@ -742,8 +742,8 @@ def calculate_distances(
     distance_calculations: List[Calculation],
     injection_wells: Optional[List[InjectionWellData]] = None,
     do_plume_tracking: bool = False,
-    threshold_sgas: float = DEFAULT_THRESHOLD_SGAS,
-    threshold_amfg: float = DEFAULT_THRESHOLD_AMFG,
+    threshold_gas: float = DEFAULT_THRESHOLD_GAS,
+    threshold_aqueous: float = DEFAULT_THRESHOLD_AQUEOUS,
 ) -> List[Tuple[dict, Optional[dict], Optional[str]]]:
     """
     Find distance (plume extent / distance to point / distance to line) per
@@ -756,7 +756,7 @@ def calculate_distances(
     if do_plume_tracking and injection_wells is not None:
         plume_groups_sgas = calculate_plume_groups(
             "SGAS",
-            threshold_sgas,
+            threshold_gas,
             unrst,
             grid,
             injection_wells,
@@ -771,7 +771,7 @@ def calculate_distances(
         if amfg_key is not None:
             plume_groups_amfg = calculate_plume_groups(
                 amfg_key,
-                threshold_amfg,
+                threshold_aqueous,
                 unrst,
                 grid,
                 injection_wells,
@@ -792,8 +792,8 @@ def calculate_distances(
             nactive,
             grid,
             unrst,
-            threshold_sgas,
-            threshold_amfg,
+            threshold_gas,
+            threshold_aqueous,
             single_config,
             injection_wells,
             plume_groups_sgas,
@@ -1258,8 +1258,8 @@ def main():
         config.distance_calculations,
         config.injection_wells,
         config.do_plume_tracking,
-        args.threshold_sgas,
-        args.threshold_amfg,
+        args.threshold_gas,
+        args.threshold_aqueous,
     )
 
     output_file = _find_output_file(args.output_csv, args.case)
