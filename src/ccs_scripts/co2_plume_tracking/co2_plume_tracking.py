@@ -373,7 +373,7 @@ def calculate_plume_groups(
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
     n_cells = len(unrst[attribute_key][0])
 
-    inj_wells_grid_indices = {}
+    inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]] = {}
     _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells)
 
     logging.info(f"\nStart calculating plume tracking for {attribute_key}.\n")
@@ -501,7 +501,7 @@ def _initialize_groups_from_prev_step_and_inj_wells(
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     groups: PlumeGroups,
 ):
-    new_z_coords = {}
+    new_z_coords: Dict[str, List[float]] = {}
     for index in cells_with_co2:
         if prev_groups.cells[index].has_co2():
             groups.cells[index] = prev_groups.cells[index]

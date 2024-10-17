@@ -17,7 +17,7 @@ class InjectionWellData:
     y: float
     z: Optional[
         List[float]
-    ]  # Normally only 1 value, but we keep multiple when z is not provided, just in case
+    ]  # Normally only 1 value, but we might keep multiple when z is not provided
     number: int
 
 
