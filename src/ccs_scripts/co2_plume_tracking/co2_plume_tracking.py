@@ -338,9 +338,10 @@ def _log_number_of_grid_cells(
 
 
 def _find_inj_wells_grid_indices(
-    grid: Grid, inj_wells: List[InjectionWellData]
-) -> Dict[str, List[Tuple[int, int, Optional[int]]]]:
-    inj_wells_grid_indices = {}
+    inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
+    grid: Grid,
+    inj_wells: List[InjectionWellData],
+):
     for well in inj_wells:
         if well.z is not None:
             inj_wells_grid_indices[well.name] = [
@@ -350,9 +351,8 @@ def _find_inj_wells_grid_indices(
             inj_wells_grid_indices[well.name] = []
             for k in range(grid.get_nz()):
                 xy = grid.find_cell_xy(x=well.x, y=well.y, k=k)
-                if xy not in inj_wells_grid_indices[well.name]:
+                if xy + (None,) not in inj_wells_grid_indices[well.name]:
                     inj_wells_grid_indices[well.name].append((xy[0], xy[1], None))
-    return inj_wells_grid_indices
 
 
 def calculate_plume_groups(
@@ -373,7 +373,8 @@ def calculate_plume_groups(
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
     n_cells = len(unrst[attribute_key][0])
 
-    inj_wells_grid_indices = _find_inj_wells_grid_indices(grid, inj_wells)
+    inj_wells_grid_indices = {}
+    _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells)
 
     logging.info(f"\nStart calculating plume tracking for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
@@ -553,6 +554,9 @@ def _initialize_groups_from_prev_step_and_inj_wells(
             if not found:
                 groups.cells[index].set_undetermined()
     _update_inj_z_coordinates(inj_wells, new_z_coords)
+    _find_inj_wells_grid_indices(
+        inj_wells_grid_indices, grid, inj_wells
+    )  # Might need an update
 
 
 def _update_inj_z_coordinates(
