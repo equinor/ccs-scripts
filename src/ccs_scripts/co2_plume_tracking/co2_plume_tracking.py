@@ -30,7 +30,8 @@ from ccs_scripts.co2_plume_tracking.utils import (
 
 DEFAULT_THRESHOLD_GAS = 0.2
 DEFAULT_THRESHOLD_AQUEOUS = 0.0005
-INJ_POINT_THRESHOLD = 60.0
+INJ_POINT_THRESHOLD_LATERAL = 60.0
+INJ_POINT_THRESHOLD_VERTICAL = 10.0
 
 DESCRIPTION = """
 Calculations for tracking the CO2 plumes from different injection wells,
@@ -512,11 +513,11 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                 if well.z is not None:
                     same_cell = (i, j, k) == inj_wells_grid_indices[well.name]
                     xyz_close = (
-                        abs(x - well.x) <= INJ_POINT_THRESHOLD
-                        and abs(y - well.y) <= INJ_POINT_THRESHOLD
+                        abs(x - well.x) <= INJ_POINT_THRESHOLD_LATERAL
+                        and abs(y - well.y) <= INJ_POINT_THRESHOLD_LATERAL
                         and any(
                             [
-                                abs(z - well_z) <= INJ_POINT_THRESHOLD
+                                abs(z - well_z) <= INJ_POINT_THRESHOLD_VERTICAL
                                 for well_z in well.z
                             ]
                         )
@@ -528,8 +529,8 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                             same_cell = True
                             break
                     xyz_close = (
-                        abs(x - well.x) <= INJ_POINT_THRESHOLD
-                        and abs(y - well.y) <= INJ_POINT_THRESHOLD
+                        abs(x - well.x) <= INJ_POINT_THRESHOLD_LATERAL
+                        and abs(y - well.y) <= INJ_POINT_THRESHOLD_LATERAL
                     )
                 if same_cell or xyz_close:
                     found = True
