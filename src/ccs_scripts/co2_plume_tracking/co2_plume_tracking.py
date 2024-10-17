@@ -499,6 +499,7 @@ def _initialize_groups_from_prev_step_and_inj_wells(
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     groups: PlumeGroups,
 ):
+    new_z_coords = {}
     for index in cells_with_co2:
         if prev_groups.cells[index].has_co2():
             groups.cells[index] = prev_groups.cells[index]
@@ -539,17 +540,35 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                         groups.cells[index].set_cell_groups(new_groups=[well.number])
                     else:
                         groups.cells[index].set_cell_groups(new_groups=merged_group)
-                    if well.z is None or z not in well.z:
-                        logging.debug(
-                            f"Found new injection z-coordinate for well {well.name}: {z}"
-                        )
-                        if well.z is None:
-                            well.z = [z]
+                    if (
+                        well.name not in new_z_coords
+                        or z not in new_z_coords[well.name]
+                    ):
+                        if well.name not in new_z_coords:
+                            new_z_coords[well.name] = [z]
                         else:
-                            well.z.append(z)
+                            new_z_coords[well.name].append(z)
                     break
             if not found:
                 groups.cells[index].set_undetermined()
+    _update_inj_z_coordinates(inj_wells, new_z_coords)
+
+
+def _update_inj_z_coordinates(
+    inj_wells: List[InjectionWellData],
+    new_z_coords: Dict[str, List[float]],
+):
+    for well in inj_wells:
+        if well.name in new_z_coords:
+            for z in new_z_coords[well.name]:
+                if well.z is None or z not in well.z and len(well.z) < 2:
+                    logging.debug(
+                        f"Found new injection z-coordinate for well {well.name}: {z}"
+                    )
+                    if well.z is None:
+                        well.z = [z]
+                    else:
+                        well.z.append(z)
 
 
 def _log_results(
