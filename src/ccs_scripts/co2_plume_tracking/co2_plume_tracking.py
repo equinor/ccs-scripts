@@ -12,6 +12,7 @@ import platform
 import socket
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -377,6 +378,7 @@ def calculate_plume_groups(
     The string is the name of the plume group, for instance
     "well_A+well_B" (if well_A and well_B have merged).
     """
+    time_start = time.time()
     n_time_steps = len(unrst.report_steps)
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
     n_cells = len(unrst[attribute_key][0])
@@ -431,6 +433,7 @@ def calculate_plume_groups(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key, inj_wells
     )
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
+    logging.info(f"Execution time {attribute_key}: {(time.time() - time_start):.1f} s\n")
 
     return pg_prop
 
@@ -654,6 +657,7 @@ def main():
     Output from this script is a simple CSV-file counting the number of
     grid cells in each plume group for each time step.
     """
+    time_start = time.time()
     args = _make_parser().parse_args()
     _setup_log_configuration(args)
     _log_input_configuration(args)
@@ -682,6 +686,7 @@ def main():
         amfg_key,
     )
     df.to_csv(output_file, index=False)
+    logging.info(f"Total execution time for plume tracking script: {(time.time() - time_start):.1f} s")
 
     return 0
 
