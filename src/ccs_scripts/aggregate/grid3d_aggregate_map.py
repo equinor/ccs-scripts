@@ -199,12 +199,9 @@ def main(arguments=None):
     """
     Main function that wraps `generate_from_config` with argument parsing
     """
-    try:
-        print("Running grid3d_aggregate_map using code from ccs-scripts")
-        logging.info("Running grid3d_aggregate_map using code from ccs-scripts")
-        _XTG.say("Running grid3d_aggregate_map using code from ccs-scripts")
-    except:
-        print("---")
+    print("Running grid3d_aggregate_map using code from ccs-scripts")
+    logging.info("Running grid3d_aggregate_map using code from ccs-scripts")
+    _XTG.say("Running grid3d_aggregate_map using code from ccs-scripts")
     if arguments is None:
         arguments = sys.argv[1:]
     generate_from_config(process_arguments(arguments))

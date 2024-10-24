@@ -93,12 +93,9 @@ def main(arguments=None):
     """
     Calculates a migration time property and aggregates it to a 2D map
     """
-    try:
-        print("Running grid3d_migration_time using code from ccs-scripts")
-        logging.info("Running grid3d_migration_time using code from ccs-scripts")
-        _XTG.say("Running grid3d_migration_time using code from ccs-scripts")
-    except:
-        print("---")
+    print("Running grid3d_aggregate_map using code from ccs-scripts")
+    logging.info("Running grid3d_aggregate_map using code from ccs-scripts")
+    _XTG.say("Running grid3d_aggregate_map using code from ccs-scripts")
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
