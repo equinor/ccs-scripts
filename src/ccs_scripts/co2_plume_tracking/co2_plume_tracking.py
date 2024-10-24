@@ -681,9 +681,9 @@ def main():
         config.injection_wells,
     )
     df.to_csv(output_file, index=False)
-    logging.info(
-        f"Total execution time for plume tracking script: {(time.time() - time_start):.1f} s"
-    )
+
+    dt = time.time() - time_start
+    logging.info(f"Total execution time for plume tracking script: {dt:.1f} s")
 
     return 0
 

@@ -1090,8 +1090,8 @@ def _collect_results_into_dataframe(
                 df = pd.merge(df, sgas_df, on="date")
         if amfg_results is not None:
             if injection_wells is not None and config.do_plume_tracking:
-                amfg_results = sort_well_names(amfg_results, injection_wells)
-            for group_str, results in amfg_results.items():
+                amfg_results_sorted = sort_well_names(amfg_results, injection_wells)
+            for group_str, results in amfg_results_sorted.items():
                 for well_name, result2 in results.items():
                     if result2 is not None:
                         if amfg_key is None:
