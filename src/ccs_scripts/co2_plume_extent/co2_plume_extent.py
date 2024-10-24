@@ -28,6 +28,7 @@ from ccs_scripts.co2_plume_tracking.co2_plume_tracking import calculate_plume_gr
 from ccs_scripts.co2_plume_tracking.utils import (
     InjectionWellData,
     assemble_plume_groups_into_dict,
+    sort_well_names,
 )
 
 DEFAULT_THRESHOLD_GAS = 0.2
@@ -1062,6 +1063,7 @@ def _find_column_name(
 def _collect_results_into_dataframe(
     all_results: List[Tuple[dict, Optional[dict], Optional[str]]],
     config: Configuration,
+    injection_wells: Optional[List[InjectionWellData]] = None,
 ) -> pd.DataFrame:
     dates = _find_dates(all_results)
     df = pd.DataFrame.from_records(dates, columns=["date"])
@@ -1071,6 +1073,9 @@ def _collect_results_into_dataframe(
         (sgas_results, amfg_results, amfg_key) = result
 
         col = _find_column_name(single_config, len(config.distance_calculations), i)
+
+        if injection_wells is not None and config.do_plume_tracking:
+            sgas_results = sort_well_names(sgas_results, injection_wells)
 
         for group_str, results in sgas_results.items():
             for well_name, result2 in results.items():
@@ -1084,6 +1089,8 @@ def _collect_results_into_dataframe(
                 )
                 df = pd.merge(df, sgas_df, on="date")
         if amfg_results is not None:
+            if injection_wells is not None and config.do_plume_tracking:
+                amfg_results = sort_well_names(amfg_results, injection_wells)
             for group_str, results in amfg_results.items():
                 for well_name, result2 in results.items():
                     if result2 is not None:
@@ -1267,6 +1274,7 @@ def main():
     df = _collect_results_into_dataframe(
         all_results,
         config,
+        config.injection_wells,
     )
     _log_results(df)
     _log_results_detailed(df)

@@ -27,6 +27,7 @@ from ccs_scripts.co2_plume_tracking.utils import (
     InjectionWellData,
     PlumeGroups,
     assemble_plume_groups_into_dict,
+    sort_well_names,
 )
 
 DEFAULT_THRESHOLD_GAS = 0.2
@@ -286,29 +287,6 @@ def load_data_and_calculate_plume_groups(
 
     return pg_prop_sgas, pg_prop_amfg, amfg_key, unrst.report_dates
 
-def _sort_well_names(input_dict: Dict, inj_wells: List[InjectionWellData]):
-    modified_dict = {
-        _sort_well_names_in_merged_groups(name, inj_wells): value
-        for name, value in input_dict.items()
-    }
-    cols = [c for c in modified_dict]
-    sorted_cols = [well.name for well in inj_wells if well.name in cols]
-    for col in cols:
-        if col not in sorted_cols:
-            sorted_cols.append(col)
-    dict_sorted = {}
-    for col in sorted_cols:
-        dict_sorted[col] = input_dict[col]
-    return dict_sorted
-
-
-def _sort_well_names_in_merged_groups(name: str, inj_wells: List[InjectionWellData]):
-    wells = name.split("+")
-    if len(wells) > 1:
-        sorted_wells = [well.name for well in inj_wells if well.name in wells]
-        return "+".join(sorted_wells)
-    return name
-
 
 def _log_number_of_grid_cells(
     n_grid_cells_for_logging: Dict[str, List[int]],
@@ -325,7 +303,7 @@ def _log_number_of_grid_cells(
         if well.name not in n_grid_cells_for_logging.keys():
             n_grid_cells_for_logging[well.name] = [0] * len(report_dates)
 
-    n_cells_sorted = _sort_well_names(n_grid_cells_for_logging, inj_wells)
+    n_cells_sorted = sort_well_names(n_grid_cells_for_logging, inj_wells)
     sorted_cols = n_cells_sorted.keys()
     header = f"{'Date':<11}"
     widths = {}
@@ -655,7 +633,7 @@ def _collect_results_into_dataframe(
                         dtype=int,
                     )
                 results[group_name][i] = len(indices)
-        results_sorted = _sort_well_names(results, injection_wells)
+        results_sorted = sort_well_names(results, injection_wells)
         results_sorted = {prop_key + "_" + key: value for key, value in results_sorted.items()}
 
         prop_df = pd.DataFrame(results_sorted)
