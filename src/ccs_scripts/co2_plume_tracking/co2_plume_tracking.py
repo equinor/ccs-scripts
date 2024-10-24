@@ -286,6 +286,29 @@ def load_data_and_calculate_plume_groups(
 
     return pg_prop_sgas, pg_prop_amfg, amfg_key, unrst.report_dates
 
+def _sort_well_names(input_dict: Dict, inj_wells: List[InjectionWellData]):
+    modified_dict = {
+        _sort_well_names_in_merged_groups(name, inj_wells): value
+        for name, value in input_dict.items()
+    }
+    cols = [c for c in modified_dict]
+    sorted_cols = [well.name for well in inj_wells if well.name in cols]
+    for col in cols:
+        if col not in sorted_cols:
+            sorted_cols.append(col)
+    dict_sorted = {}
+    for col in sorted_cols:
+        dict_sorted[col] = input_dict[col]
+    return dict_sorted
+
+
+def _sort_well_names_in_merged_groups(name: str, inj_wells: List[InjectionWellData]):
+    wells = name.split("+")
+    if len(wells) > 1:
+        sorted_wells = [well.name for well in inj_wells if well.name in wells]
+        return "+".join(sorted_wells)
+    return name
+
 
 def _log_number_of_grid_cells(
     n_grid_cells_for_logging: Dict[str, List[int]],
@@ -298,23 +321,12 @@ def _log_number_of_grid_cells(
         f"for the different plumes:"
     )
 
-    def sort_well_names(name: str):
-        wells = name.split("+")
-        if len(wells) > 1:
-            sorted_wells = [well.name for well in inj_wells if well.name in wells]
-            return "+".join(sorted_wells)
-        return name
+    for well in inj_wells:
+        if well.name not in n_grid_cells_for_logging.keys():
+            n_grid_cells_for_logging[well.name] = [0] * len(report_dates)
 
-    modified_dict = {
-        sort_well_names(name): n_cells
-        for name, n_cells in n_grid_cells_for_logging.items()
-    }
-
-    cols = [c for c in modified_dict]
-    sorted_cols = [well.name for well in inj_wells if well.name in cols]
-    for col in cols:
-        if col not in sorted_cols:
-            sorted_cols.append(col)
+    n_cells_sorted = _sort_well_names(n_grid_cells_for_logging, inj_wells)
+    sorted_cols = n_cells_sorted.keys()
     header = f"{'Date':<11}"
     widths = {}
     for col in sorted_cols:
@@ -326,12 +338,12 @@ def _log_number_of_grid_cells(
         date = d.strftime("%Y-%m-%d")
         row = f"{date:<11}"
         for col in sorted_cols:
-            n_cells = str(modified_dict[col][i]) if modified_dict[col][i] > 0 else "-"
+            n_cells = str(n_cells_sorted[col][i]) if n_cells_sorted[col][i] > 0 else "-"
             row += f" {n_cells:>{widths[col]}}"
         logging.info(row)
     logging.info("")
-    if "?" in modified_dict:
-        no_groups = len(modified_dict) == 1
+    if "?" in n_cells_sorted:
+        no_groups = len(n_cells_sorted) == 1
         logging.warning(
             f"WARNING: Plume group not found for "
             f"{'any' if no_groups else 'some'} grid cells with CO2."
@@ -625,6 +637,7 @@ def _collect_results_into_dataframe(
     pg_prop_sgas: List[List[str]],
     pg_prop_amfg: Optional[List[List[str]]],
     amfg_key: Optional[str],
+    injection_wells: List[InjectionWellData],
 ) -> pd.DataFrame:
     dates = [[d.strftime("%Y-%m-%d")] for d in report_dates]
     df = pd.DataFrame.from_records(dates, columns=["date"])
@@ -636,14 +649,16 @@ def _collect_results_into_dataframe(
         for i, p in enumerate(pg_prop):
             pg_dict = assemble_plume_groups_into_dict(p)
             for group_name, indices in pg_dict.items():
-                group_name = prop_key + "_" + group_name
                 if group_name not in results:
                     results[group_name] = np.zeros(
                         shape=(len(dates)),
                         dtype=int,
                     )
                 results[group_name][i] = len(indices)
-        prop_df = pd.DataFrame(results)
+        results_sorted = _sort_well_names(results, injection_wells)
+        results_sorted = {prop_key + "_" + key: value for key, value in results_sorted.items()}
+
+        prop_df = pd.DataFrame(results_sorted)
         df = pd.concat([df, prop_df], axis=1)
 
     return df
@@ -684,6 +699,7 @@ def main():
         pg_prop_sgas,
         pg_prop_amfg,
         amfg_key,
+        config.injection_wells,
     )
     df.to_csv(output_file, index=False)
     logging.info(f"Total execution time for plume tracking script: {(time.time() - time_start):.1f} s")
