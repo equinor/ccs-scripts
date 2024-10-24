@@ -222,21 +222,29 @@ def calculate_all_plume_groups(
     threshold_aqueous: float,
     inj_wells: List[InjectionWellData],
 ) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str]]:
-    pg_prop_sgas = calculate_plume_groups(
-        "SGAS",
-        threshold_gas,
-        unrst,
-        grid,
-        inj_wells,
-    )
-    if "AMFG" in unrst:
-        pg_prop_amfg = calculate_plume_groups(
-            "AMFG",
-            threshold_aqueous,
+    # thresholds_gas = [0.01, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.90]
+    thresholds_gas = [threshold_gas]
+    for x in thresholds_gas:
+        print(f"\n\nthreshold_gas: {x}")
+        pg_prop_sgas = calculate_plume_groups(
+            "SGAS",
+            x,
             unrst,
             grid,
             inj_wells,
         )
+    if "AMFG" in unrst:
+        # thresholds_aq = [0.00001, 0.00005, 0.0001, 0.0002, 0.0003, 0.0004, 0.0005, 0.0006, 0.0008, 0.001, 0.0012, 0.0014, 0.0016, 0.0018, 0.0020, 0.003, 0.004, 0.005, 0.007, 0.01, 0.02, 0.05, 0.1, 0.5]
+        thresholds_aq = [threshold_aqueous]
+        for x in thresholds_aq:
+            print(f"\n\nthreshold_aq: {x}")
+            pg_prop_amfg = calculate_plume_groups(
+                "AMFG",
+                x,
+                unrst,
+                grid,
+                inj_wells,
+            )
         amfg_key = "AMFG"
     elif "XMF2" in unrst:
         pg_prop_amfg = calculate_plume_groups(
@@ -512,7 +520,7 @@ def _initialize_groups_from_prev_step_and_inj_wells(
             found = False
             for well in inj_wells:
                 if well.z is not None:
-                    same_cell = (i, j, k) == inj_wells_grid_indices[well.name]
+                    same_cell = any([(i, j, k) == (wi, wj, wk) for (wi, wj, wk) in inj_wells_grid_indices[well.name]])
                     xyz_close = (
                         abs(x - well.x) <= INJ_POINT_THRESHOLD_LATERAL
                         and abs(y - well.y) <= INJ_POINT_THRESHOLD_LATERAL
