@@ -49,8 +49,8 @@ def _make_parser():
         default=None,
     )
     parser.add_argument(
-        "--verbose",
-        help="Enable print of detailed information during execution of script",
+        "--no_logging",
+        help="Skip print of detailed information during execution of script",
         action="store_true",
     )
     parser.add_argument(
@@ -66,10 +66,10 @@ def _make_parser():
 def _setup_log_configuration(arguments: argparse.Namespace) -> None:
     if arguments.debug:
         logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif arguments.verbose:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
-    else:
+    elif arguments.no_logging:
         logging.basicConfig(format="%(message)s", level=logging.WARNING)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 
 def _find_formations(search_path: str, rskey: str) -> Optional[Tuple[np.ndarray, str]]:

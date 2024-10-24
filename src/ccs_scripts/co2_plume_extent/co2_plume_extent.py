@@ -493,8 +493,8 @@ def _make_parser() -> argparse.ArgumentParser:
         help="Name that will be included in the column of the CSV file",
     )
     parser.add_argument(
-        "--verbose",
-        help="Enable print of detailed information during execution of script",
+        "--no_logging",
+        help="Skip print of detailed information during execution of script",
         action="store_true",
     )
     parser.add_argument(
@@ -510,10 +510,10 @@ def _make_parser() -> argparse.ArgumentParser:
 def _setup_log_configuration(arguments: argparse.Namespace) -> None:
     if arguments.debug:
         logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif arguments.verbose:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
-    else:
+    elif arguments.no_logging:
         logging.basicConfig(format="%(message)s", level=logging.WARNING)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 
 def _log_input_configuration(arguments: argparse.Namespace) -> None:
