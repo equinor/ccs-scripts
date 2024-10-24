@@ -423,7 +423,9 @@ def calculate_plume_groups(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key, inj_wells
     )
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
-    logging.info(f"Execution time {attribute_key}: {(time.time() - time_start):.1f} s\n")
+    logging.info(
+        f"Execution time {attribute_key}: {(time.time() - time_start):.1f} s\n"
+    )
 
     return pg_prop
 
@@ -513,7 +515,12 @@ def _initialize_groups_from_prev_step_and_inj_wells(
             found = False
             for well in inj_wells:
                 if well.z is not None:
-                    same_cell = any([(i, j, k) == (wi, wj, wk) for (wi, wj, wk) in inj_wells_grid_indices[well.name]])
+                    same_cell = any(
+                        [
+                            (i, j, k) == (wi, wj, wk)
+                            for (wi, wj, wk) in inj_wells_grid_indices[well.name]
+                        ]
+                    )
                     xyz_close = (
                         abs(x - well.x) <= INJ_POINT_THRESHOLD_LATERAL
                         and abs(y - well.y) <= INJ_POINT_THRESHOLD_LATERAL
@@ -634,7 +641,9 @@ def _collect_results_into_dataframe(
                     )
                 results[group_name][i] = len(indices)
         results_sorted = sort_well_names(results, injection_wells)
-        results_sorted = {prop_key + "_" + key: value for key, value in results_sorted.items()}
+        results_sorted = {
+            prop_key + "_" + key: value for key, value in results_sorted.items()
+        }
 
         prop_df = pd.DataFrame(results_sorted)
         df = pd.concat([df, prop_df], axis=1)
@@ -680,7 +689,9 @@ def main():
         config.injection_wells,
     )
     df.to_csv(output_file, index=False)
-    logging.info(f"Total execution time for plume tracking script: {(time.time() - time_start):.1f} s")
+    logging.info(
+        f"Total execution time for plume tracking script: {(time.time() - time_start):.1f} s"
+    )
 
     return 0
 
