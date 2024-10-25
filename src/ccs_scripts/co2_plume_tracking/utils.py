@@ -211,3 +211,27 @@ def assemble_plume_groups_into_dict(plume_groups: List[str]) -> Dict[str, List[i
             else:
                 pg_dict[group] = [ind]
     return pg_dict
+
+
+def _sort_well_names_in_merged_groups(name: str, inj_wells: List[InjectionWellData]):
+    wells = name.split("+")
+    if len(wells) > 1:
+        sorted_wells = [well.name for well in inj_wells if well.name in wells]
+        return "+".join(sorted_wells)
+    return name
+
+
+def sort_well_names(input_dict: Dict, inj_wells: List[InjectionWellData]):
+    modified_dict = {
+        _sort_well_names_in_merged_groups(name, inj_wells): value
+        for name, value in input_dict.items()
+    }
+    cols = [c for c in modified_dict]
+    sorted_cols = [well.name for well in inj_wells if well.name in cols]
+    for col in cols:
+        if col not in sorted_cols:
+            sorted_cols.append(col)
+    dict_sorted = {}
+    for col in sorted_cols:
+        dict_sorted[col] = input_dict[col]
+    return dict_sorted

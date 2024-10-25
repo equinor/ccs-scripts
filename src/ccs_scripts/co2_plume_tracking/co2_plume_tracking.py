@@ -12,6 +12,7 @@ import platform
 import socket
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -26,11 +27,12 @@ from ccs_scripts.co2_plume_tracking.utils import (
     InjectionWellData,
     PlumeGroups,
     assemble_plume_groups_into_dict,
+    sort_well_names,
 )
 
 DEFAULT_THRESHOLD_GAS = 0.2
 DEFAULT_THRESHOLD_AQUEOUS = 0.0005
-INJ_POINT_THRESHOLD_LATERAL = 60.0
+INJ_POINT_THRESHOLD_LATERAL = 80.0
 INJ_POINT_THRESHOLD_VERTICAL = 10.0
 
 DESCRIPTION = """
@@ -289,23 +291,12 @@ def _log_number_of_grid_cells(
         f"for the different plumes:"
     )
 
-    def sort_well_names(name: str):
-        wells = name.split("+")
-        if len(wells) > 1:
-            sorted_wells = [well.name for well in inj_wells if well.name in wells]
-            return "+".join(sorted_wells)
-        return name
+    for well in inj_wells:
+        if well.name not in n_grid_cells_for_logging.keys():
+            n_grid_cells_for_logging[well.name] = [0] * len(report_dates)
 
-    modified_dict = {
-        sort_well_names(name): n_cells
-        for name, n_cells in n_grid_cells_for_logging.items()
-    }
-
-    cols = [c for c in modified_dict]
-    sorted_cols = [well.name for well in inj_wells if well.name in cols]
-    for col in cols:
-        if col not in sorted_cols:
-            sorted_cols.append(col)
+    n_cells_sorted = sort_well_names(n_grid_cells_for_logging, inj_wells)
+    sorted_cols = n_cells_sorted.keys()
     header = f"{'Date':<11}"
     widths = {}
     for col in sorted_cols:
@@ -317,12 +308,12 @@ def _log_number_of_grid_cells(
         date = d.strftime("%Y-%m-%d")
         row = f"{date:<11}"
         for col in sorted_cols:
-            n_cells = str(modified_dict[col][i]) if modified_dict[col][i] > 0 else "-"
+            n_cells = str(n_cells_sorted[col][i]) if n_cells_sorted[col][i] > 0 else "-"
             row += f" {n_cells:>{widths[col]}}"
         logging.info(row)
     logging.info("")
-    if "?" in modified_dict:
-        no_groups = len(modified_dict) == 1
+    if "?" in n_cells_sorted:
+        no_groups = len(n_cells_sorted) == 1
         logging.warning(
             f"WARNING: Plume group not found for "
             f"{'any' if no_groups else 'some'} grid cells with CO2."
@@ -369,6 +360,7 @@ def calculate_plume_groups(
     The string is the name of the plume group, for instance
     "well_A+well_B" (if well_A and well_B have merged).
     """
+    time_start = time.time()
     n_time_steps = len(unrst.report_steps)
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
     n_cells = len(unrst[attribute_key][0])
@@ -423,6 +415,9 @@ def calculate_plume_groups(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key, inj_wells
     )
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
+    logging.info(
+        f"Execution time {attribute_key}: {(time.time() - time_start):.1f} s\n"
+    )
 
     return pg_prop
 
@@ -512,7 +507,12 @@ def _initialize_groups_from_prev_step_and_inj_wells(
             found = False
             for well in inj_wells:
                 if well.z is not None:
-                    same_cell = (i, j, k) == inj_wells_grid_indices[well.name]
+                    same_cell = any(
+                        [
+                            (i, j, k) == (wi, wj, wk)
+                            for (wi, wj, wk) in inj_wells_grid_indices[well.name]
+                        ]
+                    )
                     xyz_close = (
                         abs(x - well.x) <= INJ_POINT_THRESHOLD_LATERAL
                         and abs(y - well.y) <= INJ_POINT_THRESHOLD_LATERAL
@@ -614,6 +614,7 @@ def _collect_results_into_dataframe(
     pg_prop_sgas: List[List[str]],
     pg_prop_amfg: Optional[List[List[str]]],
     amfg_key: Optional[str],
+    injection_wells: List[InjectionWellData],
 ) -> pd.DataFrame:
     dates = [[d.strftime("%Y-%m-%d")] for d in report_dates]
     df = pd.DataFrame.from_records(dates, columns=["date"])
@@ -625,14 +626,18 @@ def _collect_results_into_dataframe(
         for i, p in enumerate(pg_prop):
             pg_dict = assemble_plume_groups_into_dict(p)
             for group_name, indices in pg_dict.items():
-                group_name = prop_key + "_" + group_name
                 if group_name not in results:
                     results[group_name] = np.zeros(
                         shape=(len(dates)),
                         dtype=int,
                     )
                 results[group_name][i] = len(indices)
-        prop_df = pd.DataFrame(results)
+        results_sorted = sort_well_names(results, injection_wells)
+        results_sorted = {
+            prop_key + "_" + key: value for key, value in results_sorted.items()
+        }
+
+        prop_df = pd.DataFrame(results_sorted)
         df = pd.concat([df, prop_df], axis=1)
 
     return df
@@ -646,6 +651,7 @@ def main():
     Output from this script is a simple CSV-file counting the number of
     grid cells in each plume group for each time step.
     """
+    time_start = time.time()
     args = _make_parser().parse_args()
     _setup_log_configuration(args)
     _log_input_configuration(args)
@@ -672,8 +678,12 @@ def main():
         pg_prop_sgas,
         pg_prop_amfg,
         amfg_key,
+        config.injection_wells,
     )
     df.to_csv(output_file, index=False)
+
+    dt = time.time() - time_start
+    logging.info(f"Total execution time for plume tracking script: {dt:.1f} s")
 
     return 0
 
