@@ -340,8 +340,8 @@ def get_parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument(
-        "--verbose",
-        help="Enable print of detailed information during execution of script",
+        "--no_logging",
+        help="Skip print of detailed information during execution of script",
         action="store_true",
     )
     parser.add_argument(
@@ -454,10 +454,10 @@ def process_args() -> argparse.Namespace:
 
     if args.debug:
         logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif args.verbose:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
-    else:
+    elif args.no_logging:
         logging.basicConfig(format="%(message)s", level=logging.WARNING)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
 
     return args
 

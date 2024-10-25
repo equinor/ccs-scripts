@@ -11,7 +11,7 @@ DEFAULT <COLUMN_NAME> ""
 ARG_TYPE 0 STRING
 ARG_TYPE 1 STRING
 
-ARGLIST   <CASE> "--config_file" <CONFIG_PLUME_EXTENT>  "--inj_point"  <INJ_POINT>  "--calc_type" <CALC_TYPE> "--output_csv" <OUTPUT_CSV> "--threshold_gas" <THRESHOLD_GAS> "--threshold_aqueous" <THRESHOLD_AQUEOUS> "--column_name" <COLUMN_NAME> "--verbose"
+ARGLIST   <CASE> "--config_file" <CONFIG_PLUME_EXTENT>  "--inj_point"  <INJ_POINT>  "--calc_type" <CALC_TYPE> "--output_csv" <OUTPUT_CSV> "--threshold_gas" <THRESHOLD_GAS> "--threshold_aqueous" <THRESHOLD_AQUEOUS> "--column_name" <COLUMN_NAME>
 
 MIN_ARG 1
-MAX_ARG 9
+MAX_ARG 8

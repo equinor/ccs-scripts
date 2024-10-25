@@ -2,7 +2,7 @@ EXECUTABLE co2_plume_area
 
 DEFAULT <OUTPUT_CSV> share/results/tables/plume_area.csv
 
-ARGLIST    <INPUT> "--output_csv" <OUTPUT_CSV> "--verbose"
+ARGLIST    <INPUT> "--output_csv" <OUTPUT_CSV>
 
 MIN_ARG 1
-MAX_ARG 3
+MAX_ARG 2

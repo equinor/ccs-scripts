@@ -11,7 +11,7 @@ DEFAULT <EGRID> -1
 DEFAULT <UNRST> -1
 DEFAULT <INIT> -1
 
-ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--root_dir" <ROOT_DIR> "--out_dir" <OUT_DIR> "--containment_polygon" <CONTAINMENT_POLYGON> "--hazardous_polygon" <HAZARDOUS_POLYGON> "--zonefile" <ZONEFILE> "--regionfile" <REGIONFILE> "--region_property" <REGION_PROPERTY>  "--egrid"  <EGRID>  "--unrst"  <UNRST> "--init" <INIT> "--verbose"
+ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--root_dir" <ROOT_DIR> "--out_dir" <OUT_DIR> "--containment_polygon" <CONTAINMENT_POLYGON> "--hazardous_polygon" <HAZARDOUS_POLYGON> "--zonefile" <ZONEFILE> "--regionfile" <REGIONFILE> "--region_property" <REGION_PROPERTY>  "--egrid"  <EGRID>  "--unrst"  <UNRST> "--init" <INIT>
 
 MIN_ARG 2
-MAX_ARG 13
+MAX_ARG 12
