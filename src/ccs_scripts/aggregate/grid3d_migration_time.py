@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import glob
+import logging
 import os
 import sys
 import tempfile
 from typing import Dict, List, Optional, Union
 
 import xtgeo
+from xtgeo.common import XTGeoDialog
 
 from ccs_scripts.aggregate import (
     _config,
@@ -13,6 +15,8 @@ from ccs_scripts.aggregate import (
     _parser,
     grid3d_aggregate_map,
 )
+
+_XTG = XTGeoDialog()
 
 MIGRATION_TIME_PROPERTIES = [
     "AMFG",
@@ -89,6 +93,9 @@ def main(arguments=None):
     """
     Calculates a migration time property and aggregates it to a 2D map
     """
+    print("Running grid3d_aggregate_map using code from ccs-scripts")
+    logging.info("Running grid3d_aggregate_map using code from ccs-scripts")
+    _XTG.say("Running grid3d_aggregate_map using code from ccs-scripts")
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
