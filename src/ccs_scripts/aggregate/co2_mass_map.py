@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import sys
+import os
+import shutil
 from typing import Dict, List, Tuple
 
 import xtgeo
@@ -83,6 +85,15 @@ def generate_co2_mass_maps(config_):
     co2_mass_property_to_map(config_, out_property_list)
 
 
+def clean_tmp(property_list: List[str]):
+    for props in property_list:
+        if len(props) > 0:
+            directory_path = os.path.dirname(props[0])
+            os.remove(props)
+            if os.path.isdir(directory_path) and not os.listdir(directory_path):
+                shutil.rmtree(directory_path)
+
+
 def co2_mass_property_to_map(
     config_: _config.RootConfig,
     property_list: List[xtgeo.GridProperty],
@@ -100,21 +111,18 @@ def co2_mass_property_to_map(
     config_.computesettings.aggregation = AggregationMethod.SUM
     config_.output.aggregation_tag = False
     for props in property_list:
-        if len(props) > 0:
+        if isinstance(props, str):
             for prop in props:
                 config_.input.properties.append(
                     _config.Property(
-                        config_.output.mapfolder
-                        + "/grid/"
-                        + prop.name
-                        + "--"
-                        + prop.date
-                        + ".roff",
+                        props,
                         None,
                         None,
                     )
                 )
     grid3d_aggregate_map.generate_from_config(config_)
+    if not config_.output.gridfolder:
+        clean_tmp(property_list)
 
 
 def process_zonation(
