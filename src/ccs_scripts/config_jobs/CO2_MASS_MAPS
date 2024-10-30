@@ -1,5 +1,0 @@
-EXECUTABLE co2_mass_maps
-ARGLIST "--config"  <CONFIG_CO2_MASS_MAPS> "--eclroot" <ECLROOT>
-
-STDERR CO2_MASS_MAPS.stderr
-STDOUT CO2_MASS_MAPS.stdout
