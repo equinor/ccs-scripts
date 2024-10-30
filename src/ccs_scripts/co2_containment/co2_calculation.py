@@ -1169,8 +1169,13 @@ def _calculate_co2_data_from_source_data(
 def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
     co2_mass_output.units = "tons"
     for values in co2_mass_output.data_list:
-        for x in [values.aqu_phase, values.gas_phase, values.trapped_gas_phase, values.free_gas_phase]:
-            x*=0.001
+        for x in [
+            values.aqu_phase,
+            values.gas_phase,
+            values.trapped_gas_phase,
+            values.free_gas_phase,
+        ]:
+            x *= 0.001
 
 
 def calculate_co2(
