@@ -57,6 +57,7 @@ def parse_arguments(arguments):
     )
     return parser.parse_args(arguments)
 
+
 def _replace_default_dummies_from_ert(args):
     if args.eclroot == "-1":
         args.eclroot = None
