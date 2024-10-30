@@ -114,6 +114,7 @@ class Output:
     plotfolder: Optional[str] = None
     use_plotly: bool = False
     aggregation_tag: bool = True
+    gridfolder: Optional[str] = None
 
     def __post_init__(self):
         if self.mapfolder == "fmu-dataio":
