@@ -7,11 +7,13 @@ DEFAULT <OUTPUT_CSV>  share/results/tables/plume_extent.csv
 DEFAULT <THRESHOLD_GAS> 0.2
 DEFAULT <THRESHOLD_AQUEOUS> 0.0005
 DEFAULT <COLUMN_NAME> ""
+DEFAULT <NO_LOGGING> False
+DEFAULT <DEBUG> False
 
 ARG_TYPE 0 STRING
 ARG_TYPE 1 STRING
 
-ARGLIST   <CASE> "--config_file" <CONFIG_PLUME_EXTENT>  "--inj_point"  <INJ_POINT>  "--calc_type" <CALC_TYPE> "--output_csv" <OUTPUT_CSV> "--threshold_gas" <THRESHOLD_GAS> "--threshold_aqueous" <THRESHOLD_AQUEOUS> "--column_name" <COLUMN_NAME> "--no_logging" "--debug"
+ARGLIST   <CASE> "--config_file" <CONFIG_PLUME_EXTENT>  "--inj_point"  <INJ_POINT>  "--calc_type" <CALC_TYPE> "--output_csv" <OUTPUT_CSV> "--threshold_gas" <THRESHOLD_GAS> "--threshold_aqueous" <THRESHOLD_AQUEOUS> "--column_name" <COLUMN_NAME> "--no_logging" <NO_LOGGING> "--debug" <DEBUG>
 
 MIN_ARG 1
 MAX_ARG 10

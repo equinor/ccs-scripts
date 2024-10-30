@@ -5,7 +5,7 @@ DEFAULT <MAPFOLDER> -1
 DEFAULT <PLOTFOLDER> -1
 DEFAULT <FOLDERROOT> -1
 
-ARGLIST "--config"  <CONFIG_MIGTIME> "--eclroot" <ECLROOT> "--mapfolder" <MAPFOLDER> "--plotfolder" <PLOTFOLDER> "--folderroot" <FOLDERROOT>
+ARGLIST <CONFIG_MIGTIME> "--eclroot" <ECLROOT> "--mapfolder" <MAPFOLDER> "--plotfolder" <PLOTFOLDER> "--folderroot" <FOLDERROOT>
 
 STDERR GRID3D_MIGRATION_TIME.stderr
 STDOUT GRID3D_MIGRATION_TIME.stdout

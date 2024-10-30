@@ -10,8 +10,12 @@ DEFAULT <REGION_PROPERTY> -1
 DEFAULT <EGRID> -1
 DEFAULT <UNRST> -1
 DEFAULT <INIT> -1
+DEFAULT <NO_LOGGING> -1
+DEFAULT <DEBUG> -1
+DEFAULT <RESIDUAL_TRAPPING> -1
+DEFAULT <READABLE_OUTPUT> -1
 
-ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--root_dir" <ROOT_DIR> "--out_dir" <OUT_DIR> "--containment_polygon" <CONTAINMENT_POLYGON> "--hazardous_polygon" <HAZARDOUS_POLYGON> "--zonefile" <ZONEFILE> "--regionfile" <REGIONFILE> "--region_property" <REGION_PROPERTY>  "--egrid"  <EGRID>  "--unrst"  <UNRST> "--init" <INIT> "--no_logging" "--debug" "--residual_trapping" "--readable_output"
+ARGLIST   <CASE>  <CALC_TYPE_INPUT>   "--root_dir" <ROOT_DIR> "--out_dir" <OUT_DIR> "--containment_polygon" <CONTAINMENT_POLYGON> "--hazardous_polygon" <HAZARDOUS_POLYGON> "--zonefile" <ZONEFILE> "--regionfile" <REGIONFILE> "--region_property" <REGION_PROPERTY>  "--egrid"  <EGRID>  "--unrst"  <UNRST> "--init" <INIT> "--no_logging" <NO_LOGGING> "--debug" <DEBUG> "--residual_trapping" <RESIDUAL_TRAPPING> "--readable_output" <READABLE_OUTPUT>
 
 MIN_ARG 2
 MAX_ARG 16

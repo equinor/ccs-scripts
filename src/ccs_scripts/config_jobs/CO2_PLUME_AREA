@@ -1,8 +1,10 @@
 EXECUTABLE co2_plume_area
 
 DEFAULT <OUTPUT_CSV> share/results/tables/plume_area.csv
+DEFAULT <NO_LOGGING> False
+DEFAULT <DEBUG> False
 
-ARGLIST    <INPUT> "--output_csv" <OUTPUT_CSV> "--no_logging" "--debug"
+ARGLIST <INPUT> "--output_csv" <OUTPUT_CSV> "--no_logging" <NO_LOGGING> "--debug" <DEBUG>
 
 MIN_ARG 1
 MAX_ARG 4

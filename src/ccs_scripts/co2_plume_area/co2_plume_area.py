@@ -165,8 +165,16 @@ def calculate_plume_area(path: str, rskey: str) -> Optional[List[List[float]]]:
     return list_out
 
 
+def _replace_default_dummies_from_ert(args):
+    if args.no_logging == "-1":
+        args.no_logging = False
+    if args.debug == "-1":
+        args.debug = False
+
+
 def _read_args() -> Tuple[str, str]:
     args = _make_parser().parse_args()
+    _replace_default_dummies_from_ert(args)
     _setup_log_configuration(args)
 
     input_path = args.input
