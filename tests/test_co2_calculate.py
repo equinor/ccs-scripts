@@ -122,12 +122,12 @@ def test_single_poly_co2_containment():
         ]
     )
     table = _calc_and_compare(poly, dummy_co2_masses)
-    assert extract_amount(table, "contained", "gas") == pytest.approx(90.262207)
+    assert extract_amount(table, "contained", "gas") == pytest.approx(0.090262207)
     assert extract_amount(
         table,
         "contained",
         "aqueous",
-    ) == pytest.approx(172.72921760648467)
+    ) == pytest.approx(0.1727292176064847)
     assert extract_amount(table, "hazardous", "gas") == pytest.approx(0.0)
     assert extract_amount(
         table,
@@ -168,12 +168,12 @@ def test_multi_poly_co2_containment():
         table,
         "contained",
         "gas",
-    ) == pytest.approx(123.70267352027123)
+    ) == pytest.approx(0.12370267352027123)
     assert extract_amount(
         table,
         "contained",
         "aqueous",
-    ) == pytest.approx(252.79970312163525)
+    ) == pytest.approx(0.25279970312163525)
     assert extract_amount(table, "hazardous", "gas") == pytest.approx(0.0)
     assert extract_amount(
         table,
@@ -206,22 +206,22 @@ def test_hazardous_poly_co2_containment():
         ]
     )
     table = _calc_and_compare(poly, dummy_co2_masses, poly_hazardous)
-    assert extract_amount(table, "contained", "gas") == pytest.approx(90.262207)
+    assert extract_amount(table, "contained", "gas") == pytest.approx(0.090262207)
     assert extract_amount(
         table,
         "contained",
         "aqueous",
-    ) == pytest.approx(172.72921760648467)
+    ) == pytest.approx(0.17272921760648467)
     assert extract_amount(
         table,
         "hazardous",
         "gas",
-    ) == pytest.approx(12.687891108274542)
+    ) == pytest.approx(0.012687891108274542)
     assert extract_amount(
         table,
         "hazardous",
         "aqueous",
-    ) == pytest.approx(20.33893251315071)
+    ) == pytest.approx(0.02033893251315071)
 
 
 def test_reek_grid():
@@ -286,12 +286,12 @@ def test_reek_grid():
     cs = ["total"] * 3 + ["contained"] + ["hazardous"] * 2
     ps = ["total", "gas", "aqueous", "gas", "total", "gas"]
     amounts = [
-        696171.20388324,
-        7650.233009712884,
-        688520.9708735272,
-        115.98058252427084,
-        10282.11650485436,
-        112.99029126213496,
+        696.17120388324,
+        7.650233009712884,
+        688.5209708735272,
+        0.11598058252427084,
+        10.28211650485436,
+        0.11299029126213496,
     ]
     for c, p, amount in zip(cs, ps, amounts):
         assert extract_amount(table, c, p, 0) == pytest.approx(amount)
@@ -352,15 +352,15 @@ def test_reek_grid():
     gas_part = ["trapped_gas", "free_gas"]
     ps3 = ["total"] + gas_part + ["aqueous"] + gas_part + ["total"] + gas_part
     amounts3 = [
-        696171.20388324,
-        4590.13980582773,
-        3060.093203885154,
-        688520.9708735272,
-        69.58834951456248,
-        46.39223300970832,
-        10282.11650485436,
-        67.79417475728094,
-        45.19611650485396,
+        696.17120388324,
+        4.59013980582773,
+        3.060093203885154,
+        688.5209708735272,
+        0.06958834951456248,
+        0.04639223300970832,
+        10.28211650485436,
+        0.06779417475728094,
+        0.04519611650485396,
     ]
     for c, p, amount in zip(cs3, ps3, amounts3):
         assert extract_amount(table3, c, p, 0) == pytest.approx(amount)
