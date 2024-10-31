@@ -27,6 +27,8 @@ import numpy as np
 import pandas as pd
 import xtgeo
 
+from ccs_scripts.co2_containment.co2_containment import str_to_bool
+
 DESCRIPTION = """
 Calculates the area of the CO2 plume for each formation and time step, for both
 SGAS and AMFG (Pflotran) / YMF2 (Eclipse).
@@ -51,13 +53,17 @@ def _make_parser():
     parser.add_argument(
         "--no_logging",
         help="Skip print of detailed information during execution of script",
-        action="store_true",
+        type=str_to_bool,
+        nargs='?',
+        const=False
     )
     parser.add_argument(
         "--debug",
         help="Enable print of debugging data during execution of script. "
-        "Normally not necessary for most users.",
-        action="store_true",
+             "Normally not necessary for most users.",
+        type=str_to_bool,
+        nargs='?',
+        const=False
     )
 
     return parser

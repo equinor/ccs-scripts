@@ -25,6 +25,7 @@ from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
 from ccs_scripts.co2_plume_tracking.co2_plume_tracking import calculate_plume_groups
+from ccs_scripts.co2_containment.co2_containment import str_to_bool
 from ccs_scripts.co2_plume_tracking.utils import (
     InjectionWellData,
     assemble_plume_groups_into_dict,
@@ -496,13 +497,17 @@ def _make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no_logging",
         help="Skip print of detailed information during execution of script",
-        action="store_true",
+        type=str_to_bool,
+        nargs='?',
+        const=False
     )
     parser.add_argument(
         "--debug",
         help="Enable print of debugging data during execution of script. "
         "Normally not necessary for most users.",
-        action="store_true",
+        type=str_to_bool,
+        nargs='?',
+        const=False
     )
 
     return parser
