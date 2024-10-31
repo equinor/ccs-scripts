@@ -268,11 +268,11 @@ def _merge_date_rows(
 def str_to_bool(value):
     if isinstance(value, bool):
         return value
-    if value.lower() in {'false', 'f', '0'}:
+    if value.lower() in {"false", "f", "0"}:
         return False
-    elif value.lower() in {'true', 't', '1'}:
+    elif value.lower() in {"true", "t", "1"}:
         return True
-    raise ValueError(f'{value} is not a valid boolean value')
+    raise ValueError(f"{value} is not a valid boolean value")
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -353,31 +353,31 @@ def get_parser() -> argparse.ArgumentParser:
         "--no_logging",
         help="Skip print of detailed information during execution of script",
         type=str_to_bool,
-        nargs='?',
-        const=False
+        nargs="?",
+        const=False,
     )
     parser.add_argument(
         "--debug",
         help="Enable print of debugging data during execution of script. "
-             "Normally not necessary for most users.",
+        "Normally not necessary for most users.",
         type=str_to_bool,
-        nargs='?',
-        const=False
+        nargs="?",
+        const=False,
     )
     parser.add_argument(
         "--residual_trapping",
         help="Compute mass/volume of trapped CO2 in gas phase.",
         type=str_to_bool,
-        nargs='?',
-        const=False
+        nargs="?",
+        const=False,
     )
     parser.add_argument(
         "--readable_output",
         help="Generate output text-file that is easier to parse than the standard"
-             " output.",
+        " output.",
         type=str_to_bool,
-        nargs='?',
-        const=False
+        nargs="?",
+        const=False,
     )
 
     return parser
