@@ -353,31 +353,31 @@ def get_parser() -> argparse.ArgumentParser:
         "--no_logging",
         help="Skip print of detailed information during execution of script",
         type=str_to_bool,
-        nargs='?',
-        const=True
+        nargs="?",
+        const=True,
     )
     parser.add_argument(
         "--debug",
         help="Enable print of debugging data during execution of script. "
         "Normally not necessary for most users.",
         type=str_to_bool,
-        nargs='?',
-        const=True
+        nargs="?",
+        const=True,
     )
     parser.add_argument(
         "--residual_trapping",
         help="Compute mass/volume of trapped CO2 in gas phase.",
         type=str_to_bool,
-        nargs='?',
-        const=True
+        nargs="?",
+        const=True,
     )
     parser.add_argument(
         "--readable_output",
         help="Generate output text-file that is easier to parse than the standard"
         " output.",
         type=str_to_bool,
-        nargs='?',
-        const=True
+        nargs="?",
+        const=True,
     )
 
     return parser
