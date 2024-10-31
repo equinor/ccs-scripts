@@ -498,16 +498,16 @@ def _make_parser() -> argparse.ArgumentParser:
         "--no_logging",
         help="Skip print of detailed information during execution of script",
         type=str_to_bool,
-        nargs="?",
-        const=False,
+        nargs='?',
+        const=True
     )
     parser.add_argument(
         "--debug",
         help="Enable print of debugging data during execution of script. "
         "Normally not necessary for most users.",
         type=str_to_bool,
-        nargs="?",
-        const=False,
+        nargs='?',
+        const=True
     )
 
     return parser
