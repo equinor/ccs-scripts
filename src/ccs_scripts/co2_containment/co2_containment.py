@@ -842,9 +842,8 @@ def prepare_writing_details(
             3 if calc_type == "mass" else 6 if calc_type == "actual_volume" else 2
         ),
     }
-    scale = 1e6 if calc_type == "cell_volume" else 1e9
     for column in details["numeric"]:
-        df[column] /= scale
+        df[column] /= 1e6
     width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     phase = (
         f",{'Free gas':>{width}},{'Trapped gas':>{width}},{'Aqueous':>{width}}"
