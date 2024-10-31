@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-import sys
 import os
 import shutil
+import sys
 from typing import Dict, List, Tuple
 
 import xtgeo

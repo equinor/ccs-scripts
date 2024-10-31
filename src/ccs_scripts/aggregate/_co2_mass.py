@@ -1,13 +1,13 @@
 import os
 import tempfile
-from typing import Dict, List, Tuple, Optional
+from enum import Enum
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import xtgeo
 from resdata.resfile import ResdataFile
 from resfo._unformatted.write import unformatted_write
 from xtgeo.io._file import FileWrapper
-from enum import Enum
 
 from ccs_scripts.aggregate._config import CO2MassSettings
 from ccs_scripts.co2_containment.co2_calculation import (
