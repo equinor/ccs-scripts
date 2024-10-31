@@ -499,7 +499,7 @@ def _make_parser() -> argparse.ArgumentParser:
         help="Skip print of detailed information during execution of script",
         type=str_to_bool,
         nargs='?',
-        const=False
+        const=True
     )
     parser.add_argument(
         "--debug",
@@ -507,7 +507,7 @@ def _make_parser() -> argparse.ArgumentParser:
         "Normally not necessary for most users.",
         type=str_to_bool,
         nargs='?',
-        const=False
+        const=True
     )
 
     return parser
