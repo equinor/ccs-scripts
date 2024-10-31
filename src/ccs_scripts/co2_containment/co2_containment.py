@@ -354,7 +354,7 @@ def get_parser() -> argparse.ArgumentParser:
         help="Skip print of detailed information during execution of script",
         type=str_to_bool,
         nargs='?',
-        const=False
+        const=True
     )
     parser.add_argument(
         "--debug",
@@ -362,14 +362,14 @@ def get_parser() -> argparse.ArgumentParser:
              "Normally not necessary for most users.",
         type=str_to_bool,
         nargs='?',
-        const=False
+        const=True
     )
     parser.add_argument(
         "--residual_trapping",
         help="Compute mass/volume of trapped CO2 in gas phase.",
         type=str_to_bool,
         nargs='?',
-        const=False
+        const=True
     )
     parser.add_argument(
         "--readable_output",
@@ -377,7 +377,7 @@ def get_parser() -> argparse.ArgumentParser:
              " output.",
         type=str_to_bool,
         nargs='?',
-        const=False
+        const=True
     )
 
     return parser
