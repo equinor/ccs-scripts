@@ -22,6 +22,7 @@ CO2_MASS_PNAME = "CO2Mass"
 
 # pylint: disable=invalid-name,too-many-instance-attributes
 
+
 class MapName(Enum):
     MASS_TOT = "co2_mass_total"
     MASS_AQU = "co2_mass_aqu_phase"
@@ -155,11 +156,11 @@ def translate_co2data_to_property(
             trapped_gas_mass_list.append(mass_as_grids["MASSTGAS"]["path"])
 
     return [
-        _export_and_simplify_kw_list(free_mass_kw_list,free_mass_list),
-        _export_and_simplify_kw_list(dissolved_mass_kw_list,dissolved_mass_list),
-        _export_and_simplify_kw_list(total_mass_kw_list,total_mass_list),
-        _export_and_simplify_kw_list(free_gas_mass_kw_list,free_gas_mass_list),
-        _export_and_simplify_kw_list(trapped_gas_mass_kw_list,trapped_gas_mass_list),
+        _export_and_simplify_kw_list(free_mass_kw_list, free_mass_list),
+        _export_and_simplify_kw_list(dissolved_mass_kw_list, dissolved_mass_list),
+        _export_and_simplify_kw_list(total_mass_kw_list, total_mass_list),
+        _export_and_simplify_kw_list(free_gas_mass_kw_list, free_gas_mass_list),
+        _export_and_simplify_kw_list(trapped_gas_mass_kw_list, trapped_gas_mass_list),
     ]
 
 
@@ -167,13 +168,14 @@ def _export_and_simplify_kw_list(
         kwlist,
         outputlist
 ):
-    if len(outputlist)>0:
+    if len(outputlist) > 0:
         outfile_wrapper = FileWrapper(outputlist[0], mode="rb")
         with open(outfile_wrapper.file, "wb") as stream:
-            unformatted_write(stream,kwlist)
+            unformatted_write(stream, kwlist)
         return outputlist[0]
     else:
         return []
+
 
 def _get_dimensions_and_triplets(
     unrst_file: str,
@@ -235,8 +237,9 @@ def _convert_to_grid(
         ],
     ):
         grid_pf = xtgeo.grid_from_file(grid_file)
-        act_cells =len(grid_pf.actnum_indices)
+        act_cells = len(grid_pf.actnum_indices)
         mass_array = np.zeros(act_cells, dtype=mass.dtype)
         mass_array[idxs] = mass
-        mass_arrays[name] = {'data':mass_array, 'path':  grid_out_dir + "/" + str(MapName[name].value) + ".UNRST"}
+        mass_arrays[name] = {'data': mass_array, 'path': grid_out_dir + "/" +
+                                                         str(MapName[name].value) + ".UNRST"}
     return mass_arrays
