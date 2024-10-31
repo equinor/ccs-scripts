@@ -115,6 +115,7 @@ def load_yaml(
     yaml_file: str,
     map_folder: Optional[str],
     plot_folder: Optional[str],
+    grid_folder: Optional[str],
     replacements: Dict[str, str],
 ) -> Dict[str, Any]:
     """
