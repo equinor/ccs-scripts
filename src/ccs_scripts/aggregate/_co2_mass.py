@@ -110,49 +110,59 @@ def translate_co2data_to_property(
 
     store_all = "all" in maps or len(maps) == 0
 
-    for i , co2_at_date in enumerate(co2_data.data_list):
+    for i, co2_at_date in enumerate(co2_data.data_list):
         mass_as_grids = _convert_to_grid(co2_at_date, idxs, grid_file, grid_out_dir)
         logihead_array = np.array([x for x in unrst_data["LOGIHEAD"][i]])
         if store_all or "total_co2" in maps:
-            total_mass_kw_list.extend([
-                ("SEQNUM  ", [i]),
-                ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
-                ("LOGIHEAD", logihead_array),
-                ("MASS_TOT", mass_as_grids["MASS_TOT"]["data"])
-            ])
+            total_mass_kw_list.extend(
+                [
+                    ("SEQNUM  ", [i]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASS_TOT", mass_as_grids["MASS_TOT"]["data"]),
+                ]
+            )
             total_mass_list.append(mass_as_grids["MASS_TOT"]["path"])
         if store_all or "dissolved_co2" in maps:
-            dissolved_mass_kw_list.extend([
-                ("SEQNUM  ", [i]),
-                ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
-                ("LOGIHEAD", logihead_array),
-                ("MASS_AQU", mass_as_grids["MASS_AQU"]["data"])
-            ])
+            dissolved_mass_kw_list.extend(
+                [
+                    ("SEQNUM  ", [i]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASS_AQU", mass_as_grids["MASS_AQU"]["data"]),
+                ]
+            )
             dissolved_mass_list.append(mass_as_grids["MASS_AQU"]["path"])
         if (
             store_all or "free_co2" in maps
         ) and not co2_mass_settings.residual_trapping:
-            free_mass_kw_list.extend([
-                ("SEQNUM  ", [i]),
-                ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
-                ("LOGIHEAD", logihead_array),
-                ("MASS_GAS", mass_as_grids["MASS_GAS"]["data"])
-            ])
+            free_mass_kw_list.extend(
+                [
+                    ("SEQNUM  ", [i]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASS_GAS", mass_as_grids["MASS_GAS"]["data"]),
+                ]
+            )
             free_mass_list.append(mass_as_grids["MASS_GAS"]["path"])
         if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
-            free_gas_mass_kw_list.extend([
-                ("SEQNUM  ", [i]),
-                ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
-                ("LOGIHEAD", logihead_array),
-                ("MASSFGAS", mass_as_grids["MASSFGAS"]["data"])
-            ])
+            free_gas_mass_kw_list.extend(
+                [
+                    ("SEQNUM  ", [i]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASSFGAS", mass_as_grids["MASSFGAS"]["data"]),
+                ]
+            )
             free_gas_mass_list.append(mass_as_grids["MASSFGAS"]["path"])
-            trapped_gas_mass_kw_list.extend([
-                ("SEQNUM  ", [i]),
-                ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
-                ("LOGIHEAD", logihead_array),
-                ("MASSTGAS", mass_as_grids["MASSTGAS"]["data"])
-            ])
+            trapped_gas_mass_kw_list.extend(
+                [
+                    ("SEQNUM  ", [i]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASSTGAS", mass_as_grids["MASSTGAS"]["data"]),
+                ]
+            )
             trapped_gas_mass_list.append(mass_as_grids["MASSTGAS"]["path"])
 
     return [
@@ -164,10 +174,7 @@ def translate_co2data_to_property(
     ]
 
 
-def _export_and_simplify_kw_list(
-        kwlist,
-        outputlist
-):
+def _export_and_simplify_kw_list(kwlist, outputlist):
     if len(outputlist) > 0:
         outfile_wrapper = FileWrapper(outputlist[0], mode="rb")
         with open(outfile_wrapper.file, "wb") as stream:
@@ -201,10 +208,7 @@ def _get_dimensions_and_triplets(
 
 
 def _convert_to_grid(
-    co2_at_date: Co2DataAtTimeStep,
-    idxs: List[int],
-    grid_file: str,
-    grid_out_dir: str
+    co2_at_date: Co2DataAtTimeStep, idxs: List[int], grid_file: str, grid_out_dir: str
 ) -> Dict[str, xtgeo.GridProperty]:
     """
     Store the CO2 mass arrays in 3D GridProperties
@@ -240,6 +244,8 @@ def _convert_to_grid(
         act_cells = len(grid_pf.actnum_indices)
         mass_array = np.zeros(act_cells, dtype=mass.dtype)
         mass_array[idxs] = mass
-        mass_arrays[name] = {'data': mass_array, 'path': grid_out_dir + "/" +
-                                                         str(MapName[name].value) + ".UNRST"}
+        mass_arrays[name] = {
+            "data": mass_array,
+            "path": grid_out_dir + "/" + str(MapName[name].value) + ".UNRST",
+        }
     return mass_arrays
