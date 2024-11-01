@@ -512,6 +512,7 @@ def _make_parser() -> argparse.ArgumentParser:
 
     return parser
 
+
 def _replace_default_dummies_from_ert(args):
     if args.no_logging == "-1":
         args.no_logging = False
