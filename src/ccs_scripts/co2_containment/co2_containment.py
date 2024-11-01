@@ -268,9 +268,9 @@ def _merge_date_rows(
 def str_to_bool(value):
     if isinstance(value, bool):
         return value
-    if value.lower() in {"false", "f", "0"}:
+    if value.lower() in {"false", "no", "0"}:
         return False
-    elif value.lower() in {"true", "t", "1"}:
+    elif value.lower() in {"true", "yes", "1"}:
         return True
     raise ValueError(f"{value} is not a valid boolean value")
 
@@ -404,6 +404,14 @@ def _replace_default_dummies_from_ert(args):
         args.containment_polygon = None
     if args.hazardous_polygon == "-1":
         args.hazardous_polygon = None
+    if args.no_logging == "-1":
+        args.no_logging = False
+    if args.debug == "-1":
+        args.debug = False
+    if args.residual_trapping == "-1":
+        args.residual_trapping = False
+    if args.readable_output == "-1":
+        args.readable_output = False
 
 
 class InputError(Exception):

@@ -512,6 +512,12 @@ def _make_parser() -> argparse.ArgumentParser:
 
     return parser
 
+def _replace_default_dummies_from_ert(args):
+    if args.no_logging == "-1":
+        args.no_logging = False
+    if args.debug == "-1":
+        args.debug = False
+
 
 def _setup_log_configuration(arguments: argparse.Namespace) -> None:
     if arguments.debug:
@@ -1252,6 +1258,7 @@ def main():
     date written to a CSV file.
     """
     args = _make_parser().parse_args()
+    _replace_default_dummies_from_ert(args)
     args.column_name = (
         args.column_name.upper() if args.column_name is not None else None
     )
