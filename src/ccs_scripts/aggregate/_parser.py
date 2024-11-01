@@ -58,12 +58,24 @@ def parse_arguments(arguments):
     return parser.parse_args(arguments)
 
 
+def _replace_default_dummies_from_ert(args):
+    if args.eclroot == "-1":
+        args.eclroot = None
+    if args.mapfolder == "-1":
+        args.mapfolder = None
+    if args.plotfolder == "-1":
+        args.plotfolder = None
+    if args.folderroot == "-1":
+        args.folderroot = None
+
+
 def process_arguments(arguments) -> RootConfig:
     """
     Interprets and parses the provided arguments to an internal representation of input
     in the `RootConfig` class
     """
     parsed_args = parse_arguments(arguments)
+    _replace_default_dummies_from_ert(parsed_args)
     replacements = {}
     if parsed_args.eclroot is not None:
         replacements["eclroot"] = parsed_args.eclroot

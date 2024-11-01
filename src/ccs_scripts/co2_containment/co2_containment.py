@@ -265,6 +265,16 @@ def _merge_date_rows(
     return total_df.reset_index(drop=True)
 
 
+def str_to_bool(value):
+    if isinstance(value, bool):
+        return value
+    if value.lower() in {"false", "no", "0"}:
+        return False
+    elif value.lower() in {"true", "yes", "1"}:
+        return True
+    raise ValueError(f"{value} is not a valid boolean value")
+
+
 def get_parser() -> argparse.ArgumentParser:
     """
     Make parser and define arguments
@@ -342,24 +352,32 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no_logging",
         help="Skip print of detailed information during execution of script",
-        action="store_true",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
     )
     parser.add_argument(
         "--debug",
         help="Enable print of debugging data during execution of script. "
         "Normally not necessary for most users.",
-        action="store_true",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
     )
     parser.add_argument(
         "--residual_trapping",
         help="Compute mass/volume of trapped CO2 in gas phase.",
-        action="store_true",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
     )
     parser.add_argument(
         "--readable_output",
         help="Generate output text-file that is easier to parse than the standard"
         " output.",
-        action="store_true",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
     )
 
     return parser
@@ -386,6 +404,14 @@ def _replace_default_dummies_from_ert(args):
         args.containment_polygon = None
     if args.hazardous_polygon == "-1":
         args.hazardous_polygon = None
+    if args.no_logging == "-1":
+        args.no_logging = False
+    if args.debug == "-1":
+        args.debug = False
+    if args.residual_trapping == "-1":
+        args.residual_trapping = False
+    if args.readable_output == "-1":
+        args.readable_output = False
 
 
 class InputError(Exception):

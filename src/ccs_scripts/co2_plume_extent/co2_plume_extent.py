@@ -24,6 +24,7 @@ import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
+from ccs_scripts.co2_containment.co2_containment import str_to_bool
 from ccs_scripts.co2_plume_tracking.co2_plume_tracking import calculate_plume_groups
 from ccs_scripts.co2_plume_tracking.utils import (
     InjectionWellData,
@@ -496,16 +497,27 @@ def _make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no_logging",
         help="Skip print of detailed information during execution of script",
-        action="store_true",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
     )
     parser.add_argument(
         "--debug",
         help="Enable print of debugging data during execution of script. "
         "Normally not necessary for most users.",
-        action="store_true",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
     )
 
     return parser
+
+
+def _replace_default_dummies_from_ert(args):
+    if args.no_logging == "-1":
+        args.no_logging = False
+    if args.debug == "-1":
+        args.debug = False
 
 
 def _setup_log_configuration(arguments: argparse.Namespace) -> None:
@@ -1247,6 +1259,7 @@ def main():
     date written to a CSV file.
     """
     args = _make_parser().parse_args()
+    _replace_default_dummies_from_ert(args)
     args.column_name = (
         args.column_name.upper() if args.column_name is not None else None
     )
