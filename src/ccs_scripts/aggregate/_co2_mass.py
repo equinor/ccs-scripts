@@ -207,10 +207,7 @@ def _get_dimensions_and_triplets(
 
 
 def _convert_to_grid(
-        co2_at_date: Co2DataAtTimeStep,
-        idxs: np.ndarray,
-        grid_file: str,
-        grid_out_dir: str
+    co2_at_date: Co2DataAtTimeStep, idxs: np.ndarray, grid_file: str, grid_out_dir: str
 ) -> Dict[str, xtgeo.GridProperty]:
     """
     Store the CO2 mass arrays in 3D GridProperties
