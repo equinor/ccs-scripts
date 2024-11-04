@@ -81,7 +81,6 @@ def translate_co2data_to_property(
     idxs = _get_dimensions_and_triplets(
         co2_mass_settings.unrst_source, properties_to_extract
     )
-
     # Setting up the grid folder to store the gridproperties
     if grid_out_dir:
         if not os.path.exists(grid_out_dir):
@@ -187,7 +186,7 @@ def _export_and_simplify_kw_list(kwlist, outputlist):
 def _get_dimensions_and_triplets(
     unrst_file: str,
     properties_to_extract: List[str],
-) -> Tuple[Tuple[int, int, int], List[Tuple[int, int, int]]]:
+) -> np.ndarray
     """
     Gets the size of the 3D grid and (X,Y,Z) position of cells with CO2
 
@@ -208,7 +207,10 @@ def _get_dimensions_and_triplets(
 
 
 def _convert_to_grid(
-    co2_at_date: Co2DataAtTimeStep, idxs: List[int], grid_file: str, grid_out_dir: str
+        co2_at_date: Co2DataAtTimeStep,
+        idxs: np.ndarray,
+        grid_file: str,
+        grid_out_dir: str
 ) -> Dict[str, xtgeo.GridProperty]:
     """
     Store the CO2 mass arrays in 3D GridProperties
