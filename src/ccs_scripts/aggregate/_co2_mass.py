@@ -186,7 +186,7 @@ def _export_and_simplify_kw_list(kwlist, outputlist):
 def _get_dimensions_and_triplets(
     unrst_file: str,
     properties_to_extract: List[str],
-) -> np.ndarray
+) -> np.ndarray:
     """
     Gets the size of the 3D grid and (X,Y,Z) position of cells with CO2
 
