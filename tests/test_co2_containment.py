@@ -119,10 +119,10 @@ def test_simple_cube_grid():
         CalculationType.MASS,
     )
     assert len(co2_data.data_list) == len(simple_cube_grid.DATES)
-    assert co2_data.units == "kg"
+    assert co2_data.units == "tons"
     assert co2_data.data_list[-1].date == "20490101"
-    assert co2_data.data_list[-1].gas_phase.sum() == pytest.approx(9585.032869548137)
-    assert co2_data.data_list[-1].aqu_phase.sum() == pytest.approx(2834.956447728449)
+    assert co2_data.data_list[-1].gas_phase.sum() == pytest.approx(9.585032869548137)
+    assert co2_data.data_list[-1].aqu_phase.sum() == pytest.approx(2.834956447728449)
 
     simple_cube_grid_eclipse = _simple_cube_grid_eclipse()
 
@@ -131,13 +131,13 @@ def test_simple_cube_grid():
         CalculationType.MASS,
     )
     assert len(co2_data_eclipse.data_list) == len(simple_cube_grid_eclipse.DATES)
-    assert co2_data_eclipse.units == "kg"
+    assert co2_data_eclipse.units == "tons"
     assert co2_data_eclipse.data_list[-1].date == "20490101"
     assert co2_data_eclipse.data_list[-1].gas_phase.sum() == pytest.approx(
-        419249.33771403536
+        419.24933771403536
     )
     assert co2_data_eclipse.data_list[-1].aqu_phase.sum() == pytest.approx(
-        51468.54223011175
+        51.46854223011175
     )
 
 
@@ -157,8 +157,8 @@ def test_zoned_simple_cube_grid():
     )
     assert isinstance(co2_data, Co2Data)
     assert co2_data.data_list[-1].date == "20490101"
-    assert co2_data.data_list[-1].gas_phase.sum() == pytest.approx(9585.032869548137)
-    assert co2_data.data_list[-1].aqu_phase.sum() == pytest.approx(2834.956447728449)
+    assert co2_data.data_list[-1].gas_phase.sum() == pytest.approx(9.585032869548137)
+    assert co2_data.data_list[-1].aqu_phase.sum() == pytest.approx(2.834956447728449)
 
 
 def _get_synthetic_case_paths(case: str):

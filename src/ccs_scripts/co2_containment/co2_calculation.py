@@ -223,6 +223,8 @@ class Co2DataAtTimeStep:
       gas_phase (np.ndarray): The amount of CO2 in gaseous phase
       volume_coverage (np.ndarray): The volume of a cell (specific of
                                     calc_type_input = volume_extent)
+      trapped_gas_phase (np.ndarray): The amount of CO2 in trapped/stranded gas phase
+      free_gas_phase (np.ndarray): The amount of CO2 in free gas phase
     """
 
     date: str
@@ -259,7 +261,7 @@ class Co2Data:
     x_coord: np.ndarray
     y_coord: np.ndarray
     data_list: List[Co2DataAtTimeStep]
-    units: Literal["kg", "m3"]
+    units: Literal["kg", "tons", "m3"]
     zone: Optional[np.ndarray] = None
     region: Optional[np.ndarray] = None
 
@@ -655,7 +657,7 @@ def _pflotran_co2mass(
     source_data: SourceData,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
-) -> Dict:
+) -> Dict[str, List[np.ndarray]]:
     """
     Calculates CO2 mass based on the existing properties in PFlotran
 
@@ -711,7 +713,7 @@ def _pflotran_co2mass(
 
 def _eclipse_co2mass(
     source_data: SourceData, co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS
-) -> Dict:
+) -> Dict[str, List[np.ndarray]]:
     """
     Calculates CO2 mass based on the existing properties in Eclipse
 
@@ -1111,6 +1113,7 @@ def _calculate_co2_data_from_source_data(
                 source_data.get_region(),
             )
         else:
+            _convert_from_kg_to_tons(co2_mass_output)
             co2_amount = co2_mass_output
     elif calc_type == CalculationType.CELL_VOLUME:
         props_idx = np.where(
@@ -1163,6 +1166,18 @@ def _calculate_co2_data_from_source_data(
     return co2_amount
 
 
+def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
+    co2_mass_output.units = "tons"
+    for values in co2_mass_output.data_list:
+        for x in [
+            values.aqu_phase,
+            values.gas_phase,
+            values.trapped_gas_phase,
+            values.free_gas_phase,
+        ]:
+            x *= 0.001
+
+
 def calculate_co2(
     grid_file: str,
     unrst_file: str,
@@ -1188,11 +1203,11 @@ def calculate_co2(
       CO2Data
 
     """
-    PROPERTIES_TO_EXTRACT = RELEVANT_PROPERTIES.copy()
+    properties_to_extract = RELEVANT_PROPERTIES.copy()
     if residual_trapping:
-        PROPERTIES_TO_EXTRACT.extend(["SGSTRAND", "SGTRH"])
+        properties_to_extract.extend(["SGSTRAND", "SGTRH"])
     source_data = _extract_source_data(
-        grid_file, unrst_file, PROPERTIES_TO_EXTRACT, zone_info, region_info, init_file
+        grid_file, unrst_file, properties_to_extract, zone_info, region_info, init_file
     )
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     co2_data = _calculate_co2_data_from_source_data(
