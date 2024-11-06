@@ -45,7 +45,7 @@ def generate_co2_mass_maps(config_):
     co2_mass_settings = config_.co2_mass_settings
     zonation = config_.zonation
     zones = co2_mass_settings.zones
-    if zones is not None and isinstance(zones, str):    
+    if zones is not None and isinstance(zones, str):
         co2_mass_settings.zones = [zones]
     grid_file = config_.input.grid
     zone_info = {"source": None, "zranges": None}
@@ -85,7 +85,7 @@ def generate_co2_mass_maps(config_):
     co2_mass_property_to_map(config_, out_property_list)
 
 
-def clean_tmp(out_property_list: List[Union[str,None]]):
+def clean_tmp(out_property_list: List[Union[str, None]]):
     """
     Removes the 3d grids produced if not specific output folder is provided
 
