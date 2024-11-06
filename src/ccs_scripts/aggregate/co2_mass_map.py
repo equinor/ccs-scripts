@@ -2,7 +2,7 @@
 import os
 import shutil
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import xtgeo
 import yaml
@@ -102,7 +102,7 @@ def clean_tmp(out_property_list: List[str]):
 
 def co2_mass_property_to_map(
     config_: _config.RootConfig,
-    out_property_list: List[xtgeo.GridProperty],
+    out_property_list: List[List[Optional[str]]],
 ):
     """
     Aggregates with SUM and writes a list of CO2 mass property to files

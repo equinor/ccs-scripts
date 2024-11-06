@@ -66,7 +66,7 @@ def translate_co2data_to_property(
     co2_mass_settings: CO2MassSettings,
     properties_to_extract: List[str],
     grid_out_dir: Optional[str] = None,
-) -> List[List[xtgeo.GridProperty]]:
+) -> List[List[Optional[str]]]:
     """
     Convert CO2 data into 3D GridProperty
 
@@ -115,7 +115,7 @@ def translate_co2data_to_property(
     store_all = "all" in maps or len(maps) == 0
 
     for i, co2_at_date in enumerate(co2_data.data_list):
-        mass_as_grids = _convert_to_grid(co2_at_date, gas_idxs, grid_file, grid_out_dir)
+        mass_as_grid = _convert_to_grid(co2_at_date, gas_idxs, grid_file, grid_out_dir)
         logihead_array = np.array([x for x in unrst_data["LOGIHEAD"][i]])
         if store_all or "total_co2" in maps:
             total_mass_kw_list.extend(
@@ -126,7 +126,8 @@ def translate_co2data_to_property(
                     ("MASS_TOT", mass_as_grid["MASS_TOT"]["data"]),
                 ]
             )
-            total_mass_list.append(mass_as_grid["MASS_TOT"]["path"])
+            if mass_as_grid["MASS_TOT"]["path"] not in total_mass_list:
+                total_mass_list.append(mass_as_grid["MASS_TOT"]["path"])
         if store_all or "dissolved_co2" in maps:
             dissolved_mass_kw_list.extend(
                 [
@@ -136,7 +137,8 @@ def translate_co2data_to_property(
                     ("MASS_AQU", mass_as_grid["MASS_AQU"]["data"]),
                 ]
             )
-            dissolved_mass_list.append(mass_as_grid["MASS_AQU"]["path"])
+            if mass_as_grid["MASS_AQU"]["path"] not in dissolved_mass_list:
+                dissolved_mass_list.append(mass_as_grid["MASS_AQU"]["path"])
         if (
             store_all or "free_co2" in maps
         ) and not co2_mass_settings.residual_trapping:
@@ -148,7 +150,8 @@ def translate_co2data_to_property(
                     ("MASS_GAS", mass_as_grid["MASS_GAS"]["data"]),
                 ]
             )
-            free_mass_list.append(mass_as_grid["MASS_GAS"]["path"])
+            if mass_as_grid["MASS_GAS"]["path"] not in free_mass_list:
+                free_mass_list.append(mass_as_grid["MASS_GAS"]["path"])
         if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
             free_gas_mass_kw_list.extend(
                 [
@@ -158,7 +161,8 @@ def translate_co2data_to_property(
                     ("MASSFGAS", mass_as_grid["MASSFGAS"]["data"]),
                 ]
             )
-            free_gas_mass_list.append(mass_as_grid["MASSFGAS"]["path"])
+            if mass_as_grid["MASSFGAS"]["path"] not in free_gas_mass_list:
+                free_gas_mass_list.append(mass_as_grid["MASSFGAS"]["path"])
             trapped_gas_mass_kw_list.extend(
                 [
                     ("SEQNUM  ", [i]),
@@ -167,7 +171,8 @@ def translate_co2data_to_property(
                     ("MASSTGAS", mass_as_grid["MASSTGAS"]["data"]),
                 ]
             )
-            trapped_gas_mass_list.append(mass_as_grid["MASSTGAS"]["path"])
+            if mass_as_grid["MASSTGAS"]["path"] not in free_gas_mass_list:
+                trapped_gas_mass_list.append(mass_as_grid["MASSTGAS"]["path"])
 
     return [
         _export_and_simplify_kw_list(free_mass_kw_list, free_mass_list),
