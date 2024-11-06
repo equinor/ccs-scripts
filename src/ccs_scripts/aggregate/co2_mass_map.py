@@ -93,7 +93,7 @@ def clean_tmp(out_property_list: List[str]):
         out_property_list: List with paths of the 3d GridProperties
     """
     for props in out_property_list:
-        if len(props) > 0:
+        if isinstance(props, str):
             directory_path = os.path.dirname(props[0])
             os.remove(props)
             if os.path.isdir(directory_path) and not os.listdir(directory_path):
@@ -102,7 +102,7 @@ def clean_tmp(out_property_list: List[str]):
 
 def co2_mass_property_to_map(
     config_: _config.RootConfig,
-    out_property_list: List[List[Optional[str]]],
+    out_property_list: List[Optional[str]],
 ):
     """
     Aggregates with SUM and writes a list of CO2 mass property to files
