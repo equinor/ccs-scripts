@@ -73,6 +73,8 @@ def test_co2_mass_map_reek_grid():
     """
     adapt_reek_grid_for_co2_mass_map_test()
     result = str(Path(__file__).absolute().parent / "answers" / "mass_map")
+    if not os.path.exists(result):
+        os.makedirs(result)
     co2_mass_map.main(
         [
             "--config",
@@ -124,6 +126,9 @@ def test_co2_mass_map_residual_trapping_pflotran():
     Test CO2 mass maps, with synthetic_case pflotran data
     """
     result = str(Path(__file__).absolute().parent / "answers" / "mass_map")
+    if not os.path.exists(result):
+        os.makedirs(result)
+
     co2_mass_map.main(
         [
             "--config",
