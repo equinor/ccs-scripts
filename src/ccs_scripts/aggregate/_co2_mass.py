@@ -1,7 +1,7 @@
 import os
 import tempfile
 from enum import Enum
-from typing import Dict, List, Optional, TypedDict, Tuple, Union
+from typing import Dict, List, Optional, Tuple, TypedDict, Union
 
 import numpy as np
 import xtgeo
@@ -83,9 +83,7 @@ def translate_co2data_to_property(
         List[List[xtgeo.GridProperty]]
 
     """
-    gas_idxs = _get_gas_idxs(
-        co2_mass_settings.unrst_source, properties_to_extract
-    )
+    gas_idxs = _get_gas_idxs(co2_mass_settings.unrst_source, properties_to_extract)
     # Setting up the grid folder to store the gridproperties
     if grid_out_dir:
         if not os.path.exists(grid_out_dir):
@@ -184,17 +182,17 @@ def translate_co2data_to_property(
 
 
 def _export_and_simplify_kw_list(
-        kwlist: List[Tuple[str, Union[List[int], np.ndarray]]],
-        outputlist: List[str]
+    kwlist: List[Tuple[str, Union[List[int], np.ndarray]]], outputlist: List[str]
 ) -> Optional[str]:
     """
     Exports the grid with the property at different time steps as well as
     the path where the file is located
 
     Args:
-        kwlist (List[Tuple[str, Union[List[int], np.ndarray]]]): A list with the information
-        that feeds the 3d grid properties
-        outputlist (List[str]): Names of the paths where the files with the 3d grid properties are located
+        kwlist (List[Tuple[str, Union[List[int], np.ndarray]]]): A list with
+        the information that feeds the 3d grid properties
+        outputlist (List[str]): Names of the paths where the files with the
+        3d grid properties are located
 
         Returns:
              Optional[str]
@@ -231,7 +229,10 @@ def _get_gas_idxs(
 
 
 def _convert_to_grid(
-    co2_at_date: Co2DataAtTimeStep, gas_idxs: np.ndarray, grid_file: str, grid_out_dir: str
+    co2_at_date: Co2DataAtTimeStep,
+    gas_idxs: np.ndarray,
+    grid_file: str,
+    grid_out_dir: str,
 ) -> Dict[str, PropertyGridOutput]:
     """
     Store CO2DataAtTimeStep for a property in a 3DGridProperties object
@@ -241,7 +242,8 @@ def _convert_to_grid(
                                                at each time step
         gas_idxs (np.ndarray):                 Global index of cells with CO2
         grid_file (str):                       Path to EGRID-file
-        grid_out_dir (str):                    If provided, path to store the produced 3D GridProperties
+        grid_out_dir (str):                    If provided, path to store the produced
+                                               3D GridProperties
 
     Returns:
         Dict[str, xtgeo.GridProperty]
@@ -267,8 +269,9 @@ def _convert_to_grid(
         act_cells = len(grid_pf.actnum_indices)
         mass_array = np.zeros(act_cells, dtype=mass.dtype)
         mass_array[gas_idxs] = mass
-        mass_grid_output[name] = {
+        prop_grid_output: PropertyGridOutput = {
             "data": mass_array,
             "path": grid_out_dir + "/" + str(MapName[name].value) + ".UNRST",
         }
+        mass_grid_output[name] = prop_grid_output
     return mass_grid_output
