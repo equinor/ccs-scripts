@@ -18,7 +18,7 @@ def expected_jobs():
         "CO2_CONTAINMENT",
         "CO2_PLUME_AREA",
         "CO2_PLUME_EXTENT",
-        "CO2_MASS_MAPS",
+        "CO2_MASS_MAP",
         "GRID3D_AGGREGATE_MAP",
         "GRID3D_MIGRATION_TIME",
     ]

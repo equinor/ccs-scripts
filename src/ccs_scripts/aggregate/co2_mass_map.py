@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+import os
+import shutil
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import xtgeo
 import yaml
@@ -65,7 +67,7 @@ def generate_co2_mass_maps(config_):
         grid_file,
         co2_mass_settings,
         RELEVANT_PROPERTIES,
-        config_.output.mapfolder + "/grid",
+        config_.output.gridfolder,
     )
     config_.zonation.zranges, all_zrange = process_zonation(
         co2_mass_settings, grid_file, zonation
@@ -83,38 +85,50 @@ def generate_co2_mass_maps(config_):
     co2_mass_property_to_map(config_, out_property_list)
 
 
+def clean_tmp(out_property_list: List[Union[str, None]]):
+    """
+    Removes the 3d grids produced if not specific output folder is provided
+
+    Args:
+        out_property_list: List with paths of the 3d GridProperties
+    """
+    for props in out_property_list:
+        if isinstance(props, str):
+            directory_path = os.path.dirname(props[0])
+            os.remove(props)
+            if os.path.isdir(directory_path) and not os.listdir(directory_path):
+                shutil.rmtree(directory_path)
+
+
 def co2_mass_property_to_map(
     config_: _config.RootConfig,
-    property_list: List[xtgeo.GridProperty],
+    out_property_list: List[Optional[str]],
 ):
     """
     Aggregates with SUM and writes a list of CO2 mass property to files
     using `grid3d_aggregate_maps`.
 
     Args:
-        config_: Arguments in the config file
-        property_list: List of Grid property objects to be aggregated
+        config_:           Arguments in the config file
+        out_property_list: List with paths of the GridProperties objects
+                           to be aggregated
 
     """
     config_.input.properties = []
     config_.computesettings.aggregation = AggregationMethod.SUM
     config_.output.aggregation_tag = False
-    for props in property_list:
-        if len(props) > 0:
-            for prop in props:
-                config_.input.properties.append(
-                    _config.Property(
-                        config_.output.mapfolder
-                        + "/grid/"
-                        + prop.name
-                        + "--"
-                        + prop.date
-                        + ".roff",
-                        None,
-                        None,
-                    )
+    for props in out_property_list:
+        if isinstance(props, str):
+            config_.input.properties.append(
+                _config.Property(
+                    props,
+                    None,
+                    None,
                 )
+            )
     grid3d_aggregate_map.generate_from_config(config_)
+    if not config_.output.gridfolder:
+        clean_tmp(out_property_list)
 
 
 def process_zonation(

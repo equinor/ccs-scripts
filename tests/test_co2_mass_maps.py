@@ -4,13 +4,13 @@ from pathlib import Path
 
 from resdata.resfile import FortIO, ResdataFile, openFortIO
 
-from ccs_scripts.aggregate import co2_mass_maps
+from ccs_scripts.aggregate import co2_mass_map
 
 
-def adapt_reek_grid_for_co2_mass_maps_test():
+def adapt_reek_grid_for_co2_mass_map_test():
     """
     Adds the necessary properties to reek grid to make it usable for
-    test_co2_mass_maps_reek_grid
+    test_co2_mass_map_reek_grid
     """
     reek_unrstfile = (
         Path(__file__).absolute().parent
@@ -67,19 +67,21 @@ def adapt_reek_grid_for_co2_mass_maps_test():
             y.fwrite(f)
 
 
-def test_co2_mass_maps_reek_grid():
+def test_co2_mass_map_reek_grid():
     """
     Test CO2 mass maps generation, with eclipse Reek data
     """
-    adapt_reek_grid_for_co2_mass_maps_test()
-    result = str(Path(__file__).absolute().parent / "answers" / "mass_maps")
-    co2_mass_maps.main(
+    adapt_reek_grid_for_co2_mass_map_test()
+    result = str(Path(__file__).absolute().parent / "answers" / "mass_map")
+    if not os.path.exists(result):
+        os.makedirs(result)
+    co2_mass_map.main(
         [
             "--config",
             str(
                 Path(__file__).absolute().parent
                 / "yaml"
-                / "config_co2_mass_maps_reek.yml"
+                / "config_co2_mass_map_reek.yml"
             ),
             "--mapfolder",
             str(result),
@@ -88,25 +90,25 @@ def test_co2_mass_maps_reek_grid():
     dissolved_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
-        / "mass_maps"
+        / "mass_map"
         / "all--co2_mass_aqu_phase--20010801.gri"
     )
     free_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
-        / "mass_maps"
+        / "mass_map"
         / "all--co2_mass_gas_phase--20010801.gri"
     )
     total_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
-        / "mass_maps"
+        / "mass_map"
         / "all--co2_mass_total--20010801.gri"
     )
     assert free_co2_file.exists()
     assert dissolved_co2_file.exists()
     assert total_co2_file.exists()
-    shutil.rmtree(str(Path(__file__).absolute().parent / "answers" / "mass_maps"))
+    shutil.rmtree(str(Path(__file__).absolute().parent / "answers" / "mass_map"))
     os.remove(
         str(
             Path(__file__).absolute().parent
@@ -119,18 +121,21 @@ def test_co2_mass_maps_reek_grid():
     )
 
 
-def test_co2_mass_maps_residual_trapping_pflotran():
+def test_co2_mass_map_residual_trapping_pflotran():
     """
     Test CO2 mass maps, with synthetic_case pflotran data
     """
-    result = str(Path(__file__).absolute().parent / "answers" / "mass_maps")
-    co2_mass_maps.main(
+    result = str(Path(__file__).absolute().parent / "answers" / "mass_map")
+    if not os.path.exists(result):
+        os.makedirs(result)
+
+    co2_mass_map.main(
         [
             "--config",
             str(
                 Path(__file__).absolute().parent
                 / "yaml"
-                / "config_co2_mass_maps_pflotran.yml"
+                / "config_co2_mass_map_pflotran.yml"
             ),
             "--mapfolder",
             str(result),
@@ -139,13 +144,13 @@ def test_co2_mass_maps_residual_trapping_pflotran():
     free_gas_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
-        / "mass_maps"
+        / "mass_map"
         / "all--co2_mass_free_gas_phase--23000101.gri"
     )
     trapped_gas_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
-        / "mass_maps"
+        / "mass_map"
         / "all--co2_mass_trapped_gas_phase--23000101.gri"
     )
     total_co2_file = (
@@ -157,4 +162,4 @@ def test_co2_mass_maps_residual_trapping_pflotran():
     assert free_gas_co2_file.exists()
     assert trapped_gas_co2_file.exists()
     assert not total_co2_file.exists()
-    shutil.rmtree(str(Path(__file__).absolute().parent / "answers" / "mass_maps"))
+    shutil.rmtree(str(Path(__file__).absolute().parent / "answers" / "mass_map"))

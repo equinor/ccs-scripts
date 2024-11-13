@@ -1,9 +1,13 @@
 import os
-from typing import Dict, List, Tuple
+import tempfile
+from enum import Enum
+from typing import Dict, List, Optional, Tuple, TypedDict, Union
 
 import numpy as np
 import xtgeo
 from resdata.resfile import ResdataFile
+from resfo._unformatted.write import unformatted_write
+from xtgeo.io._file import FileWrapper
 
 from ccs_scripts.aggregate._config import CO2MassSettings
 from ccs_scripts.co2_containment.co2_calculation import (
@@ -17,6 +21,19 @@ from ccs_scripts.co2_containment.co2_calculation import (
 CO2_MASS_PNAME = "CO2Mass"
 
 # pylint: disable=invalid-name,too-many-instance-attributes
+
+
+class MapName(Enum):
+    MASS_TOT = "co2_mass_total"
+    MASS_AQU = "co2_mass_aqu_phase"
+    MASS_GAS = "co2_mass_gas_phase"
+    MASSTGAS = "co2_mass_trapped_gas_phase"
+    MASSFGAS = "co2_mass_free_gas_phase"
+
+
+class PropertyGridOutput(TypedDict):
+    data: np.ndarray
+    path: str
 
 
 def _get_gasless(properties: Dict[str, Dict[str, List[np.ndarray]]]) -> np.ndarray:
@@ -48,8 +65,8 @@ def translate_co2data_to_property(
     grid_file: str,
     co2_mass_settings: CO2MassSettings,
     properties_to_extract: List[str],
-    grid_out_dir: str,
-) -> List[List[xtgeo.GridProperty]]:
+    grid_out_dir: Optional[str] = None,
+) -> List[Optional[str]]:
     """
     Convert CO2 data into 3D GridProperty
 
@@ -60,20 +77,19 @@ def translate_co2data_to_property(
         co2_mass_settings (CO2MassSettings): Settings from config file for calculation
                                              of CO2 mass maps.
         properties_to_extract (List): Names of the properties to be extracted
-        grid_out_dir (str): Path to store the produced 3D GridProperties.
+        grid_out_dir (str): If provided, path to store the produced 3D GridProperties.
 
     Returns:
         List[List[xtgeo.GridProperty]]
 
     """
-    dimensions, triplets = _get_dimensions_and_triplets(
-        grid_file, co2_mass_settings.unrst_source, properties_to_extract
-    )
-
+    gas_idxs = _get_gas_idxs(co2_mass_settings.unrst_source, properties_to_extract)
     # Setting up the grid folder to store the gridproperties
-    if not os.path.exists(grid_out_dir):
-        os.makedirs(grid_out_dir)
-
+    if grid_out_dir:
+        if not os.path.exists(grid_out_dir):
+            os.makedirs(grid_out_dir)
+    else:
+        grid_out_dir = tempfile.mkdtemp()
     maps = co2_mass_settings.maps
     if maps is None:
         maps = []
@@ -86,105 +102,153 @@ def translate_co2data_to_property(
     free_mass_list = []
     free_gas_mass_list = []
     trapped_gas_mass_list = []
+    total_mass_kw_list = []
+    dissolved_mass_kw_list = []
+    free_mass_kw_list = []
+    free_gas_mass_kw_list = []
+    trapped_gas_mass_kw_list = []
+
+    unrst_data = ResdataFile(co2_mass_settings.unrst_source)
 
     store_all = "all" in maps or len(maps) == 0
-    for co2_at_date in co2_data.data_list:
-        date = str(co2_at_date.date)
-        mass_as_grids = _convert_to_grid(co2_at_date, dimensions, triplets)
+
+    for i, co2_at_date in enumerate(co2_data.data_list):
+        mass_as_grid = _convert_to_grid(co2_at_date, gas_idxs, grid_file, grid_out_dir)
+        logihead_array = np.array([x for x in unrst_data["LOGIHEAD"][i]])
         if store_all or "total_co2" in maps:
-            mass_as_grids["MASS_TOTAL"].to_file(
-                grid_out_dir + "/CO2_MASS_TOTAL--" + date + ".roff",
-                fformat="roff",
+            total_mass_kw_list.extend(
+                [
+                    ("SEQNUM  ", [i]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASS_TOT", mass_as_grid["MASS_TOT"]["data"]),
+                ]
             )
-            total_mass_list.append(mass_as_grids["MASS_TOTAL"])
+            if mass_as_grid["MASS_TOT"]["path"] not in total_mass_list:
+                total_mass_list.append(mass_as_grid["MASS_TOT"]["path"])
         if store_all or "dissolved_co2" in maps:
-            mass_as_grids["MASS_AQU_PHASE"].to_file(
-                grid_out_dir + "/CO2_MASS_AQU_PHASE--" + date + ".roff",
-                fformat="roff",
+            dissolved_mass_kw_list.extend(
+                [
+                    ("SEQNUM  ", [i]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASS_AQU", mass_as_grid["MASS_AQU"]["data"]),
+                ]
             )
-            dissolved_mass_list.append(mass_as_grids["MASS_AQU_PHASE"])
+            if mass_as_grid["MASS_AQU"]["path"] not in dissolved_mass_list:
+                dissolved_mass_list.append(mass_as_grid["MASS_AQU"]["path"])
         if (
             store_all or "free_co2" in maps
         ) and not co2_mass_settings.residual_trapping:
-            mass_as_grids["MASS_GAS_PHASE"].to_file(
-                grid_out_dir + "/CO2_MASS_GAS_PHASE--" + date + ".roff",
-                fformat="roff",
+            free_mass_kw_list.extend(
+                [
+                    ("SEQNUM  ", [i]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASS_GAS", mass_as_grid["MASS_GAS"]["data"]),
+                ]
             )
-            free_mass_list.append(mass_as_grids["MASS_GAS_PHASE"])
+            if mass_as_grid["MASS_GAS"]["path"] not in free_mass_list:
+                free_mass_list.append(mass_as_grid["MASS_GAS"]["path"])
         if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
-            mass_as_grids["MASS_FREE_GAS_PHASE"].to_file(
-                grid_out_dir + "/CO2_MASS_FREE_GAS_PHASE--" + date + ".roff",
-                fformat="roff",
+            free_gas_mass_kw_list.extend(
+                [
+                    ("SEQNUM  ", [i]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASSFGAS", mass_as_grid["MASSFGAS"]["data"]),
+                ]
             )
-            free_gas_mass_list.append(mass_as_grids["MASS_FREE_GAS_PHASE"])
-            mass_as_grids["MASS_TRAPPED_GAS_PHASE"].to_file(
-                grid_out_dir + "/CO2_MASS_TRAPPED_GAS_PHASE--" + date + ".roff",
-                fformat="roff",
+            if mass_as_grid["MASSFGAS"]["path"] not in free_gas_mass_list:
+                free_gas_mass_list.append(mass_as_grid["MASSFGAS"]["path"])
+            trapped_gas_mass_kw_list.extend(
+                [
+                    ("SEQNUM  ", [i]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASSTGAS", mass_as_grid["MASSTGAS"]["data"]),
+                ]
             )
-            trapped_gas_mass_list.append(mass_as_grids["MASS_TRAPPED_GAS_PHASE"])
+            if mass_as_grid["MASSTGAS"]["path"] not in free_gas_mass_list:
+                trapped_gas_mass_list.append(mass_as_grid["MASSTGAS"]["path"])
 
     return [
-        free_mass_list,
-        dissolved_mass_list,
-        total_mass_list,
-        free_gas_mass_list,
-        trapped_gas_mass_list,
+        _export_and_simplify_kw_list(free_mass_kw_list, free_mass_list),
+        _export_and_simplify_kw_list(dissolved_mass_kw_list, dissolved_mass_list),
+        _export_and_simplify_kw_list(total_mass_kw_list, total_mass_list),
+        _export_and_simplify_kw_list(free_gas_mass_kw_list, free_gas_mass_list),
+        _export_and_simplify_kw_list(trapped_gas_mass_kw_list, trapped_gas_mass_list),
     ]
 
 
-def _get_dimensions_and_triplets(
-    grid_file: str,
-    unrst_file: str,
-    properties_to_extract: List[str],
-) -> Tuple[Tuple[int, int, int], List[Tuple[int, int, int]]]:
+def _export_and_simplify_kw_list(
+    kwlist: List[Tuple[str, Union[List[int], np.ndarray]]], outputlist: List[str]
+) -> Optional[str]:
     """
-    Gets the size of the 3D grid and (X,Y,Z) position of cells with CO2
+    Exports the grid with the property at different time steps as well as
+    the path where the file is located
 
     Args:
-        grid_file (str): Path to EGRID-file
+        kwlist (List[Tuple[str, Union[List[int], np.ndarray]]]): A list with
+        the information that feeds the 3d grid properties
+        outputlist (List[str]): Names of the paths where the files with the
+        3d grid properties are located
+
+        Returns:
+             Optional[str]
+    """
+    if len(outputlist) > 0:
+        outfile_wrapper = FileWrapper(outputlist[0], mode="rb")
+        with open(outfile_wrapper.file, "wb") as stream:
+            unformatted_write(stream, kwlist)
+        return outputlist[0]
+    else:
+        return None
+
+
+def _get_gas_idxs(
+    unrst_file: str,
+    properties_to_extract: List[str],
+) -> np.ndarray:
+    """
+    Gets the global index of cells with CO2
+
+    Args:
         unrst_file (str): Path to UNRST-file
         properties_to_extract (List): Names of the properties to be extracted
 
     Returns:
-        Tuple[Tuple[int, int, int], List[Tuple[int, int, int]]]:
+        np.ndarray
 
     """
-    grid_pf = xtgeo.grid_from_file(grid_file)
-    dimensions = (grid_pf.ncol, grid_pf.nrow, grid_pf.nlay)
     unrst = ResdataFile(unrst_file)
     properties, _ = _fetch_properties(unrst, properties_to_extract)
-    gdf = grid_pf.get_dataframe()
-    gdf = gdf.sort_values(by=["KZ", "JY", "IX"])
-
     gasless = _get_gasless(properties)
-    gdf = gdf.loc[~gasless]
-    triplets = [
-        (int(row["IX"] - 1), int(row["JY"] - 1), int(row["KZ"] - 1))
-        for _, row in gdf.iterrows()
-    ]
-    return dimensions, triplets
+    gas_idxs = np.array([index for index, value in enumerate(gasless) if not value])
+    return gas_idxs
 
 
 def _convert_to_grid(
     co2_at_date: Co2DataAtTimeStep,
-    dimensions: Tuple[int, int, int],
-    triplets: List[Tuple[int, int, int]],
-) -> Dict[str, xtgeo.GridProperty]:
+    gas_idxs: np.ndarray,
+    grid_file: str,
+    grid_out_dir: str,
+) -> Dict[str, PropertyGridOutput]:
     """
-    Store the CO2 mass arrays in 3D GridProperties
+    Store CO2DataAtTimeStep for a property in a 3DGridProperties object
 
     Args:
         co2_at_date (Co2DataAtTimeStep):       Amount of CO2 per phase at each cell
                                                at each time step
-        dimensions (Tuple[int,int,int]):       Size of the 3D grid
-        triplets (List[Tuple[int, int, int]]): List of triplets with the (X,Y,Z)
-                                               position of cells with CO2
+        gas_idxs (np.ndarray):                 Global index of cells with CO2
+        grid_file (str):                       Path to EGRID-file
+        grid_out_dir (str):                    If provided, path to store the produced
+                                               3D GridProperties
 
     Returns:
         Dict[str, xtgeo.GridProperty]
     """
-    grids = {}
-    date = str(co2_at_date.date)
+    mass_grid_output = {}
     for mass, name in zip(
         [
             co2_at_date.total_mass(),
@@ -194,23 +258,20 @@ def _convert_to_grid(
             co2_at_date.free_gas_phase,
         ],
         [
-            "MASS_TOTAL",
-            "MASS_AQU_PHASE",
-            "MASS_GAS_PHASE",
-            "MASS_TRAPPED_GAS_PHASE",
-            "MASS_FREE_GAS_PHASE",
+            "MASS_TOT",
+            "MASS_AQU",
+            "MASS_GAS",
+            "MASSTGAS",
+            "MASSFGAS",
         ],
     ):
-        mass_array = np.zeros(dimensions)
-        for i, triplet in enumerate(triplets):
-            mass_array[triplet] = mass[i]
-        mass_name = "CO2_" + name
-        grids[name] = xtgeo.grid3d.GridProperty(
-            ncol=dimensions[0],
-            nrow=dimensions[1],
-            nlay=dimensions[2],
-            values=mass_array,
-            name=mass_name,
-            date=date,
-        )
-    return grids
+        grid_pf = xtgeo.grid_from_file(grid_file)
+        act_cells = len(grid_pf.actnum_indices)
+        mass_array = np.zeros(act_cells, dtype=mass.dtype)
+        mass_array[gas_idxs] = mass
+        prop_grid_output: PropertyGridOutput = {
+            "data": mass_array,
+            "path": grid_out_dir + "/" + str(MapName[name].value) + ".UNRST",
+        }
+        mass_grid_output[name] = prop_grid_output
+    return mass_grid_output
