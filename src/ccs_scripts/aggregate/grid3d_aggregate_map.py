@@ -21,6 +21,7 @@ from ccs_scripts.aggregate._parser import (
     extract_zonations,
     process_arguments,
 )
+from ccs_scripts.aggregate._co2_mass import MapName
 
 from . import _config, _grid_aggregation
 
@@ -86,6 +87,15 @@ def write_plot_using_quickplot(surface, filename):
     quickplot(surface, filename=filename.with_suffix(".png"))
 
 
+def modify_mass_property_names(properties: List[xtgeo.GridProperty]):
+    if any("MASS" in p.name for p in properties):
+        for p in properties:
+            if "MASS" in p.name:
+                mass_prop_name = p.name.split("--")[0]
+                mass_prop_date = p.name.split("--")[1]
+                p.name = f'{MapName[mass_prop_name].value}--{mass_prop_date}'
+
+
 def generate_maps(
     input_: Input,
     zonation: Zonation,
@@ -99,6 +109,7 @@ def generate_maps(
     _XTG.say("Reading grid, properties and zone(s)")
     grid = xtgeo.grid_from_file(input_.grid)
     properties = extract_properties(input_.properties, grid, input_.dates)
+    modify_mass_property_names(properties)
     _filters: List[Tuple[str, Optional[Union[np.ndarray, None]]]] = []
     if computesettings.all:
         _filters.append(("all", None))

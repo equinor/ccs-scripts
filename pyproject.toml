@@ -45,6 +45,7 @@ dependencies = [
     "pyyaml",
     "grid3d-maps",
     "ert",
+    "resfo",
 ]
 
 [project.optional-dependencies]

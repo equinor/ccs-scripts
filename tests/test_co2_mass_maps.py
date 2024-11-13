@@ -91,19 +91,19 @@ def test_co2_mass_map_reek_grid():
         Path(__file__).absolute().parent
         / "answers"
         / "mass_map"
-        / "all--mass_aqu--20010801.gri"
+        / "all--co2_mass_aqu_phase--20010801.gri"
     )
     free_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
         / "mass_map"
-        / "all--mass_gas--20010801.gri"
+        / "all--co2_mass_gas_phase--20010801.gri"
     )
     total_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
         / "mass_map"
-        / "all--mass_tot--20010801.gri"
+        / "all--co2_mass_total--20010801.gri"
     )
     assert free_co2_file.exists()
     assert dissolved_co2_file.exists()
@@ -145,19 +145,19 @@ def test_co2_mass_map_residual_trapping_pflotran():
         Path(__file__).absolute().parent
         / "answers"
         / "mass_map"
-        / "all--massfgas--23000101.gri"
+        / "all--co2_mass_free_gas_phase--23000101.gri"
     )
     trapped_gas_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
         / "mass_map"
-        / "all--masstgas--23000101.gri"
+        / "all--co2_mass_trapped_gas_phase--23000101.gri"
     )
     total_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
         / "mass_maps"
-        / "all--mass_tot--23000101.gri"
+        / "all--co2_mass_total--23000101.gri"
     )
     assert free_gas_co2_file.exists()
     assert trapped_gas_co2_file.exists()
