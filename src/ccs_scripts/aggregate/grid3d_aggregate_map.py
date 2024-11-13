@@ -7,6 +7,7 @@ import numpy as np
 import xtgeo
 from xtgeo.common import XTGeoDialog
 
+from ccs_scripts.aggregate._co2_mass import MapName
 from ccs_scripts.aggregate._config import (
     AggregationMethod,
     ComputeSettings,
@@ -21,7 +22,6 @@ from ccs_scripts.aggregate._parser import (
     extract_zonations,
     process_arguments,
 )
-from ccs_scripts.aggregate._co2_mass import MapName
 
 from . import _config, _grid_aggregation
 
@@ -93,7 +93,7 @@ def modify_mass_property_names(properties: List[xtgeo.GridProperty]):
             if "MASS" in p.name:
                 mass_prop_name = p.name.split("--")[0]
                 mass_prop_date = p.name.split("--")[1]
-                p.name = f'{MapName[mass_prop_name].value}--{mass_prop_date}'
+                p.name = f"{MapName[mass_prop_name].value}--{mass_prop_date}"
 
 
 def generate_maps(
