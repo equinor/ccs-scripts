@@ -68,5 +68,7 @@ def generate_migration_time_property(
                 t_props[name].values[above_threshold], dt
             )
         # Mask inf values
+        if not isinstance(t_props[name].values.mask, np.ndarray):
+            t_props[name].values.mask = np.asarray(t_props[name].values.mask)
         t_props[name].values.mask[np.isinf(t_props[name].values)] = 1
     return t_props
