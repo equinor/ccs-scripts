@@ -200,6 +200,8 @@ def extract_properties(
             props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
         if spec.lower_threshold is not None:
             for prop in props:
+                if not isinstance(prop.values.mask, np.ndarray):
+                    prop.values.mask = np.asarray(prop.values.mask)
                 prop.values.mask[prop.values < spec.lower_threshold] = True
         # Check if any of the properties missing a date had date as part of the file
         # stem, separated by a "--"
