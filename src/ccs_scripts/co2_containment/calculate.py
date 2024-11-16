@@ -178,20 +178,20 @@ def _make_location_filters(
 def _log_summary_of_grid_node_location(locations: Dict) -> None:
     logging.info("Number of grid nodes:")
     logging.info(
-        f"  * Inside containment polygon                        :\
-            {locations['contained'].sum()}"
+        "  * Inside containment polygon                        :"
+        f"{locations['contained'].sum():>10}"
     )
     logging.info(
-        f"  * Inside hazardous polygon                          :\
-            {locations['hazardous'].sum()}"
+        "  * Inside hazardous polygon                          :"
+        f"{locations['hazardous'].sum():>10}"
     )
     logging.info(
-        f"  * Outside containment polygon and hazardous polygon :\
-            {locations['outside'].sum()}"
+        "  * Outside containment polygon and hazardous polygon :"
+        f"{locations['outside'].sum():>10}"
     )
     logging.info(
-        f"  * Total                                             :\
-            {len(locations['contained'])}"
+        "  * Total                                             :"
+        f"{len(locations['contained']):>10}"
     )
 
 

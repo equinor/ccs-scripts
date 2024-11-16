@@ -620,8 +620,17 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     logging.info(f"INIT file           : {arguments_processed.init}")
     logging.info(f"Zone file           : {arguments_processed.zonefile}")
     logging.info(
+        f"Region file         : {arguments_processed.regionfile if arguments_processed.regionfile is not None else '-'}"
+    )
+    logging.info(
+        f"Region property     : {arguments_processed.region_property if arguments_processed.region_property is not None else '-'}"
+    )
+    logging.info(
         f"Residual trapping   : "
-        f"{'yes' if arguments_processed.residual_trapping else 'no'}\n"
+        f"{'yes' if arguments_processed.residual_trapping else 'no'}"
+    )
+    logging.info(
+        f"Readable output     : {'yes' if arguments_processed.readable_output is not None and arguments_processed else 'no'}\n"
     )
 
 

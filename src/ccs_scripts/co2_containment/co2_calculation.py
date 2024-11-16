@@ -417,8 +417,8 @@ def _extract_source_data(
 
     act_num = grid.export_actnum().numpy_copy()
     active = np.where(act_num > 0)[0]
-    logging.info(f"Number of grid cells                    : {len(act_num)}")
-    logging.info(f"Number of active grid cells             : {len(active)}")
+    logging.info(f"Number of grid cells                    : {len(act_num):>10}")
+    logging.info(f"Number of active grid cells             : {len(active):>10}")
     if _is_subset(["SGAS", "AMFG"], list(properties.keys())):
         gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
     elif _is_subset(["SGAS", "XMF2"], list(properties.keys())):
@@ -430,7 +430,9 @@ def _extract_source_data(
         error_text += "SGAS+AMFG or SGAS+XMF2."
         raise RuntimeError(error_text)
     global_active_idx = active[~gasless]
-    logging.info(f"Number of active non-gasless grid cells : {len(global_active_idx)}")
+    logging.info(
+        f"Number of active non-gasless grid cells : {len(global_active_idx):>10}"
+    )
 
     properties_reduced = _reduce_properties(properties, ~gasless)
     # Tuple with (x,y,z) for each cell:
