@@ -169,6 +169,7 @@ def calculate_out_of_bounds_co2(
         zone_info,
         region_info,
         residual_trapping,
+        plume_groups_sgas,
     )
 
 
@@ -180,6 +181,7 @@ def calculate_from_co2_data(
     zone_info: Dict,
     region_info: Dict,
     residual_trapping: bool = False,
+    plume_groups: Optional[List[List[str]]] = None,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
     Use polygons to divide co2 mass or volume into different categories
@@ -195,6 +197,7 @@ def calculate_from_co2_data(
         zone_info (Dict): Dictionary containing zone information
         region_info (Dict): Dictionary containing region information
         residual_trapping (bool): Indicate if residual trapping should be calculated
+        plume_groups (List): For each time step, list of plume group for each grid cell
 
     Returns:
         pd.DataFrame
@@ -208,6 +211,7 @@ def calculate_from_co2_data(
         region_info,
         calc_type,
         residual_trapping,
+        plume_groups,
     )
     return _construct_containment_table(contained_co2)
 

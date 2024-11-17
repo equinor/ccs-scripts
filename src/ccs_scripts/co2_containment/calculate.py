@@ -59,6 +59,7 @@ def calculate_co2_containment(
     region_info: Dict,
     calc_type: CalculationType,
     residual_trapping: bool,
+    plume_groups: Optional[List[List[str]]] = None,
 ) -> List[ContainedCo2]:
     """
     Calculates the amount (mass/volume) of CO2 within given boundaries
@@ -77,6 +78,7 @@ def calculate_co2_containment(
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
         residual_trapping (bool): Indicate if residual trapping should be calculated
+        plume_groups (List): For each time step, list of plume group for each grid cell
 
     Returns:
         List[ContainedCo2]
@@ -96,41 +98,62 @@ def calculate_co2_containment(
 
     # List of tuple with (zone/None, None/region, boolean array over grid)
     zone_region_info = _zone_and_region_mapping(co2_data, zone_info, region_info)
+
+    plume_groups = [[x if x != "" else "?" for x in y] for y in plume_groups]
+    plume_names = set(name for values in plume_groups for name in values)
+    print(plume_names)
+    # plume_names.discard("")
+    # print(plume_names)
+
     containment = []
     for zone, region, is_in_section in zone_region_info:
-        print("\nCalculating:")
-        print(f"    * {zone}")
-        print(f"    * {region}")
-        print(f"    * {is_in_section}")
-        for co2_at_timestep in co2_data.data_list:
-            print(co2_at_timestep.date)
-            print(co2_at_timestep.aqu_phase)
-            co2_amounts_for_each_phase = _lists_of_co2_for_each_phase(
-                co2_at_timestep,
-                calc_type,
-                residual_trapping,
-            )
-            for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
-                for location, is_in_location in locations.items():
-                    dtype = (
-                        np.int64
-                        if calc_type == CalculationType.CELL_VOLUME
-                        else np.float64
-                    )
-                    amount = np.sum(
-                        co2_amount[is_in_section & is_in_location],
-                        dtype=dtype,
-                    )
-                    containment += [
-                        ContainedCo2(
-                            co2_at_timestep.date,
-                            amount,
-                            phase,
-                            location,
-                            zone,
-                            region,
+        for location, is_in_location in locations.items():
+            # print("\nCalculating:")
+            # print(f"    * {zone}")
+            # print(f"    * {region}")
+            # print(f"    * {is_in_section}")
+            # print(f"    * {location}")
+            # print(f"    * {is_in_location}")
+            # continue
+            for i, co2_at_timestep in enumerate(co2_data.data_list):
+                co2_amounts_for_each_phase = _lists_of_co2_for_each_phase(
+                    co2_at_timestep,
+                    calc_type,
+                    residual_trapping,
+                )
+
+                plume_group_info = _plume_group_mapping(plume_names, plume_groups[i])
+                for plume_name, is_in_plume in plume_group_info.items():
+                    print("\nCalculating:")
+                    print(f"    * {zone}")
+                    print(f"    * {region}")
+                    print(f"    * {is_in_section.sum()}")
+                    print(f"    * {location}")
+                    print(f"    * {is_in_location.sum()}")
+                    print(f"    * {plume_name}")
+                    print(f"    * {is_in_plume.sum()}")
+
+                    for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
+                        dtype = (
+                            np.int64
+                            if calc_type == CalculationType.CELL_VOLUME
+                            else np.float64
                         )
-                    ]
+                        amount = np.sum(
+                            co2_amount[is_in_section & is_in_location],
+                            dtype=dtype,
+                        )
+                        containment += [
+                            ContainedCo2(
+                                co2_at_timestep.date,
+                                amount,
+                                phase,
+                                location,
+                                zone,
+                                region,
+                            )
+                        ]
+    exit()
     logging.info(f"Done calculating contained CO2 {calc_type.name.lower()}")
     return containment
 
@@ -272,6 +295,12 @@ def _region_map(co2_data: Co2Data, region_info: Dict) -> Dict:
         }
 
 
+def _plume_group_mapping(plume_names: set[str], plume_groups: List[str]):
+    out = {"None": np.ones(len(plume_groups), dtype=bool)}
+    out.update({plume: np.array([x == plume for x in plume_groups]) for plume in plume_names})
+    return out
+
+
 def _zone_and_region_mapping(
     co2_data: Co2Data,
     zone_info: Dict,
@@ -284,7 +313,6 @@ def _zone_and_region_mapping(
     """
     zone_map = _zone_map(co2_data, zone_info)
     region_map = _region_map(co2_data, region_info)
-    # plume_group_map  # But how to handle plume groups in 3D instead of 2D? ...
     return (
         [(None, None, np.ones(len(co2_data.x_coord), dtype=bool))]
         + [(zone, None, is_in_zone) for zone, is_in_zone in zone_map.items()]
