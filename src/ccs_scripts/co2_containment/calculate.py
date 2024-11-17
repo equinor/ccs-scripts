@@ -98,7 +98,13 @@ def calculate_co2_containment(
     zone_region_info = _zone_and_region_mapping(co2_data, zone_info, region_info)
     containment = []
     for zone, region, is_in_section in zone_region_info:
+        print("\nCalculating:")
+        print(f"    * {zone}")
+        print(f"    * {region}")
+        print(f"    * {is_in_section}")
         for co2_at_timestep in co2_data.data_list:
+            print(co2_at_timestep.date)
+            print(co2_at_timestep.aqu_phase)
             co2_amounts_for_each_phase = _lists_of_co2_for_each_phase(
                 co2_at_timestep,
                 calc_type,
@@ -237,20 +243,16 @@ def _zone_map(co2_data: Co2Data, zone_info: Dict) -> Dict:
     Returns a dictionary connecting each zone to a boolean array over the grid,
     indicating whether the grid point belongs to said zone
     """
-    zone_map = (
-        {}
-        if co2_data.zone is None
-        else (
-            {z: np.array(co2_data.zone == z) for z in np.unique(co2_data.zone)}
-            if zone_info["int_to_zone"] is None
-            else {
-                zone_info["int_to_zone"][z]: np.array(co2_data.zone == z)
-                for z in range(len(zone_info["int_to_zone"]))
-                if zone_info["int_to_zone"][z] is not None
-            }
-        )
-    )
-    return zone_map
+    if co2_data.zone is None:
+        return {}
+    elif zone_info["int_to_zone"] is None:
+        return {z: np.array(co2_data.zone == z) for z in np.unique(co2_data.zone)}
+    else:
+        return {
+            zone_info["int_to_zone"][z]: np.array(co2_data.zone == z)
+            for z in range(len(zone_info["int_to_zone"]))
+            if zone_info["int_to_zone"][z] is not None
+        }
 
 
 def _region_map(co2_data: Co2Data, region_info: Dict) -> Dict:
@@ -258,20 +260,16 @@ def _region_map(co2_data: Co2Data, region_info: Dict) -> Dict:
     Returns a dictionary connecting each region to a boolean array over the grid,
     indicating whether the grid point belongs to said region
     """
-    region_map = (
-        {}
-        if co2_data.region is None
-        else (
-            {r: np.array(co2_data.region == r) for r in np.unique(co2_data.region)}
-            if region_info["int_to_region"] is None
-            else {
-                region_info["int_to_region"][r]: np.array(co2_data.region == r)
-                for r in range(len(region_info["int_to_region"]))
-                if region_info["int_to_region"][r] is not None
-            }
-        )
-    )
-    return region_map
+    if co2_data.region is None:
+        return {}
+    elif region_info["int_to_region"] is None:
+        return {r: np.array(co2_data.region == r) for r in np.unique(co2_data.region)}
+    else:
+        return {
+            region_info["int_to_region"][r]: np.array(co2_data.region == r)
+            for r in range(len(region_info["int_to_region"]))
+            if region_info["int_to_region"][r] is not None
+        }
 
 
 def _zone_and_region_mapping(
@@ -286,6 +284,7 @@ def _zone_and_region_mapping(
     """
     zone_map = _zone_map(co2_data, zone_info)
     region_map = _region_map(co2_data, region_info)
+    # plume_group_map  # But how to handle plume groups in 3D instead of 2D? ...
     return (
         [(None, None, np.ones(len(co2_data.x_coord), dtype=bool))]
         + [(zone, None, is_in_zone) for zone, is_in_zone in zone_map.items()]

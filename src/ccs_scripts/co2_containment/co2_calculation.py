@@ -1211,6 +1211,10 @@ def calculate_co2(
     source_data = _extract_source_data(
         grid_file, unrst_file, properties_to_extract, zone_info, region_info, init_file
     )
+    print(f"\nsource_data:")
+    print(source_data.DATES)
+    print(len(source_data.x_coord))
+    print(source_data.SGAS.keys())
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     co2_data = _calculate_co2_data_from_source_data(
         source_data, calc_type=calc_type, residual_trapping=residual_trapping

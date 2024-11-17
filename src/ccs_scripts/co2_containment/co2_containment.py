@@ -97,6 +97,16 @@ def calculate_out_of_bounds_co2(
         calc_type_input,
         init_file,
     )
+    print(f"\nco2_data:")
+    # print(co2_data)
+    print(co2_data.x_coord[0:5])
+    print(len(co2_data.x_coord))
+    print(len(co2_data.data_list))
+    print(co2_data.data_list[0])  # Co2DataAtTimeStep
+    print(co2_data.units)
+    print(co2_data.zone)
+    print(co2_data.region)
+
     if file_containment_polygon is not None:
         containment_polygon = _read_polygon(file_containment_polygon)
     else:
@@ -105,6 +115,52 @@ def calculate_out_of_bounds_co2(
         hazardous_polygon = _read_polygon(file_hazardous_polygon)
     else:
         hazardous_polygon = None
+
+    from resdata.grid import Grid
+    from resdata.resfile import ResdataFile
+
+    from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
+        calculate_plume_groups,
+        DEFAULT_THRESHOLD_GAS,
+        # DEFAULT_THRESHOLD_AQUEOUS,
+    )
+    from ccs_scripts.co2_plume_tracking.utils import (
+        InjectionWellData,
+        assemble_plume_groups_into_dict,
+        sort_well_names,
+    )
+
+    grid = Grid(grid_file)  # NBNB-AS
+    unrst = ResdataFile(unrst_file)  # NBNB-AS
+    injection_wells: List[InjectionWellData] = []
+    injection_wells.append(
+        InjectionWellData(
+            name="wellB",
+            x=2141.0,
+            y=2141.0,
+            z=[4038.9],
+            # z=None,
+            number=1,
+        )
+    )
+    injection_wells.append(
+        InjectionWellData(
+            name="wellC",
+            x=2541.0,
+            y=361.0,
+            z=[4043.5],
+            # z=None,
+            number=2,
+        )
+    )
+    plume_groups_sgas = calculate_plume_groups(
+        attribute_key = "SGAS",
+        threshold = 0.25,  # DEFAULT_THRESHOLD_GAS
+        unrst = unrst,
+        grid = grid,
+        inj_wells = injection_wells,  # NBNB-AS
+    )
+
     return calculate_from_co2_data(
         co2_data,
         containment_polygon,
@@ -1001,6 +1057,7 @@ def main() -> None:
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
     )
+    print(data_frame)  # Vil ha en ny kolonne her, plume_group
     sort_and_replace_nones(data_frame)
     log_summary_of_results(data_frame)
     export_output_to_csv(
