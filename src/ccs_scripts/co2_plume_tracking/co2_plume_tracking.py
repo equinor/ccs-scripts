@@ -363,7 +363,23 @@ def calculate_plume_groups(
     time_start = time.time()
     n_time_steps = len(unrst.report_steps)
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
+
+    # from ccs_scripts.co2_containment.co2_calculation import find_active_and_gasless_cells, _fetch_properties
+    # properties_to_extract = ["SGAS"]
+    # if "AMFG" in unrst:
+    #     properties_to_extract.append("AMFG")
+    # elif "XMF2" in unrst:
+    #     properties_to_extract.append("XMF2")
+    # properties, _ = _fetch_properties(unrst, properties_to_extract)
+    # active, gasless = find_active_and_gasless_cells(grid, properties, True)
+    # print("AAA")
+    # global_active_idx = active[~gasless]
+    # non_gasless = np.where(np.isin(active, global_active_idx))[0]
+
     n_cells = len(unrst[attribute_key][0])
+    # n_cells = len(global_active_idx)
+    print(n_cells)
+    # exit()
 
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]] = {}
     _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells)
@@ -387,6 +403,7 @@ def calculate_plume_groups(
             inj_wells,
             inj_wells_grid_indices,
             n_time_steps,
+            # non_gasless,
             groups,
             n_grid_cells_for_logging,
         )
@@ -432,11 +449,13 @@ def _plume_groups_at_time_step(
     inj_wells: List[InjectionWellData],
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     n_time_steps: int,
+    # non_gasless,
     # These arguments will be updated:
     groups: PlumeGroups,
     n_grid_cells_for_logging: Dict[str, List[int]],
 ):
     data = unrst[attribute_key][i].numpy_view()
+    # data = data[non_gasless]  # NBNB-AS
     cells_with_co2 = np.where(data > threshold)[0]
 
     logging.debug("\nPrevious group:")

@@ -384,6 +384,31 @@ def _is_subset(first: List[str], second: List[str]) -> bool:
     return all(x in second for x in first)
 
 
+# NBNB-AS: Move this ?
+def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = False):
+    act_num = grid.export_actnum().numpy_copy()
+    active = np.where(act_num > 0)[0]
+    if _is_subset(["SGAS", "AMFG"], list(properties.keys())):
+        gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
+    elif _is_subset(["SGAS", "XMF2"], list(properties.keys())):
+        gasless = _identify_gas_less_cells(properties["SGAS"], properties["XMF2"])
+    else:
+        error_text = (
+            "CO2 containment calculation failed. Cannot find required properties "
+        )
+        error_text += "SGAS+AMFG or SGAS+XMF2."
+        raise RuntimeError(error_text)
+
+    if do_logging:
+        logging.info(f"Number of grid cells                    : {len(act_num):>10}")
+        logging.info(f"Number of active grid cells             : {len(active):>10}")
+        logging.info(
+            f"Number of active non-gasless grid cells : {len(active[~gasless]):>10}"
+        )
+
+    return active, gasless
+
+
 # pylint: disable=too-many-arguments
 def _extract_source_data(
     grid_file: str,
@@ -415,24 +440,8 @@ def _extract_source_data(
     properties, dates = _fetch_properties(unrst, properties_to_extract)
     logging.info("Done fetching properties")
 
-    act_num = grid.export_actnum().numpy_copy()
-    active = np.where(act_num > 0)[0]
-    logging.info(f"Number of grid cells                    : {len(act_num):>10}")
-    logging.info(f"Number of active grid cells             : {len(active):>10}")
-    if _is_subset(["SGAS", "AMFG"], list(properties.keys())):
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
-    elif _is_subset(["SGAS", "XMF2"], list(properties.keys())):
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties["XMF2"])
-    else:
-        error_text = (
-            "CO2 containment calculation failed. Cannot find required properties "
-        )
-        error_text += "SGAS+AMFG or SGAS+XMF2."
-        raise RuntimeError(error_text)
+    active, gasless = find_active_and_gasless_cells(grid, properties, True)
     global_active_idx = active[~gasless]
-    logging.info(
-        f"Number of active non-gasless grid cells : {len(global_active_idx):>10}"
-    )
 
     properties_reduced = _reduce_properties(properties, ~gasless)
     # Tuple with (x,y,z) for each cell:
@@ -1215,6 +1224,7 @@ def calculate_co2(
     print(source_data.DATES)
     print(len(source_data.x_coord))
     print(source_data.SGAS.keys())
+    # exit()
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     co2_data = _calculate_co2_data_from_source_data(
         source_data, calc_type=calc_type, residual_trapping=residual_trapping

@@ -29,6 +29,7 @@ class ContainedCo2:
             that "amount" corresponds to.
         zone (str):
         region (str):
+        plume (str): The plume group (either a single injection well, or a list of wells)
 
     """
 
@@ -38,6 +39,7 @@ class ContainedCo2:
     containment: str
     zone: Optional[str] = None
     region: Optional[str] = None
+    plume: Optional[str] = None
 
     def __post_init__(self):
         """
@@ -104,10 +106,13 @@ def calculate_co2_containment(
     print(plume_names)
     # plume_names.discard("")
     # print(plume_names)
+    print(len(co2_data.x_coord))
 
     containment = []
     for zone, region, is_in_section in zone_region_info:
+        print(len(is_in_section))
         for location, is_in_location in locations.items():
+            print(len(is_in_location))
             # print("\nCalculating:")
             # print(f"    * {zone}")
             # print(f"    * {region}")
@@ -124,6 +129,10 @@ def calculate_co2_containment(
 
                 plume_group_info = _plume_group_mapping(plume_names, plume_groups[i])
                 for plume_name, is_in_plume in plume_group_info.items():
+                    # print("A")
+                    # print(len(is_in_plume))
+                    # exit()
+                    # continue
                     print("\nCalculating:")
                     print(f"    * {zone}")
                     print(f"    * {region}")
@@ -140,7 +149,7 @@ def calculate_co2_containment(
                             else np.float64
                         )
                         amount = np.sum(
-                            co2_amount[is_in_section & is_in_location],
+                            co2_amount[is_in_section & is_in_location & is_in_plume],
                             dtype=dtype,
                         )
                         containment += [
@@ -151,9 +160,9 @@ def calculate_co2_containment(
                                 location,
                                 zone,
                                 region,
+                                plume_name,
                             )
                         ]
-    exit()
     logging.info(f"Done calculating contained CO2 {calc_type.name.lower()}")
     return containment
 

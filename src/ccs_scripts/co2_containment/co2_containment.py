@@ -31,6 +31,8 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
     _set_calc_type_from_input_string,
     calculate_co2,
+    find_active_and_gasless_cells,
+    _fetch_properties,
 )
 
 DESCRIPTION = """
@@ -97,15 +99,16 @@ def calculate_out_of_bounds_co2(
         calc_type_input,
         init_file,
     )
-    print(f"\nco2_data:")
-    # print(co2_data)
-    print(co2_data.x_coord[0:5])
-    print(len(co2_data.x_coord))
-    print(len(co2_data.data_list))
-    print(co2_data.data_list[0])  # Co2DataAtTimeStep
-    print(co2_data.units)
-    print(co2_data.zone)
-    print(co2_data.region)
+    # print(f"\nco2_data:")
+    # # print(co2_data)
+    # print(co2_data.x_coord[0:5])
+    # print(len(co2_data.x_coord))
+    # print(len(co2_data.data_list))
+    # print(co2_data.data_list[0])  # Co2DataAtTimeStep
+    # print(co2_data.units)
+    # print(co2_data.zone)
+    # print(co2_data.region)
+    # exit()
 
     if file_containment_polygon is not None:
         containment_polygon = _read_polygon(file_containment_polygon)
@@ -122,7 +125,7 @@ def calculate_out_of_bounds_co2(
     from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
         calculate_plume_groups,
         DEFAULT_THRESHOLD_GAS,
-        # DEFAULT_THRESHOLD_AQUEOUS,
+        DEFAULT_THRESHOLD_AQUEOUS,
     )
     from ccs_scripts.co2_plume_tracking.utils import (
         InjectionWellData,
@@ -154,12 +157,25 @@ def calculate_out_of_bounds_co2(
         )
     )
     plume_groups_sgas = calculate_plume_groups(
-        attribute_key="SGAS",
-        threshold=0.25,  # DEFAULT_THRESHOLD_GAS
+        attribute_key="AMFG",
+        threshold=DEFAULT_THRESHOLD_AQUEOUS,  # DEFAULT_THRESHOLD_GAS
         unrst=unrst,
         grid=grid,
         inj_wells=injection_wells,  # NBNB-AS
     )
+
+    # NBNB-AS: Plume tracking works on active grid cells, containment script on gasless active cells
+    #          We do the conversion here, but could do a conversion earlier (in plume tracking)
+    properties_to_extract = ["SGAS"]
+    if "AMFG" in unrst:
+        properties_to_extract.append("AMFG")
+    elif "XMF2" in unrst:
+        properties_to_extract.append("XMF2")
+    properties, _ = _fetch_properties(unrst, properties_to_extract)
+    active, gasless = find_active_and_gasless_cells(grid, properties, False)
+    global_active_idx = active[~gasless]
+    non_gasless = np.where(np.isin(active, global_active_idx))[0]
+    plume_groups_sgas = [list(np.array(x)[non_gasless]) for x in plume_groups_sgas]
 
     return calculate_from_co2_data(
         co2_data,
@@ -1061,7 +1077,18 @@ def main() -> None:
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
     )
-    print(data_frame)  # Vil ha en ny kolonne her, plume_group
+    print(data_frame)
+    # print(data_frame[data_frame["date"] == "2500-01-01"])
+    a = data_frame[data_frame["date"] == "2500-01-01"]
+    # a = data_frame
+    print(a)
+    b = a[a["phase"] == "total"]
+    print(b)
+    c = b[b["containment"] == "total"]
+    print(c)
+    d = c[c["zone"] == "None"]
+    print(d)
+    # exit()
     sort_and_replace_nones(data_frame)
     log_summary_of_results(data_frame)
     export_output_to_csv(
