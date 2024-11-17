@@ -154,11 +154,11 @@ def calculate_out_of_bounds_co2(
         )
     )
     plume_groups_sgas = calculate_plume_groups(
-        attribute_key = "SGAS",
-        threshold = 0.25,  # DEFAULT_THRESHOLD_GAS
-        unrst = unrst,
-        grid = grid,
-        inj_wells = injection_wells,  # NBNB-AS
+        attribute_key="SGAS",
+        threshold=0.25,  # DEFAULT_THRESHOLD_GAS
+        unrst=unrst,
+        grid=grid,
+        inj_wells=injection_wells,  # NBNB-AS
     )
 
     return calculate_from_co2_data(
