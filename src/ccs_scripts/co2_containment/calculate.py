@@ -103,23 +103,10 @@ def calculate_co2_containment(
 
     plume_groups = [[x if x != "" else "?" for x in y] for y in plume_groups]
     plume_names = set(name for values in plume_groups for name in values)
-    print(plume_names)
-    # plume_names.discard("")
-    # print(plume_names)
-    print(len(co2_data.x_coord))
 
     containment = []
     for zone, region, is_in_section in zone_region_info:
-        print(len(is_in_section))
         for location, is_in_location in locations.items():
-            print(len(is_in_location))
-            # print("\nCalculating:")
-            # print(f"    * {zone}")
-            # print(f"    * {region}")
-            # print(f"    * {is_in_section}")
-            # print(f"    * {location}")
-            # print(f"    * {is_in_location}")
-            # continue
             for i, co2_at_timestep in enumerate(co2_data.data_list):
                 co2_amounts_for_each_phase = _lists_of_co2_for_each_phase(
                     co2_at_timestep,
@@ -129,18 +116,14 @@ def calculate_co2_containment(
 
                 plume_group_info = _plume_group_mapping(plume_names, plume_groups[i])
                 for plume_name, is_in_plume in plume_group_info.items():
-                    # print("A")
-                    # print(len(is_in_plume))
-                    # exit()
-                    # continue
-                    print("\nCalculating:")
-                    print(f"    * {zone}")
-                    print(f"    * {region}")
-                    print(f"    * {is_in_section.sum()}")
-                    print(f"    * {location}")
-                    print(f"    * {is_in_location.sum()}")
-                    print(f"    * {plume_name}")
-                    print(f"    * {is_in_plume.sum()}")
+                    # print("\nCalculating:")
+                    # print(f"    * {zone}")
+                    # print(f"    * {region}")
+                    # print(f"    * {location}")
+                    # print(f"    * {plume_name}")
+                    # print(f"    * #in_zone+region: {is_in_section.sum()}")
+                    # print(f"    * #in_location   : {is_in_location.sum()}")
+                    # print(f"    * #in_plume_group: {is_in_plume.sum()}")
 
                     for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
                         dtype = (

@@ -19,6 +19,8 @@ from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from resdata.grid import Grid
+from resdata.resfile import ResdataFile
 import shapely.geometry
 import yaml
 
@@ -99,16 +101,6 @@ def calculate_out_of_bounds_co2(
         calc_type_input,
         init_file,
     )
-    # print(f"\nco2_data:")
-    # # print(co2_data)
-    # print(co2_data.x_coord[0:5])
-    # print(len(co2_data.x_coord))
-    # print(len(co2_data.data_list))
-    # print(co2_data.data_list[0])  # Co2DataAtTimeStep
-    # print(co2_data.units)
-    # print(co2_data.zone)
-    # print(co2_data.region)
-    # exit()
 
     if file_containment_polygon is not None:
         containment_polygon = _read_polygon(file_containment_polygon)
@@ -118,9 +110,6 @@ def calculate_out_of_bounds_co2(
         hazardous_polygon = _read_polygon(file_hazardous_polygon)
     else:
         hazardous_polygon = None
-
-    from resdata.grid import Grid
-    from resdata.resfile import ResdataFile
 
     from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
         calculate_plume_groups,
