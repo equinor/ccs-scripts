@@ -3,9 +3,10 @@ EXECUTABLE co2_mass_map
 DEFAULT <ECLROOT> -1
 DEFAULT <MAPFOLDER> -1
 DEFAULT <PLOTFOLDER> -1
+DEFAULT <GRIDFOLDER> -1
 DEFAULT <FOLDERROOT> -1
 
-ARGLIST  <CONFIG_CO2_MASS_MAP> "--eclroot" <ECLROOT> "--mapfolder" <MAPFOLDER> "--plotfolder" <PLOTFOLDER> "--folderroot" <FOLDERROOT>
+ARGLIST  "--config" <CONFIG_CO2_MASS_MAP> "--eclroot" <ECLROOT> "--mapfolder" <MAPFOLDER> "--plotfolder" <PLOTFOLDER> "--gridfolder" <GRIDFOLDER> "--folderroot" <FOLDERROOT>
 
 STDERR CO2_MASS_MAP.stderr
 STDOUT CO2_MASS_MAP.stdout
