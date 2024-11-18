@@ -26,6 +26,7 @@ import yaml
 
 from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
     calculate_plume_groups,
+    Configuration,
     DEFAULT_THRESHOLD_AQUEOUS,
 )
 from ccs_scripts.co2_plume_tracking.utils import (
@@ -73,6 +74,7 @@ def calculate_out_of_bounds_co2(
     zone_info: Dict,
     region_info: Dict,
     residual_trapping: bool,
+    injection_wells: List[InjectionWellData],
     file_containment_polygon: Optional[str] = None,
     file_hazardous_polygon: Optional[str] = None,
 ) -> pd.DataFrame:
@@ -97,6 +99,7 @@ def calculate_out_of_bounds_co2(
         region_info (Dict): Dictionary containing path to potential region-file,
             and list connecting region-numbers to names, if available
         residual_trapping (bool): Indicate if residual trapping should be calculated
+        injection_wells (List): Injection wells used for plume tracking
 
     Returns:
         pd.DataFrame
@@ -122,33 +125,12 @@ def calculate_out_of_bounds_co2(
 
     grid = Grid(grid_file)  # NBNB-AS
     unrst = ResdataFile(unrst_file)  # NBNB-AS
-    injection_wells: List[InjectionWellData] = []
-    injection_wells.append(
-        InjectionWellData(
-            name="wellB",
-            x=2141.0,
-            y=2141.0,
-            z=[4038.9],
-            # z=None,
-            number=1,
-        )
-    )
-    injection_wells.append(
-        InjectionWellData(
-            name="wellC",
-            x=2541.0,
-            y=361.0,
-            z=[4043.5],
-            # z=None,
-            number=2,
-        )
-    )
     plume_groups_sgas = calculate_plume_groups(
         attribute_key="AMFG",
         threshold=DEFAULT_THRESHOLD_AQUEOUS,  # DEFAULT_THRESHOLD_GAS
         unrst=unrst,
         grid=grid,
-        inj_wells=injection_wells,  # NBNB-AS
+        inj_wells=injection_wells,
     )
 
     # NBNB-AS: Plume tracking works on active grid cells, containment script on gasless active cells
@@ -442,6 +424,11 @@ def get_parser() -> argparse.ArgumentParser:
         nargs="?",
         const=True,
     )
+    parser.add_argument(
+        "--config_file_inj_wells",
+        help="YML file with configurations for plume tracking calculations.",
+        default="",
+    )
 
     return parser
 
@@ -658,42 +645,53 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
             short_hash = "-"
         version += " (latest git commit: " + short_hash + ")"
 
+    col1 = 24
     now = datetime.now()
     date_time = now.strftime("%B %d, %Y %H:%M:%S")
     logging.info("CCS-scripts - Containment calculations")
     logging.info("======================================")
-    logging.info(f"Version             : {version}")
-    logging.info(f"Date and time       : {date_time}")
-    logging.info(f"User                : {getpass.getuser()}")
-    logging.info(f"Host                : {socket.gethostname()}")
-    logging.info(f"Platform            : {platform.system()} ({platform.release()})")
+    logging.info(f"{'Version':<{col1}} : {version}")
+    logging.info(f"{'Date and time':<{col1}} : {date_time}")
+    logging.info(f"{'User':<{col1}} : {getpass.getuser()}")
+    logging.info(f"{'Host':<{col1}} : {socket.gethostname()}")
+    logging.info(f"{'Platform':<{col1}} : {platform.system()} ({platform.release()})")
     py_version = (
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
-    logging.info(f"Python version      : {py_version}")
+    logging.info(f"{'Python version':<{col1}} : {py_version}")
 
-    logging.info(f"\nCase                : {arguments_processed.case}")
-    logging.info(f"Calculation type    : {arguments_processed.calc_type_input}")
-    logging.info(f"Root directory      : {arguments_processed.root_dir}")
-    logging.info(f"Output directory    : {arguments_processed.out_dir}")
-    logging.info(f"Containment polygon : {arguments_processed.containment_polygon}")
-    logging.info(f"Hazardous polygon   : {arguments_processed.hazardous_polygon}")
-    logging.info(f"EGRID file          : {arguments_processed.egrid}")
-    logging.info(f"UNRST file          : {arguments_processed.unrst}")
-    logging.info(f"INIT file           : {arguments_processed.init}")
-    logging.info(f"Zone file           : {arguments_processed.zonefile}")
+    logging.info(f"\n{'Case':<{col1}} : {arguments_processed.case}")
     logging.info(
-        f"Region file         : {arguments_processed.regionfile if arguments_processed.regionfile is not None else '-'}"
+        f"{'Calculation type':<{col1}} : {arguments_processed.calc_type_input}"
+    )
+    logging.info(f"{'Root directory':<{col1}} : {arguments_processed.root_dir}")
+    logging.info(f"{'Output directory':<{col1}} : {arguments_processed.out_dir}")
+    logging.info(
+        f"{'Containment polygon':<{col1}} : {arguments_processed.containment_polygon}"
     )
     logging.info(
-        f"Region property     : {arguments_processed.region_property if arguments_processed.region_property is not None else '-'}"
+        f"{'Hazardous polygon':<{col1}} : {arguments_processed.hazardous_polygon}"
+    )
+    logging.info(f"{'EGRID file':<{col1}} : {arguments_processed.egrid}")
+    logging.info(f"{'UNRST file':<{col1}} : {arguments_processed.unrst}")
+    logging.info(f"{'INIT file':<{col1}} : {arguments_processed.init}")
+    logging.info(f"{'Zone file':<{col1}} : {arguments_processed.zonefile}")
+    logging.info(
+        f"{'Region file':<{col1}} : {arguments_processed.regionfile if arguments_processed.regionfile is not None else '-'}"
     )
     logging.info(
-        f"Residual trapping   : "
+        f"{'Region property':<{col1}} : {arguments_processed.region_property if arguments_processed.region_property is not None else '-'}"
+    )
+    logging.info(
+        f"{'Residual trapping':<{col1}} : "
         f"{'yes' if arguments_processed.residual_trapping else 'no'}"
     )
     logging.info(
-        f"Readable output     : {'yes' if arguments_processed.readable_output is not None and arguments_processed else 'no'}\n"
+        f"{'Readable output':<{col1}} : {'yes' if arguments_processed.readable_output is not None and arguments_processed else 'no'}"
+    )
+    logging.info(
+        f"{'Plume tracking YAML-file':<{col1}} : "
+        f"{arguments_processed.config_file_inj_wells if arguments_processed.config_file_inj_wells != '' else '-'}\n"
     )
 
 
@@ -1077,6 +1075,12 @@ def main() -> None:
 
     log_input_configuration(arguments_processed)
 
+    if arguments_processed.config_file_inj_wells == "":
+        injection_wells = []
+    else:
+        config = Configuration(arguments_processed.config_file_inj_wells)
+        injection_wells = config.injection_wells
+
     data_frame = calculate_out_of_bounds_co2(
         arguments_processed.egrid,
         arguments_processed.unrst,
@@ -1085,6 +1089,7 @@ def main() -> None:
         zone_info,
         region_info,
         arguments_processed.residual_trapping,
+        injection_wells,
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
     )
