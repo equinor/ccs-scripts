@@ -698,70 +698,94 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
 
 
 # pylint: disable = too-many-statements
-def log_summary_of_results(df: pd.DataFrame) -> None:
+def log_summary_of_results(
+    df: pd.DataFrame,
+    calc_type_input: str,
+) -> None:
     """
     Log a rough summary of the output
     """
-    cell_volume = "total" not in df["phase"]
+    cell_volume = calc_type_input == "cell_volume"
     dfs = df.sort_values("date")
     last_date = max(df["date"])
     df_subset = dfs[dfs["date"] == last_date]
-    df_subset = df_subset[(df_subset["zone"] == "all") & (df_subset["region"] == "all")]
+    df_subset = df_subset[
+        (df_subset["zone"] == "all")
+        & (df_subset["region"] == "all")
+        & (df_subset["plume"] == "all")
+    ]
+    print(df_subset)
     total = extract_amount(df_subset, "total", "total", cell_volume)
     n = len(f"{total:.1f}")
 
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates       : {len(dfs['date'].unique())}")
-    logging.info(f"First date            : {dfs['date'].iloc[0]}")
-    logging.info(f"Last date             : {dfs['date'].iloc[-1]}")
-    logging.info(f"End state total       : {total:{n}.1f}")
+    logging.info(f"Number of dates          : {len(dfs['date'].unique())}")
+    logging.info(f"First date               : {dfs['date'].iloc[0]}")
+    logging.info(f"Last date                : {dfs['date'].iloc[-1]}")
+    logging.info(f"End state total          : {total:{n}.1f}")
     if not cell_volume:
         if "gas" in list(df_subset["phase"]):
             value = extract_amount(df_subset, "total", "gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(f"End state gaseous     : {value:{n}.1f}  ({percent:.1f} %)")
+            logging.info(
+                f"End state gaseous        : {value:{n}.1f}  ={percent:>5.1f} %"
+            )
         else:
             value = extract_amount(df_subset, "total", "free_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(f"End state free gas    : {value:{n}.1f}  ({percent:.1f} %)")
+            logging.info(
+                f"End state free gas       : {value:{n}.1f}  ={percent:>5.1f} %"
+            )
             value = extract_amount(df_subset, "total", "trapped_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(f"End state trapped gas : {value:{n}.1f}  ({percent:.1f} %)")
+            logging.info(
+                f"End state trapped gas    : {value:{n}.1f}  ={percent:>5.1f} %"
+            )
         value = extract_amount(df_subset, "total", "aqueous")
         percent = 100.0 * value / total if total > 0.0 else 0.0
-        logging.info(f"End state aqueous     : {value:{n}.1f}  ({percent:.1f} %)")
+        logging.info(f"End state aqueous        : {value:{n}.1f}  ={percent:>5.1f} %")
     value = extract_amount(df_subset, "contained", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state contained   : {value:{n}.1f}  ({percent:.1f} %)")
+    logging.info(f"End state contained      : {value:{n}.1f}  ={percent:>5.1f} %")
     value = extract_amount(df_subset, "outside", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state outside     : {value:{n}.1f}  ({percent:.1f} %)")
+    logging.info(f"End state outside        : {value:{n}.1f}  ={percent:>5.1f} %")
     value = extract_amount(df_subset, "hazardous", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state hazardous   : {value:{n}.1f}  ({percent:.1f} %)")
+    logging.info(f"End state hazardous      : {value:{n}.1f}  ={percent:>5.1f} %")
     if "zone" in dfs:
-        logging.info("Split into zones?     : yes")
-        unique_zones = dfs["zone"].unique()
-        n_zones = (
-            len(unique_zones) - 1 if "all" in dfs["zone"].values else len(unique_zones)
-        )
-        logging.info(f"Number of zones       : {n_zones}")
-        logging.info(f"Zones                 : {', '.join(unique_zones)}")
+        unique_zones = set(dfs["zone"].unique())
+        unique_zones.discard("all")
+        if len(unique_zones) == 0:
+            logging.info("Split into zones?        : no")
+        else:
+            logging.info("Split into zones?        : yes")
+            logging.info(f"Number of zones          : {len(unique_zones)}")
+            logging.info(f"Zones                    : {', '.join(unique_zones)}")
     else:
-        logging.info("Split into zones?     : no")
+        logging.info("Split into zones?        : no")
     if "region" in dfs:
-        logging.info("Split into regions?   : yes")
-        unique_regions = dfs["region"].unique()
-        n_regions = (
-            len(unique_regions) - 1
-            if "all" in dfs["region"].values
-            else len(unique_regions)
-        )
-        logging.info(f"Number of regions     : {n_regions}")
-        logging.info(f"Regions               : {', '.join(unique_regions)}")
+        unique_regions = set(dfs["region"].unique())
+        unique_regions.discard("all")
+        if len(unique_regions) == 0:
+            logging.info("Split into regions?      : no")
+        else:
+            logging.info("Split into regions?      : yes")
+            logging.info(f"Number of regions        : {len(unique_regions)}")
+            logging.info(f"Regions                  : {', '.join(unique_regions)}")
     else:
-        logging.info("Split into regions?   : no")
+        logging.info("Split into regions?      : no")
+    if "plume" in dfs:
+        unique_plumes = set(dfs["plume"].unique())
+        unique_plumes.discard("all")
+        unique_plumes.discard("?")
+        if len(unique_plumes) == 1 and "all" in unique_plumes:
+            logging.info("Split into plume groups? : no")
+        else:
+            logging.info("Split into plume groups? : yes")
+            logging.info(f"Number of plume groups   : {len(unique_plumes)}")
+            logging.info(f"Plume groups             : {', '.join(unique_plumes)}")
 
 
 def extract_amount(
@@ -1077,7 +1101,7 @@ def main() -> None:
     print(d)
     # exit()
     sort_and_replace_nones(data_frame)
-    log_summary_of_results(data_frame)
+    log_summary_of_results(data_frame, arguments_processed.calc_type_input)
     export_output_to_csv(
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,

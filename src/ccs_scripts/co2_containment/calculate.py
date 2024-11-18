@@ -288,7 +288,7 @@ def _region_map(co2_data: Co2Data, region_info: Dict) -> Dict:
 
 
 def _plume_group_mapping(plume_names: set[str], plume_groups: List[str]):
-    out = {"None": np.ones(len(plume_groups), dtype=bool)}
+    out = {"all": np.ones(len(plume_groups), dtype=bool)}
     out.update(
         {plume: np.array([x == plume for x in plume_groups]) for plume in plume_names}
     )
