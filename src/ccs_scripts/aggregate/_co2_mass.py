@@ -126,9 +126,11 @@ def translate_co2data_to_property(
                     ("MASS_TOT", mass_as_grid["MASS_TOT"]["data"]),
                 ]
             )
-            if mass_as_grid["MASS_TOT"]["path"] not in total_mass_list:
+            if mass_as_grid["MASS_TOT"]["unrst_path"] not in total_mass_list:
                 total_mass_list.append(mass_as_grid["MASS_TOT"]["unrst_path"])
-                grid_data.to_file(mass_as_grid["MASS_TOT"]["egrid_path"], fformat = "egrid")
+                grid_data.to_file(
+                    mass_as_grid["MASS_TOT"]["egrid_path"], fformat="egrid"
+                )
         if store_all or "dissolved_co2" in maps:
             dissolved_mass_kw_list.extend(
                 [
@@ -138,9 +140,11 @@ def translate_co2data_to_property(
                     ("MASS_AQU", mass_as_grid["MASS_AQU"]["data"]),
                 ]
             )
-            if mass_as_grid["MASS_AQU"]["path"] not in dissolved_mass_list:
+            if mass_as_grid["MASS_AQU"]["unrst_path"] not in dissolved_mass_list:
                 dissolved_mass_list.append(mass_as_grid["MASS_AQU"]["unrst_path"])
-                grid_data.to_file(mass_as_grid["MASS_AQU"]["egrid_path"], fformat="egrid")
+                grid_data.to_file(
+                    mass_as_grid["MASS_AQU"]["egrid_path"], fformat="egrid"
+                )
         if (
             store_all or "free_co2" in maps
         ) and not co2_mass_settings.residual_trapping:
@@ -152,9 +156,11 @@ def translate_co2data_to_property(
                     ("MASS_GAS", mass_as_grid["MASS_GAS"]["data"]),
                 ]
             )
-            if mass_as_grid["MASS_GAS"]["path"] not in free_mass_list:
+            if mass_as_grid["MASS_GAS"]["unrst_path"] not in free_mass_list:
                 free_mass_list.append(mass_as_grid["MASS_GAS"]["unrst_path"])
-                grid_data.to_file(mass_as_grid["MASS_GAS"]["egrid_path"], fformat="egrid")
+                grid_data.to_file(
+                    mass_as_grid["MASS_GAS"]["egrid_path"], fformat="egrid"
+                )
         if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
             free_gas_mass_kw_list.extend(
                 [
@@ -164,9 +170,11 @@ def translate_co2data_to_property(
                     ("MASSFGAS", mass_as_grid["MASSFGAS"]["data"]),
                 ]
             )
-            if mass_as_grid["MASSFGAS"]["path"] not in free_gas_mass_list:
+            if mass_as_grid["MASSFGAS"]["unrst_path"] not in free_gas_mass_list:
                 free_gas_mass_list.append(mass_as_grid["MASSFGAS"]["unrst_path"])
-                grid_data.to_file(mass_as_grid["MASSFGAS"]["egrid_path"], fformat="egrid")
+                grid_data.to_file(
+                    mass_as_grid["MASSFGAS"]["egrid_path"], fformat="egrid"
+                )
             trapped_gas_mass_kw_list.extend(
                 [
                     ("SEQNUM  ", [i]),
@@ -175,9 +183,11 @@ def translate_co2data_to_property(
                     ("MASSTGAS", mass_as_grid["MASSTGAS"]["data"]),
                 ]
             )
-            if mass_as_grid["MASSTGAS"]["path"] not in free_gas_mass_list:
+            if mass_as_grid["MASSTGAS"]["unrst_path"] not in free_gas_mass_list:
                 trapped_gas_mass_list.append(mass_as_grid["MASSTGAS"]["unrst_path"])
-                grid_data.to_file(mass_as_grid["MASSTGAS"]["egrid_path"], fformat="egrid")
+                grid_data.to_file(
+                    mass_as_grid["MASSTGAS"]["egrid_path"], fformat="egrid"
+                )
     return [
         _export_and_simplify_kw_list(free_mass_kw_list, free_mass_list),
         _export_and_simplify_kw_list(dissolved_mass_kw_list, dissolved_mass_list),
