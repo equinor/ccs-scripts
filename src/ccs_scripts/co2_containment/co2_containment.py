@@ -24,6 +24,15 @@ from resdata.resfile import ResdataFile
 import shapely.geometry
 import yaml
 
+from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
+    calculate_plume_groups,
+    DEFAULT_THRESHOLD_AQUEOUS,
+)
+from ccs_scripts.co2_plume_tracking.utils import (
+    InjectionWellData,
+    assemble_plume_groups_into_dict,
+    sort_well_names,
+)
 from ccs_scripts.co2_containment.calculate import (
     ContainedCo2,
     calculate_co2_containment,
@@ -110,17 +119,6 @@ def calculate_out_of_bounds_co2(
         hazardous_polygon = _read_polygon(file_hazardous_polygon)
     else:
         hazardous_polygon = None
-
-    from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
-        calculate_plume_groups,
-        DEFAULT_THRESHOLD_GAS,
-        DEFAULT_THRESHOLD_AQUEOUS,
-    )
-    from ccs_scripts.co2_plume_tracking.utils import (
-        InjectionWellData,
-        assemble_plume_groups_into_dict,
-        sort_well_names,
-    )
 
     grid = Grid(grid_file)  # NBNB-AS
     unrst = ResdataFile(unrst_file)  # NBNB-AS
