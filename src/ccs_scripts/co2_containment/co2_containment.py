@@ -123,28 +123,31 @@ def calculate_out_of_bounds_co2(
     else:
         hazardous_polygon = None
 
-    grid = Grid(grid_file)  # NBNB-AS
-    unrst = ResdataFile(unrst_file)  # NBNB-AS
-    plume_groups_sgas = calculate_plume_groups(
-        attribute_key="AMFG",
-        threshold=DEFAULT_THRESHOLD_AQUEOUS,  # DEFAULT_THRESHOLD_GAS
-        unrst=unrst,
-        grid=grid,
-        inj_wells=injection_wells,
-    )
+    if len(injection_wells) == 0:
+        plume_groups_sgas = None
+    else:
+        grid = Grid(grid_file)  # NBNB-AS
+        unrst = ResdataFile(unrst_file)  # NBNB-AS
+        plume_groups_sgas = calculate_plume_groups(
+            attribute_key="AMFG",
+            threshold=DEFAULT_THRESHOLD_AQUEOUS,  # DEFAULT_THRESHOLD_GAS
+            unrst=unrst,
+            grid=grid,
+            inj_wells=injection_wells,
+        )
 
-    # NBNB-AS: Plume tracking works on active grid cells, containment script on gasless active cells
-    #          We do the conversion here, but could do a conversion earlier (in plume tracking)
-    properties_to_extract = ["SGAS"]
-    if "AMFG" in unrst:
-        properties_to_extract.append("AMFG")
-    elif "XMF2" in unrst:
-        properties_to_extract.append("XMF2")
-    properties, _ = _fetch_properties(unrst, properties_to_extract)
-    active, gasless = find_active_and_gasless_cells(grid, properties, False)
-    global_active_idx = active[~gasless]
-    non_gasless = np.where(np.isin(active, global_active_idx))[0]
-    plume_groups_sgas = [list(np.array(x)[non_gasless]) for x in plume_groups_sgas]
+        # NBNB-AS: Plume tracking works on active grid cells, containment script on gasless active cells
+        #          We do the conversion here, but could do a conversion earlier (in plume tracking)
+        properties_to_extract = ["SGAS"]
+        if "AMFG" in unrst:
+            properties_to_extract.append("AMFG")
+        elif "XMF2" in unrst:
+            properties_to_extract.append("XMF2")
+        properties, _ = _fetch_properties(unrst, properties_to_extract)
+        active, gasless = find_active_and_gasless_cells(grid, properties, False)
+        global_active_idx = active[~gasless]
+        non_gasless = np.where(np.isin(active, global_active_idx))[0]
+        plume_groups_sgas = [list(np.array(x)[non_gasless]) for x in plume_groups_sgas]
 
     return calculate_from_co2_data(
         co2_data,
@@ -778,7 +781,7 @@ def log_summary_of_results(
         unique_plumes = set(dfs["plume"].unique())
         unique_plumes.discard("all")
         unique_plumes.discard("?")
-        if len(unique_plumes) == 1 and "all" in unique_plumes:
+        if len(unique_plumes) == 0:
             logging.info("Split into plume groups? : no")
         else:
             logging.info("Split into plume groups? : yes")

@@ -101,8 +101,11 @@ def calculate_co2_containment(
     # List of tuple with (zone/None, None/region, boolean array over grid)
     zone_region_info = _zone_and_region_mapping(co2_data, zone_info, region_info)
 
-    plume_groups = [[x if x != "" else "?" for x in y] for y in plume_groups]
-    plume_names = set(name for values in plume_groups for name in values)
+    if plume_groups is not None:
+        plume_groups = [[x if x != "" else "?" for x in y] for y in plume_groups]
+        plume_names = set(name for values in plume_groups for name in values)
+    else:
+        plume_names = []
 
     containment = []
     for zone, region, is_in_section in zone_region_info:
@@ -114,7 +117,14 @@ def calculate_co2_containment(
                     residual_trapping,
                 )
 
-                plume_group_info = _plume_group_mapping(plume_names, plume_groups[i])
+                if plume_groups is not None:
+                    plume_group_info = _plume_group_mapping(
+                        plume_names, plume_groups[i]
+                    )
+                else:
+                    plume_group_info = {
+                        "all": np.ones(len(co2_data.x_coord), dtype=bool)
+                    }
                 for plume_name, is_in_plume in plume_group_info.items():
                     # print("\nCalculating:")
                     # print(f"    * {zone}")
