@@ -98,27 +98,41 @@ def translate_co2data_to_property(
         maps = [maps]
     maps = [map_name.lower() for map_name in maps]
 
-    total_mass_list = []
-    dissolved_mass_list = []
-    free_mass_list = []
-    free_gas_mass_list = []
-    trapped_gas_mass_list = []
-    total_mass_kw_list = []
-    dissolved_mass_kw_list = []
-    free_mass_kw_list = []
-    free_gas_mass_kw_list = []
-    trapped_gas_mass_kw_list = []
+    mass_data_template = {
+        "unrst_path": [],
+        "unrst_kw": [],
+        "egrid_path": [],
+        "egrid_kw": [],
+    }
+    total_mass_data = mass_data_template.copy()
+    dissolved_mass_data = mass_data_template.copy()
+    free_mass_data = mass_data_template.copy()
+    free_gas_mass_data = mass_data_template.copy()
+    trapped_gas_mass_data = mass_data_template.copy()
 
     unrst_data = ResdataFile(co2_mass_settings.unrst_source)
-    grid_data = xtgeo.grid_from_file(grid_file)
-
+    grid_data = ResdataFile(grid_file)
     store_all = "all" in maps or len(maps) == 0
+
+    custom_egrid = [
+        ("FILEHEAD", grid_data["FILEHEAD"][0].numpyView()),
+        ("GRIDUNIT", grid_data["GRIDUNIT"][0]),
+        ("GDORIENT", grid_data["GDORIENT"][0]),
+        ("GRIDHEAD", grid_data["GRIDHEAD"][0].numpyView()),
+        ("COORD   ", grid_data["COORD"][0].numpyView()),
+        ("ZCORN   ", grid_data["ZCORN"][0].numpyView()),
+        ("ACTNUM  ", grid_data["ACTNUM"][0].numpyView()),
+        ("ENDGRID ", grid_data["ENDGRID"][0]),
+        ("NNCHEAD ", grid_data["NNCHEAD"][0]),
+        ("NNC1    ", grid_data["NNC1"][0]),
+        ("NNC2    ", grid_data["NNC2"][0]),
+    ]
 
     for i, co2_at_date in enumerate(co2_data.data_list):
         mass_as_grid = _convert_to_grid(co2_at_date, gas_idxs, grid_file, grid_out_dir)
         logihead_array = np.array([x for x in unrst_data["LOGIHEAD"][i]])
         if store_all or "total_co2" in maps:
-            total_mass_kw_list.extend(
+            total_mass_data["unrst_kw"].extend(
                 [
                     ("SEQNUM  ", [i]),
                     ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
@@ -126,13 +140,12 @@ def translate_co2data_to_property(
                     ("MASS_TOT", mass_as_grid["MASS_TOT"]["data"]),
                 ]
             )
-            if mass_as_grid["MASS_TOT"]["unrst_path"] not in total_mass_list:
-                total_mass_list.append(mass_as_grid["MASS_TOT"]["unrst_path"])
-                grid_data.to_file(
-                    mass_as_grid["MASS_TOT"]["egrid_path"], fformat="egrid"
-                )
+            if mass_as_grid["MASS_TOT"]["unrst_path"] not in total_mass_data["unrst_path"]:
+                total_mass_data["unrst_path"].append(mass_as_grid["MASS_TOT"]["unrst_path"])
+                total_mass_data["egrid_path"].append(mass_as_grid["MASS_TOT"]["egrid_path"])
+                total_mass_data["egrid_kw"].extend(custom_egrid)
         if store_all or "dissolved_co2" in maps:
-            dissolved_mass_kw_list.extend(
+            dissolved_mass_data["unrst_kw"].extend(
                 [
                     ("SEQNUM  ", [i]),
                     ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
@@ -140,15 +153,14 @@ def translate_co2data_to_property(
                     ("MASS_AQU", mass_as_grid["MASS_AQU"]["data"]),
                 ]
             )
-            if mass_as_grid["MASS_AQU"]["unrst_path"] not in dissolved_mass_list:
-                dissolved_mass_list.append(mass_as_grid["MASS_AQU"]["unrst_path"])
-                grid_data.to_file(
-                    mass_as_grid["MASS_AQU"]["egrid_path"], fformat="egrid"
-                )
+            if mass_as_grid["MASS_AQU"]["unrst_path"] not in dissolved_mass_data["unrst_path"]:
+                dissolved_mass_data["unrst_path"].append(mass_as_grid["MASS_AQU"]["unrst_path"])
+                dissolved_mass_data["egrid_path"].append(mass_as_grid["MASS_AQU"]["egrid_path"])
+                dissolved_mass_data["egrid_kw"].extend(custom_egrid)
         if (
             store_all or "free_co2" in maps
         ) and not co2_mass_settings.residual_trapping:
-            free_mass_kw_list.extend(
+            free_mass_data["unrst_kw"].extend(
                 [
                     ("SEQNUM  ", [i]),
                     ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
@@ -156,13 +168,12 @@ def translate_co2data_to_property(
                     ("MASS_GAS", mass_as_grid["MASS_GAS"]["data"]),
                 ]
             )
-            if mass_as_grid["MASS_GAS"]["unrst_path"] not in free_mass_list:
-                free_mass_list.append(mass_as_grid["MASS_GAS"]["unrst_path"])
-                grid_data.to_file(
-                    mass_as_grid["MASS_GAS"]["egrid_path"], fformat="egrid"
-                )
+            if mass_as_grid["MASS_GAS"]["unrst_path"] not in free_mass_data["unrst_path"]:
+                free_mass_data["unrst_path"].append(mass_as_grid["MASS_GAS"]["unrst_path"])
+                free_mass_data["egrid_path"].append(mass_as_grid["MASS_GAS"]["egrid_path"])
+                free_mass_data["egrid_kw"].extend(custom_egrid)
         if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
-            free_gas_mass_kw_list.extend(
+            free_gas_mass_data["unrst_kw"].extend(
                 [
                     ("SEQNUM  ", [i]),
                     ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
@@ -170,12 +181,11 @@ def translate_co2data_to_property(
                     ("MASSFGAS", mass_as_grid["MASSFGAS"]["data"]),
                 ]
             )
-            if mass_as_grid["MASSFGAS"]["unrst_path"] not in free_gas_mass_list:
-                free_gas_mass_list.append(mass_as_grid["MASSFGAS"]["unrst_path"])
-                grid_data.to_file(
-                    mass_as_grid["MASSFGAS"]["egrid_path"], fformat="egrid"
-                )
-            trapped_gas_mass_kw_list.extend(
+            if mass_as_grid["MASSFGAS"]["unrst_path"] not in free_gas_mass_data["unrst_path"]:
+                free_gas_mass_data["unrst_path"].append(mass_as_grid["MASSFGAS"]["unrst_path"])
+                free_gas_mass_data["egrid_path"].append(mass_as_grid["MASSFGAS"]["egrid_path"])
+                free_gas_mass_data["egrid_kw"].extend(custom_egrid)
+            trapped_gas_mass_data["unrst_kw"].extend(
                 [
                     ("SEQNUM  ", [i]),
                     ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
@@ -183,41 +193,41 @@ def translate_co2data_to_property(
                     ("MASSTGAS", mass_as_grid["MASSTGAS"]["data"]),
                 ]
             )
-            if mass_as_grid["MASSTGAS"]["unrst_path"] not in free_gas_mass_list:
-                trapped_gas_mass_list.append(mass_as_grid["MASSTGAS"]["unrst_path"])
-                grid_data.to_file(
-                    mass_as_grid["MASSTGAS"]["egrid_path"], fformat="egrid"
-                )
+            if mass_as_grid["MASSTGAS"]["unrst_path"] not in trapped_gas_mass_data["unrst_path"]:
+                trapped_gas_mass_data["unrst_path"].append(mass_as_grid["MASSTGAS"]["unrst_path"])
+                trapped_gas_mass_data["egrid_path"].append(mass_as_grid["MASSTGAS"]["egrid_path"])
+                trapped_gas_mass_data["egrid_kw"].extend(custom_egrid)
     return [
-        _export_and_simplify_kw_list(free_mass_kw_list, free_mass_list),
-        _export_and_simplify_kw_list(dissolved_mass_kw_list, dissolved_mass_list),
-        _export_and_simplify_kw_list(total_mass_kw_list, total_mass_list),
-        _export_and_simplify_kw_list(free_gas_mass_kw_list, free_gas_mass_list),
-        _export_and_simplify_kw_list(trapped_gas_mass_kw_list, trapped_gas_mass_list),
+        _export_unrst_and_kw_data(free_mass_data),
+        _export_unrst_and_kw_data(dissolved_mass_data),
+        _export_unrst_and_kw_data(total_mass_data),
+        _export_unrst_and_kw_data(free_gas_mass_data),
+        _export_unrst_and_kw_data(trapped_gas_mass_data),
     ]
 
 
-def _export_and_simplify_kw_list(
-    kwlist: List[Tuple[str, Union[List[int], np.ndarray]]], outputlist: List[str]
+def _export_unrst_and_kw_data(
+    mass_data: Dict[Optional[str],Optional[List[Tuple[str, Union[List[int], np.ndarray]]]]]
 ) -> Optional[str]:
     """
     Exports the grid with the property at different time steps as well as
     the path where the file is located
 
     Args:
-        kwlist (List[Tuple[str, Union[List[int], np.ndarray]]]): A list with
+        mass_data (List[Tuple[str, Union[List[int], np.ndarray]]]): A dict with
         the information that feeds the 3d grid properties
-        outputlist (List[str]): Names of the paths where the files with the
-        3d grid properties are located
 
         Returns:
              Optional[str]
     """
-    if len(outputlist) > 0:
-        outfile_wrapper = FileWrapper(outputlist[0], mode="rb")
+    if len(mass_data["unrst_path"]) > 0:
+        outfile_wrapper = FileWrapper(mass_data["unrst_path"][0], mode="rb")
         with open(outfile_wrapper.file, "wb") as stream:
-            unformatted_write(stream, kwlist)
-        return outputlist[0]
+            unformatted_write(stream, mass_data["unrst_kw"])
+        grid_outfile_wrapper = FileWrapper(mass_data["egrid_path"][0], mode="rb")
+        with open(grid_outfile_wrapper.file, "wb") as stream:
+            unformatted_write(stream, mass_data["egrid_kw"])
+        return mass_data["unrst_path"][0]
     else:
         return None
 
