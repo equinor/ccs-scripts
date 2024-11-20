@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple, TypedDict, Union
 
 import numpy as np
 import xtgeo
+import copy
 from resdata.resfile import ResdataFile
 from resfo._unformatted.write import unformatted_write
 from xtgeo.io._file import FileWrapper
@@ -104,29 +105,17 @@ def translate_co2data_to_property(
         "egrid_path": [],
         "egrid_kw": [],
     }
-    total_mass_data = mass_data_template.copy()
-    dissolved_mass_data = mass_data_template.copy()
-    free_mass_data = mass_data_template.copy()
-    free_gas_mass_data = mass_data_template.copy()
-    trapped_gas_mass_data = mass_data_template.copy()
+    total_mass_data = copy.deepcopy(mass_data_template)
+    dissolved_mass_data = copy.deepcopy(mass_data_template)
+    free_mass_data = copy.deepcopy(mass_data_template)
+    free_gas_mass_data = copy.deepcopy(mass_data_template)
+    trapped_gas_mass_data = copy.deepcopy(mass_data_template)
 
     unrst_data = ResdataFile(co2_mass_settings.unrst_source)
     grid_data = ResdataFile(grid_file)
     store_all = "all" in maps or len(maps) == 0
 
-    custom_egrid = [
-        ("FILEHEAD", grid_data["FILEHEAD"][0].numpyView()),
-        ("GRIDUNIT", grid_data["GRIDUNIT"][0]),
-        ("GDORIENT", grid_data["GDORIENT"][0]),
-        ("GRIDHEAD", grid_data["GRIDHEAD"][0].numpyView()),
-        ("COORD   ", grid_data["COORD"][0].numpyView()),
-        ("ZCORN   ", grid_data["ZCORN"][0].numpyView()),
-        ("ACTNUM  ", grid_data["ACTNUM"][0].numpyView()),
-        ("ENDGRID ", grid_data["ENDGRID"][0]),
-        ("NNCHEAD ", grid_data["NNCHEAD"][0]),
-        ("NNC1    ", grid_data["NNC1"][0]),
-        ("NNC2    ", grid_data["NNC2"][0]),
-    ]
+    custom_egrid = _create_custom_egrid_kw(grid_data)
 
     for i, co2_at_date in enumerate(co2_data.data_list):
         mass_as_grid = _convert_to_grid(co2_at_date, gas_idxs, grid_file, grid_out_dir)
@@ -204,6 +193,24 @@ def translate_co2data_to_property(
         _export_unrst_and_kw_data(free_gas_mass_data),
         _export_unrst_and_kw_data(trapped_gas_mass_data),
     ]
+
+
+def _create_custom_egrid_kw(grid_data:ResdataFile) -> List[Tuple[str, Union[List[int], np.ndarray]]]:
+    """
+    Create the custom list of keywords to export the EGRID file for each co2_mass property
+    """
+    kw_sequence = ["FILEHEAD", "GRIDUNIT", "GDORIENT", "COORD   ", "ZCORN   ", "ACTNUM  ", "ENDGRID ", "NNCHEAD ", "NNC1    ", "NNC2    "]
+    mandatory_kws = ["FILEHEAD", "GRIDUNIT", "COORD   ", "ZCORN   ", "ENDGRID "]
+    custom_egrid = []
+    for kw in kw_sequence:
+        try:
+            val = grid_data[kw.rstrip()][0]
+            custom_egrid.append((kw, val))
+        except KeyError as err:
+            if kw in mandatory_kws:
+                raise KeyError(f"Mandatory key '{kw}' is missing in grid_data") from err
+            pass
+    return custom_egrid
 
 
 def _export_unrst_and_kw_data(
