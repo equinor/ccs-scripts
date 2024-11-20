@@ -2,7 +2,7 @@ import copy
 import os
 import tempfile
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, TypedDict, Union
+from typing import Dict, List, Optional, Tuple, TypedDict, Union, Any
 
 import numpy as np
 import xtgeo
@@ -99,7 +99,7 @@ def translate_co2data_to_property(
         maps = [maps]
     maps = [map_name.lower() for map_name in maps]
 
-    mass_data_template = {
+    mass_data_template: Dict[str, List[Any]] = {
         "unrst_path": [],
         "unrst_kw": [],
         "egrid_path": [],
@@ -234,7 +234,8 @@ def _create_custom_egrid_kw(
     grid_data: ResdataFile,
 ) -> List[Tuple[str, Union[List[int], np.ndarray]]]:
     """
-    Create the custom list of keywords to export the EGRID file for each co2_mass property
+    Create the custom list of keywords to export the EGRID file for
+    each co2_mass property
     """
     kw_sequence = [
         "FILEHEAD",
@@ -261,17 +262,13 @@ def _create_custom_egrid_kw(
     return custom_egrid
 
 
-def _export_unrst_and_kw_data(
-    mass_data: Dict[
-        Optional[str], Optional[List[Tuple[str, Union[List[int], np.ndarray]]]]
-    ]
-) -> Optional[str]:
+def _export_unrst_and_kw_data(mass_data: Dict[str, List[Any]]) -> Optional[str]:
     """
     Exports the grid with the property at different time steps as well as
     the path where the file is located
 
     Args:
-        mass_data (List[Tuple[str, Union[List[int], np.ndarray]]]): A dict with
+        mass_data (Dict[str,List[Any]]): A dict with
         the information that feeds the 3d grid properties
 
         Returns:
