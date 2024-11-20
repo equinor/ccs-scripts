@@ -713,7 +713,7 @@ def log_summary_of_results(
     df_subset = df_subset[
         (df_subset["zone"] == "all")
         & (df_subset["region"] == "all")
-        & (df_subset["plume"] == "all")
+        & (df_subset["plume_group"] == "all")
     ]
     print(df_subset)
     total = extract_amount(df_subset, "total", "total", cell_volume)
@@ -777,8 +777,8 @@ def log_summary_of_results(
             logging.info(f"Regions                  : {', '.join(unique_regions)}")
     else:
         logging.info("Split into regions?      : no")
-    if "plume" in dfs:
-        unique_plumes = set(dfs["plume"].unique())
+    if "plume_group" in dfs:
+        unique_plumes = set(dfs["plume_group"].unique())
         unique_plumes.discard("all")
         unique_plumes.discard("?")
         if len(unique_plumes) == 0:

@@ -39,7 +39,7 @@ class ContainedCo2:
     containment: str
     zone: Optional[str] = None
     region: Optional[str] = None
-    plume: Optional[str] = None
+    plume_group: Optional[str] = None
 
     def __post_init__(self):
         """
