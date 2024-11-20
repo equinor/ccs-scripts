@@ -71,6 +71,8 @@ def _replace_default_dummies_from_ert(args):
         args.mapfolder = None
     if args.plotfolder == "-1":
         args.plotfolder = None
+    if args.gridfolder == "-1":
+        args.gridfolder = None
     if args.folderroot == "-1":
         args.folderroot = None
 

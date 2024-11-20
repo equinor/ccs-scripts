@@ -272,6 +272,8 @@ def str_to_bool(value):
         return False
     elif value.lower() in {"true", "yes", "1"}:
         return True
+    elif value == "-1":
+        return "-1"
     raise ValueError(f"{value} is not a valid boolean value")
 
 
