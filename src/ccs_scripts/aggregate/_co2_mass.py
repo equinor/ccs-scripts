@@ -1,3 +1,4 @@
+import copy
 import os
 import tempfile
 from enum import Enum
@@ -5,7 +6,6 @@ from typing import Dict, List, Optional, Tuple, TypedDict, Union
 
 import numpy as np
 import xtgeo
-import copy
 from resdata.resfile import ResdataFile
 from resfo._unformatted.write import unformatted_write
 from xtgeo.io._file import FileWrapper
@@ -129,9 +129,16 @@ def translate_co2data_to_property(
                     ("MASS_TOT", mass_as_grid["MASS_TOT"]["data"]),
                 ]
             )
-            if mass_as_grid["MASS_TOT"]["unrst_path"] not in total_mass_data["unrst_path"]:
-                total_mass_data["unrst_path"].append(mass_as_grid["MASS_TOT"]["unrst_path"])
-                total_mass_data["egrid_path"].append(mass_as_grid["MASS_TOT"]["egrid_path"])
+            if (
+                mass_as_grid["MASS_TOT"]["unrst_path"]
+                not in total_mass_data["unrst_path"]
+            ):
+                total_mass_data["unrst_path"].append(
+                    mass_as_grid["MASS_TOT"]["unrst_path"]
+                )
+                total_mass_data["egrid_path"].append(
+                    mass_as_grid["MASS_TOT"]["egrid_path"]
+                )
                 total_mass_data["egrid_kw"].extend(custom_egrid)
         if store_all or "dissolved_co2" in maps:
             dissolved_mass_data["unrst_kw"].extend(
@@ -142,9 +149,16 @@ def translate_co2data_to_property(
                     ("MASS_AQU", mass_as_grid["MASS_AQU"]["data"]),
                 ]
             )
-            if mass_as_grid["MASS_AQU"]["unrst_path"] not in dissolved_mass_data["unrst_path"]:
-                dissolved_mass_data["unrst_path"].append(mass_as_grid["MASS_AQU"]["unrst_path"])
-                dissolved_mass_data["egrid_path"].append(mass_as_grid["MASS_AQU"]["egrid_path"])
+            if (
+                mass_as_grid["MASS_AQU"]["unrst_path"]
+                not in dissolved_mass_data["unrst_path"]
+            ):
+                dissolved_mass_data["unrst_path"].append(
+                    mass_as_grid["MASS_AQU"]["unrst_path"]
+                )
+                dissolved_mass_data["egrid_path"].append(
+                    mass_as_grid["MASS_AQU"]["egrid_path"]
+                )
                 dissolved_mass_data["egrid_kw"].extend(custom_egrid)
         if (
             store_all or "free_co2" in maps
@@ -157,9 +171,16 @@ def translate_co2data_to_property(
                     ("MASS_GAS", mass_as_grid["MASS_GAS"]["data"]),
                 ]
             )
-            if mass_as_grid["MASS_GAS"]["unrst_path"] not in free_mass_data["unrst_path"]:
-                free_mass_data["unrst_path"].append(mass_as_grid["MASS_GAS"]["unrst_path"])
-                free_mass_data["egrid_path"].append(mass_as_grid["MASS_GAS"]["egrid_path"])
+            if (
+                mass_as_grid["MASS_GAS"]["unrst_path"]
+                not in free_mass_data["unrst_path"]
+            ):
+                free_mass_data["unrst_path"].append(
+                    mass_as_grid["MASS_GAS"]["unrst_path"]
+                )
+                free_mass_data["egrid_path"].append(
+                    mass_as_grid["MASS_GAS"]["egrid_path"]
+                )
                 free_mass_data["egrid_kw"].extend(custom_egrid)
         if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
             free_gas_mass_data["unrst_kw"].extend(
@@ -170,9 +191,16 @@ def translate_co2data_to_property(
                     ("MASSFGAS", mass_as_grid["MASSFGAS"]["data"]),
                 ]
             )
-            if mass_as_grid["MASSFGAS"]["unrst_path"] not in free_gas_mass_data["unrst_path"]:
-                free_gas_mass_data["unrst_path"].append(mass_as_grid["MASSFGAS"]["unrst_path"])
-                free_gas_mass_data["egrid_path"].append(mass_as_grid["MASSFGAS"]["egrid_path"])
+            if (
+                mass_as_grid["MASSFGAS"]["unrst_path"]
+                not in free_gas_mass_data["unrst_path"]
+            ):
+                free_gas_mass_data["unrst_path"].append(
+                    mass_as_grid["MASSFGAS"]["unrst_path"]
+                )
+                free_gas_mass_data["egrid_path"].append(
+                    mass_as_grid["MASSFGAS"]["egrid_path"]
+                )
                 free_gas_mass_data["egrid_kw"].extend(custom_egrid)
             trapped_gas_mass_data["unrst_kw"].extend(
                 [
@@ -182,9 +210,16 @@ def translate_co2data_to_property(
                     ("MASSTGAS", mass_as_grid["MASSTGAS"]["data"]),
                 ]
             )
-            if mass_as_grid["MASSTGAS"]["unrst_path"] not in trapped_gas_mass_data["unrst_path"]:
-                trapped_gas_mass_data["unrst_path"].append(mass_as_grid["MASSTGAS"]["unrst_path"])
-                trapped_gas_mass_data["egrid_path"].append(mass_as_grid["MASSTGAS"]["egrid_path"])
+            if (
+                mass_as_grid["MASSTGAS"]["unrst_path"]
+                not in trapped_gas_mass_data["unrst_path"]
+            ):
+                trapped_gas_mass_data["unrst_path"].append(
+                    mass_as_grid["MASSTGAS"]["unrst_path"]
+                )
+                trapped_gas_mass_data["egrid_path"].append(
+                    mass_as_grid["MASSTGAS"]["egrid_path"]
+                )
                 trapped_gas_mass_data["egrid_kw"].extend(custom_egrid)
     return [
         _export_unrst_and_kw_data(free_mass_data),
@@ -195,11 +230,24 @@ def translate_co2data_to_property(
     ]
 
 
-def _create_custom_egrid_kw(grid_data:ResdataFile) -> List[Tuple[str, Union[List[int], np.ndarray]]]:
+def _create_custom_egrid_kw(
+    grid_data: ResdataFile,
+) -> List[Tuple[str, Union[List[int], np.ndarray]]]:
     """
     Create the custom list of keywords to export the EGRID file for each co2_mass property
     """
-    kw_sequence = ["FILEHEAD", "GRIDUNIT", "GDORIENT", "COORD   ", "ZCORN   ", "ACTNUM  ", "ENDGRID ", "NNCHEAD ", "NNC1    ", "NNC2    "]
+    kw_sequence = [
+        "FILEHEAD",
+        "GRIDUNIT",
+        "GDORIENT",
+        "COORD   ",
+        "ZCORN   ",
+        "ACTNUM  ",
+        "ENDGRID ",
+        "NNCHEAD ",
+        "NNC1    ",
+        "NNC2    ",
+    ]
     mandatory_kws = ["FILEHEAD", "GRIDUNIT", "COORD   ", "ZCORN   ", "ENDGRID "]
     custom_egrid = []
     for kw in kw_sequence:
@@ -214,7 +262,9 @@ def _create_custom_egrid_kw(grid_data:ResdataFile) -> List[Tuple[str, Union[List
 
 
 def _export_unrst_and_kw_data(
-    mass_data: Dict[Optional[str],Optional[List[Tuple[str, Union[List[int], np.ndarray]]]]]
+    mass_data: Dict[
+        Optional[str], Optional[List[Tuple[str, Union[List[int], np.ndarray]]]]
+    ]
 ) -> Optional[str]:
     """
     Exports the grid with the property at different time steps as well as
