@@ -2,7 +2,7 @@ import copy
 import os
 import tempfile
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, TypedDict, Union, Any
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 
 import numpy as np
 import xtgeo
