@@ -263,7 +263,7 @@ def _create_custom_egrid_kw(
         try:
             val = grid_data[kw.rstrip()][0].numpyView()
             custom_egrid.append((kw, val))
-        except (AttributeError, ValueError):
+        except (AttributeError, ValueError, KeyError):
             try:
                 val = grid_data[kw.rstrip()][0]
                 custom_egrid.append((kw, val))
