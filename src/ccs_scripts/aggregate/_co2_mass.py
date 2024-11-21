@@ -241,6 +241,7 @@ def _create_custom_egrid_kw(
         "FILEHEAD",
         "GRIDUNIT",
         "GDORIENT",
+        "GRIDHEAD",
         "COORD   ",
         "ZCORN   ",
         "ACTNUM  ",
@@ -249,16 +250,29 @@ def _create_custom_egrid_kw(
         "NNC1    ",
         "NNC2    ",
     ]
-    mandatory_kws = ["FILEHEAD", "GRIDUNIT", "COORD   ", "ZCORN   ", "ENDGRID "]
+    mandatory_kws = [
+        "FILEHEAD",
+        "GRIDUNIT",
+        "GRIDHEAD",
+        "COORD   ",
+        "ZCORN   ",
+        "ENDGRID ",
+    ]
     custom_egrid = []
     for kw in kw_sequence:
         try:
-            val = grid_data[kw.rstrip()][0]
+            val = grid_data[kw.rstrip()][0].numpyView()
             custom_egrid.append((kw, val))
-        except KeyError as err:
-            if kw in mandatory_kws:
-                raise KeyError(f"Mandatory key '{kw}' is missing in grid_data") from err
-            pass
+        except (AttributeError, ValueError, KeyError):
+            try:
+                val = grid_data[kw.rstrip()][0]
+                custom_egrid.append((kw, val))
+            except KeyError as err:
+                if kw in mandatory_kws:
+                    raise KeyError(
+                        f"Mandatory key '{kw}' is missing in grid_data"
+                    ) from err
+                pass
     return custom_egrid
 
 
