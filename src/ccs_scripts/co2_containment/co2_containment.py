@@ -588,7 +588,7 @@ def check_input(arguments: argparse.Namespace):
         os.mkdir(arguments.out_dir)
 
     if not os.path.isfile(arguments.init):
-        logging.info(f"The INIT-file {arguments.init} was not found")
+        logging.info(f"The INIT-file {arguments.init} was not found\n")
 
 
 def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
