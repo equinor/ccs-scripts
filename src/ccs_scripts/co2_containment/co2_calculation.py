@@ -436,7 +436,11 @@ def _extract_source_data(
     logging.info("Start extracting source data")
     grid = Grid(grid_file)
     unrst = ResdataFile(unrst_file)
-    init = ResdataFile(init_file)
+    try:
+        init = ResdataFile(init_file)
+    except Exception:
+        init = None
+        logging.info("No INIT-file loaded")
     properties, dates = _fetch_properties(unrst, properties_to_extract)
     logging.info("Done fetching properties")
 
@@ -454,13 +458,14 @@ def _extract_source_data(
 
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
     properties_reduced["VOL"] = {d: vol0 for d in dates}
-    try:
-        porv = init["PORV"]
-        properties_reduced["PORV"] = {
-            d: porv[0].numpy_copy()[global_active_idx] for d in dates
-        }
-    except KeyError:
-        pass
+    if init is not None:
+        try:
+            porv = init["PORV"]
+            properties_reduced["PORV"] = {
+                d: porv[0].numpy_copy()[global_active_idx] for d in dates
+            }
+        except KeyError:
+            pass
     source_data = SourceData(
         cells_x,
         cells_y,
@@ -498,7 +503,7 @@ def _process_zones(
     zone = None
     if zone_info["source"] is None:
         logging.info("No zone info specified")
-    if zone_info["source"] is not None:
+    else:
         logging.info("Using zone info")
         if zone_info["zranges"] is not None:
             zone_array = np.zeros(
@@ -560,7 +565,7 @@ def _process_regions(
     region_info: Dict,
     grid: Grid,
     grid_file: str,
-    init: ResdataFile,
+    init: Optional[ResdataFile],
     active: np.ndarray,
     gasless: np.ndarray,
 ) -> Optional[np.ndarray]:
@@ -606,29 +611,34 @@ def _process_regions(
                 logging.info("Ignoring negative value in grid from region file.")
         region = np.array(region[active[~gasless]], dtype=int)
     elif region_info["property_name"] is not None:
-        try:
-            logging.info(
-                f"Try reading region information ({region_info['property_name']}"
-                f" property) from INIT-file."
-            )
-            region = np.array(init[region_info["property_name"]][0], dtype=int)
-            if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
-                region = region[active]
-            regvals = np.unique(region)
-            region_info["int_to_region"] = [None] * (np.max(regvals) + 1)
-            for rv in regvals:
-                if rv >= 0:
-                    region_info["int_to_region"][rv] = f"Region_{rv}"
-                else:
-                    logging.info(
-                        f"Ignoring negative value in {region_info['property_name']}."
-                    )
-            logging.info("Region information successfully read from INIT-file")
-            region = region[~gasless]
-        except KeyError:
-            logging.info("Region information not found in INIT-file.")
+        if init is None:
+            logging.info("No INIT-file to use for region information.")
             region = None
             region_info["int_to_region"] = None
+        else:
+            try:
+                logging.info(
+                    f"Try reading region information ({region_info['property_name']}"
+                    f" property) from INIT-file."
+                )
+                region = np.array(init[region_info["property_name"]][0], dtype=int)
+                if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
+                    region = region[active]
+                regvals = np.unique(region)
+                region_info["int_to_region"] = [None] * (np.max(regvals) + 1)
+                for rv in regvals:
+                    if rv >= 0:
+                        region_info["int_to_region"][rv] = f"Region_{rv}"
+                    else:
+                        logging.info(
+                            f"Ignoring negative value in {region_info['property_name']}."
+                        )
+                logging.info("Region information successfully read from INIT-file")
+                region = region[~gasless]
+            except KeyError:
+                logging.info("Region information not found in INIT-file.")
+                region = None
+                region_info["int_to_region"] = None
     return region
 
 

@@ -130,7 +130,7 @@ def calculate_out_of_bounds_co2(
         unrst = ResdataFile(unrst_file)  # NBNB-AS
         plume_groups_sgas = calculate_plume_groups(
             attribute_key="AMFG",
-            threshold=DEFAULT_THRESHOLD_AQUEOUS,  # DEFAULT_THRESHOLD_GAS
+            threshold=0.1*DEFAULT_THRESHOLD_AQUEOUS,  # DEFAULT_THRESHOLD_GAS
             unrst=unrst,
             grid=grid,
             inj_wells=injection_wells,
@@ -195,7 +195,7 @@ def calculate_from_co2_data(
         co2_data,
         containment_polygon,
         hazardous_polygon,
-        zone_info,
+        zone_info,  # NBNB-AS: Only need zone_info["int_to_zone"]
         region_info,
         calc_type,
         residual_trapping,
@@ -559,8 +559,6 @@ def check_input(arguments: argparse.Namespace):
         files_not_found.append(arguments.egrid)
     if not os.path.isfile(arguments.unrst):
         files_not_found.append(arguments.unrst)
-    if not os.path.isfile(arguments.init):
-        files_not_found.append(arguments.init)
     if arguments.zonefile is not None and not os.path.isfile(arguments.zonefile):
         files_not_found.append(arguments.zonefile)
     if arguments.regionfile is not None and not os.path.isfile(arguments.regionfile):
@@ -588,6 +586,9 @@ def check_input(arguments: argparse.Namespace):
     if not os.path.isdir(arguments.out_dir):
         logging.warning("Output directory doesn't exist. Creating a new folder.")
         os.mkdir(arguments.out_dir)
+
+    if not os.path.isfile(arguments.init):
+        logging.info(f"The INIT-file {arguments.init} was not found")
 
 
 def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
