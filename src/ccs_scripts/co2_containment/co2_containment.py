@@ -154,7 +154,7 @@ def calculate_out_of_bounds_co2(
         containment_polygon,
         hazardous_polygon,
         calc_type_input,
-        zone_info,
+        zone_info["int_to_zone"],
         region_info,
         residual_trapping,
         plume_groups_sgas,
@@ -166,7 +166,7 @@ def calculate_from_co2_data(
     containment_polygon: shapely.geometry.Polygon,
     hazardous_polygon: Union[shapely.geometry.Polygon, None],
     calc_type_input: str,
-    zone_info: Dict,
+    int_to_zone: Optional[List[str]],
     region_info: Dict,
     residual_trapping: bool = False,
     plume_groups: Optional[List[List[str]]] = None,
@@ -182,7 +182,7 @@ def calculate_from_co2_data(
         hazardous_polygon (shapely.geometry.Polygon): Polygon defining the
             hazardous area
         calc_type_input (str): Choose mass / cell_volume / actual_volume
-        zone_info (Dict): Dictionary containing zone information
+        int_to_zone (List): List of zone names
         region_info (Dict): Dictionary containing region information
         residual_trapping (bool): Indicate if residual trapping should be calculated
         plume_groups (List): For each time step, list of plume group for each grid cell
@@ -195,7 +195,7 @@ def calculate_from_co2_data(
         co2_data,
         containment_polygon,
         hazardous_polygon,
-        zone_info,  # NBNB-AS: Only need zone_info["int_to_zone"]
+        int_to_zone,
         region_info,
         calc_type,
         residual_trapping,

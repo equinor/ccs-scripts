@@ -57,7 +57,7 @@ def calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
     hazardous_polygon: Union[Polygon, MultiPolygon, None],
-    zone_info: Dict,
+    int_to_zone: Optional[List[str]],
     region_info: Dict,
     calc_type: CalculationType,
     residual_trapping: bool,
@@ -75,7 +75,7 @@ def calculate_co2_containment(
             the containment area
         hazardous_polygon (Union[Polygon,Multipolygon]): The polygon that defines
              the hazardous area
-        zone_info (Dict): Dictionary containing zone information
+        int_to_zone (List): List of zone names
         region_info (Dict): Dictionary containing region information
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
@@ -99,7 +99,7 @@ def calculate_co2_containment(
     phases = _lists_of_phases(calc_type, residual_trapping)
 
     # List of tuple with (zone/None, None/region, boolean array over grid)
-    zone_region_info = _zone_and_region_mapping(co2_data, zone_info, region_info)
+    zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, region_info)
 
     if plume_groups is not None:
         plume_groups = [[x if x != "" else "?" for x in y] for y in plume_groups]
@@ -263,20 +263,20 @@ def _lists_of_co2_for_each_phase(
     return arrays
 
 
-def _zone_map(co2_data: Co2Data, zone_info: Dict) -> Dict:
+def _zone_map(co2_data: Co2Data, int_to_zone: Optional[List[str]]) -> Dict:
     """
     Returns a dictionary connecting each zone to a boolean array over the grid,
     indicating whether the grid point belongs to said zone
     """
     if co2_data.zone is None:
         return {}
-    elif zone_info["int_to_zone"] is None:
+    elif int_to_zone is None:
         return {z: np.array(co2_data.zone == z) for z in np.unique(co2_data.zone)}
     else:
         return {
-            zone_info["int_to_zone"][z]: np.array(co2_data.zone == z)
-            for z in range(len(zone_info["int_to_zone"]))
-            if zone_info["int_to_zone"][z] is not None
+            int_to_zone[z]: np.array(co2_data.zone == z)
+            for z in range(len(int_to_zone))
+            if int_to_zone[z] is not None
         }
 
 
@@ -307,7 +307,7 @@ def _plume_group_mapping(plume_names: set[str], plume_groups: List[str]):
 
 def _zone_and_region_mapping(
     co2_data: Co2Data,
-    zone_info: Dict,
+    int_to_zone: Optional[List[str]],
     region_info: Dict,
 ) -> List:
     """
@@ -315,7 +315,7 @@ def _zone_and_region_mapping(
     with the name of the respective zone / region and a boolean array
     indicating membership of each grid node to the zone / region
     """
-    zone_map = _zone_map(co2_data, zone_info)
+    zone_map = _zone_map(co2_data, int_to_zone)
     region_map = _region_map(co2_data, region_info)
     return (
         [(None, None, np.ones(len(co2_data.x_coord), dtype=bool))]
