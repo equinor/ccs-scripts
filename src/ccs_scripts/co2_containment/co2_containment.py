@@ -935,31 +935,44 @@ def export_readable_output(
 
     zones = []
     regions = []
+    plume_groups = []
     if int_to_zone is not None:
         zones += [zone for zone in int_to_zone if zone is not None]
     if int_to_region is not None:
         regions += [
             region for region in int_to_region if region is not None
         ]
+    all_plume_groups = set(df["plume_group"].to_list())
+    all_plume_groups -= {"all", "?"}
+    if len(all_plume_groups) > 0:
+        plume_groups += list(all_plume_groups)
+
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(details["type"])
         file.write(details["unit"])
         file.write(details["empty"])
-        write_lines(file, df, "all", "all", details)
+        write_lines(file, df, "all", "all", "all", details)
         if len(zones) > 0:
             file.write(
                 f"\n{'Filtered by zone:,':<{11 + details['width']}}"
                 + details["blank"] * (details["num_cols"] - 2)
             )
-        for zone in zones:
-            write_lines(file, df, zone, "all", details)
+            for zone in zones:
+                write_lines(file, df, zone, "all", "all", details)
         if len(regions) > 0:
             file.write(
                 f"\n{'Filtered by region:,':<{11 + details['width']}}"
                 + details["blank"] * (details["num_cols"] - 2)
             )
-        for region in regions:
-            write_lines(file, df, "all", region, details)
+            for region in regions:
+                write_lines(file, df, "all", region, "all", details)
+        if len(plume_groups) > 0:
+            file.write(
+                f"\n{'Filtered by plume gr.:,':<{11 + details['width']}}"
+                + details["blank"] * (details["num_cols"] - 2)
+            )
+            for plume_group in plume_groups:
+                write_lines(file, df, "all", "all", plume_group, details)
 
 
 def find_width(num_decimals: int, max_value: Union[int, float]) -> int:
@@ -978,7 +991,7 @@ def prepare_writing_details(
     Prepare headers and other information to be written in the summary file.
     """
     details: Dict = {
-        "numeric": [c for c in df.columns if c not in ["date", "zone", "region"]],
+        "numeric": [c for c in df.columns if c not in ["date", "zone", "region", "plume_group"]],
         "num_decimals": (
             3 if calc_type == "mass" else 6 if calc_type == "actual_volume" else 2
         ),
@@ -1033,15 +1046,16 @@ def write_lines(
     data_frame: pd.DataFrame,
     zone: str,
     region: str,
+    plume_group: str,
     details: dict,
 ) -> None:
     """
     Write lines for the section of the containment output corresponding to the area
-    defined by the specified region or zone (or the total across all).
+    defined by the specified region or zone or plume_group (or the total across all).
     """
-    df = data_frame[(data_frame["zone"] == zone) & (data_frame["region"] == region)]
+    df = data_frame[(data_frame["zone"] == zone) & (data_frame["region"] == region) & (data_frame["plume_group"] == plume_group)]
     max_name_length = 10 + details["width"]
-    if zone == "all" and region == "all":
+    if zone == "all" and region == "all" and plume_group == "all":
         over_header = "\n          ," + " " * details["width"]
     elif region != "all":
         if len(region) > max_name_length:
@@ -1052,7 +1066,7 @@ def write_lines(
         over_header = f"\n{region:>10}," + " " * (
             details["width"] + min((0, 10 - len(region)))
         )
-    else:
+    elif zone != "all":
         if len(zone) > max_name_length:
             logging.warning(
                 "Zone name is long and will be cut off in the summary format!"
@@ -1060,6 +1074,15 @@ def write_lines(
             zone = zone[:max_name_length]
         over_header = f"\n{zone:>10}," + " " * (
             details["width"] + min((0, 10 - len(zone)))
+        )
+    else:  # plume_group != "all"
+        if len(plume_group) > max_name_length:
+            logging.warning(
+                "Plume group name is long and will be cut off in the summary format!"
+            )
+            plume_group = plume_group[:max_name_length]
+        over_header = f"\n{plume_group:>10}," + " " * (
+            details["width"] + min((0, 10 - len(plume_group)))
         )
 
     file.write(over_header + details["over_header"])
