@@ -1102,18 +1102,6 @@ def main() -> None:
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
     )
-    print(data_frame)
-    # print(data_frame[data_frame["date"] == "2500-01-01"])
-    a = data_frame[data_frame["date"] == "2500-01-01"]
-    # a = data_frame
-    print(a)
-    b = a[a["phase"] == "total"]
-    print(b)
-    c = b[b["containment"] == "total"]
-    print(c)
-    d = c[c["zone"] == "None"]
-    print(d)
-    # exit()
     sort_and_replace_nones(data_frame)
     log_summary_of_results(data_frame, arguments_processed.calc_type_input)
     export_output_to_csv(
