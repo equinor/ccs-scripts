@@ -10,7 +10,9 @@ import xtgeo
 from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
     CalculationType,
+    RegionInfo,
     SourceData,
+    ZoneInfo,
     _calculate_co2_data_from_source_data,
     _extract_source_data,
 )
@@ -20,16 +22,16 @@ from ccs_scripts.co2_containment.co2_containment import (
     sort_and_replace_nones,
 )
 
-zone_info = {
-    "source": None,
-    "zranges": None,
-    "int_to_zone": None,
-}
-region_info = {
-    "source": None,
-    "int_to_region": None,
-    "property_name": None,
-}
+zone_info = ZoneInfo(
+    source=None,
+    zranges=None,
+    int_to_zone=None,
+)
+region_info = RegionInfo(
+    source=None,
+    int_to_region=None,
+    property_name=None,
+)
 
 
 def _random_prop(

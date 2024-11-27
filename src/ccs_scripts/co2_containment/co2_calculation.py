@@ -273,6 +273,13 @@ class ZoneInfo:
     int_to_zone: Optional[List[str]]
 
 
+@dataclass
+class RegionInfo:
+    source: str
+    int_to_region: Optional[List[str]]
+    property_name: str
+
+
 def _try_prop(unrst: ResdataFile, prop_name: str):
     """
     Function to determine if a property (prop_name) is part of a ResdataFile (unrst)
@@ -422,7 +429,7 @@ def _extract_source_data(
     unrst_file: str,
     properties_to_extract: List[str],
     zone_info: ZoneInfo,
-    region_info: Dict,
+    region_info: RegionInfo,
     init_file: Optional[str] = None,
 ) -> SourceData:
     # pylint: disable=too-many-locals, too-many-statements
@@ -434,7 +441,7 @@ def _extract_source_data(
       properties_to_extract (List): Names of the properties to be extracted
       init_file (str): Path to INIT-file
       zone_info (ZoneInfo): Zone information
-      region_info (Dict): Dictionary containing region information
+      region_info (Dict): Region information
 
     Returns:
       SourceData
@@ -569,7 +576,7 @@ def _process_zones(
 
 
 def _process_regions(
-    region_info: Dict,
+    region_info: RegionInfo,
     grid: Grid,
     grid_file: str,
     init: Optional[ResdataFile],
@@ -577,17 +584,17 @@ def _process_regions(
     gasless: np.ndarray,
 ) -> Optional[np.ndarray]:
     region = None
-    if region_info["source"] is not None:
+    if region_info.source is not None:
         logging.info("Using regions info")
         xtg_grid = xtgeo.grid_from_file(grid_file)
         _check_grid_dimensions(
-            region_info["source"],
+            region_info.source,
             grid_file,
             xtg_grid.ncol,
             xtg_grid.nrow,
             xtg_grid.nlay,
         )
-        region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
+        region = xtgeo.gridproperty_from_file(region_info.source, grid=xtg_grid)
         try:
             region_name_dict = region.codes
             region_values = list(region_name_dict.keys())
@@ -603,13 +610,13 @@ def _process_regions(
                 "This might cause problems with the calculations for "
                 "containment in different regions."
             )
-        region_info["int_to_region"] = [None] * (np.max(intvals) + 1)
+        region_info.int_to_region = [None] * (np.max(intvals) + 1)
         for rv in intvals:
             if rv >= 0:
                 if rv in region_values:
-                    region_info["int_to_region"][rv] = region_name_dict[rv]
+                    region_info.int_to_region[rv] = region_name_dict[rv]
                 else:
-                    region_info["int_to_region"][rv] = f"Region_{rv}"
+                    region_info.int_to_region[rv] = f"Region_{rv}"
                     logging.info(
                         f"Value {rv} in roff-grid not found in Codes."
                         f" Using generic region name Region_{rv}."
@@ -617,35 +624,35 @@ def _process_regions(
             else:
                 logging.info("Ignoring negative value in grid from region file.")
         region = np.array(region[active[~gasless]], dtype=int)
-    elif region_info["property_name"] is not None:
+    elif region_info.property_name is not None:
         if init is None:
             logging.info("No INIT-file to use for region information.")
             region = None
-            region_info["int_to_region"] = None
+            region_info.int_to_region = None
         else:
             try:
                 logging.info(
-                    f"Try reading region information ({region_info['property_name']}"
+                    f"Try reading region information ({region_info.property_name}"
                     f" property) from INIT-file."
                 )
-                region = np.array(init[region_info["property_name"]][0], dtype=int)
+                region = np.array(init[region_info.property_name][0], dtype=int)
                 if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
                     region = region[active]
                 regvals = np.unique(region)
-                region_info["int_to_region"] = [None] * (np.max(regvals) + 1)
+                region_info.int_to_region = [None] * (np.max(regvals) + 1)
                 for rv in regvals:
                     if rv >= 0:
-                        region_info["int_to_region"][rv] = f"Region_{rv}"
+                        region_info.int_to_region[rv] = f"Region_{rv}"
                     else:
                         logging.info(
-                            f"Ignoring negative value in {region_info['property_name']}."
+                            f"Ignoring negative value in {region_info.property_name}."
                         )
                 logging.info("Region information successfully read from INIT-file")
                 region = region[~gasless]
             except KeyError:
                 logging.info("Region information not found in INIT-file.")
                 region = None
-                region_info["int_to_region"] = None
+                region_info.int_to_region = None
     return region
 
 
@@ -1210,7 +1217,7 @@ def calculate_co2(
     grid_file: str,
     unrst_file: str,
     zone_info: ZoneInfo,
-    region_info: Dict,
+    region_info: RegionInfo,
     residual_trapping: bool = False,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
@@ -1224,7 +1231,7 @@ def calculate_co2(
       calc_type_input (str): Input string with calculation type to perform
       init_file (str): Path to INIT-file
       zone_info (ZoneInfo): Zone information
-      region_info (Dict): Dictionary with region information
+      region_info (Dict): Region information
       residual_trapping (bool): Calculate residual trapping or not
 
     Returns:

@@ -42,6 +42,7 @@ from ccs_scripts.co2_containment.calculate import (
 from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
+    RegionInfo,
     ZoneInfo,
     _set_calc_type_from_input_string,
     calculate_co2,
@@ -74,7 +75,7 @@ def calculate_out_of_bounds_co2(
     init_file: str,
     calc_type_input: str,
     zone_info: ZoneInfo,
-    region_info: Dict,
+    region_info: RegionInfo,
     residual_trapping: bool,
     injection_wells: List[InjectionWellData],
     file_containment_polygon: Optional[str] = None,
@@ -98,7 +99,7 @@ def calculate_out_of_bounds_co2(
             or zranges (if the zone-file is provided as a YAML-file
             with zones defined through intervals in depth)
             as well as a list connecting zone-numbers to names
-        region_info (Dict): Dictionary containing path to potential region-file,
+        region_info (RegionInfo): Containing path to potential region-file,
             and list connecting region-numbers to names, if available
         residual_trapping (bool): Indicate if residual trapping should be calculated
         injection_wells (List): Injection wells used for plume tracking
@@ -162,7 +163,7 @@ def calculate_out_of_bounds_co2(
         hazardous_polygon,
         calc_type_input,
         zone_info.int_to_zone,
-        region_info,
+        region_info.int_to_region,
         residual_trapping,
         plume_groups_amfg,
     )
@@ -174,7 +175,7 @@ def calculate_from_co2_data(
     hazardous_polygon: Union[shapely.geometry.Polygon, None],
     calc_type_input: str,
     int_to_zone: Optional[List[str]],
-    region_info: Dict,
+    int_to_region: Optional[List[str]],
     residual_trapping: bool = False,
     plume_groups: Optional[List[List[str]]] = None,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
@@ -190,7 +191,7 @@ def calculate_from_co2_data(
             hazardous area
         calc_type_input (str): Choose mass / cell_volume / actual_volume
         int_to_zone (List): List of zone names
-        region_info (Dict): Dictionary containing region information
+        int_to_region (List): List of region names
         residual_trapping (bool): Indicate if residual trapping should be calculated
         plume_groups (List): For each time step, list of plume group for each grid cell
 
@@ -203,7 +204,7 @@ def calculate_from_co2_data(
         containment_polygon,
         hazardous_polygon,
         int_to_zone,
-        region_info,
+        int_to_region,
         calc_type,
         residual_trapping,
         plume_groups,
@@ -829,7 +830,7 @@ def sort_and_replace_nones(
 def convert_data_frame(
     data_frame: pd.DataFrame,
     int_to_zone: Optional[List[str]],
-    region_info: Dict[str, Any],
+    int_to_region: Optional[List[str]],
     calc_type_input: str,
     residual_trapping: bool,
 ) -> pd.DataFrame:
@@ -857,8 +858,8 @@ def convert_data_frame(
                 calc_type,
                 residual_trapping,
             )
-    if region_info["int_to_region"] is not None:
-        regions = [r for r in region_info["int_to_region"] if r is not None]
+    if int_to_region is not None:
+        regions = [r for r in int_to_region if r is not None]
         data["region"] = {}
         for r in regions:
             data["region"][r] = _merge_date_rows(
@@ -875,7 +876,7 @@ def convert_data_frame(
             _df["zone"] = [z] * _df.shape[0]
             zone_df = pd.concat([zone_df, _df])
         zone_df["region"] = ["all"] * zone_df.shape[0]
-    if region_info["int_to_region"] is not None:
+    if int_to_region is not None:
         for r in regions:
             _df = data["region"][r]
             _df["region"] = [r] * _df.shape[0]
@@ -906,7 +907,7 @@ def export_output_to_csv(
 def export_readable_output(
     df: pd.DataFrame,
     int_to_zone: Optional[List[str]],
-    region_info: dict,
+    int_to_region: Optional[List[str]],
     out_dir: str,
     calc_type_input: str,
     residual_trapping: bool,
@@ -927,9 +928,9 @@ def export_readable_output(
     regions = []
     if int_to_zone is not None:
         zones += [zone for zone in int_to_zone if zone is not None]
-    if region_info["int_to_region"] is not None:
+    if int_to_region is not None:
         regions += [
-            region for region in region_info["int_to_region"] if region is not None
+            region for region in int_to_region if region is not None
         ]
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(details["type"])
@@ -1076,11 +1077,11 @@ def main() -> None:
         zranges=None,
         int_to_zone=None,
     )
-    region_info = {
-        "source": arguments_processed.regionfile,
-        "int_to_region": None,  # set during calculation if source or property is given
-        "property_name": arguments_processed.region_property,
-    }
+    region_info = RegionInfo(
+        source=arguments_processed.regionfile,
+        int_to_region=None,  # set during calculation if source or property is given
+        property_name=arguments_processed.region_property,
+    )
     if zone_info.source is not None:
         zone_info.zranges = process_zonefile_if_yaml(zone_info.source)
 
@@ -1115,14 +1116,14 @@ def main() -> None:
         df_old_output = convert_data_frame(
             data_frame,
             zone_info.int_to_zone,
-            region_info,
+            region_info.int_to_region,
             arguments_processed.calc_type_input,
             arguments_processed.residual_trapping,
         )
         export_readable_output(
             df_old_output,
             zone_info.int_to_zone,
-            region_info,
+            region_info.int_to_region,
             arguments_processed.out_dir,
             arguments_processed.calc_type_input,
             arguments_processed.residual_trapping,
