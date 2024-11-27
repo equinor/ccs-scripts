@@ -266,6 +266,13 @@ class Co2Data:
     region: Optional[np.ndarray] = None
 
 
+@dataclass
+class ZoneInfo:
+    source: str
+    zranges: Optional[Dict[str, List[int]]]
+    int_to_zone: Optional[List[str]]
+
+
 def _try_prop(unrst: ResdataFile, prop_name: str):
     """
     Function to determine if a property (prop_name) is part of a ResdataFile (unrst)
@@ -414,7 +421,7 @@ def _extract_source_data(
     grid_file: str,
     unrst_file: str,
     properties_to_extract: List[str],
-    zone_info: Dict,
+    zone_info: ZoneInfo,
     region_info: Dict,
     init_file: Optional[str] = None,
 ) -> SourceData:
@@ -426,7 +433,7 @@ def _extract_source_data(
       unrst_file (str): Path to UNRST-file
       properties_to_extract (List): Names of the properties to be extracted
       init_file (str): Path to INIT-file
-      zone_info (Dict): Dictionary containing zone information
+      zone_info (ZoneInfo): Zone information
       region_info (Dict): Dictionary containing region information
 
     Returns:
@@ -495,40 +502,40 @@ def _check_grid_dimensions(
 
 
 def _process_zones(
-    zone_info: Dict,
+    zone_info: ZoneInfo,
     grid: Grid,
     grid_file: str,
     global_active_idx: np.ndarray,
 ) -> Optional[np.ndarray]:
     zone = None
-    if zone_info["source"] is None:
+    if zone_info.source is None:
         logging.info("No zone info specified")
     else:
         logging.info("Using zone info")
-        if zone_info["zranges"] is not None:
+        if zone_info.zranges is not None:
             zone_array = np.zeros(
                 (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
             )
-            zonevals = [int(x) for x in range(len(zone_info["zranges"]))]
-            zone_info["int_to_zone"] = [f"Zone_{x}" for x in range(len(zonevals))]
+            zonevals = [int(x) for x in range(len(zone_info.zranges))]
+            zone_info.int_to_zone = [f"Zone_{x}" for x in range(len(zonevals))]
             for zv, zr, zn in zip(
                 zonevals,
-                list(zone_info["zranges"].values()),
-                zone_info["zranges"].keys(),
+                list(zone_info.zranges.values()),
+                zone_info.zranges.keys(),
             ):
                 zone_array[:, :, zr[0] - 1 : zr[1]] = zv
-                zone_info["int_to_zone"][zv] = zn
+                zone_info.int_to_zone[zv] = zn
             zone = zone_array.flatten(order="F")[global_active_idx]
         else:
             xtg_grid = xtgeo.grid_from_file(grid_file)
             _check_grid_dimensions(
-                zone_info["source"],
+                zone_info.source,
                 grid_file,
                 xtg_grid.ncol,
                 xtg_grid.nrow,
                 xtg_grid.nlay,
             )
-            zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
+            zone = xtgeo.gridproperty_from_file(zone_info.source, grid=xtg_grid)
             try:
                 zone_name_dict = zone.codes
                 zone_values = list(zone_name_dict.keys())
@@ -544,13 +551,13 @@ def _process_zones(
                     "This might cause problems with the calculations for "
                     "containment in different zones."
                 )
-            zone_info["int_to_zone"] = [None] * (np.max(intvals) + 1)
+            zone_info.int_to_zone = [None] * (np.max(intvals) + 1)
             for zv in intvals:
                 if zv >= 0:
                     if zv in zone_values:
-                        zone_info["int_to_zone"][zv] = zone_name_dict[zv]
+                        zone_info.int_to_zone[zv] = zone_name_dict[zv]
                     else:
-                        zone_info["int_to_zone"][zv] = f"Zone_{zv}"
+                        zone_info.int_to_zone[zv] = f"Zone_{zv}"
                         logging.info(
                             f"Value {zv} in roff-grid not found in Codes."
                             f" Using generic zone name Zone_{zv}."
@@ -1202,7 +1209,7 @@ def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
 def calculate_co2(
     grid_file: str,
     unrst_file: str,
-    zone_info: Dict,
+    zone_info: ZoneInfo,
     region_info: Dict,
     residual_trapping: bool = False,
     calc_type_input: str = "mass",
@@ -1216,7 +1223,7 @@ def calculate_co2(
       unrst_file (str): Path to UNRST-file
       calc_type_input (str): Input string with calculation type to perform
       init_file (str): Path to INIT-file
-      zone_info (Dict): Dictionary with zone information
+      zone_info (ZoneInfo): Zone information
       region_info (Dict): Dictionary with region information
       residual_trapping (bool): Calculate residual trapping or not
 

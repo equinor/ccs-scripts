@@ -6,6 +6,7 @@ Output is a table in CSV format.
 """
 import argparse
 import dataclasses
+from dataclasses import dataclass
 import getpass
 import logging
 import os
@@ -41,6 +42,7 @@ from ccs_scripts.co2_containment.calculate import (
 from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
+    ZoneInfo,
     _set_calc_type_from_input_string,
     calculate_co2,
     find_active_and_gasless_cells,
@@ -71,7 +73,7 @@ def calculate_out_of_bounds_co2(
     unrst_file: str,
     init_file: str,
     calc_type_input: str,
-    zone_info: Dict,
+    zone_info: ZoneInfo,
     region_info: Dict,
     residual_trapping: bool,
     injection_wells: List[InjectionWellData],
@@ -92,7 +94,7 @@ def calculate_out_of_bounds_co2(
             containment area
         file_hazardous_polygon (str): Path to polygon defining the
             hazardous area
-        zone_info (Dict): Dictionary containing path to zone-file,
+        zone_info (ZoneInfo): Containing path to zone-file,
             or zranges (if the zone-file is provided as a YAML-file
             with zones defined through intervals in depth)
             as well as a list connecting zone-numbers to names
@@ -159,7 +161,7 @@ def calculate_out_of_bounds_co2(
         containment_polygon,
         hazardous_polygon,
         calc_type_input,
-        zone_info["int_to_zone"],
+        zone_info.int_to_zone,
         region_info,
         residual_trapping,
         plume_groups_amfg,
@@ -826,7 +828,7 @@ def sort_and_replace_nones(
 
 def convert_data_frame(
     data_frame: pd.DataFrame,
-    zone_info: Dict[str, Any],
+    int_to_zone: Optional[List[str]],
     region_info: Dict[str, Any],
     calc_type_input: str,
     residual_trapping: bool,
@@ -846,8 +848,8 @@ def convert_data_frame(
     data: Dict[str, Dict] = {}
     zones = []
     regions = []
-    if zone_info["int_to_zone"] is not None:
-        zones = [z for z in zone_info["int_to_zone"] if z is not None]
+    if int_to_zone is not None:
+        zones = [z for z in int_to_zone if z is not None]
         data["zone"] = {}
         for z in zones:
             data["zone"][z] = _merge_date_rows(
@@ -867,7 +869,7 @@ def convert_data_frame(
 
     zone_df = pd.DataFrame()
     region_df = pd.DataFrame()
-    if zone_info["int_to_zone"] is not None:
+    if int_to_zone is not None:
         for z in zones:
             _df = data["zone"][z]
             _df["zone"] = [z] * _df.shape[0]
@@ -903,7 +905,7 @@ def export_output_to_csv(
 
 def export_readable_output(
     df: pd.DataFrame,
-    zone_info: dict,
+    int_to_zone: Optional[List[str]],
     region_info: dict,
     out_dir: str,
     calc_type_input: str,
@@ -923,8 +925,8 @@ def export_readable_output(
 
     zones = []
     regions = []
-    if zone_info["int_to_zone"] is not None:
-        zones += [zone for zone in zone_info["int_to_zone"] if zone is not None]
+    if int_to_zone is not None:
+        zones += [zone for zone in int_to_zone if zone is not None]
     if region_info["int_to_region"] is not None:
         regions += [
             region for region in region_info["int_to_region"] if region is not None
@@ -1069,18 +1071,18 @@ def main() -> None:
     """
     arguments_processed = process_args()
     check_input(arguments_processed)
-    zone_info = {
-        "source": arguments_processed.zonefile,
-        "zranges": None,
-        "int_to_zone": None,
-    }
+    zone_info = ZoneInfo(
+        source=arguments_processed.zonefile,
+        zranges=None,
+        int_to_zone=None,
+    )
     region_info = {
         "source": arguments_processed.regionfile,
         "int_to_region": None,  # set during calculation if source or property is given
         "property_name": arguments_processed.region_property,
     }
-    if zone_info["source"] is not None:
-        zone_info["zranges"] = process_zonefile_if_yaml(zone_info["source"])
+    if zone_info.source is not None:
+        zone_info.zranges = process_zonefile_if_yaml(zone_info.source)
 
     log_input_configuration(arguments_processed)
 
@@ -1112,14 +1114,14 @@ def main() -> None:
     if arguments_processed.readable_output:
         df_old_output = convert_data_frame(
             data_frame,
-            zone_info,
+            zone_info.int_to_zone,
             region_info,
             arguments_processed.calc_type_input,
             arguments_processed.residual_trapping,
         )
         export_readable_output(
             df_old_output,
-            zone_info,
+            zone_info.int_to_zone,
             region_info,
             arguments_processed.out_dir,
             arguments_processed.calc_type_input,
