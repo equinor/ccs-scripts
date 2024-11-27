@@ -258,7 +258,7 @@ def _merge_date_rows(
     Returns:
         pd.DataFrame: Output data frame
     """
-    data_frame = data_frame.drop(columns=["zone", "region"], axis=1, errors="ignore")
+    data_frame = data_frame.drop(columns=["zone", "region", "plume_group"], axis=1, errors="ignore")
     locations = ["contained", "outside", "hazardous"]
     if calc_type == CalculationType.CELL_VOLUME:
         total_df = (
@@ -840,49 +840,58 @@ def convert_data_frame(
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     logging.info("\nMerge data rows for data frame")
     total_df = _merge_date_rows(
-        data_frame[(data_frame["zone"] == "all") & (data_frame["region"] == "all")],
+        data_frame[(data_frame["zone"] == "all") & (data_frame["region"] == "all") & (data_frame["plume_group"] == "all")],
         calc_type,
         residual_trapping,
     )
     total_df["zone"] = ["all"] * total_df.shape[0]
     total_df["region"] = ["all"] * total_df.shape[0]
-    data: Dict[str, Dict] = {}
-    zones = []
-    regions = []
-    if int_to_zone is not None:
-        zones = [z for z in int_to_zone if z is not None]
-        data["zone"] = {}
-        for z in zones:
-            data["zone"][z] = _merge_date_rows(
-                data_frame[data_frame["zone"] == z],
-                calc_type,
-                residual_trapping,
-            )
-    if int_to_region is not None:
-        regions = [r for r in int_to_region if r is not None]
-        data["region"] = {}
-        for r in regions:
-            data["region"][r] = _merge_date_rows(
-                data_frame[data_frame["region"] == r],
-                calc_type,
-                residual_trapping,
-            )
+    total_df["plume_group"] = ["all"] * total_df.shape[0]
 
     zone_df = pd.DataFrame()
-    region_df = pd.DataFrame()
     if int_to_zone is not None:
+        zones = [z for z in int_to_zone if z is not None]
         for z in zones:
-            _df = data["zone"][z]
+            _df = _merge_date_rows(
+                data_frame[(data_frame["zone"] == z) & (data_frame["plume_group"] == "all")],
+                calc_type,
+                residual_trapping,
+            )
             _df["zone"] = [z] * _df.shape[0]
             zone_df = pd.concat([zone_df, _df])
         zone_df["region"] = ["all"] * zone_df.shape[0]
+        zone_df["plume_group"] = ["all"] * zone_df.shape[0]
+
+    region_df = pd.DataFrame()
     if int_to_region is not None:
+        regions = [r for r in int_to_region if r is not None]
         for r in regions:
-            _df = data["region"][r]
+            _df = _merge_date_rows(
+                data_frame[(data_frame["region"] == r) & (data_frame["plume_group"] == "all")],
+                calc_type,
+                residual_trapping,
+            )
             _df["region"] = [r] * _df.shape[0]
             region_df = pd.concat([region_df, _df])
         region_df["zone"] = ["all"] * region_df.shape[0]
-    combined_df = pd.concat([total_df, zone_df, region_df])
+        region_df["plume_group"] = ["all"] * region_df.shape[0]
+
+    plume_groups_df = pd.DataFrame()
+    plume_groups = set(data_frame["plume_group"].to_list())
+    plume_groups -= {"all", "?"}
+    if len(plume_groups) > 0:
+        for p in plume_groups:
+            _df = _merge_date_rows(
+                data_frame[(data_frame["plume_group"] == p) & (data_frame["zone"] == "all") & (data_frame["region"] == "all")],
+                calc_type,
+                residual_trapping,
+            )
+            _df["plume_group"] = [p] * _df.shape[0]
+            plume_groups_df = pd.concat([plume_groups_df, _df])
+        plume_groups_df["zone"] = ["all"] * plume_groups_df.shape[0]
+        plume_groups_df["region"] = ["all"] * plume_groups_df.shape[0]
+
+    combined_df = pd.concat([total_df, zone_df, region_df, plume_groups_df])
     return combined_df
 
 
