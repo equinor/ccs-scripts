@@ -1,4 +1,4 @@
-date,amount,phase,containment,zone,region,plume
+date,amount,phase,containment,zone,region,plume_group
 2025-01-01,0.0,total,total,all,all,all
 2027-01-01,0.0,total,total,all,all,all
 2029-01-01,1241691.0595845138,total,total,all,all,all
