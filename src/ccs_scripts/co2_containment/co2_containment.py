@@ -129,33 +129,7 @@ def calculate_out_of_bounds_co2(
     if len(injection_wells) == 0:
         plume_groups_amfg = None
     else:
-        grid = Grid(grid_file)  # NBNB-AS
-        unrst = ResdataFile(unrst_file)  # NBNB-AS
-        if "AMFG" in unrst:
-            dissolved_prop = "AMFG"
-        elif "XMF2" in unrst:
-            dissolved_prop = "XMF2"
-        else:
-            dissolved_prop = None
-        if dissolved_prop is None:
-            plume_groups_amfg = None
-        else:
-            plume_groups_amfg = calculate_plume_groups(
-                attribute_key=dissolved_prop,
-                threshold=0.1*DEFAULT_THRESHOLD_AQUEOUS,
-                unrst=unrst,
-                grid=grid,
-                inj_wells=injection_wells,
-            )
-
-            # NBNB-AS: Plume tracking works on active grid cells, containment script on gasless active cells
-            #          We do the conversion here, but could do a conversion earlier (in plume tracking)
-            properties_to_extract = ["SGAS", dissolved_prop]
-            properties, _ = _fetch_properties(unrst, properties_to_extract)
-            active, gasless = find_active_and_gasless_cells(grid, properties, False)
-            global_active_idx = active[~gasless]
-            non_gasless = np.where(np.isin(active, global_active_idx))[0]
-            plume_groups_amfg = [list(np.array(x)[non_gasless]) for x in plume_groups_amfg]
+        plume_groups_amfg = _find_plume_groups(grid_file, unrst_file, injection_wells)
 
     return calculate_from_co2_data(
         co2_data,
@@ -167,6 +141,41 @@ def calculate_out_of_bounds_co2(
         residual_trapping,
         plume_groups_amfg,
     )
+
+def _find_plume_groups(
+    grid_file: str,
+    unrst_file: str,
+    injection_wells: List[InjectionWellData],
+) -> Optional[List[List[str]]]:
+    grid = Grid(grid_file)
+    unrst = ResdataFile(unrst_file)
+    if "AMFG" in unrst:
+        dissolved_prop = "AMFG"
+    elif "XMF2" in unrst:
+        dissolved_prop = "XMF2"
+    else:
+        dissolved_prop = None
+
+    if dissolved_prop is None:
+        plume_groups_amfg = None
+    else:
+        plume_groups_amfg = calculate_plume_groups(
+            attribute_key=dissolved_prop,
+            threshold=0.1*DEFAULT_THRESHOLD_AQUEOUS,
+            unrst=unrst,
+            grid=grid,
+            inj_wells=injection_wells,
+        )
+
+        # NBNB-AS: Plume tracking works on active grid cells, containment script on gasless active cells
+        #          We do the conversion here, but could do a conversion earlier (in plume tracking)
+        properties_to_extract = ["SGAS", dissolved_prop]
+        properties, _ = _fetch_properties(unrst, properties_to_extract)
+        active, gasless = find_active_and_gasless_cells(grid, properties, False)
+        global_active_idx = active[~gasless]
+        non_gasless = np.where(np.isin(active, global_active_idx))[0]
+        plume_groups_amfg = [list(np.array(x)[non_gasless]) for x in plume_groups_amfg]
+    return plume_groups_amfg
 
 
 def calculate_from_co2_data(
