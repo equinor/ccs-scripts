@@ -6,7 +6,6 @@ Output is a table in CSV format.
 """
 import argparse
 import dataclasses
-from dataclasses import dataclass
 import getpass
 import logging
 import os
@@ -15,26 +14,17 @@ import platform
 import socket
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from resdata.grid import Grid
-from resdata.resfile import ResdataFile
 import shapely.geometry
 import yaml
+from resdata.grid import Grid
+from resdata.resfile import ResdataFile
 
-from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
-    calculate_plume_groups,
-    Configuration,
-    DEFAULT_THRESHOLD_AQUEOUS,
-)
-from ccs_scripts.co2_plume_tracking.utils import (
-    InjectionWellData,
-    assemble_plume_groups_into_dict,
-    sort_well_names,
-)
 from ccs_scripts.co2_containment.calculate import (
     ContainedCo2,
     calculate_co2_containment,
@@ -44,10 +34,20 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
     RegionInfo,
     ZoneInfo,
+    _fetch_properties,
     _set_calc_type_from_input_string,
     calculate_co2,
     find_active_and_gasless_cells,
-    _fetch_properties,
+)
+from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
+    DEFAULT_THRESHOLD_AQUEOUS,
+    Configuration,
+    calculate_plume_groups,
+)
+from ccs_scripts.co2_plume_tracking.utils import (
+    InjectionWellData,
+    assemble_plume_groups_into_dict,
+    sort_well_names,
 )
 
 DESCRIPTION = """
