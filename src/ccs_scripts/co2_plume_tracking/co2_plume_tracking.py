@@ -435,7 +435,8 @@ def _plume_groups_at_time_step(
     groups: PlumeGroups,
     n_grid_cells_for_logging: Dict[str, List[int]],
 ):
-    # NBNB-AS: Here we are working on active grid cells, instead of 'non-gasless' cells, like in co2 containment
+    # NBNB-AS: Here we are working on active grid cells,
+    #          instead of 'non-gasless' cells, like in containment-script
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
 

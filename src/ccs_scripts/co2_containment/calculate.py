@@ -29,7 +29,7 @@ class ContainedCo2:
             that "amount" corresponds to.
         zone (str):
         region (str):
-        plume (str): The plume group (either a single injection well, or a list of wells)
+        plume (str): The plume group (a single injection well or a list of wells)
 
     """
 

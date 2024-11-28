@@ -14,9 +14,8 @@ import platform
 import socket
 import subprocess
 import sys
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
+from typing import Dict, List, Optional, TextIO, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -44,11 +43,7 @@ from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
     Configuration,
     calculate_plume_groups,
 )
-from ccs_scripts.co2_plume_tracking.utils import (
-    InjectionWellData,
-    assemble_plume_groups_into_dict,
-    sort_well_names,
-)
+from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
 
 DESCRIPTION = """
 Calculates the amount of CO2 inside and outside a given perimeter, and
@@ -168,8 +163,9 @@ def _find_plume_groups(
             inj_wells=injection_wells,
         )
 
-        # NBNB-AS: Plume tracking works on active grid cells, containment script on gasless active cells
-        #          We do the conversion here, but could do a conversion earlier (in plume tracking)
+        # NBNB-AS: Plume tracking works on active grid cells, containment script on
+        #          gasless active cells. We do the conversion here, but could do a
+        #          conversion earlier (in plume tracking)
         properties_to_extract = ["SGAS", dissolved_prop]
         properties, _ = _fetch_properties(unrst, properties_to_extract)
         active, gasless = find_active_and_gasless_cells(grid, properties, False)
@@ -700,22 +696,35 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     logging.info(f"{'UNRST file':<{col1}} : {arguments_processed.unrst}")
     logging.info(f"{'INIT file':<{col1}} : {arguments_processed.init}")
     logging.info(f"{'Zone file':<{col1}} : {arguments_processed.zonefile}")
-    logging.info(
-        f"{'Region file':<{col1}} : {arguments_processed.regionfile if arguments_processed.regionfile is not None else '-'}"
+    regionfile_str = (
+        arguments_processed.regionfile
+        if arguments_processed.regionfile is not None
+        else "-"
     )
-    logging.info(
-        f"{'Region property':<{col1}} : {arguments_processed.region_property if arguments_processed.region_property is not None else '-'}"
+    logging.info(f"{'Region file':<{col1}} : " f"{regionfile_str}")
+    region_property_str = (
+        arguments_processed.region_property
+        if arguments_processed.region_property is not None
+        else "-"
     )
+    logging.info(f"{'Region property':<{col1}} : " f"{region_property_str}")
     logging.info(
         f"{'Residual trapping':<{col1}} : "
         f"{'yes' if arguments_processed.residual_trapping else 'no'}"
     )
-    logging.info(
-        f"{'Readable output':<{col1}} : {'yes' if arguments_processed.readable_output is not None and arguments_processed else 'no'}"
+    readable_output_str = (
+        "yes"
+        if arguments_processed.readable_output is not None and arguments_processed
+        else "no"
+    )
+    logging.info(f"{'Readable output':<{col1}} : " f"{readable_output_str}")
+    config_file_inj_wells_str = (
+        arguments_processed.config_file_inj_wells
+        if arguments_processed.config_file_inj_wells != ""
+        else "-"
     )
     logging.info(
-        f"{'Plume tracking YAML-file':<{col1}} : "
-        f"{arguments_processed.config_file_inj_wells if arguments_processed.config_file_inj_wells != '' else '-'}\n"
+        f"{'Plume tracking YAML-file':<{col1}} : " f"{config_file_inj_wells_str}\n"
     )
 
 
