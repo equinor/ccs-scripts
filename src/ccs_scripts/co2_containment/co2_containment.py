@@ -142,6 +142,7 @@ def calculate_out_of_bounds_co2(
         plume_groups_amfg,
     )
 
+
 def _find_plume_groups(
     grid_file: str,
     unrst_file: str,
@@ -161,7 +162,7 @@ def _find_plume_groups(
     else:
         plume_groups_amfg = calculate_plume_groups(
             attribute_key=dissolved_prop,
-            threshold=0.1*DEFAULT_THRESHOLD_AQUEOUS,
+            threshold=0.1 * DEFAULT_THRESHOLD_AQUEOUS,
             unrst=unrst,
             grid=grid,
             inj_wells=injection_wells,
@@ -267,7 +268,9 @@ def _merge_date_rows(
     Returns:
         pd.DataFrame: Output data frame
     """
-    data_frame = data_frame.drop(columns=["zone", "region", "plume_group"], axis=1, errors="ignore")
+    data_frame = data_frame.drop(
+        columns=["zone", "region", "plume_group"], axis=1, errors="ignore"
+    )
     locations = ["contained", "outside", "hazardous"]
     if calc_type == CalculationType.CELL_VOLUME:
         total_df = (
@@ -849,7 +852,11 @@ def convert_data_frame(
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     logging.info("\nMerge data rows for data frame")
     total_df = _merge_date_rows(
-        data_frame[(data_frame["zone"] == "all") & (data_frame["region"] == "all") & (data_frame["plume_group"] == "all")],
+        data_frame[
+            (data_frame["zone"] == "all")
+            & (data_frame["region"] == "all")
+            & (data_frame["plume_group"] == "all")
+        ],
         calc_type,
         residual_trapping,
     )
@@ -862,7 +869,9 @@ def convert_data_frame(
         zones = [z for z in int_to_zone if z is not None]
         for z in zones:
             _df = _merge_date_rows(
-                data_frame[(data_frame["zone"] == z) & (data_frame["plume_group"] == "all")],
+                data_frame[
+                    (data_frame["zone"] == z) & (data_frame["plume_group"] == "all")
+                ],
                 calc_type,
                 residual_trapping,
             )
@@ -876,7 +885,9 @@ def convert_data_frame(
         regions = [r for r in int_to_region if r is not None]
         for r in regions:
             _df = _merge_date_rows(
-                data_frame[(data_frame["region"] == r) & (data_frame["plume_group"] == "all")],
+                data_frame[
+                    (data_frame["region"] == r) & (data_frame["plume_group"] == "all")
+                ],
                 calc_type,
                 residual_trapping,
             )
@@ -891,7 +902,11 @@ def convert_data_frame(
     if len(plume_groups) > 0:
         for p in plume_groups:
             _df = _merge_date_rows(
-                data_frame[(data_frame["plume_group"] == p) & (data_frame["zone"] == "all") & (data_frame["region"] == "all")],
+                data_frame[
+                    (data_frame["plume_group"] == p)
+                    & (data_frame["zone"] == "all")
+                    & (data_frame["region"] == "all")
+                ],
                 calc_type,
                 residual_trapping,
             )
@@ -948,9 +963,7 @@ def export_readable_output(
     if int_to_zone is not None:
         zones += [zone for zone in int_to_zone if zone is not None]
     if int_to_region is not None:
-        regions += [
-            region for region in int_to_region if region is not None
-        ]
+        regions += [region for region in int_to_region if region is not None]
     all_plume_groups = set(df["plume_group"].to_list())
     all_plume_groups -= {"all", "?"}
     if len(all_plume_groups) > 0:
@@ -1000,7 +1013,9 @@ def prepare_writing_details(
     Prepare headers and other information to be written in the summary file.
     """
     details: Dict = {
-        "numeric": [c for c in df.columns if c not in ["date", "zone", "region", "plume_group"]],
+        "numeric": [
+            c for c in df.columns if c not in ["date", "zone", "region", "plume_group"]
+        ],
         "num_decimals": (
             3 if calc_type == "mass" else 6 if calc_type == "actual_volume" else 2
         ),
@@ -1062,7 +1077,11 @@ def write_lines(
     Write lines for the section of the containment output corresponding to the area
     defined by the specified region or zone or plume_group (or the total across all).
     """
-    df = data_frame[(data_frame["zone"] == zone) & (data_frame["region"] == region) & (data_frame["plume_group"] == plume_group)]
+    df = data_frame[
+        (data_frame["zone"] == zone)
+        & (data_frame["region"] == region)
+        & (data_frame["plume_group"] == plume_group)
+    ]
     max_name_length = 10 + details["width"]
     if zone == "all" and region == "all" and plume_group == "all":
         over_header = "\n          ," + " " * details["width"]
