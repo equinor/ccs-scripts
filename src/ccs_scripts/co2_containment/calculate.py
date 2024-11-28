@@ -57,8 +57,8 @@ def calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
     hazardous_polygon: Union[Polygon, MultiPolygon, None],
-    int_to_zone: Optional[List[str]],
-    int_to_region: Optional[List[str]],
+    int_to_zone: Optional[List[Optional[str]]],
+    int_to_region: Optional[List[Optional[str]]],
     calc_type: CalculationType,
     residual_trapping: bool,
     plume_groups: Optional[List[List[str]]] = None,
@@ -105,7 +105,7 @@ def calculate_co2_containment(
         plume_groups = [[x if x != "" else "?" for x in y] for y in plume_groups]
         plume_names = set(name for values in plume_groups for name in values)
     else:
-        plume_names = []
+        plume_names = set()
 
     containment = []
     for zone, region, is_in_section in zone_region_info:
@@ -263,7 +263,7 @@ def _lists_of_co2_for_each_phase(
     return arrays
 
 
-def _zone_map(co2_data: Co2Data, int_to_zone: Optional[List[str]]) -> Dict:
+def _zone_map(co2_data: Co2Data, int_to_zone: Optional[List[Optional[str]]]) -> Dict:
     """
     Returns a dictionary connecting each zone to a boolean array over the grid,
     indicating whether the grid point belongs to said zone
@@ -280,7 +280,9 @@ def _zone_map(co2_data: Co2Data, int_to_zone: Optional[List[str]]) -> Dict:
         }
 
 
-def _region_map(co2_data: Co2Data, int_to_region: Optional[List[str]]) -> Dict:
+def _region_map(
+    co2_data: Co2Data, int_to_region: Optional[List[Optional[str]]]
+) -> Dict:
     """
     Returns a dictionary connecting each region to a boolean array over the grid,
     indicating whether the grid point belongs to said region
@@ -307,8 +309,8 @@ def _plume_group_mapping(plume_names: set[str], plume_groups: List[str]):
 
 def _zone_and_region_mapping(
     co2_data: Co2Data,
-    int_to_zone: Optional[List[str]],
-    int_to_region: Optional[List[str]],
+    int_to_zone: Optional[List[Optional[str]]],
+    int_to_region: Optional[List[Optional[str]]],
 ) -> List:
     """
     List containing a tuple for each zone / region (and no zone, no region),

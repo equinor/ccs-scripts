@@ -180,8 +180,8 @@ def calculate_from_co2_data(
     containment_polygon: shapely.geometry.Polygon,
     hazardous_polygon: Union[shapely.geometry.Polygon, None],
     calc_type_input: str,
-    int_to_zone: Optional[List[str]],
-    int_to_region: Optional[List[str]],
+    int_to_zone: Optional[List[Optional[str]]],
+    int_to_region: Optional[List[Optional[str]]],
     residual_trapping: bool = False,
     plume_groups: Optional[List[List[str]]] = None,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
@@ -850,8 +850,8 @@ def sort_and_replace_nones(
 
 def convert_data_frame(
     data_frame: pd.DataFrame,
-    int_to_zone: Optional[List[str]],
-    int_to_region: Optional[List[str]],
+    int_to_zone: Optional[List[Optional[str]]],
+    int_to_region: Optional[List[Optional[str]]],
     calc_type_input: str,
     residual_trapping: bool,
 ) -> pd.DataFrame:
@@ -948,8 +948,8 @@ def export_output_to_csv(
 
 def export_readable_output(
     df: pd.DataFrame,
-    int_to_zone: Optional[List[str]],
-    int_to_region: Optional[List[str]],
+    int_to_zone: Optional[List[Optional[str]]],
+    int_to_region: Optional[List[Optional[str]]],
     out_dir: str,
     calc_type_input: str,
     residual_trapping: bool,

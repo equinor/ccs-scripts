@@ -270,13 +270,13 @@ class Co2Data:
 class ZoneInfo:
     source: str
     zranges: Optional[Dict[str, List[int]]]
-    int_to_zone: Optional[List[str]]
+    int_to_zone: Optional[List[Optional[str]]]
 
 
 @dataclass
 class RegionInfo:
     source: str
-    int_to_region: Optional[List[str]]
+    int_to_region: Optional[List[Optional[str]]]
     property_name: str
 
 
