@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Set, Union
 
 import numpy as np
 from shapely.geometry import MultiPolygon, Point, Polygon
@@ -299,7 +299,7 @@ def _region_map(
         }
 
 
-def _plume_group_mapping(plume_names: set[str], plume_groups: List[str]):
+def _plume_group_mapping(plume_names: Set[str], plume_groups: List[str]):
     out = {"all": np.ones(len(plume_groups), dtype=bool)}
     out.update(
         {plume: np.array([x == plume for x in plume_groups]) for plume in plume_names}
