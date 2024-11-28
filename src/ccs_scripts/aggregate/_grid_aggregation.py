@@ -319,9 +319,9 @@ def _property_to_map(
     elif method == AggregationMethod.MIN:
         shift = data.max() + 1
     elif method in (
-            AggregationMethod.MEAN,
-            AggregationMethod.SUM,
-            AggregationMethod.DISTRIBUTE,
+        AggregationMethod.MEAN,
+        AggregationMethod.SUM,
+        AggregationMethod.DISTRIBUTE,
     ):
         shift = 0.0
     else:
