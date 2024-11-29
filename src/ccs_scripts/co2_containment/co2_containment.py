@@ -760,31 +760,40 @@ def log_summary_of_results(
             value = extract_amount(df_subset, "total", "gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"{'End state gaseous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+                f"{'End state gaseous':<{col1}} : "
+                f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
         else:
             value = extract_amount(df_subset, "total", "free_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"{'End state free gas':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+                f"{'End state free gas':<{col1}} : "
+                f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
             value = extract_amount(df_subset, "total", "trapped_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"{'End state trapped gas':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+                f"{'End state trapped gas':<{col1}} : "
+                f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
         value = extract_amount(df_subset, "total", "aqueous")
         percent = 100.0 * value / total if total > 0.0 else 0.0
-        logging.info(f"{'End state aqueous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
+        logging.info(
+            f"{'End state aqueous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+        )
     value = extract_amount(df_subset, "contained", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"{'End state contained':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
+    logging.info(
+        f"{'End state contained':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+    )
     value = extract_amount(df_subset, "outside", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(f"{'End state outside':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
     value = extract_amount(df_subset, "hazardous", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"{'End state hazardous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
+    logging.info(
+        f"{'End state hazardous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+    )
     if "zone" in dfs:
         unique_zones = set(dfs["zone"].unique())
         unique_zones.discard("all")
