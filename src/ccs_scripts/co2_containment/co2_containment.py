@@ -745,78 +745,78 @@ def log_summary_of_results(
         & (df_subset["region"] == "all")
         & (df_subset["plume_group"] == "all")
     ]
-    print(df_subset)
     total = extract_amount(df_subset, "total", "total", cell_volume)
     n = len(f"{total:.1f}")
 
+    col1 = 24
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates          : {len(dfs['date'].unique())}")
-    logging.info(f"First date               : {dfs['date'].iloc[0]}")
-    logging.info(f"Last date                : {dfs['date'].iloc[-1]}")
-    logging.info(f"End state total          : {total:{n}.1f}")
+    logging.info(f"{'Number of dates':<{col1}} : {len(dfs['date'].unique())}")
+    logging.info(f"{'First date':<{col1}} : {dfs['date'].iloc[0]}")
+    logging.info(f"{'Last date':<{col1}} : {dfs['date'].iloc[-1]}")
+    logging.info(f"{'End state total':<{col1}} : {total:{n}.1f}")
     if not cell_volume:
         if "gas" in list(df_subset["phase"]):
             value = extract_amount(df_subset, "total", "gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"End state gaseous        : {value:{n}.1f}  ={percent:>5.1f} %"
+                f"{'End state gaseous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
             )
         else:
             value = extract_amount(df_subset, "total", "free_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"End state free gas       : {value:{n}.1f}  ={percent:>5.1f} %"
+                f"{'End state free gas':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
             )
             value = extract_amount(df_subset, "total", "trapped_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"End state trapped gas    : {value:{n}.1f}  ={percent:>5.1f} %"
+                f"{'End state trapped gas':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
             )
         value = extract_amount(df_subset, "total", "aqueous")
         percent = 100.0 * value / total if total > 0.0 else 0.0
-        logging.info(f"End state aqueous        : {value:{n}.1f}  ={percent:>5.1f} %")
+        logging.info(f"{'End state aqueous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
     value = extract_amount(df_subset, "contained", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state contained      : {value:{n}.1f}  ={percent:>5.1f} %")
+    logging.info(f"{'End state contained':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
     value = extract_amount(df_subset, "outside", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state outside        : {value:{n}.1f}  ={percent:>5.1f} %")
+    logging.info(f"{'End state outside':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
     value = extract_amount(df_subset, "hazardous", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state hazardous      : {value:{n}.1f}  ={percent:>5.1f} %")
+    logging.info(f"{'End state hazardous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
     if "zone" in dfs:
         unique_zones = set(dfs["zone"].unique())
         unique_zones.discard("all")
         if len(unique_zones) == 0:
-            logging.info("Split into zones?        : no")
+            logging.info(f"{'Split into zones?':<{col1}} : no")
         else:
-            logging.info("Split into zones?        : yes")
-            logging.info(f"Number of zones          : {len(unique_zones)}")
-            logging.info(f"Zones                    : {', '.join(unique_zones)}")
+            logging.info(f"{'Split into zones?':<{col1}} : yes")
+            logging.info(f"{'Number of zones':<{col1}} : {len(unique_zones)}")
+            logging.info(f"{'Zones':<{col1}} : {', '.join(unique_zones)}")
     else:
-        logging.info("Split into zones?        : no")
+        logging.info(f"{'Split into zones?':<{col1}} : no")
     if "region" in dfs:
         unique_regions = set(dfs["region"].unique())
         unique_regions.discard("all")
         if len(unique_regions) == 0:
-            logging.info("Split into regions?      : no")
+            logging.info(f"{'Split into regions?':<{col1}} : no")
         else:
-            logging.info("Split into regions?      : yes")
-            logging.info(f"Number of regions        : {len(unique_regions)}")
-            logging.info(f"Regions                  : {', '.join(unique_regions)}")
+            logging.info(f"{'Split into regions?':<{col1}} : yes")
+            logging.info(f"{'Number of regions':<{col1}} : {len(unique_regions)}")
+            logging.info(f"{'Regions':<{col1}} : {', '.join(unique_regions)}")
     else:
-        logging.info("Split into regions?      : no")
+        logging.info("{'Split into regions?':<{col1}} : no")
     if "plume_group" in dfs:
         unique_plumes = set(dfs["plume_group"].unique())
         unique_plumes.discard("all")
         unique_plumes.discard("?")
         if len(unique_plumes) == 0:
-            logging.info("Split into plume groups? : no")
+            logging.info(f"{'Split into plume groups?':<{col1}} : no")
         else:
-            logging.info("Split into plume groups? : yes")
-            logging.info(f"Number of plume groups   : {len(unique_plumes)}")
-            logging.info(f"Plume groups             : {', '.join(unique_plumes)}")
+            logging.info(f"{'Split into plume groups?':<{col1}} : yes")
+            logging.info(f"{'Number of plume groups':<{col1}} : {len(unique_plumes)}")
+            logging.info(f"{'Plume groups':<{col1}} : {', '.join(unique_plumes)}")
 
 
 def extract_amount(
