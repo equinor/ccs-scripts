@@ -266,6 +266,20 @@ class Co2Data:
     region: Optional[np.ndarray] = None
 
 
+@dataclass
+class ZoneInfo:
+    source: str
+    zranges: Optional[Dict[str, List[int]]]
+    int_to_zone: Optional[List[Optional[str]]]
+
+
+@dataclass
+class RegionInfo:
+    source: str
+    int_to_region: Optional[List[Optional[str]]]
+    property_name: str
+
+
 def _try_prop(unrst: ResdataFile, prop_name: str):
     """
     Function to determine if a property (prop_name) is part of a ResdataFile (unrst)
@@ -384,41 +398,10 @@ def _is_subset(first: List[str], second: List[str]) -> bool:
     return all(x in second for x in first)
 
 
-# pylint: disable=too-many-arguments
-def _extract_source_data(
-    grid_file: str,
-    unrst_file: str,
-    properties_to_extract: List[str],
-    zone_info: Dict,
-    region_info: Dict,
-    init_file: Optional[str] = None,
-) -> SourceData:
-    # pylint: disable=too-many-locals, too-many-statements
-    """Extracts the properties in properties_to_extract from Grid files
-
-    Args:
-      grid_file (str): Path to EGRID-file
-      unrst_file (str): Path to UNRST-file
-      properties_to_extract (List): Names of the properties to be extracted
-      init_file (str): Path to INIT-file
-      zone_info (Dict): Dictionary containing zone information
-      region_info (Dict): Dictionary containing region information
-
-    Returns:
-      SourceData
-
-    """
-    logging.info("Start extracting source data")
-    grid = Grid(grid_file)
-    unrst = ResdataFile(unrst_file)
-    init = ResdataFile(init_file)
-    properties, dates = _fetch_properties(unrst, properties_to_extract)
-    logging.info("Done fetching properties")
-
+# NBNB-AS: Move this ?
+def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = False):
     act_num = grid.export_actnum().numpy_copy()
     active = np.where(act_num > 0)[0]
-    logging.info(f"Number of grid cells                    : {len(act_num)}")
-    logging.info(f"Number of active grid cells             : {len(active)}")
     if _is_subset(["SGAS", "AMFG"], list(properties.keys())):
         gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
     elif _is_subset(["SGAS", "XMF2"], list(properties.keys())):
@@ -429,8 +412,54 @@ def _extract_source_data(
         )
         error_text += "SGAS+AMFG or SGAS+XMF2."
         raise RuntimeError(error_text)
+
+    if do_logging:
+        logging.info(f"Number of grid cells                    : {len(act_num):>10}")
+        logging.info(f"Number of active grid cells             : {len(active):>10}")
+        logging.info(
+            f"Number of active non-gasless grid cells : {len(active[~gasless]):>10}"
+        )
+
+    return active, gasless
+
+
+# pylint: disable=too-many-arguments
+def _extract_source_data(
+    grid_file: str,
+    unrst_file: str,
+    properties_to_extract: List[str],
+    zone_info: ZoneInfo,
+    region_info: RegionInfo,
+    init_file: Optional[str] = None,
+) -> SourceData:
+    # pylint: disable=too-many-locals, too-many-statements
+    """Extracts the properties in properties_to_extract from Grid files
+
+    Args:
+      grid_file (str): Path to EGRID-file
+      unrst_file (str): Path to UNRST-file
+      properties_to_extract (List): Names of the properties to be extracted
+      init_file (str): Path to INIT-file
+      zone_info (ZoneInfo): Zone information
+      region_info (Dict): Region information
+
+    Returns:
+      SourceData
+
+    """
+    logging.info("Start extracting source data")
+    grid = Grid(grid_file)
+    unrst = ResdataFile(unrst_file)
+    try:
+        init = ResdataFile(init_file)
+    except Exception:
+        init = None
+        logging.info("No INIT-file loaded")
+    properties, dates = _fetch_properties(unrst, properties_to_extract)
+    logging.info("Done fetching properties")
+
+    active, gasless = find_active_and_gasless_cells(grid, properties, True)
     global_active_idx = active[~gasless]
-    logging.info(f"Number of active non-gasless grid cells : {len(global_active_idx)}")
 
     properties_reduced = _reduce_properties(properties, ~gasless)
     # Tuple with (x,y,z) for each cell:
@@ -443,13 +472,14 @@ def _extract_source_data(
 
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
     properties_reduced["VOL"] = {d: vol0 for d in dates}
-    try:
-        porv = init["PORV"]
-        properties_reduced["PORV"] = {
-            d: porv[0].numpy_copy()[global_active_idx] for d in dates
-        }
-    except KeyError:
-        pass
+    if init is not None:
+        try:
+            porv = init["PORV"]
+            properties_reduced["PORV"] = {
+                d: porv[0].numpy_copy()[global_active_idx] for d in dates
+            }
+        except KeyError:
+            pass
     source_data = SourceData(
         cells_x,
         cells_y,
@@ -479,40 +509,40 @@ def _check_grid_dimensions(
 
 
 def _process_zones(
-    zone_info: Dict,
+    zone_info: ZoneInfo,
     grid: Grid,
     grid_file: str,
     global_active_idx: np.ndarray,
 ) -> Optional[np.ndarray]:
     zone = None
-    if zone_info["source"] is None:
+    if zone_info.source is None:
         logging.info("No zone info specified")
-    if zone_info["source"] is not None:
+    else:
         logging.info("Using zone info")
-        if zone_info["zranges"] is not None:
+        if zone_info.zranges is not None:
             zone_array = np.zeros(
                 (grid.get_nx(), grid.get_ny(), grid.get_nz()), dtype=int
             )
-            zonevals = [int(x) for x in range(len(zone_info["zranges"]))]
-            zone_info["int_to_zone"] = [f"Zone_{x}" for x in range(len(zonevals))]
+            zonevals = [int(x) for x in range(len(zone_info.zranges))]
+            zone_info.int_to_zone = [f"Zone_{x}" for x in range(len(zonevals))]
             for zv, zr, zn in zip(
                 zonevals,
-                list(zone_info["zranges"].values()),
-                zone_info["zranges"].keys(),
+                list(zone_info.zranges.values()),
+                zone_info.zranges.keys(),
             ):
                 zone_array[:, :, zr[0] - 1 : zr[1]] = zv
-                zone_info["int_to_zone"][zv] = zn
+                zone_info.int_to_zone[zv] = zn
             zone = zone_array.flatten(order="F")[global_active_idx]
         else:
             xtg_grid = xtgeo.grid_from_file(grid_file)
             _check_grid_dimensions(
-                zone_info["source"],
+                zone_info.source,
                 grid_file,
                 xtg_grid.ncol,
                 xtg_grid.nrow,
                 xtg_grid.nlay,
             )
-            zone = xtgeo.gridproperty_from_file(zone_info["source"], grid=xtg_grid)
+            zone = xtgeo.gridproperty_from_file(zone_info.source, grid=xtg_grid)
             try:
                 zone_name_dict = zone.codes
                 zone_values = list(zone_name_dict.keys())
@@ -528,13 +558,13 @@ def _process_zones(
                     "This might cause problems with the calculations for "
                     "containment in different zones."
                 )
-            zone_info["int_to_zone"] = [None] * (np.max(intvals) + 1)
+            zone_info.int_to_zone = [None] * (np.max(intvals) + 1)
             for zv in intvals:
                 if zv >= 0:
                     if zv in zone_values:
-                        zone_info["int_to_zone"][zv] = zone_name_dict[zv]
+                        zone_info.int_to_zone[zv] = zone_name_dict[zv]
                     else:
-                        zone_info["int_to_zone"][zv] = f"Zone_{zv}"
+                        zone_info.int_to_zone[zv] = f"Zone_{zv}"
                         logging.info(
                             f"Value {zv} in roff-grid not found in Codes."
                             f" Using generic zone name Zone_{zv}."
@@ -546,25 +576,25 @@ def _process_zones(
 
 
 def _process_regions(
-    region_info: Dict,
+    region_info: RegionInfo,
     grid: Grid,
     grid_file: str,
-    init: ResdataFile,
+    init: Optional[ResdataFile],
     active: np.ndarray,
     gasless: np.ndarray,
 ) -> Optional[np.ndarray]:
     region = None
-    if region_info["source"] is not None:
+    if region_info.source is not None:
         logging.info("Using regions info")
         xtg_grid = xtgeo.grid_from_file(grid_file)
         _check_grid_dimensions(
-            region_info["source"],
+            region_info.source,
             grid_file,
             xtg_grid.ncol,
             xtg_grid.nrow,
             xtg_grid.nlay,
         )
-        region = xtgeo.gridproperty_from_file(region_info["source"], grid=xtg_grid)
+        region = xtgeo.gridproperty_from_file(region_info.source, grid=xtg_grid)
         try:
             region_name_dict = region.codes
             region_values = list(region_name_dict.keys())
@@ -580,13 +610,13 @@ def _process_regions(
                 "This might cause problems with the calculations for "
                 "containment in different regions."
             )
-        region_info["int_to_region"] = [None] * (np.max(intvals) + 1)
+        region_info.int_to_region = [None] * (np.max(intvals) + 1)
         for rv in intvals:
             if rv >= 0:
                 if rv in region_values:
-                    region_info["int_to_region"][rv] = region_name_dict[rv]
+                    region_info.int_to_region[rv] = region_name_dict[rv]
                 else:
-                    region_info["int_to_region"][rv] = f"Region_{rv}"
+                    region_info.int_to_region[rv] = f"Region_{rv}"
                     logging.info(
                         f"Value {rv} in roff-grid not found in Codes."
                         f" Using generic region name Region_{rv}."
@@ -594,30 +624,35 @@ def _process_regions(
             else:
                 logging.info("Ignoring negative value in grid from region file.")
         region = np.array(region[active[~gasless]], dtype=int)
-    elif region_info["property_name"] is not None:
-        try:
-            logging.info(
-                f"Try reading region information ({region_info['property_name']}"
-                f" property) from INIT-file."
-            )
-            region = np.array(init[region_info["property_name"]][0], dtype=int)
-            if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
-                region = region[active]
-            regvals = np.unique(region)
-            region_info["int_to_region"] = [None] * (np.max(regvals) + 1)
-            for rv in regvals:
-                if rv >= 0:
-                    region_info["int_to_region"][rv] = f"Region_{rv}"
-                else:
-                    logging.info(
-                        f"Ignoring negative value in {region_info['property_name']}."
-                    )
-            logging.info("Region information successfully read from INIT-file")
-            region = region[~gasless]
-        except KeyError:
-            logging.info("Region information not found in INIT-file.")
+    elif region_info.property_name is not None:
+        if init is None:
+            logging.info("No INIT-file to use for region information.")
             region = None
-            region_info["int_to_region"] = None
+            region_info.int_to_region = None
+        else:
+            try:
+                logging.info(
+                    f"Try reading region information ({region_info.property_name}"
+                    f" property) from INIT-file."
+                )
+                region = np.array(init[region_info.property_name][0], dtype=int)
+                if region.shape[0] == grid.get_nx() * grid.get_ny() * grid.get_nz():
+                    region = region[active]
+                regvals = np.unique(region)
+                region_info.int_to_region = [None] * (np.max(regvals) + 1)
+                for rv in regvals:
+                    if rv >= 0:
+                        region_info.int_to_region[rv] = f"Region_{rv}"
+                    else:
+                        logging.info(
+                            f"Ignoring negative value in {region_info.property_name}."
+                        )
+                logging.info("Region information successfully read from INIT-file")
+                region = region[~gasless]
+            except KeyError:
+                logging.info("Region information not found in INIT-file.")
+                region = None
+                region_info.int_to_region = None
     return region
 
 
@@ -1181,8 +1216,8 @@ def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
 def calculate_co2(
     grid_file: str,
     unrst_file: str,
-    zone_info: Dict,
-    region_info: Dict,
+    zone_info: ZoneInfo,
+    region_info: RegionInfo,
     residual_trapping: bool = False,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
@@ -1195,8 +1230,8 @@ def calculate_co2(
       unrst_file (str): Path to UNRST-file
       calc_type_input (str): Input string with calculation type to perform
       init_file (str): Path to INIT-file
-      zone_info (Dict): Dictionary with zone information
-      region_info (Dict): Dictionary with region information
+      zone_info (ZoneInfo): Zone information
+      region_info (Dict): Region information
       residual_trapping (bool): Calculate residual trapping or not
 
     Returns:

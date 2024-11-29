@@ -10,7 +10,9 @@ import xtgeo
 from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
     CalculationType,
+    RegionInfo,
     SourceData,
+    ZoneInfo,
     _calculate_co2_data_from_source_data,
     _extract_source_data,
 )
@@ -20,16 +22,16 @@ from ccs_scripts.co2_containment.co2_containment import (
     sort_and_replace_nones,
 )
 
-zone_info = {
-    "source": None,
-    "zranges": None,
-    "int_to_zone": None,
-}
-region_info = {
-    "source": None,
-    "int_to_region": None,
-    "property_name": None,
-}
+zone_info = ZoneInfo(
+    source=None,
+    zranges=None,
+    int_to_zone=None,
+)
+region_info = RegionInfo(
+    source=None,
+    int_to_region=None,
+    property_name=None,
+)
 
 
 def _random_prop(
@@ -94,8 +96,8 @@ def _calc_and_compare(poly, masses, poly_hazardous=None):
         containment_polygon=poly,
         hazardous_polygon=poly_hazardous,
         calc_type_input="mass",
-        zone_info=zone_info,
-        region_info=region_info,
+        int_to_zone=zone_info.int_to_zone,
+        int_to_region=region_info.int_to_region,
     )
     sort_and_replace_nones(contained)
     total_values = contained[
@@ -279,8 +281,8 @@ def test_reek_grid():
         containment_polygon=reek_poly,
         hazardous_polygon=reek_poly_hazardous,
         calc_type_input="mass",
-        zone_info=zone_info,
-        region_info=region_info,
+        int_to_zone=zone_info.int_to_zone,
+        int_to_region=region_info.int_to_region,
     )
     sort_and_replace_nones(table)
     cs = ["total"] * 3 + ["contained"] + ["hazardous"] * 2
@@ -305,8 +307,8 @@ def test_reek_grid():
         containment_polygon=reek_poly,
         hazardous_polygon=reek_poly_hazardous,
         calc_type_input="actual_volume",
-        zone_info=zone_info,
-        region_info=region_info,
+        int_to_zone=zone_info.int_to_zone,
+        int_to_region=region_info.int_to_region,
     )
     sort_and_replace_nones(table2)
     amounts2 = [
@@ -343,8 +345,8 @@ def test_reek_grid():
         containment_polygon=reek_poly,
         hazardous_polygon=reek_poly_hazardous,
         calc_type_input="mass",
-        zone_info=zone_info,
-        region_info=region_info,
+        int_to_zone=zone_info.int_to_zone,
+        int_to_region=region_info.int_to_region,
         residual_trapping=True,
     )
     sort_and_replace_nones(table3)
@@ -373,8 +375,8 @@ def test_reek_grid():
         containment_polygon=reek_poly,
         hazardous_polygon=reek_poly_hazardous,
         calc_type_input="actual_volume",
-        zone_info=zone_info,
-        region_info=region_info,
+        int_to_zone=zone_info.int_to_zone,
+        int_to_region=region_info.int_to_region,
         residual_trapping=True,
     )
     sort_and_replace_nones(table4)
