@@ -125,7 +125,7 @@ def co2_mass_property_to_map(
 
     """
     config_.input.properties = []
-    config_.computesettings.aggregation = AggregationMethod.SUM
+    config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
     config_.output.aggregation_tag = False
     for props in out_property_list:
         if isinstance(props, str):
