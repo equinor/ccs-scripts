@@ -13,7 +13,7 @@ write_to = "src/ccs_scripts/version.py"
 name = "ccs-scripts"
 description = "Equinor's collection of scripts related to CCS"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { file = "LICENSE" }
 authors = [
     { name = "Equinor", email = "fmmo@equinor.com" },
@@ -27,7 +27,6 @@ classifiers = [
     # "Topic :: Software Development :: Libraries",
     # "Topic :: Utilities",
     "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
