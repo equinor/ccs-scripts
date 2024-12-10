@@ -993,7 +993,6 @@ def export_readable_output(
         plume_groups.remove("undetermined")
         plume_groups.append("undetermined")
 
-
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(details["type"])
         file.write(details["unit"])
