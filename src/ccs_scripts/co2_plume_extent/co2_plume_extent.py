@@ -850,7 +850,7 @@ def _find_distances_per_time_step(
             dist_per_group,
         )
         percent = (i + 1) / n_time_steps
-        logging.info(f"{percent*100:>6.1f} %")
+        logging.info(f"{percent * 100:>6.1f} %")
     logging.info("")
 
     # Handle groups not found above, fill in zero:
@@ -1005,10 +1005,10 @@ def _log_results(
     logging.info("\nSummary of results:")
     logging.info("===================")
     logging.info(
-        f"Number of dates {' '*(col_width-5)}: {len(dfs['date'].unique()):>11}"
+        f"Number of dates {' ' * (col_width - 5)}: {len(dfs['date'].unique()):>11}"
     )
-    logging.info(f"First date      {' '*(col_width-5)}: {dfs['date'].iloc[0]:>11}")
-    logging.info(f"Last date       {' '*(col_width-5)}: {dfs['date'].iloc[-1]:>11}")
+    logging.info(f"First date      {' ' * (col_width - 5)}: {dfs['date'].iloc[0]:>11}")
+    logging.info(f"Last date       {' ' * (col_width - 5)}: {dfs['date'].iloc[-1]:>11}")
 
     for col in df.drop("date", axis=1).columns:
         logging.info(f"End state {col:<{col_width}} : {dfs[col].iloc[-1]:>11.1f}")

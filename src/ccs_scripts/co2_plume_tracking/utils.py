@@ -198,7 +198,7 @@ class PlumeGroups:
                     ]
                 )
                 logging.debug(
-                    f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {n}"
+                    f"Count '{unique_group}' {' ' * (10 - len(str(unique_group)))}    : {n}"
                 )
 
 

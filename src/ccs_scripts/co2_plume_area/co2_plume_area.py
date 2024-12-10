@@ -256,7 +256,7 @@ def _log_results(df: pd.DataFrame) -> None:
     n2 = len(f"{df_subset.max().max():.1f}") if len(columns) > 0 else 5
     logging.info("End state plume area:")
     for c in columns:
-        logging.info(f"    * {c:<{n1+1}}: {dfs[c].iloc[-1]:>{n2+1}.1f}")
+        logging.info(f"    * {c:<{n1 + 1}}: {dfs[c].iloc[-1]:>{n2 + 1}.1f}")
 
 
 def main():
