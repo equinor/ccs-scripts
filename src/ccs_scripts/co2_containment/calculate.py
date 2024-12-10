@@ -126,15 +126,6 @@ def calculate_co2_containment(
                         "all": np.ones(len(co2_data.x_coord), dtype=bool)
                     }
                 for plume_name, is_in_plume in plume_group_info.items():
-                    # print("\nCalculating:")
-                    # print(f"    * {zone}")
-                    # print(f"    * {region}")
-                    # print(f"    * {location}")
-                    # print(f"    * {plume_name}")
-                    # print(f"    * #in_zone+region: {is_in_section.sum()}")
-                    # print(f"    * #in_location   : {is_in_location.sum()}")
-                    # print(f"    * #in_plume_group: {is_in_plume.sum()}")
-
                     for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
                         dtype = (
                             np.int64
