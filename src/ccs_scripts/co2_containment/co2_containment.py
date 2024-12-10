@@ -15,12 +15,14 @@ import socket
 import subprocess
 import sys
 from datetime import datetime
-from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
+from typing import Dict, List, Optional, TextIO, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import shapely.geometry
 import yaml
+from resdata.grid import Grid
+from resdata.resfile import ResdataFile
 
 from ccs_scripts.co2_containment.calculate import (
     ContainedCo2,
@@ -29,9 +31,19 @@ from ccs_scripts.co2_containment.calculate import (
 from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
+    RegionInfo,
+    ZoneInfo,
+    _fetch_properties,
     _set_calc_type_from_input_string,
     calculate_co2,
+    find_active_and_gasless_cells,
 )
+from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
+    DEFAULT_THRESHOLD_AQUEOUS,
+    Configuration,
+    calculate_plume_groups,
+)
+from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
 
 DESCRIPTION = """
 Calculates the amount of CO2 inside and outside a given perimeter, and
@@ -57,9 +69,10 @@ def calculate_out_of_bounds_co2(
     unrst_file: str,
     init_file: str,
     calc_type_input: str,
-    zone_info: Dict,
-    region_info: Dict,
+    zone_info: ZoneInfo,
+    region_info: RegionInfo,
     residual_trapping: bool,
+    injection_wells: List[InjectionWellData],
     file_containment_polygon: Optional[str] = None,
     file_hazardous_polygon: Optional[str] = None,
 ) -> pd.DataFrame:
@@ -77,13 +90,14 @@ def calculate_out_of_bounds_co2(
             containment area
         file_hazardous_polygon (str): Path to polygon defining the
             hazardous area
-        zone_info (Dict): Dictionary containing path to zone-file,
+        zone_info (ZoneInfo): Containing path to zone-file,
             or zranges (if the zone-file is provided as a YAML-file
             with zones defined through intervals in depth)
             as well as a list connecting zone-numbers to names
-        region_info (Dict): Dictionary containing path to potential region-file,
+        region_info (RegionInfo): Containing path to potential region-file,
             and list connecting region-numbers to names, if available
         residual_trapping (bool): Indicate if residual trapping should be calculated
+        injection_wells (List): Injection wells used for plume tracking
 
     Returns:
         pd.DataFrame
@@ -97,6 +111,7 @@ def calculate_out_of_bounds_co2(
         calc_type_input,
         init_file,
     )
+
     if file_containment_polygon is not None:
         containment_polygon = _read_polygon(file_containment_polygon)
     else:
@@ -105,15 +120,59 @@ def calculate_out_of_bounds_co2(
         hazardous_polygon = _read_polygon(file_hazardous_polygon)
     else:
         hazardous_polygon = None
+
+    if len(injection_wells) == 0:
+        plume_groups_amfg = None
+    else:
+        plume_groups_amfg = _find_plume_groups(grid_file, unrst_file, injection_wells)
+
     return calculate_from_co2_data(
         co2_data,
         containment_polygon,
         hazardous_polygon,
         calc_type_input,
-        zone_info,
-        region_info,
+        zone_info.int_to_zone,
+        region_info.int_to_region,
         residual_trapping,
+        plume_groups_amfg,
     )
+
+
+def _find_plume_groups(
+    grid_file: str,
+    unrst_file: str,
+    injection_wells: List[InjectionWellData],
+) -> Optional[List[List[str]]]:
+    grid = Grid(grid_file)
+    unrst = ResdataFile(unrst_file)
+    if "AMFG" in unrst:
+        dissolved_prop = "AMFG"
+    elif "XMF2" in unrst:
+        dissolved_prop = "XMF2"
+    else:
+        dissolved_prop = None
+
+    if dissolved_prop is None:
+        plume_groups_amfg = None
+    else:
+        plume_groups_amfg = calculate_plume_groups(
+            attribute_key=dissolved_prop,
+            threshold=0.1 * DEFAULT_THRESHOLD_AQUEOUS,
+            unrst=unrst,
+            grid=grid,
+            inj_wells=injection_wells,
+        )
+
+        # NBNB-AS: Plume tracking works on active grid cells, containment script on
+        #          gasless active cells. We do the conversion here, but could do a
+        #          conversion earlier (in plume tracking)
+        properties_to_extract = ["SGAS", dissolved_prop]
+        properties, _ = _fetch_properties(unrst, properties_to_extract)
+        active, gasless = find_active_and_gasless_cells(grid, properties, False)
+        global_active_idx = active[~gasless]
+        non_gasless = np.where(np.isin(active, global_active_idx))[0]
+        plume_groups_amfg = [list(np.array(x)[non_gasless]) for x in plume_groups_amfg]
+    return plume_groups_amfg
 
 
 def calculate_from_co2_data(
@@ -121,9 +180,10 @@ def calculate_from_co2_data(
     containment_polygon: shapely.geometry.Polygon,
     hazardous_polygon: Union[shapely.geometry.Polygon, None],
     calc_type_input: str,
-    zone_info: Dict,
-    region_info: Dict,
+    int_to_zone: Optional[List[Optional[str]]],
+    int_to_region: Optional[List[Optional[str]]],
     residual_trapping: bool = False,
+    plume_groups: Optional[List[List[str]]] = None,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
     Use polygons to divide co2 mass or volume into different categories
@@ -136,9 +196,10 @@ def calculate_from_co2_data(
         hazardous_polygon (shapely.geometry.Polygon): Polygon defining the
             hazardous area
         calc_type_input (str): Choose mass / cell_volume / actual_volume
-        zone_info (Dict): Dictionary containing zone information
-        region_info (Dict): Dictionary containing region information
+        int_to_zone (List): List of zone names
+        int_to_region (List): List of region names
         residual_trapping (bool): Indicate if residual trapping should be calculated
+        plume_groups (List): For each time step, list of plume group for each grid cell
 
     Returns:
         pd.DataFrame
@@ -148,10 +209,11 @@ def calculate_from_co2_data(
         co2_data,
         containment_polygon,
         hazardous_polygon,
-        zone_info,
-        region_info,
+        int_to_zone,
+        int_to_region,
         calc_type,
         residual_trapping,
+        plume_groups,
     )
     return _construct_containment_table(contained_co2)
 
@@ -202,7 +264,9 @@ def _merge_date_rows(
     Returns:
         pd.DataFrame: Output data frame
     """
-    data_frame = data_frame.drop(columns=["zone", "region"], axis=1, errors="ignore")
+    data_frame = data_frame.drop(
+        columns=["zone", "region", "plume_group"], axis=1, errors="ignore"
+    )
     locations = ["contained", "outside", "hazardous"]
     if calc_type == CalculationType.CELL_VOLUME:
         total_df = (
@@ -381,6 +445,11 @@ def get_parser() -> argparse.ArgumentParser:
         nargs="?",
         const=True,
     )
+    parser.add_argument(
+        "--config_file_inj_wells",
+        help="YML file with configurations for plume tracking calculations.",
+        default="",
+    )
 
     return parser
 
@@ -508,8 +577,6 @@ def check_input(arguments: argparse.Namespace):
         files_not_found.append(arguments.egrid)
     if not os.path.isfile(arguments.unrst):
         files_not_found.append(arguments.unrst)
-    if not os.path.isfile(arguments.init):
-        files_not_found.append(arguments.init)
     if arguments.zonefile is not None and not os.path.isfile(arguments.zonefile):
         files_not_found.append(arguments.zonefile)
     if arguments.regionfile is not None and not os.path.isfile(arguments.regionfile):
@@ -537,6 +604,9 @@ def check_input(arguments: argparse.Namespace):
     if not os.path.isdir(arguments.out_dir):
         logging.warning("Output directory doesn't exist. Creating a new folder.")
         os.mkdir(arguments.out_dir)
+
+    if not os.path.isfile(arguments.init):
+        logging.info(f"The INIT-file {arguments.init} was not found\n")
 
 
 def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
@@ -597,101 +667,167 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
             short_hash = "-"
         version += " (latest git commit: " + short_hash + ")"
 
+    col1 = 24
     now = datetime.now()
     date_time = now.strftime("%B %d, %Y %H:%M:%S")
     logging.info("CCS-scripts - Containment calculations")
     logging.info("======================================")
-    logging.info(f"Version             : {version}")
-    logging.info(f"Date and time       : {date_time}")
-    logging.info(f"User                : {getpass.getuser()}")
-    logging.info(f"Host                : {socket.gethostname()}")
-    logging.info(f"Platform            : {platform.system()} ({platform.release()})")
+    logging.info(f"{'Version':<{col1}} : {version}")
+    logging.info(f"{'Date and time':<{col1}} : {date_time}")
+    logging.info(f"{'User':<{col1}} : {getpass.getuser()}")
+    logging.info(f"{'Host':<{col1}} : {socket.gethostname()}")
+    logging.info(f"{'Platform':<{col1}} : {platform.system()} ({platform.release()})")
     py_version = (
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     )
-    logging.info(f"Python version      : {py_version}")
+    logging.info(f"{'Python version':<{col1}} : {py_version}")
 
-    logging.info(f"\nCase                : {arguments_processed.case}")
-    logging.info(f"Calculation type    : {arguments_processed.calc_type_input}")
-    logging.info(f"Root directory      : {arguments_processed.root_dir}")
-    logging.info(f"Output directory    : {arguments_processed.out_dir}")
-    logging.info(f"Containment polygon : {arguments_processed.containment_polygon}")
-    logging.info(f"Hazardous polygon   : {arguments_processed.hazardous_polygon}")
-    logging.info(f"EGRID file          : {arguments_processed.egrid}")
-    logging.info(f"UNRST file          : {arguments_processed.unrst}")
-    logging.info(f"INIT file           : {arguments_processed.init}")
-    logging.info(f"Zone file           : {arguments_processed.zonefile}")
+    logging.info(f"\n{'Case':<{col1}} : {arguments_processed.case}")
     logging.info(
-        f"Residual trapping   : "
-        f"{'yes' if arguments_processed.residual_trapping else 'no'}\n"
+        f"{'Calculation type':<{col1}} : {arguments_processed.calc_type_input}"
+    )
+    logging.info(f"{'Root directory':<{col1}} : {arguments_processed.root_dir}")
+    logging.info(f"{'Output directory':<{col1}} : {arguments_processed.out_dir}")
+    logging.info(
+        f"{'Containment polygon':<{col1}} : {arguments_processed.containment_polygon}"
+    )
+    logging.info(
+        f"{'Hazardous polygon':<{col1}} : {arguments_processed.hazardous_polygon}"
+    )
+    logging.info(f"{'EGRID file':<{col1}} : {arguments_processed.egrid}")
+    logging.info(f"{'UNRST file':<{col1}} : {arguments_processed.unrst}")
+    logging.info(f"{'INIT file':<{col1}} : {arguments_processed.init}")
+    logging.info(f"{'Zone file':<{col1}} : {arguments_processed.zonefile}")
+    regionfile_str = (
+        arguments_processed.regionfile
+        if arguments_processed.regionfile is not None
+        else "-"
+    )
+    logging.info(f"{'Region file':<{col1}} : " f"{regionfile_str}")
+    region_property_str = (
+        arguments_processed.region_property
+        if arguments_processed.region_property is not None
+        else "-"
+    )
+    logging.info(f"{'Region property':<{col1}} : " f"{region_property_str}")
+    logging.info(
+        f"{'Residual trapping':<{col1}} : "
+        f"{'yes' if arguments_processed.residual_trapping else 'no'}"
+    )
+    readable_output_str = (
+        "yes"
+        if arguments_processed.readable_output is not None and arguments_processed
+        else "no"
+    )
+    logging.info(f"{'Readable output':<{col1}} : " f"{readable_output_str}")
+    config_file_inj_wells_str = (
+        arguments_processed.config_file_inj_wells
+        if arguments_processed.config_file_inj_wells != ""
+        else "-"
+    )
+    logging.info(
+        f"{'Plume tracking YAML-file':<{col1}} : " f"{config_file_inj_wells_str}\n"
     )
 
 
 # pylint: disable = too-many-statements
-def log_summary_of_results(df: pd.DataFrame) -> None:
+def log_summary_of_results(
+    df: pd.DataFrame,
+    calc_type_input: str,
+) -> None:
     """
     Log a rough summary of the output
     """
-    cell_volume = "total" not in df["phase"]
+    cell_volume = calc_type_input == "cell_volume"
     dfs = df.sort_values("date")
     last_date = max(df["date"])
     df_subset = dfs[dfs["date"] == last_date]
-    df_subset = df_subset[(df_subset["zone"] == "all") & (df_subset["region"] == "all")]
+    df_subset = df_subset[
+        (df_subset["zone"] == "all")
+        & (df_subset["region"] == "all")
+        & (df_subset["plume_group"] == "all")
+    ]
     total = extract_amount(df_subset, "total", "total", cell_volume)
     n = len(f"{total:.1f}")
 
+    col1 = 24
     logging.info("\nSummary of results:")
     logging.info("===================")
-    logging.info(f"Number of dates       : {len(dfs['date'].unique())}")
-    logging.info(f"First date            : {dfs['date'].iloc[0]}")
-    logging.info(f"Last date             : {dfs['date'].iloc[-1]}")
-    logging.info(f"End state total       : {total:{n}.1f}")
+    logging.info(f"{'Number of dates':<{col1}} : {len(dfs['date'].unique())}")
+    logging.info(f"{'First date':<{col1}} : {dfs['date'].iloc[0]}")
+    logging.info(f"{'Last date':<{col1}} : {dfs['date'].iloc[-1]}")
+    logging.info(f"{'End state total':<{col1}} : {total:{n}.1f}")
     if not cell_volume:
         if "gas" in list(df_subset["phase"]):
             value = extract_amount(df_subset, "total", "gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(f"End state gaseous     : {value:{n}.1f}  ({percent:.1f} %)")
+            logging.info(
+                f"{'End state gaseous':<{col1}} : "
+                f"{value:{n}.1f}  ={percent:>5.1f} %"
+            )
         else:
             value = extract_amount(df_subset, "total", "free_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(f"End state free gas    : {value:{n}.1f}  ({percent:.1f} %)")
+            logging.info(
+                f"{'End state free gas':<{col1}} : "
+                f"{value:{n}.1f}  ={percent:>5.1f} %"
+            )
             value = extract_amount(df_subset, "total", "trapped_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(f"End state trapped gas : {value:{n}.1f}  ({percent:.1f} %)")
+            logging.info(
+                f"{'End state trapped gas':<{col1}} : "
+                f"{value:{n}.1f}  ={percent:>5.1f} %"
+            )
         value = extract_amount(df_subset, "total", "aqueous")
         percent = 100.0 * value / total if total > 0.0 else 0.0
-        logging.info(f"End state aqueous     : {value:{n}.1f}  ({percent:.1f} %)")
+        logging.info(
+            f"{'End state aqueous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+        )
     value = extract_amount(df_subset, "contained", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state contained   : {value:{n}.1f}  ({percent:.1f} %)")
+    logging.info(
+        f"{'End state contained':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+    )
     value = extract_amount(df_subset, "outside", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state outside     : {value:{n}.1f}  ({percent:.1f} %)")
+    logging.info(f"{'End state outside':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
     value = extract_amount(df_subset, "hazardous", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(f"End state hazardous   : {value:{n}.1f}  ({percent:.1f} %)")
+    logging.info(
+        f"{'End state hazardous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+    )
     if "zone" in dfs:
-        logging.info("Split into zones?     : yes")
-        unique_zones = dfs["zone"].unique()
-        n_zones = (
-            len(unique_zones) - 1 if "all" in dfs["zone"].values else len(unique_zones)
-        )
-        logging.info(f"Number of zones       : {n_zones}")
-        logging.info(f"Zones                 : {', '.join(unique_zones)}")
+        unique_zones = set(dfs["zone"].unique())
+        unique_zones.discard("all")
+        if len(unique_zones) == 0:
+            logging.info(f"{'Split into zones?':<{col1}} : no")
+        else:
+            logging.info(f"{'Split into zones?':<{col1}} : yes")
+            logging.info(f"{'Number of zones':<{col1}} : {len(unique_zones)}")
+            logging.info(f"{'Zones':<{col1}} : {', '.join(unique_zones)}")
     else:
-        logging.info("Split into zones?     : no")
+        logging.info(f"{'Split into zones?':<{col1}} : no")
     if "region" in dfs:
-        logging.info("Split into regions?   : yes")
-        unique_regions = dfs["region"].unique()
-        n_regions = (
-            len(unique_regions) - 1
-            if "all" in dfs["region"].values
-            else len(unique_regions)
-        )
-        logging.info(f"Number of regions     : {n_regions}")
-        logging.info(f"Regions               : {', '.join(unique_regions)}")
+        unique_regions = set(dfs["region"].unique())
+        unique_regions.discard("all")
+        if len(unique_regions) == 0:
+            logging.info(f"{'Split into regions?':<{col1}} : no")
+        else:
+            logging.info(f"{'Split into regions?':<{col1}} : yes")
+            logging.info(f"{'Number of regions':<{col1}} : {len(unique_regions)}")
+            logging.info(f"{'Regions':<{col1}} : {', '.join(unique_regions)}")
     else:
-        logging.info("Split into regions?   : no")
+        logging.info("{'Split into regions?':<{col1}} : no")
+    if "plume_group" in dfs:
+        unique_plumes = set(dfs["plume_group"].unique())
+        unique_plumes.discard("all")
+        unique_plumes.discard("?")
+        if len(unique_plumes) == 0:
+            logging.info(f"{'Split into plume groups?':<{col1}} : no")
+        else:
+            logging.info(f"{'Split into plume groups?':<{col1}} : yes")
+            logging.info(f"{'Number of plume groups':<{col1}} : {len(unique_plumes)}")
+            logging.info(f"{'Plume groups':<{col1}} : {', '.join(unique_plumes)}")
 
 
 def extract_amount(
@@ -725,8 +861,8 @@ def sort_and_replace_nones(
 
 def convert_data_frame(
     data_frame: pd.DataFrame,
-    zone_info: Dict[str, Any],
-    region_info: Dict[str, Any],
+    int_to_zone: Optional[List[Optional[str]]],
+    int_to_region: Optional[List[Optional[str]]],
     calc_type_input: str,
     residual_trapping: bool,
 ) -> pd.DataFrame:
@@ -736,49 +872,70 @@ def convert_data_frame(
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     logging.info("\nMerge data rows for data frame")
     total_df = _merge_date_rows(
-        data_frame[(data_frame["zone"] == "all") & (data_frame["region"] == "all")],
+        data_frame[
+            (data_frame["zone"] == "all")
+            & (data_frame["region"] == "all")
+            & (data_frame["plume_group"] == "all")
+        ],
         calc_type,
         residual_trapping,
     )
     total_df["zone"] = ["all"] * total_df.shape[0]
     total_df["region"] = ["all"] * total_df.shape[0]
-    data: Dict[str, Dict] = {}
-    zones = []
-    regions = []
-    if zone_info["int_to_zone"] is not None:
-        zones = [z for z in zone_info["int_to_zone"] if z is not None]
-        data["zone"] = {}
-        for z in zones:
-            data["zone"][z] = _merge_date_rows(
-                data_frame[data_frame["zone"] == z],
-                calc_type,
-                residual_trapping,
-            )
-    if region_info["int_to_region"] is not None:
-        regions = [r for r in region_info["int_to_region"] if r is not None]
-        data["region"] = {}
-        for r in regions:
-            data["region"][r] = _merge_date_rows(
-                data_frame[data_frame["region"] == r],
-                calc_type,
-                residual_trapping,
-            )
+    total_df["plume_group"] = ["all"] * total_df.shape[0]
 
     zone_df = pd.DataFrame()
-    region_df = pd.DataFrame()
-    if zone_info["int_to_zone"] is not None:
+    if int_to_zone is not None:
+        zones = [z for z in int_to_zone if z is not None]
         for z in zones:
-            _df = data["zone"][z]
+            _df = _merge_date_rows(
+                data_frame[
+                    (data_frame["zone"] == z) & (data_frame["plume_group"] == "all")
+                ],
+                calc_type,
+                residual_trapping,
+            )
             _df["zone"] = [z] * _df.shape[0]
             zone_df = pd.concat([zone_df, _df])
         zone_df["region"] = ["all"] * zone_df.shape[0]
-    if region_info["int_to_region"] is not None:
+        zone_df["plume_group"] = ["all"] * zone_df.shape[0]
+
+    region_df = pd.DataFrame()
+    if int_to_region is not None:
+        regions = [r for r in int_to_region if r is not None]
         for r in regions:
-            _df = data["region"][r]
+            _df = _merge_date_rows(
+                data_frame[
+                    (data_frame["region"] == r) & (data_frame["plume_group"] == "all")
+                ],
+                calc_type,
+                residual_trapping,
+            )
             _df["region"] = [r] * _df.shape[0]
             region_df = pd.concat([region_df, _df])
         region_df["zone"] = ["all"] * region_df.shape[0]
-    combined_df = pd.concat([total_df, zone_df, region_df])
+        region_df["plume_group"] = ["all"] * region_df.shape[0]
+
+    plume_groups_df = pd.DataFrame()
+    plume_groups = set(data_frame["plume_group"].to_list())
+    plume_groups -= {"all", "?"}
+    if len(plume_groups) > 0:
+        for p in plume_groups:
+            _df = _merge_date_rows(
+                data_frame[
+                    (data_frame["plume_group"] == p)
+                    & (data_frame["zone"] == "all")
+                    & (data_frame["region"] == "all")
+                ],
+                calc_type,
+                residual_trapping,
+            )
+            _df["plume_group"] = [p] * _df.shape[0]
+            plume_groups_df = pd.concat([plume_groups_df, _df])
+        plume_groups_df["zone"] = ["all"] * plume_groups_df.shape[0]
+        plume_groups_df["region"] = ["all"] * plume_groups_df.shape[0]
+
+    combined_df = pd.concat([total_df, zone_df, region_df, plume_groups_df])
     return combined_df
 
 
@@ -802,8 +959,8 @@ def export_output_to_csv(
 
 def export_readable_output(
     df: pd.DataFrame,
-    zone_info: dict,
-    region_info: dict,
+    int_to_zone: Optional[List[Optional[str]]],
+    int_to_region: Optional[List[Optional[str]]],
     out_dir: str,
     calc_type_input: str,
     residual_trapping: bool,
@@ -822,31 +979,42 @@ def export_readable_output(
 
     zones = []
     regions = []
-    if zone_info["int_to_zone"] is not None:
-        zones += [zone for zone in zone_info["int_to_zone"] if zone is not None]
-    if region_info["int_to_region"] is not None:
-        regions += [
-            region for region in region_info["int_to_region"] if region is not None
-        ]
+    plume_groups = []
+    if int_to_zone is not None:
+        zones += [zone for zone in int_to_zone if zone is not None]
+    if int_to_region is not None:
+        regions += [region for region in int_to_region if region is not None]
+    all_plume_groups = set(df["plume_group"].to_list())
+    all_plume_groups -= {"all", "?"}
+    if len(all_plume_groups) > 0:
+        plume_groups += list(all_plume_groups)
+
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(details["type"])
         file.write(details["unit"])
         file.write(details["empty"])
-        write_lines(file, df, "all", "all", details)
+        write_lines(file, df, "all", "all", "all", details)
         if len(zones) > 0:
             file.write(
                 f"\n{'Filtered by zone:,':<{11 + details['width']}}"
                 + details["blank"] * (details["num_cols"] - 2)
             )
-        for zone in zones:
-            write_lines(file, df, zone, "all", details)
+            for zone in zones:
+                write_lines(file, df, zone, "all", "all", details)
         if len(regions) > 0:
             file.write(
                 f"\n{'Filtered by region:,':<{11 + details['width']}}"
                 + details["blank"] * (details["num_cols"] - 2)
             )
-        for region in regions:
-            write_lines(file, df, "all", region, details)
+            for region in regions:
+                write_lines(file, df, "all", region, "all", details)
+        if len(plume_groups) > 0:
+            file.write(
+                f"\n{'Filtered by plume gr.:,':<{11 + details['width']}}"
+                + details["blank"] * (details["num_cols"] - 2)
+            )
+            for plume_group in plume_groups:
+                write_lines(file, df, "all", "all", plume_group, details)
 
 
 def find_width(num_decimals: int, max_value: Union[int, float]) -> int:
@@ -865,7 +1033,9 @@ def prepare_writing_details(
     Prepare headers and other information to be written in the summary file.
     """
     details: Dict = {
-        "numeric": [c for c in df.columns if c not in ["date", "zone", "region"]],
+        "numeric": [
+            c for c in df.columns if c not in ["date", "zone", "region", "plume_group"]
+        ],
         "num_decimals": (
             3 if calc_type == "mass" else 6 if calc_type == "actual_volume" else 2
         ),
@@ -920,15 +1090,20 @@ def write_lines(
     data_frame: pd.DataFrame,
     zone: str,
     region: str,
+    plume_group: str,
     details: dict,
 ) -> None:
     """
     Write lines for the section of the containment output corresponding to the area
-    defined by the specified region or zone (or the total across all).
+    defined by the specified region or zone or plume_group (or the total across all).
     """
-    df = data_frame[(data_frame["zone"] == zone) & (data_frame["region"] == region)]
+    df = data_frame[
+        (data_frame["zone"] == zone)
+        & (data_frame["region"] == region)
+        & (data_frame["plume_group"] == plume_group)
+    ]
     max_name_length = 10 + details["width"]
-    if zone == "all" and region == "all":
+    if zone == "all" and region == "all" and plume_group == "all":
         over_header = "\n          ," + " " * details["width"]
     elif region != "all":
         if len(region) > max_name_length:
@@ -939,7 +1114,7 @@ def write_lines(
         over_header = f"\n{region:>10}," + " " * (
             details["width"] + min((0, 10 - len(region)))
         )
-    else:
+    elif zone != "all":
         if len(zone) > max_name_length:
             logging.warning(
                 "Zone name is long and will be cut off in the summary format!"
@@ -947,6 +1122,15 @@ def write_lines(
             zone = zone[:max_name_length]
         over_header = f"\n{zone:>10}," + " " * (
             details["width"] + min((0, 10 - len(zone)))
+        )
+    else:  # plume_group != "all"
+        if len(plume_group) > max_name_length:
+            logging.warning(
+                "Plume group name is long and will be cut off in the summary format!"
+            )
+            plume_group = plume_group[:max_name_length]
+        over_header = f"\n{plume_group:>10}," + " " * (
+            details["width"] + min((0, 10 - len(plume_group)))
         )
 
     file.write(over_header + details["over_header"])
@@ -968,20 +1152,26 @@ def main() -> None:
     """
     arguments_processed = process_args()
     check_input(arguments_processed)
-    zone_info = {
-        "source": arguments_processed.zonefile,
-        "zranges": None,
-        "int_to_zone": None,
-    }
-    region_info = {
-        "source": arguments_processed.regionfile,
-        "int_to_region": None,  # set during calculation if source or property is given
-        "property_name": arguments_processed.region_property,
-    }
-    if zone_info["source"] is not None:
-        zone_info["zranges"] = process_zonefile_if_yaml(zone_info["source"])
+    zone_info = ZoneInfo(
+        source=arguments_processed.zonefile,
+        zranges=None,
+        int_to_zone=None,
+    )
+    region_info = RegionInfo(
+        source=arguments_processed.regionfile,
+        int_to_region=None,  # set during calculation if source or property is given
+        property_name=arguments_processed.region_property,
+    )
+    if zone_info.source is not None:
+        zone_info.zranges = process_zonefile_if_yaml(zone_info.source)
 
     log_input_configuration(arguments_processed)
+
+    if arguments_processed.config_file_inj_wells == "":
+        injection_wells = []
+    else:
+        config = Configuration(arguments_processed.config_file_inj_wells)
+        injection_wells = config.injection_wells
 
     data_frame = calculate_out_of_bounds_co2(
         arguments_processed.egrid,
@@ -991,11 +1181,12 @@ def main() -> None:
         zone_info,
         region_info,
         arguments_processed.residual_trapping,
+        injection_wells,
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
     )
     sort_and_replace_nones(data_frame)
-    log_summary_of_results(data_frame)
+    log_summary_of_results(data_frame, arguments_processed.calc_type_input)
     export_output_to_csv(
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,
@@ -1004,15 +1195,15 @@ def main() -> None:
     if arguments_processed.readable_output:
         df_old_output = convert_data_frame(
             data_frame,
-            zone_info,
-            region_info,
+            zone_info.int_to_zone,
+            region_info.int_to_region,
             arguments_processed.calc_type_input,
             arguments_processed.residual_trapping,
         )
         export_readable_output(
             df_old_output,
-            zone_info,
-            region_info,
+            zone_info.int_to_zone,
+            region_info.int_to_region,
             arguments_processed.out_dir,
             arguments_processed.calc_type_input,
             arguments_processed.residual_trapping,

@@ -56,12 +56,11 @@ class Configuration:
     def __init__(
         self,
         config_file: str,
-        case: str,
     ):
         self.injection_wells: List[InjectionWellData] = []
 
         input_dict = self.read_config_file(config_file)
-        self.make_config_from_input_dict(input_dict, case)
+        self.make_config_from_input_dict(input_dict)
 
     @staticmethod
     def read_config_file(
@@ -75,7 +74,7 @@ class Configuration:
                 logging.error(exc)
                 sys.exit(1)
 
-    def make_config_from_input_dict(self, input_dict: Dict, case: str):
+    def make_config_from_input_dict(self, input_dict: Dict):
         if "injection_wells" not in input_dict:
             logging.error("\nERROR: No injection wells specified.")
         else:
@@ -408,7 +407,7 @@ def calculate_plume_groups(
 
         prev_groups = groups.copy()
         percent = (i + 1) / n_time_steps
-        logging.info(f"{percent*100:>6.1f} %")
+        logging.info(f"{percent * 100:>6.1f} %")
     logging.info("")
 
     _log_number_of_grid_cells(
@@ -436,6 +435,8 @@ def _plume_groups_at_time_step(
     groups: PlumeGroups,
     n_grid_cells_for_logging: Dict[str, List[int]],
 ):
+    # NBNB-AS: Here we are working on active grid cells,
+    #          instead of 'non-gasless' cells, like in containment-script
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
 
@@ -584,10 +585,10 @@ def _log_results(
     logging.info("\nSummary of results:")
     logging.info("===================")
     logging.info(
-        f"Number of dates {' '*(col_width-5)}: {len(dfs['date'].unique()):>11}"
+        f"Number of dates {' ' * (col_width - 5)}: {len(dfs['date'].unique()):>11}"
     )
-    logging.info(f"First date      {' '*(col_width-5)}: {dfs['date'].iloc[0]:>11}")
-    logging.info(f"Last date       {' '*(col_width-5)}: {dfs['date'].iloc[-1]:>11}")
+    logging.info(f"First date      {' ' * (col_width - 5)}: {dfs['date'].iloc[0]:>11}")
+    logging.info(f"Last date       {' ' * (col_width - 5)}: {dfs['date'].iloc[-1]:>11}")
 
     for col in df.drop("date", axis=1).columns:
         logging.info(f"End state {col:<{col_width}} : {dfs[col].iloc[-1]:>11.1f}")
@@ -658,7 +659,6 @@ def main():
 
     config = Configuration(
         args.config_file,
-        args.case,
     )
     _log_configuration(config)
 
