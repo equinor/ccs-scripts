@@ -102,7 +102,7 @@ def calculate_co2_containment(
     zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, int_to_region)
 
     if plume_groups is not None:
-        plume_groups = [[x if x != "" else "?" for x in y] for y in plume_groups]
+        plume_groups = [[x if x != "" else "undetermined" for x in y] for y in plume_groups]
         plume_names = set(name for values in plume_groups for name in values)
     else:
         plume_names = set()

@@ -821,7 +821,7 @@ def log_summary_of_results(
     if "plume_group" in dfs:
         unique_plumes = set(dfs["plume_group"].unique())
         unique_plumes.discard("all")
-        unique_plumes.discard("?")
+        unique_plumes.discard("undetermined")
         if len(unique_plumes) == 0:
             logging.info(f"{'Split into plume groups?':<{col1}} : no")
         else:
@@ -989,9 +989,9 @@ def export_readable_output(
     all_plume_groups = [name for name in all_plume_groups if name not in ["all"]]
     if len(all_plume_groups) > 0:
         plume_groups += all_plume_groups
-    if "?" in plume_groups:
-        plume_groups.remove("?")
-        plume_groups.append("?")
+    if "undetermined" in plume_groups:
+        plume_groups.remove("undetermined")
+        plume_groups.append("undetermined")
 
 
     with open(file_path, "w", encoding="utf-8") as file:

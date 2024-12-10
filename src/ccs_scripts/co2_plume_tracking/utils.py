@@ -186,7 +186,7 @@ class PlumeGroups:
                 f"{len([c for c in self.cells if c.has_no_co2()])}"
             )
             logging.debug(
-                f"Count '?'              : "
+                f"Count 'undetermined'   : "
                 f"{len([c for c in self.cells if c.is_undetermined()])}"
             )
             for unique_group in unique_groups:

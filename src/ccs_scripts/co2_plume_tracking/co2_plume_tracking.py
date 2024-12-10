@@ -311,7 +311,7 @@ def _log_number_of_grid_cells(
             row += f" {n_cells:>{widths[col]}}"
         logging.info(row)
     logging.info("")
-    if "?" in n_cells_sorted:
+    if "undetermined" in n_cells_sorted:
         no_groups = len(n_cells_sorted) == 1
         logging.warning(
             f"WARNING: Plume group not found for "
@@ -398,7 +398,7 @@ def calculate_plume_groups(
                         str(
                             [x.name for x in inj_wells if x.number == y][0]
                             if y != -1
-                            else "?"
+                            else "undetermined"
                         )
                         for y in all_groups
                     ]
@@ -471,9 +471,9 @@ def _plume_groups_at_time_step(
     unique_groups = groups.find_unique_groups()
     for g in unique_groups:
         if g == [-1]:
-            if "?" not in n_grid_cells_for_logging:
-                n_grid_cells_for_logging["?"] = [0] * n_time_steps
-            n_grid_cells_for_logging["?"][i] = len(
+            if "undetermined" not in n_grid_cells_for_logging:
+                n_grid_cells_for_logging["undetermined"] = [0] * n_time_steps
+            n_grid_cells_for_logging["undetermined"][i] = len(
                 [j for j in cells_with_co2 if groups.cells[j].all_groups == [-1]]
             )
             continue
