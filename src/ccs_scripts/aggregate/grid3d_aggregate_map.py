@@ -210,9 +210,9 @@ def _redistribute_config_property(config_: _config.RootConfig):
     if config_.input.properties is not None:
         if isinstance(config_.input.properties[0].name, list):
             tmp_props = config_.input.properties.pop()
-            if isinstance(tmp_props.lower_threshold, list) and len(tmp_props.name) == len(
-                tmp_props.lower_threshold
-            ):
+            if isinstance(tmp_props.lower_threshold, list) and len(
+                tmp_props.name
+            ) == len(tmp_props.lower_threshold):
                 config_.input.properties.extend(
                     [
                         _config.Property(tmp_props.source, name, threshold)
@@ -252,8 +252,8 @@ def _redistribute_config_property(config_: _config.RootConfig):
             else:
                 error_text = (
                     f"{str(len(tmp_props.lower_threshold))} values of co2_threshold"
-                    f"provided, but {str(len(tmp_props.name))} properties in config file"
-                    f"input. Fix the amount of values in co2_threshold or"
+                    f"provided, but {str(len(tmp_props.name))} properties in config"
+                    f" file input. Fix the amount of values in co2_threshold or"
                     f"the amount of properties in config file"
                 )
                 raise Exception(error_text)
