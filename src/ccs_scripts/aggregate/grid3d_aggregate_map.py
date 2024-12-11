@@ -206,6 +206,59 @@ def generate_from_config(config: _config.RootConfig):
     )
 
 
+def _redistribute_config_property(config_: _config.RootConfig):
+    if isinstance(config_.input.properties[0].name, list):
+        tmp_props = config_.input.properties.pop()
+        if isinstance(tmp_props.lower_threshold, list) and len(tmp_props.name) == len(
+            tmp_props.lower_threshold
+        ):
+            config_.input.properties.extend(
+                [
+                    _config.Property(tmp_props.source, name, threshold)
+                    for name, threshold in zip(
+                        tmp_props.name, tmp_props.lower_threshold
+                    )
+                ]
+            )
+        elif isinstance(tmp_props.lower_threshold, float) or (
+            isinstance(tmp_props.lower_threshold, list)
+            and len(tmp_props.lower_threshold) == 1
+        ):
+            logging.info(
+                f"Only one value of threshold for {str(len(tmp_props.name))}."
+                f"properties. The same threshold will be assumed for all the"
+                f"properties."
+            )
+            if (
+                isinstance(tmp_props.lower_threshold, list)
+                and len(tmp_props.lower_threshold) == 1
+            ):
+                tmp_props.lower_threshold = tmp_props.lower_threshold[0] * len(
+                    tmp_props.name
+                )
+            else:
+                tmp_props.lower_threshold = [tmp_props.lower_threshold] * len(
+                    tmp_props.name
+                )
+            config_.input.properties.extend(
+                [
+                    _config.Property(tmp_props.source, name, threshold)
+                    for name, threshold in zip(
+                        tmp_props.name, tmp_props.lower_threshold
+                    )
+                ]
+            )
+        else:
+            error_text = (
+                f"{str(len(tmp_props.lower_threshold))} values of co2_threshold provided,"
+                f" but {str(len(tmp_props.name))} properties in config file"
+                f"input. Fix the amount of values in co2_threshold or"
+                f"the amount of properties in config file"
+            )
+            raise Exception(error_text)
+    return config_
+
+
 def main(arguments=None):
     """
     Main function that wraps `generate_from_config` with argument parsing
@@ -215,7 +268,9 @@ def main(arguments=None):
     _XTG.say("Running grid3d_aggregate_map using code from ccs-scripts")
     if arguments is None:
         arguments = sys.argv[1:]
-    generate_from_config(process_arguments(arguments))
+    config_ = process_arguments(arguments)
+    _redistribute_config_property(config_)
+    generate_from_config(config_)
 
 
 if __name__ == "__main__":
