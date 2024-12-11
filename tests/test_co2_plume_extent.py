@@ -194,9 +194,9 @@ def test_export_to_csv():
     df.to_csv(out_file, index=False)
 
     df = pandas.read_csv(out_file)
-    assert "MAX_PLUME_EXTENT_SGAS" in df.keys()
-    assert "MAX_PLUME_EXTENT_AMFG" not in df.keys()
-    assert df["MAX_PLUME_EXTENT_SGAS"].iloc[-1] == pytest.approx(1269.1237856341113)
+    assert "MAX_PLUME_EXTENT_GAS" in df.keys()
+    assert "MAX_PLUME_EXTENT_DISSOLVED" not in df.keys()
+    assert df["MAX_PLUME_EXTENT_GAS"].iloc[-1] == pytest.approx(1269.1237856341113)
 
     os.remove(out_file)
 
@@ -230,9 +230,9 @@ def test_plume_extent(mocker):
     main()
 
     df = pandas.read_csv(output_path)
-    assert "MAX_PLUME_EXTENT_SGAS" in df.keys()
-    assert "MAX_PLUME_EXTENT_AMFG" not in df.keys()
-    assert df["MAX_PLUME_EXTENT_SGAS"].iloc[-1] == pytest.approx(1915.5936794783647)
+    assert "MAX_PLUME_EXTENT_GAS" in df.keys()
+    assert "MAX_PLUME_EXTENT_DISSOLVED" not in df.keys()
+    assert df["MAX_PLUME_EXTENT_GAS"].iloc[-1] == pytest.approx(1915.5936794783647)
 
     os.remove(output_path)
 
@@ -270,7 +270,7 @@ def test_plume_extent_eclipse_using_well_name(mocker):
             "INJ",
             "--threshold_gas",
             "0.015",
-            "--threshold_aqueous",
+            "--threshold_dissolved",
             "0.0004",
             "--output",
             output_path,
@@ -305,7 +305,7 @@ def test_plume_extent_eclipse_using_coordinates(mocker):
             "[2124.95, 2108.24]",
             "--threshold_gas",
             "0.015",
-            "--threshold_aqueous",
+            "--threshold_dissolved",
             "0.0004",
             "--output",
             output_path,
@@ -340,7 +340,7 @@ def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
             "[2124.95, 2108.24]",
             "--threshold_gas",
             "0.000000001",
-            "--threshold_aqueous",
+            "--threshold_dissolved",
             "0.000000001",
             "--output",
             output_path,
@@ -375,7 +375,7 @@ def test_plume_extent_pflotran_using_well_name(mocker):
             "INJ",
             "--threshold_gas",
             "0.015",
-            "--threshold_aqueous",
+            "--threshold_dissolved",
             "0.0004",
             "--output",
             output_path,
@@ -410,7 +410,7 @@ def test_plume_extent_pflotran_using_coordinates(mocker):
             "[2124.95, 2108.24]",
             "--threshold_gas",
             "0.015",
-            "--threshold_aqueous",
+            "--threshold_dissolved",
             "0.0004",
             "--output",
             output_path,
