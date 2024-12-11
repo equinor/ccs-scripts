@@ -26,7 +26,7 @@ CO2_MASS_PNAME = "CO2Mass"
 
 class MapName(Enum):
     MASS_TOT = "co2_mass_total"
-    MASS_DIS = "co2_mass_dis_phase"
+    MASS_DIS = "co2_mass_dissolved_phase"
     MASS_GAS = "co2_mass_gas_phase"
     MASSTGAS = "co2_mass_trapped_gas_phase"
     MASSFGAS = "co2_mass_free_gas_phase"
