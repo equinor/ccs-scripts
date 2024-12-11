@@ -990,6 +990,7 @@ def export_readable_output(
     if len(all_plume_groups) > 0:
         plume_groups += all_plume_groups
     if "undetermined" in plume_groups:
+        # To report undetermined last in the CSV-file:
         plume_groups.remove("undetermined")
         plume_groups.append("undetermined")
 
