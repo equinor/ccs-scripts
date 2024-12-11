@@ -206,7 +206,7 @@ def generate_from_config(config: _config.RootConfig):
     )
 
 
-def _redistribute_config_property(config_: _config.RootConfig):
+def _distribute_config_property(config_: _config.RootConfig):
     if config_.input.properties is not None:
         if isinstance(config_.input.properties[0].name, list):
             tmp_props = config_.input.properties.pop()
@@ -270,7 +270,7 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = process_arguments(arguments)
-    _redistribute_config_property(config_)
+    _distribute_config_property(config_)
     generate_from_config(config_)
 
 
