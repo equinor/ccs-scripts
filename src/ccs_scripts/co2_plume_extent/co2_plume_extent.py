@@ -900,7 +900,7 @@ def _find_distances_at_time_step(
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that
                 # have an undecided plume group
-                if group_name == "?":
+                if group_name == "undetermined":
                     continue
                 # Check for new group name
                 if group_name not in dist_per_group:
@@ -934,7 +934,7 @@ def _find_distances_at_time_step(
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that
                 # have an undecided plume group
-                if group_name == "?":
+                if group_name == "undetermined":
                     continue
                 # Check for new group name
                 if group_name not in dist_per_group:

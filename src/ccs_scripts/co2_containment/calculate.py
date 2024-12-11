@@ -102,7 +102,9 @@ def calculate_co2_containment(
     zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, int_to_region)
 
     if plume_groups is not None:
-        plume_groups = [[x if x != "" else "?" for x in y] for y in plume_groups]
+        plume_groups = [
+            [x if x != "" else "undetermined" for x in y] for y in plume_groups
+        ]
         plume_names = set(name for values in plume_groups for name in values)
     else:
         plume_names = set()
@@ -126,15 +128,6 @@ def calculate_co2_containment(
                         "all": np.ones(len(co2_data.x_coord), dtype=bool)
                     }
                 for plume_name, is_in_plume in plume_group_info.items():
-                    # print("\nCalculating:")
-                    # print(f"    * {zone}")
-                    # print(f"    * {region}")
-                    # print(f"    * {location}")
-                    # print(f"    * {plume_name}")
-                    # print(f"    * #in_zone+region: {is_in_section.sum()}")
-                    # print(f"    * #in_location   : {is_in_location.sum()}")
-                    # print(f"    * #in_plume_group: {is_in_plume.sum()}")
-
                     for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
                         dtype = (
                             np.int64
