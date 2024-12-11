@@ -122,9 +122,9 @@ def calculate_out_of_bounds_co2(
         hazardous_polygon = None
 
     if len(injection_wells) == 0:
-        plume_groups_amfg = None
+        plume_groups = None
     else:
-        plume_groups_amfg = _find_plume_groups(grid_file, unrst_file, injection_wells)
+        plume_groups = _find_plume_groups(grid_file, unrst_file, injection_wells)
 
     return calculate_from_co2_data(
         co2_data,
@@ -134,7 +134,7 @@ def calculate_out_of_bounds_co2(
         zone_info.int_to_zone,
         region_info.int_to_region,
         residual_trapping,
-        plume_groups_amfg,
+        plume_groups,
     )
 
 
@@ -153,9 +153,9 @@ def _find_plume_groups(
         dissolved_prop = None
 
     if dissolved_prop is None:
-        plume_groups_amfg = None
+        plume_groups = None
     else:
-        plume_groups_amfg = calculate_plume_groups(
+        plume_groups = calculate_plume_groups(
             attribute_key=dissolved_prop,
             threshold=0.1 * DEFAULT_THRESHOLD_AQUEOUS,
             unrst=unrst,
@@ -171,8 +171,8 @@ def _find_plume_groups(
         active, gasless = find_active_and_gasless_cells(grid, properties, False)
         global_active_idx = active[~gasless]
         non_gasless = np.where(np.isin(active, global_active_idx))[0]
-        plume_groups_amfg = [list(np.array(x)[non_gasless]) for x in plume_groups_amfg]
-    return plume_groups_amfg
+        plume_groups = [list(np.array(x)[non_gasless]) for x in plume_groups]
+    return plume_groups
 
 
 def calculate_from_co2_data(
