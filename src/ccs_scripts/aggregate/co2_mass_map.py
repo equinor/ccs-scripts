@@ -45,7 +45,6 @@ def generate_co2_mass_maps(config_):
         config_: Arguments in the config file
     """
     co2_mass_settings = config_.co2_mass_settings
-    zonation = config_.zonation
     zones = co2_mass_settings.zones
     if zones is not None and isinstance(zones, str):
         co2_mass_settings.zones = [zones]
