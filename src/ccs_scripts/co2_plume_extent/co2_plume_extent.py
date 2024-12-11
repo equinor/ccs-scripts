@@ -1082,7 +1082,7 @@ def _collect_results_into_dataframe(
     for i, (result, single_config) in enumerate(
         zip(all_results, config.distance_calculations), 1
     ):
-        (gas_results, dissolved_results, dissolved_prop_key) = result
+        (gas_results, dissolved_results, _) = result
 
         col = _find_column_name(single_config, len(config.distance_calculations), i)
 
@@ -1108,11 +1108,7 @@ def _collect_results_into_dataframe(
             for group_str, results in dissolved_results_sorted.items():
                 for well_name, result2 in results.items():
                     if result2 is not None:
-                        if dissolved_prop_key is None:
-                            dissolved_prop_key_str = "?"
-                        else:
-                            dissolved_prop_key_str = dissolved_prop_key
-                        full_col_name = col + "_" + dissolved_prop_key_str
+                        full_col_name = col  + "_DISSOLVED"
                         if group_str != "ALL":
                             full_col_name += "_PLUME_" + group_str
                         if well_name != "ALL" and well_name != "WELL":
