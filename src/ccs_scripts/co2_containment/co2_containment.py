@@ -39,7 +39,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     find_active_and_gasless_cells,
 )
 from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
-    DEFAULT_THRESHOLD_AQUEOUS,
+    DEFAULT_THRESHOLD_DISSOLVED,
     Configuration,
     calculate_plume_groups,
 )
@@ -157,7 +157,7 @@ def _find_plume_groups(
     else:
         plume_groups = calculate_plume_groups(
             attribute_key=dissolved_prop,
-            threshold=0.1 * DEFAULT_THRESHOLD_AQUEOUS,
+            threshold=0.1 * DEFAULT_THRESHOLD_DISSOLVED,
             unrst=unrst,
             grid=grid,
             inj_wells=injection_wells,
@@ -291,7 +291,7 @@ def _merge_date_rows(
             .rename(columns={"amount": "total"})
         )
         phases = ["free_gas", "trapped_gas"] if residual_trapping else ["gas"]
-        phases += ["aqueous"]
+        phases += ["dissolved"]
         # Total by phase
         for phase in phases:
             _df = (
@@ -778,10 +778,10 @@ def log_summary_of_results(
                 f"{'End state trapped gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
-        value = extract_amount(df_subset, "total", "aqueous")
+        value = extract_amount(df_subset, "total", "dissolved")
         percent = 100.0 * value / total if total > 0.0 else 0.0
         logging.info(
-            f"{'End state aqueous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+            f"{'End state dissolved':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
         )
     value = extract_amount(df_subset, "contained", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
@@ -1049,9 +1049,9 @@ def prepare_writing_details(
         df[column] /= 1e6
     width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     phase = (
-        f",{'Free gas':>{width}},{'Trapped gas':>{width}},{'Aqueous':>{width}}"
+        f",{'Free gas':>{width}},{'Trapped gas':>{width}},{'Dissolved':>{width}}"
         if residual_trapping
-        else f",{'Gas':>{width}},{'Aqueous':>{width}}"
+        else f",{'Gas':>{width}},{'Dissolved':>{width}}"
     )
     n_phase = 0 if calc_type == "cell_volume" else 3 if residual_trapping else 2
 
