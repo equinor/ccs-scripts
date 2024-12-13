@@ -2,9 +2,8 @@
 import os
 import shutil
 import sys
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
-import xtgeo
 import yaml
 
 from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map
