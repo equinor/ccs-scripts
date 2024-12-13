@@ -2,9 +2,8 @@
 import os
 import shutil
 import sys
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
-import xtgeo
 import yaml
 
 from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map
@@ -45,7 +44,6 @@ def generate_co2_mass_maps(config_):
         config_: Arguments in the config file
     """
     co2_mass_settings = config_.co2_mass_settings
-    zonation = config_.zonation
     zones = co2_mass_settings.zones
     if zones is not None and isinstance(zones, str):
         co2_mass_settings.zones = [zones]
@@ -79,19 +77,6 @@ def generate_co2_mass_maps(config_):
         RELEVANT_PROPERTIES,
         config_.output.gridfolder,
     )
-    config_.zonation.zranges, all_zrange = process_zonation(
-        co2_mass_settings, grid_file, zonation
-    )
-    if len(config_.zonation.zranges) > 0:
-        config_.zonation.zproperty = None
-    if config_.computesettings.all:
-        config_.zonation.zranges.append({"all": all_zrange})
-        config_.computesettings.all = False
-        if not config_.computesettings.zone:
-            config_.computesettings.zone = True
-            config_.zonation.zranges = [
-                zrange for zrange in config_.zonation.zranges if "all" in zrange
-            ]
     co2_mass_property_to_map(config_, out_property_list)
 
 
@@ -139,62 +124,6 @@ def co2_mass_property_to_map(
     grid3d_aggregate_map.generate_from_config(config_)
     if not config_.output.gridfolder:
         clean_tmp(out_property_list)
-
-
-def process_zonation(
-    co2_mass_settings: _config.CO2MassSettings,
-    grid_file: str,
-    zonation: _config.Zonation,
-) -> Tuple[List, List]:
-    """
-    Processes a zonation file, if existing, and extracts both zranges per zone
-    and the complete range in the zaxis. Otherwise, uses the grid_file.
-
-    Args:
-        co2_mass_settings: Arguments in CO2 mass settings
-        grid_file: Path to grid file
-        zonation: Arguments in zonation
-
-    Returns:
-        Tuple[List,List]
-    """
-    if zonation.zproperty is not None or len(zonation.zranges) > 0:
-        if zonation.zproperty is not None:
-            if zonation.zproperty.source.split(".")[-1] in ["yml", "yaml"]:
-                zfile = read_yml_file(zonation.zproperty.source)
-                zonation.zranges = zfile["zranges"]
-        if len(zonation.zranges) > 0:
-            zone_names = [list(item.keys())[0] for item in zonation.zranges]
-            zranges_limits = [list(d.values())[0] for d in zonation.zranges]
-    else:
-        grid_pf = xtgeo.grid_from_file(grid_file)
-        zranges_limits = [(1, grid_pf.nlay)]
-        zone_names = None
-    max_zvalue = max(zrange[-1] for zrange in zranges_limits)
-    min_zvalue = min(zrange[0] for zrange in zranges_limits)
-    all_zrange = [min_zvalue, max_zvalue]
-    if zone_names is not None:
-        if co2_mass_settings.zones is not None:
-            zones_to_plot = [
-                zone for zone in co2_mass_settings.zones if zone in zone_names
-            ]
-            if len(zones_to_plot) == 0:
-                print(
-                    "The zones specified in CO2 mass settings are not part of the "
-                    "zonation provided \n"
-                    " maps will be exported for all the existing zones"
-                )
-                return zonation.zranges, all_zrange
-            else:
-                return [
-                    item
-                    for item in zonation.zranges
-                    if list(item.keys())[0] in zones_to_plot
-                ], all_zrange
-        else:
-            return zonation.zranges, all_zrange
-    else:
-        return [], all_zrange
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:
