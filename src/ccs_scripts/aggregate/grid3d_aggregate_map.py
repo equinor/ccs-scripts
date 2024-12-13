@@ -234,7 +234,7 @@ def _distribute_config_property(config_: _config.RootConfig):
             isinstance(tmp_props.lower_threshold, list)
             and len(tmp_props.lower_threshold) == 1
         ):
-            tmp_props.lower_threshold = tmp_props.lower_threshold[0] * len(
+            tmp_props.lower_threshold = tmp_props.lower_threshold * len(
                 tmp_props.name
             )
         else:
