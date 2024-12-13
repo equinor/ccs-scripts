@@ -212,15 +212,13 @@ def _distribute_config_property(config_: _config.RootConfig):
     if not isinstance(config_.input.properties[0].name, list):
         return
     tmp_props = config_.input.properties.pop()
-    if isinstance(tmp_props.lower_threshold, list) and len(
-        tmp_props.name
-    ) == len(tmp_props.lower_threshold):
+    if isinstance(tmp_props.lower_threshold, list) and len(tmp_props.name) == len(
+        tmp_props.lower_threshold
+    ):
         config_.input.properties.extend(
             [
                 _config.Property(tmp_props.source, name, threshold)
-                for name, threshold in zip(
-                    tmp_props.name, tmp_props.lower_threshold
-                )
+                for name, threshold in zip(tmp_props.name, tmp_props.lower_threshold)
             ]
         )
     elif isinstance(tmp_props.lower_threshold, float) or (
@@ -246,9 +244,7 @@ def _distribute_config_property(config_: _config.RootConfig):
         config_.input.properties.extend(
             [
                 _config.Property(tmp_props.source, name, threshold)
-                for name, threshold in zip(
-                    tmp_props.name, tmp_props.lower_threshold
-                )
+                for name, threshold in zip(tmp_props.name, tmp_props.lower_threshold)
             ]
         )
     else:
