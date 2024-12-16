@@ -356,10 +356,10 @@ def _identify_gas_less_cells(sgas: dict, dissolved_prop: dict) -> np.ndarray:
       np.ndarray
 
     """
-    gas_less = np.logical_and.reduce(
-        [np.abs(sgas[s]) < TRESHOLD_GAS for s in sgas]
+    gas_less = np.logical_and.reduce([np.abs(sgas[s]) < TRESHOLD_GAS for s in sgas])
+    gas_less &= np.logical_and.reduce(
+        [np.abs(dissolved_prop[a]) < TRESHOLD_DISSOLVED for a in dissolved_prop]
     )
-    gas_less &= np.logical_and.reduce([np.abs(dissolved_prop[a]) < TRESHOLD_DISSOLVED for a in dissolved_prop])
     return gas_less
 
 

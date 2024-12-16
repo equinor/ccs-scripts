@@ -1102,13 +1102,15 @@ def _collect_results_into_dataframe(
                 df = pd.merge(df, gas_df, on="date")
         if dissolved_results is not None:
             if injection_wells is not None and config.do_plume_tracking:
-                dissolved_results_sorted = sort_well_names(dissolved_results, injection_wells)
+                dissolved_results_sorted = sort_well_names(
+                    dissolved_results, injection_wells
+                )
             else:
                 dissolved_results_sorted = dissolved_results
             for group_str, results in dissolved_results_sorted.items():
                 for well_name, result2 in results.items():
                     if result2 is not None:
-                        full_col_name = col  + "_DISSOLVED"
+                        full_col_name = col + "_DISSOLVED"
                         if group_str != "ALL":
                             full_col_name += "_PLUME_" + group_str
                         if well_name != "ALL" and well_name != "WELL":

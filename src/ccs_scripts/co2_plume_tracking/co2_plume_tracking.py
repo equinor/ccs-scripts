@@ -622,7 +622,9 @@ def _collect_results_into_dataframe(
     dates = [[d.strftime("%Y-%m-%d")] for d in report_dates]
     df = pd.DataFrame.from_records(dates, columns=["date"])
 
-    for prop_key, pg_prop in zip(["SGAS", dissolved_prop_key], [pg_prop_gas, pg_prop_dissolved]):
+    for prop_key, pg_prop in zip(
+        ["SGAS", dissolved_prop_key], [pg_prop_gas, pg_prop_dissolved]
+    ):
         if pg_prop is None or prop_key is None:
             continue
         results = {}
