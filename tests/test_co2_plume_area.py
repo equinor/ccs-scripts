@@ -11,7 +11,7 @@ def test_calc_plume_area():
     input_path = str(
         Path(__file__).parents[1] / "tests" / "testdata_co2_plume" / "surfaces"
     )
-    out = calculate_plume_area(input_path, "SGAS")
+    out = calculate_plume_area(input_path, "gas_phase")
     assert len(out) == 3
     results = [x[1] for x in out]
     results.sort()
@@ -33,9 +33,9 @@ def test_plume_area(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert "formation_SGAS" in df.keys()
-    assert "formation_AMFG" not in df.keys()
-    assert df["formation_SGAS"].iloc[-1] == pytest.approx(285000.0)
+    assert "formation_gas_phase" in df.keys()
+    assert "formation_dissolved_phase" not in df.keys()
+    assert df["formation_gas_phase"].iloc[-1] == pytest.approx(285000.0)
 
 
 def _get_synthetic_case_paths(case: str):

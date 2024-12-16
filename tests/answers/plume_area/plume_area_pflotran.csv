@@ -1,4 +1,4 @@
-date,all_SGAS,amethyst_SGAS,ruby_SGAS,topaz_SGAS,all_AMFG,amethyst_AMFG,ruby_AMFG,topaz_AMFG
+date,all_gas_phase,amethyst_gas_phase,ruby_gas_phase,topaz_gas_phase,all_dissolved_phase,amethyst_dissolved_phase,ruby_dissolved_phase,topaz_dissolved_phase
 2025-01-01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 2027-01-01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 2029-01-01,1020000.0,890000.0,690000.0,790000.0,6390000.0,5700000.0,5210000.0,6100000.0
