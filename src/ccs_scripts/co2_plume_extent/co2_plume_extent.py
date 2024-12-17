@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Calculates the plume extent from a given coordinate, or well point,
-using SGAS and AMFG/XMF2.
+using SGAS and the dissolved property (AMFG/XMF2).
 """
 import argparse
 import getpass
@@ -33,14 +33,14 @@ from ccs_scripts.co2_plume_tracking.utils import (
 )
 
 DEFAULT_THRESHOLD_GAS = 0.2
-DEFAULT_THRESHOLD_AQUEOUS = 0.0005
+DEFAULT_THRESHOLD_DISSOLVED = 0.0005
 INJ_POINT_THRESHOLD = 60.0
 
 DESCRIPTION = """
 Calculates the maximum lateral distance of the CO2 plume from a given location,
 for instance an injection point. It is also possible to instead calculate the
 distance to a point or a line (north-south or east-west). The distances are
-calculated for each time step, for both SGAS and AMFG (Pflotran) / YMF2
+calculated for each time step, for both SGAS and AMFG (Pflotran) / XMF2
 (Eclipse).
 
 Output is a table on CSV format. Multiple calculations specified in the
@@ -483,8 +483,8 @@ def _make_parser() -> argparse.ArgumentParser:
         help="Threshold for gas saturation (SGAS)",
     )
     parser.add_argument(
-        "--threshold_aqueous",
-        default=DEFAULT_THRESHOLD_AQUEOUS,
+        "--threshold_dissolved",
+        default=DEFAULT_THRESHOLD_DISSOLVED,
         type=float,
         help="Threshold for aqueous mole fraction of gas (AMFG or XMF2)",
     )
@@ -583,7 +583,7 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
         text = arguments.output_csv
     logging.info(f"Output CSV file         : {text}")
     logging.info(f"Threshold gas           : {arguments.threshold_gas}")
-    logging.info(f"Threshold aqueous       : {arguments.threshold_aqueous}\n")
+    logging.info(f"Threshold dissolved     : {arguments.threshold_dissolved}\n")
 
 
 def _log_distance_calculation_configurations(config: Configuration) -> None:
@@ -697,11 +697,11 @@ def calculate_single_distances(
     grid: Grid,
     unrst: ResdataFile,
     threshold_gas: float,
-    threshold_aqueous: float,
+    threshold_dissolved: float,
     config: Calculation,
     inj_wells: Optional[List[InjectionWellData]],
-    plume_groups_sgas: Optional[List[List[str]]],
-    plume_groups_amfg: Optional[List[List[str]]],
+    plume_groups_gas: Optional[List[List[str]]],
+    plume_groups_dissolved: Optional[List[List[str]]],
 ):
     calculation_type = config.type
 
@@ -710,44 +710,44 @@ def calculate_single_distances(
         inj_wells, nactive, calculation_type, grid, config
     )
 
-    sgas_results = _find_distances_per_time_step(
+    gas_results = _find_distances_per_time_step(
         "SGAS",
         calculation_type,
         threshold_gas,
         unrst,
         dist,
         inj_wells,
-        plume_groups_sgas,
+        plume_groups_gas,
     )
 
     if "AMFG" in unrst:
-        amfg_results = _find_distances_per_time_step(
+        dissolved_results = _find_distances_per_time_step(
             "AMFG",
             calculation_type,
-            threshold_aqueous,
+            threshold_dissolved,
             unrst,
             dist,
             inj_wells,
-            plume_groups_amfg,
+            plume_groups_dissolved,
         )
-        amfg_key = "AMFG"
+        dissolved_prop_key = "AMFG"
     elif "XMF2" in unrst:
-        amfg_results = _find_distances_per_time_step(
+        dissolved_results = _find_distances_per_time_step(
             "XMF2",
             calculation_type,
-            threshold_aqueous,
+            threshold_dissolved,
             unrst,
             dist,
             inj_wells,
-            plume_groups_amfg,
+            plume_groups_dissolved,
         )
-        amfg_key = "XMF2"
+        dissolved_prop_key = "XMF2"
     else:
-        amfg_results = None
-        amfg_key = None
+        dissolved_results = None
+        dissolved_prop_key = None
         logging.warning("WARNING: Neither AMFG nor XMF2 exists as properties.")
 
-    return sgas_results, amfg_results, amfg_key
+    return gas_results, dissolved_results, dissolved_prop_key
 
 
 def calculate_distances(
@@ -756,7 +756,7 @@ def calculate_distances(
     injection_wells: Optional[List[InjectionWellData]] = None,
     do_plume_tracking: bool = False,
     threshold_gas: float = DEFAULT_THRESHOLD_GAS,
-    threshold_aqueous: float = DEFAULT_THRESHOLD_AQUEOUS,
+    threshold_dissolved: float = DEFAULT_THRESHOLD_DISSOLVED,
 ) -> List[Tuple[dict, Optional[dict], Optional[str]]]:
     """
     Find distance (plume extent / distance to point / distance to line) per
@@ -767,7 +767,7 @@ def calculate_distances(
     unrst = ResdataFile(f"{case}.UNRST")
 
     if do_plume_tracking and injection_wells is not None:
-        plume_groups_sgas = calculate_plume_groups(
+        plume_groups_gas = calculate_plume_groups(
             "SGAS",
             threshold_gas,
             unrst,
@@ -776,24 +776,24 @@ def calculate_distances(
         )
 
         if "AMFG" in unrst:
-            amfg_key = "AMFG"
+            dissolved_prop_key = "AMFG"
         elif "XMF2" in unrst:
-            amfg_key = "XMF2"
+            dissolved_prop_key = "XMF2"
         else:
-            amfg_key = None
-        if amfg_key is not None:
-            plume_groups_amfg = calculate_plume_groups(
-                amfg_key,
-                threshold_aqueous,
+            dissolved_prop_key = None
+        if dissolved_prop_key is not None:
+            plume_groups_dissolved = calculate_plume_groups(
+                dissolved_prop_key,
+                threshold_dissolved,
                 unrst,
                 grid,
                 injection_wells,
             )
         else:
-            plume_groups_amfg = None
+            plume_groups_dissolved = None
     else:
-        plume_groups_sgas = None
-        plume_groups_amfg = None
+        plume_groups_gas = None
+        plume_groups_dissolved = None
 
     nactive = grid.get_num_active()
     logging.info(f"Number of active grid cells: {nactive}")
@@ -806,11 +806,11 @@ def calculate_distances(
             grid,
             unrst,
             threshold_gas,
-            threshold_aqueous,
+            threshold_dissolved,
             single_config,
             injection_wells,
-            plume_groups_sgas,
-            plume_groups_amfg,
+            plume_groups_gas,
+            plume_groups_dissolved,
         )
         all_results.append((a, b, c))
         logging.info(f"Done calculating distances for configuration number: {i}\n")
@@ -1082,45 +1082,43 @@ def _collect_results_into_dataframe(
     for i, (result, single_config) in enumerate(
         zip(all_results, config.distance_calculations), 1
     ):
-        (sgas_results, amfg_results, amfg_key) = result
+        (gas_results, dissolved_results, _) = result
 
         col = _find_column_name(single_config, len(config.distance_calculations), i)
 
         if injection_wells is not None and config.do_plume_tracking:
-            sgas_results = sort_well_names(sgas_results, injection_wells)
+            gas_results = sort_well_names(gas_results, injection_wells)
 
-        for group_str, results in sgas_results.items():
+        for group_str, results in gas_results.items():
             for well_name, result2 in results.items():
-                full_col_name = col + "_SGAS"
+                full_col_name = col + "_GAS"
                 if group_str != "ALL":
                     full_col_name += "_PLUME_" + group_str
                 if well_name != "ALL" and well_name != "WELL":
                     full_col_name += "_FROM_INJ_" + well_name
-                sgas_df = pd.DataFrame.from_records(
+                gas_df = pd.DataFrame.from_records(
                     result2, columns=["date", full_col_name]
                 )
-                df = pd.merge(df, sgas_df, on="date")
-        if amfg_results is not None:
+                df = pd.merge(df, gas_df, on="date")
+        if dissolved_results is not None:
             if injection_wells is not None and config.do_plume_tracking:
-                amfg_results_sorted = sort_well_names(amfg_results, injection_wells)
+                dissolved_results_sorted = sort_well_names(
+                    dissolved_results, injection_wells
+                )
             else:
-                amfg_results_sorted = amfg_results
-            for group_str, results in amfg_results_sorted.items():
+                dissolved_results_sorted = dissolved_results
+            for group_str, results in dissolved_results_sorted.items():
                 for well_name, result2 in results.items():
                     if result2 is not None:
-                        if amfg_key is None:
-                            amfg_key_str = "?"
-                        else:
-                            amfg_key_str = amfg_key
-                        full_col_name = col + "_" + amfg_key_str
+                        full_col_name = col + "_DISSOLVED"
                         if group_str != "ALL":
                             full_col_name += "_PLUME_" + group_str
                         if well_name != "ALL" and well_name != "WELL":
                             full_col_name += "_FROM_INJ_" + well_name
-                        amfg_df = pd.DataFrame.from_records(
+                        dissolved_df = pd.DataFrame.from_records(
                             result2, columns=["date", full_col_name]
                         )
-                        df = pd.merge(df, amfg_df, on="date")
+                        df = pd.merge(df, dissolved_df, on="date")
     return df
 
 
@@ -1281,7 +1279,7 @@ def main():
         config.injection_wells,
         config.do_plume_tracking,
         args.threshold_gas,
-        args.threshold_aqueous,
+        args.threshold_dissolved,
     )
 
     output_file = _find_output_file(args.output_csv, args.case)

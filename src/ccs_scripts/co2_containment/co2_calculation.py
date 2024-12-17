@@ -13,8 +13,8 @@ from resdata.resfile import ResdataFile
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
-TRESHOLD_SGAS = 1e-16
-TRESHOLD_AMFG = 1e-16
+TRESHOLD_GAS = 1e-16
+TRESHOLD_DISSOLVED = 1e-16
 PROPERTIES_NEEDED_PFLOTRAN = ["PORV", "DGAS", "DWAT", "AMFG", "YMFG"]
 PROPERTIES_NEEDED_ECLIPSE = ["RPORV", "BGAS", "BWAT", "XMF2", "YMF2"]
 
@@ -219,7 +219,7 @@ class Co2DataAtTimeStep:
 
     Args:
       date (str): The time step
-      aqu_phase (np.ndarray): The amount of CO2 in aqueous phase
+      dis_phase (np.ndarray): The amount of CO2 in dissolved phase
       gas_phase (np.ndarray): The amount of CO2 in gaseous phase
       volume_coverage (np.ndarray): The volume of a cell (specific of
                                     calc_type_input = volume_extent)
@@ -228,7 +228,7 @@ class Co2DataAtTimeStep:
     """
 
     date: str
-    aqu_phase: np.ndarray
+    dis_phase: np.ndarray
     gas_phase: np.ndarray
     volume_coverage: np.ndarray
     trapped_gas_phase: np.ndarray
@@ -236,10 +236,10 @@ class Co2DataAtTimeStep:
 
     def total_mass(self) -> np.ndarray:
         """
-        Computes total mass as the sum of gas in aqueous and gas
+        Computes total mass as the sum of gas in dissolved and gas
         phase.
         """
-        return self.aqu_phase + self.gas_phase
+        return self.dis_phase + self.gas_phase
 
 
 @dataclass
@@ -343,23 +343,23 @@ def _fetch_properties(
     return properties, dates
 
 
-def _identify_gas_less_cells(sgases: dict, amfgs: dict) -> np.ndarray:
+def _identify_gas_less_cells(sgas: dict, dissolved_prop: dict) -> np.ndarray:
     """
     Identifies those cells that do not have gas. This is done based on thresholds for
-    SGAS and AMFG.
+    SGAS and AMFG/XMF2 (dissolved property).
 
     Args:
-      sgases (dict): The values of SGAS for each grid cell
-      amfgs (dict): The values of AMFG for each grid cell
+      sgas (dict): The values of SGAS for each grid cell
+      dissolved_prop (dict): The values of AMFG or XMF2 for each grid cell
 
     Returns:
       np.ndarray
 
     """
-    gas_less = np.logical_and.reduce(
-        [np.abs(sgases[s]) < TRESHOLD_SGAS for s in sgases]
+    gas_less = np.logical_and.reduce([np.abs(sgas[s]) < TRESHOLD_GAS for s in sgas])
+    gas_less &= np.logical_and.reduce(
+        [np.abs(dissolved_prop[a]) < TRESHOLD_DISSOLVED for a in dissolved_prop]
     )
-    gas_less &= np.logical_and.reduce([np.abs(amfgs[a]) < TRESHOLD_AMFG for a in amfgs])
     return gas_less
 
 
@@ -1099,12 +1099,12 @@ def _calculate_co2_data_from_source_data(
             co2_mass = {
                 co2_mass_output.data_list[t].date: (
                     [
-                        co2_mass_output.data_list[t].aqu_phase,
+                        co2_mass_output.data_list[t].dis_phase,
                         co2_mass_output.data_list[t].gas_phase,
                     ]
                     if source_data.SGSTRAND is None and source_data.SGTRH is None
                     else [
-                        co2_mass_output.data_list[t].aqu_phase,
+                        co2_mass_output.data_list[t].dis_phase,
                         co2_mass_output.data_list[t].gas_phase,
                         co2_mass_output.data_list[t].trapped_gas_phase,
                         co2_mass_output.data_list[t].free_gas_phase,
@@ -1205,7 +1205,7 @@ def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
     co2_mass_output.units = "tons"
     for values in co2_mass_output.data_list:
         for x in [
-            values.aqu_phase,
+            values.dis_phase,
             values.gas_phase,
             values.trapped_gas_phase,
             values.free_gas_phase,

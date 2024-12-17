@@ -128,13 +128,13 @@ def test_single_poly_co2_containment():
     assert extract_amount(
         table,
         "contained",
-        "aqueous",
+        "dissolved",
     ) == pytest.approx(0.1727292176064847)
     assert extract_amount(table, "hazardous", "gas") == pytest.approx(0.0)
     assert extract_amount(
         table,
         "hazardous",
-        "aqueous",
+        "dissolved",
     ) == pytest.approx(0.0)
 
 
@@ -174,13 +174,13 @@ def test_multi_poly_co2_containment():
     assert extract_amount(
         table,
         "contained",
-        "aqueous",
+        "dissolved",
     ) == pytest.approx(0.25279970312163525)
     assert extract_amount(table, "hazardous", "gas") == pytest.approx(0.0)
     assert extract_amount(
         table,
         "hazardous",
-        "aqueous",
+        "dissolved",
     ) == pytest.approx(0.0)
 
 
@@ -212,7 +212,7 @@ def test_hazardous_poly_co2_containment():
     assert extract_amount(
         table,
         "contained",
-        "aqueous",
+        "dissolved",
     ) == pytest.approx(0.17272921760648467)
     assert extract_amount(
         table,
@@ -222,7 +222,7 @@ def test_hazardous_poly_co2_containment():
     assert extract_amount(
         table,
         "hazardous",
-        "aqueous",
+        "dissolved",
     ) == pytest.approx(0.02033893251315071)
 
 
@@ -286,7 +286,7 @@ def test_reek_grid():
     )
     sort_and_replace_nones(table)
     cs = ["total"] * 3 + ["contained"] + ["hazardous"] * 2
-    ps = ["total", "gas", "aqueous", "gas", "total", "gas"]
+    ps = ["total", "gas", "dissolved", "gas", "total", "gas"]
     amounts = [
         696.17120388324,
         7.650233009712884,
@@ -352,7 +352,7 @@ def test_reek_grid():
     sort_and_replace_nones(table3)
     cs3 = ["total"] * 4 + ["contained"] * 2 + ["hazardous"] * 3
     gas_part = ["trapped_gas", "free_gas"]
-    ps3 = ["total"] + gas_part + ["aqueous"] + gas_part + ["total"] + gas_part
+    ps3 = ["total"] + gas_part + ["dissolved"] + gas_part + ["total"] + gas_part
     amounts3 = [
         696.17120388324,
         4.59013980582773,
@@ -382,7 +382,7 @@ def test_reek_grid():
     sort_and_replace_nones(table4)
     cs4 = ["total"] * 4 + ["contained"] * 2 + ["hazardous"] * 3
     gas_part = ["trapped_gas", "free_gas"]
-    ps4 = ["total"] + gas_part + ["aqueous"] + gas_part + ["total"] + gas_part
+    ps4 = ["total"] + gas_part + ["dissolved"] + gas_part + ["total"] + gas_part
     amounts4 = [
         1018.524203883313,
         198.0019398057147,
