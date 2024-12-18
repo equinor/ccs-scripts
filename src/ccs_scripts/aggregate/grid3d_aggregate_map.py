@@ -146,17 +146,21 @@ def generate_maps(
     )
     _write_surfaces(surfs, output.mapfolder, output.plotfolder, output.use_plotly)
     if computesettings.plume_indicator_map:
-        prop_tags_indicator = [p.replace("max","plume_indicator") for p in prop_tags]
-        p_maps_indicator = [[np.where(np.isfinite(p), 1, p) for p in map] for map in p_maps]
+        prop_tags_indicator = [p.replace("max", "plume_indicator") for p in prop_tags]
+        p_maps_indicator = [
+            [np.where(np.isfinite(p), 1, p) for p in map] for map in p_maps
+        ]
         surfs_indicator = _ndarray_to_regsurfs(
             [f[0] for f in _filters],
             prop_tags_indicator,
             xn,
             yn,
             p_maps_indicator,
-            output.lowercase
+            output.lowercase,
         )
-        _write_surfaces(surfs_indicator, output.mapfolder, output.plotfolder, output.use_plotly)
+        _write_surfaces(
+            surfs_indicator, output.mapfolder, output.plotfolder, output.use_plotly
+        )
 
 
 def _property_tag(prop: str, agg_method: AggregationMethod, agg_tag: bool):
