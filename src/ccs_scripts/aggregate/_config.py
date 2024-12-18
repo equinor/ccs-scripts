@@ -72,6 +72,7 @@ class ComputeSettings:
     weight_by_dz: bool = False
     all: bool = True
     zone: bool = True
+    plume_indicator_map: bool = False
 
     def __post_init__(self):
         if isinstance(self.aggregation, str):
