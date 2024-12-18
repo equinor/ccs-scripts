@@ -33,6 +33,8 @@ PROPERTY_NAMES_TO_OVERRIDE = {
     "SGAS": "gas_phase",
     "AMFG": "dissolved_phase",
     "XMF2": "dissolved_phase",
+    "SGSTRAND": "trapped_phase",
+    "SGTRH": "trapped_phase",
 }
 
 
