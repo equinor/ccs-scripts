@@ -136,17 +136,18 @@ def generate_maps(
         _property_tag(p.name, computesettings.aggregation, output.aggregation_tag)
         for p in properties
     ]
-    surfs = _ndarray_to_regsurfs(
-        [f[0] for f in _filters],
-        prop_tags,
-        xn,
-        yn,
-        p_maps,
-        output.lowercase,
-    )
-    _write_surfaces(surfs, output.mapfolder, output.plotfolder, output.use_plotly)
-    if computesettings.plume_indicator_map:
-        prop_tags_indicator = [p.replace("max", "plume_indicator") for p in prop_tags]
+    if computesettings.aggregate_map:
+        surfs = _ndarray_to_regsurfs(
+            [f[0] for f in _filters],
+            prop_tags,
+            xn,
+            yn,
+            p_maps,
+            output.lowercase,
+        )
+        _write_surfaces(surfs, output.mapfolder, output.plotfolder, output.use_plotly)
+    if computesettings.indicator_map:
+        prop_tags_indicator = [p.replace("max", "indicator") for p in prop_tags]
         p_maps_indicator = [
             [np.where(np.isfinite(p), 1, p) for p in map] for map in p_maps
         ]
@@ -161,6 +162,12 @@ def generate_maps(
         _write_surfaces(
             surfs_indicator, output.mapfolder, output.plotfolder, output.use_plotly
         )
+    if not computesettings.aggregate_map and not computesettings.indicator_map:
+        error_text = (
+            f"As neither indicator_map nor aggregate_map were requested,"
+            f" no map is produced"
+        )
+        raise Exception(error_text)
 
 
 def _property_tag(prop: str, agg_method: AggregationMethod, agg_tag: bool):
