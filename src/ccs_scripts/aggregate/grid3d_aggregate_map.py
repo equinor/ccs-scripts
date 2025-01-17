@@ -164,8 +164,8 @@ def generate_maps(
         )
     if not computesettings.aggregate_map and not computesettings.indicator_map:
         error_text = (
-            f"As neither indicator_map nor aggregate_map were requested,"
-            f" no map is produced"
+            "As neither indicator_map nor aggregate_map were requested,"
+            " no map is produced"
         )
         raise Exception(error_text)
 
