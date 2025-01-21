@@ -26,7 +26,7 @@ CO2_MASS_PNAME = "CO2Mass"
 
 class MapName(Enum):
     MASS_TOT = "co2_mass_total"
-    MASS_AQU = "co2_mass_aqu_phase"
+    MASS_DIS = "co2_mass_dissolved_phase"
     MASS_GAS = "co2_mass_gas_phase"
     MASSTGAS = "co2_mass_trapped_gas_phase"
     MASSFGAS = "co2_mass_free_gas_phase"
@@ -41,7 +41,7 @@ class PropertyGridOutput(TypedDict):
 def _get_gasless(properties: Dict[str, Dict[str, List[np.ndarray]]]) -> np.ndarray:
     """
     Identifies global index for grid cells without CO2 based on Gas Saturation (SGAS)
-    and Mole Fraction of Gas in aqueous phase (AMFG/XMF2)
+    and Mole Fraction of Gas in dissolved phase (AMFG/XMF2)
 
     Args:
         properties (Dict) : Properties that will be used to compute CO2 mass
@@ -146,18 +146,18 @@ def translate_co2data_to_property(
                     ("SEQNUM  ", [i]),
                     ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
                     ("LOGIHEAD", logihead_array),
-                    ("MASS_AQU", mass_as_grid["MASS_AQU"]["data"]),
+                    ("MASS_DIS", mass_as_grid["MASS_DIS"]["data"]),
                 ]
             )
             if (
-                mass_as_grid["MASS_AQU"]["unrst_path"]
+                mass_as_grid["MASS_DIS"]["unrst_path"]
                 not in dissolved_mass_data["unrst_path"]
             ):
                 dissolved_mass_data["unrst_path"].append(
-                    mass_as_grid["MASS_AQU"]["unrst_path"]
+                    mass_as_grid["MASS_DIS"]["unrst_path"]
                 )
                 dissolved_mass_data["egrid_path"].append(
-                    mass_as_grid["MASS_AQU"]["egrid_path"]
+                    mass_as_grid["MASS_DIS"]["egrid_path"]
                 )
                 dissolved_mass_data["egrid_kw"].extend(custom_egrid)
         if (
@@ -346,14 +346,14 @@ def _convert_to_grid(
     for mass, name in zip(
         [
             co2_at_date.total_mass(),
-            co2_at_date.aqu_phase,
+            co2_at_date.dis_phase,
             co2_at_date.gas_phase,
             co2_at_date.trapped_gas_phase,
             co2_at_date.free_gas_phase,
         ],
         [
             "MASS_TOT",
-            "MASS_AQU",
+            "MASS_DIS",
             "MASS_GAS",
             "MASSTGAS",
             "MASSFGAS",

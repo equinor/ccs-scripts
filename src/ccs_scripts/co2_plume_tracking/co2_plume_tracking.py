@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """
 Calculations for tracking the CO2 plumes from different injection wells,
-using SGAS and AMFG/XMF2. Keeps track of which grid cells belong to which
+using SGAS and the dissolved property (AMFG/XMF2).
+Keeps track of which grid cells belong to which
 plume group at each time step, and merges plumes if they meet.
 """
 import argparse
@@ -31,14 +32,15 @@ from ccs_scripts.co2_plume_tracking.utils import (
 )
 
 DEFAULT_THRESHOLD_GAS = 0.2
-DEFAULT_THRESHOLD_AQUEOUS = 0.0005
+DEFAULT_THRESHOLD_DISSOLVED = 0.0005
 INJ_POINT_THRESHOLD_LATERAL = 80.0
 INJ_POINT_THRESHOLD_VERTICAL = 10.0
 
 DESCRIPTION = """
 Calculations for tracking the CO2 plumes from different injection wells,
-using SGAS and AMFG/XMF2. Keeps track of which grid cells belong to which
-plume group at each time step, and merges plumes if they meet.
+using SGAS and the dissolved property (AMFG/XMF2). Keeps track of which
+grid cells belong to which plume group at each time step, and merges
+plumes if they meet.
 
 Output is a table on CSV format, counting the number of grid cells in
 each group at each time step. The functionality is also used by the plume
@@ -131,8 +133,8 @@ def _make_parser() -> argparse.ArgumentParser:
         help="Threshold for gas saturation (SGAS)",
     )
     parser.add_argument(
-        "--threshold_aqueous",
-        default=DEFAULT_THRESHOLD_AQUEOUS,
+        "--threshold_dissolved",
+        default=DEFAULT_THRESHOLD_DISSOLVED,
         type=float,
         help="Threshold for aqueous mole fraction of gas (AMFG or XMF2)",
     )
@@ -203,7 +205,7 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
         text = arguments.output_csv
     logging.info(f"Output CSV file         : {text}")
     logging.info(f"Threshold gas           : {arguments.threshold_gas}")
-    logging.info(f"Threshold AMFG          : {arguments.threshold_aqueous}\n")
+    logging.info(f"Threshold dissolved     : {arguments.threshold_dissolved}\n")
 
 
 def _log_configuration(config: Configuration) -> None:
@@ -220,10 +222,10 @@ def calculate_all_plume_groups(
     grid: Grid,
     unrst: ResdataFile,
     threshold_gas: float,
-    threshold_aqueous: float,
+    threshold_dissolved: float,
     inj_wells: List[InjectionWellData],
 ) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str]]:
-    pg_prop_sgas = calculate_plume_groups(
+    pg_prop_gas = calculate_plume_groups(
         "SGAS",
         threshold_gas,
         unrst,
@@ -231,36 +233,36 @@ def calculate_all_plume_groups(
         inj_wells,
     )
     if "AMFG" in unrst:
-        pg_prop_amfg = calculate_plume_groups(
+        pg_prop_dissolved = calculate_plume_groups(
             "AMFG",
-            threshold_aqueous,
+            threshold_dissolved,
             unrst,
             grid,
             inj_wells,
         )
-        amfg_key = "AMFG"
+        dissolved_prop_key = "AMFG"
     elif "XMF2" in unrst:
-        pg_prop_amfg = calculate_plume_groups(
+        pg_prop_dissolved = calculate_plume_groups(
             "XMF2",
-            threshold_aqueous,
+            threshold_dissolved,
             unrst,
             grid,
             inj_wells,
         )
-        amfg_key = "XMF2"
+        dissolved_prop_key = "XMF2"
     else:
-        pg_prop_amfg = None
-        amfg_key = None
+        pg_prop_dissolved = None
+        dissolved_prop_key = None
         logging.warning("WARNING: Neither AMFG nor XMF2 exists as properties.")
 
-    return pg_prop_sgas, pg_prop_amfg, amfg_key
+    return pg_prop_gas, pg_prop_dissolved, dissolved_prop_key
 
 
 def load_data_and_calculate_plume_groups(
     case: str,
     injection_wells: List[InjectionWellData],
     threshold_gas: float = DEFAULT_THRESHOLD_GAS,
-    threshold_aqueous: float = DEFAULT_THRESHOLD_AQUEOUS,
+    threshold_dissolved: float = DEFAULT_THRESHOLD_DISSOLVED,
 ) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str], List[datetime]]:
     logging.info("\nStart calculations for plume tracking")
     grid = Grid(f"{case}.EGRID")
@@ -268,15 +270,15 @@ def load_data_and_calculate_plume_groups(
 
     logging.info(f"Number of active grid cells: {grid.get_num_active()}")
 
-    (pg_prop_sgas, pg_prop_amfg, amfg_key) = calculate_all_plume_groups(
+    (pg_prop_gas, pg_prop_dissolved, dissolved_prop_key) = calculate_all_plume_groups(
         grid,
         unrst,
         threshold_gas,
-        threshold_aqueous,
+        threshold_dissolved,
         injection_wells,
     )
 
-    return pg_prop_sgas, pg_prop_amfg, amfg_key, unrst.report_dates
+    return pg_prop_gas, pg_prop_dissolved, dissolved_prop_key, unrst.report_dates
 
 
 def _log_number_of_grid_cells(
@@ -311,7 +313,7 @@ def _log_number_of_grid_cells(
             row += f" {n_cells:>{widths[col]}}"
         logging.info(row)
     logging.info("")
-    if "?" in n_cells_sorted:
+    if "undetermined" in n_cells_sorted:
         no_groups = len(n_cells_sorted) == 1
         logging.warning(
             f"WARNING: Plume group not found for "
@@ -398,7 +400,7 @@ def calculate_plume_groups(
                         str(
                             [x.name for x in inj_wells if x.number == y][0]
                             if y != -1
-                            else "?"
+                            else "undetermined"
                         )
                         for y in all_groups
                     ]
@@ -407,7 +409,7 @@ def calculate_plume_groups(
 
         prev_groups = groups.copy()
         percent = (i + 1) / n_time_steps
-        logging.info(f"{percent*100:>6.1f} %")
+        logging.info(f"{percent * 100:>6.1f} %")
     logging.info("")
 
     _log_number_of_grid_cells(
@@ -471,9 +473,9 @@ def _plume_groups_at_time_step(
     unique_groups = groups.find_unique_groups()
     for g in unique_groups:
         if g == [-1]:
-            if "?" not in n_grid_cells_for_logging:
-                n_grid_cells_for_logging["?"] = [0] * n_time_steps
-            n_grid_cells_for_logging["?"][i] = len(
+            if "undetermined" not in n_grid_cells_for_logging:
+                n_grid_cells_for_logging["undetermined"] = [0] * n_time_steps
+            n_grid_cells_for_logging["undetermined"][i] = len(
                 [j for j in cells_with_co2 if groups.cells[j].all_groups == [-1]]
             )
             continue
@@ -585,10 +587,10 @@ def _log_results(
     logging.info("\nSummary of results:")
     logging.info("===================")
     logging.info(
-        f"Number of dates {' '*(col_width-5)}: {len(dfs['date'].unique()):>11}"
+        f"Number of dates {' ' * (col_width - 5)}: {len(dfs['date'].unique()):>11}"
     )
-    logging.info(f"First date      {' '*(col_width-5)}: {dfs['date'].iloc[0]:>11}")
-    logging.info(f"Last date       {' '*(col_width-5)}: {dfs['date'].iloc[-1]:>11}")
+    logging.info(f"First date      {' ' * (col_width - 5)}: {dfs['date'].iloc[0]:>11}")
+    logging.info(f"Last date       {' ' * (col_width - 5)}: {dfs['date'].iloc[-1]:>11}")
 
     for col in df.drop("date", axis=1).columns:
         logging.info(f"End state {col:<{col_width}} : {dfs[col].iloc[-1]:>11.1f}")
@@ -612,15 +614,17 @@ def _find_output_file(output: str, case: str):
 
 def _collect_results_into_dataframe(
     report_dates: List[datetime],
-    pg_prop_sgas: List[List[str]],
-    pg_prop_amfg: Optional[List[List[str]]],
-    amfg_key: Optional[str],
+    pg_prop_gas: List[List[str]],
+    pg_prop_dissolved: Optional[List[List[str]]],
+    dissolved_prop_key: Optional[str],
     injection_wells: List[InjectionWellData],
 ) -> pd.DataFrame:
     dates = [[d.strftime("%Y-%m-%d")] for d in report_dates]
     df = pd.DataFrame.from_records(dates, columns=["date"])
 
-    for prop_key, pg_prop in zip(["SGAS", amfg_key], [pg_prop_sgas, pg_prop_amfg]):
+    for prop_key, pg_prop in zip(
+        ["SGAS", dissolved_prop_key], [pg_prop_gas, pg_prop_dissolved]
+    ):
         if pg_prop is None or prop_key is None:
             continue
         results = {}
@@ -662,12 +666,12 @@ def main():
     )
     _log_configuration(config)
 
-    (pg_prop_sgas, pg_prop_amfg, amfg_key, dates) = (
+    (pg_prop_gas, pg_prop_dissolved, dissolved_prop_key, dates) = (
         load_data_and_calculate_plume_groups(
             args.case,
             config.injection_wells,
             args.threshold_gas,
-            args.threshold_aqueous,
+            args.threshold_dissolved,
         )
     )
 
@@ -675,9 +679,9 @@ def main():
 
     df = _collect_results_into_dataframe(
         dates,
-        pg_prop_sgas,
-        pg_prop_amfg,
-        amfg_key,
+        pg_prop_gas,
+        pg_prop_dissolved,
+        dissolved_prop_key,
         config.injection_wells,
     )
     df.to_csv(output_file, index=False)

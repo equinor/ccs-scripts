@@ -186,7 +186,7 @@ class PlumeGroups:
                 f"{len([c for c in self.cells if c.has_no_co2()])}"
             )
             logging.debug(
-                f"Count '?'              : "
+                f"Count 'undetermined'   : "
                 f"{len([c for c in self.cells if c.is_undetermined()])}"
             )
             for unique_group in unique_groups:
@@ -197,9 +197,8 @@ class PlumeGroups:
                         if c.has_co2() and c.all_groups == unique_group
                     ]
                 )
-                logging.debug(
-                    f"Count '{unique_group}' {' '*(10-len(str(unique_group)))}    : {n}"
-                )
+                spaces = 10 - len(str(unique_group))
+                logging.debug(f"Count '{unique_group}' {' ' * spaces}    : {n}")
 
 
 def assemble_plume_groups_into_dict(plume_groups: List[str]) -> Dict[str, List[int]]:

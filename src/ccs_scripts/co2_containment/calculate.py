@@ -23,7 +23,7 @@ class ContainedCo2:
     Args:
         date (str): A given time step
         amount (float): Numerical value with the computed amount at "date"
-        phase (Literal): One of gas (or trapped_gas/free_gas)/aqueous/undefined.
+        phase (Literal): One of gas (or trapped_gas/free_gas)/dissolved/undefined.
             The phase of "amount".
         containment (Literal): One of contained/outside/hazardous. The location
             that "amount" corresponds to.
@@ -66,7 +66,7 @@ def calculate_co2_containment(
     """
     Calculates the amount (mass/volume) of CO2 within given boundaries
     (contained/outside/hazardous) at each time step for each phase
-    (aqueous/gaseous). Result is a list of ContainedCo2 objects.
+    (dissolved/gaseous). Result is a list of ContainedCo2 objects.
 
     Args:
         co2_data (Co2Data): Information of the amount of CO2 at each cell in
@@ -102,7 +102,9 @@ def calculate_co2_containment(
     zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, int_to_region)
 
     if plume_groups is not None:
-        plume_groups = [[x if x != "" else "?" for x in y] for y in plume_groups]
+        plume_groups = [
+            [x if x != "" else "undetermined" for x in y] for y in plume_groups
+        ]
         plume_names = set(name for values in plume_groups for name in values)
     else:
         plume_names = set()
@@ -126,15 +128,6 @@ def calculate_co2_containment(
                         "all": np.ones(len(co2_data.x_coord), dtype=bool)
                     }
                 for plume_name, is_in_plume in plume_group_info.items():
-                    # print("\nCalculating:")
-                    # print(f"    * {zone}")
-                    # print(f"    * {region}")
-                    # print(f"    * {location}")
-                    # print(f"    * {plume_name}")
-                    # print(f"    * #in_zone+region: {is_in_section.sum()}")
-                    # print(f"    * #in_location   : {is_in_location.sum()}")
-                    # print(f"    * #in_plume_group: {is_in_plume.sum()}")
-
                     for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
                         dtype = (
                             np.int64
@@ -237,7 +230,7 @@ def _lists_of_phases(
     if calc_type == CalculationType.CELL_VOLUME:
         phases = ["undefined"]
     else:
-        phases = ["total", "aqueous"]
+        phases = ["total", "dissolved"]
         phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
     return phases
 
@@ -254,7 +247,7 @@ def _lists_of_co2_for_each_phase(
     if calc_type == CalculationType.CELL_VOLUME:
         arrays = [co2_at_date.volume_coverage]
     else:
-        arrays = [co2_at_date.total_mass(), co2_at_date.aqu_phase]
+        arrays = [co2_at_date.total_mass(), co2_at_date.dis_phase]
         arrays += (
             [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
             if residual_trapping
