@@ -29,15 +29,6 @@ from . import _config, _grid_aggregation
 _XTG = XTGeoDialog()
 
 
-PROPERTY_NAMES_TO_OVERRIDE = {
-    "SGAS": "gas_phase",
-    "AMFG": "dissolved_phase",
-    "XMF2": "dissolved_phase",
-    "SGSTRAND": "trapped_phase",
-    "SGTRH": "trapped_phase",
-}
-
-
 # Module variables for ERT hook implementation:
 DESCRIPTION = (
     "Aggregate property maps from 3D grids. Docs:\n"
@@ -203,8 +194,6 @@ def _ndarray_to_regsurfs(
 
 
 def _deduce_surface_name(filter_name, property_name, lowercase):
-    for old_name, new_name in PROPERTY_NAMES_TO_OVERRIDE.items():
-        property_name = property_name.replace(old_name, new_name)
     name = f"{filter_name}--{property_name}"
     if lowercase:
         name = name.lower()
