@@ -159,8 +159,8 @@ def test_aggregated_map7():
     gri_files = [p.stem for p in Path(result).glob("*.gri")]
     assert sorted(gri_files) == sorted(
         [
-            "all--max_trapped_phase--24000101",
-            "all--max_trapped_phase--25000101",
+            "all--max_sgstrand--24000101",
+            "all--max_sgstrand--25000101",
         ]
     )
     shutil.rmtree(str(Path(result)))

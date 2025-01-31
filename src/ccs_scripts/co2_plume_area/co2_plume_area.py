@@ -131,7 +131,7 @@ def _neigh_nodes(x: Tuple[np.int64, np.int64]) -> set:
 def calculate_plume_area(path: str, rskey: str) -> Optional[List[List[float]]]:
     """
     Finds plume area for each formation and year for a given rskey, for instance
-    gas_phase (SGAS) or dissolved_phase (AMFG/XMF2). The plume areas are found
+    SGAS (gas phase) or AMFG/XMF2 (dissolved phase). The plume areas are found
     using data from surface files (.gri).
     """
     logging.info(f"Calculating plume area for           : {rskey}")
@@ -274,15 +274,20 @@ def main():
     _log_input_configuration(input_path, output_path)
 
     df_gas, df_dissolved = None, None
-    results_gas = calculate_plume_area(input_path, "gas_phase")
+    results_gas = calculate_plume_area(input_path, "sgas")
     if results_gas:
-        logging.info("\nDone calculating plume areas for gas phase.")
+        logging.info("\nDone calculating plume areas for SGAS (gas phase).")
         df_gas = _convert_to_data_frame(results_gas, "gas_phase")
 
-    results_dissolved = calculate_plume_area(input_path, "dissolved_phase")
+    results_dissolved = calculate_plume_area(input_path, "AMFG")
     if results_dissolved:
-        logging.info("\nDone calculating plume areas for dissolved phase.")
+        logging.info("\nDone calculating plume areas for AMFG (dissolved phase).")
         df_dissolved = _convert_to_data_frame(results_dissolved, "dissolved_phase")
+    else:
+        results_dissolved = calculate_plume_area(input_path, "XMF2")
+        if results_dissolved:
+            logging.info("\nDone calculating plume areas for XMF2 (dissolved phase).")
+            df_dissolved = _convert_to_data_frame(results_dissolved, "dissolved_phase")
 
     # Merge the data frames
     df = None
