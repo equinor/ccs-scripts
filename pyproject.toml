@@ -43,6 +43,7 @@ dependencies = [
     "shapely",
     "xtgeo",
     "pyyaml",
+    "ert",
     "resfo",
 ]
 
