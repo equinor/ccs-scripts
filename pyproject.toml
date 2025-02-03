@@ -37,13 +37,12 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "resdata",
-    "numpy<2",
+    "numpy",
     "pandas",
     "scipy",
     "shapely",
     "xtgeo",
     "pyyaml",
-    "grid3d-maps",
     "ert",
     "resfo",
 ]
