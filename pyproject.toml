@@ -37,7 +37,8 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "resdata",
-    "numpy>=2",
+    # "numpy>=2",
+    "numpy",
     "pandas",
     "scipy",
     "shapely",
