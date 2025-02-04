@@ -1,6 +1,12 @@
 #!/usr/bin/env python
+from datetime import datetime
+import getpass
 import logging
+import os
 import pathlib
+import platform
+import socket
+import subprocess
 import sys
 from typing import List, Optional, Tuple, Union
 
@@ -229,6 +235,74 @@ def generate_from_config(config: _config.RootConfig):
     )
 
 
+def _log_input_configuration(config_: _config.RootConfig) -> None:
+    """
+    Log the provided input
+    """
+    version = "v0.9.0"
+    is_dev_version = True
+    if is_dev_version:
+        version += "_dev"
+        try:
+            source_dir = os.path.dirname(os.path.abspath(__file__))
+            short_hash = (
+                subprocess.check_output(
+                    ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
+                )
+                .decode("ascii")
+                .strip()
+            )
+        except subprocess.CalledProcessError:
+            short_hash = "-"
+        version += " (latest git commit: " + short_hash + ")"
+
+    col1 = 30
+    now = datetime.now()
+    date_time = now.strftime("%B %d, %Y %H:%M:%S")
+    logging.info("CCS-scripts - Aggregate maps")
+    logging.info("============================")
+    logging.info(f"{'Version':<{col1}} : {version}")
+    logging.info(f"{'Date and time':<{col1}} : {date_time}")
+    logging.info(f"{'User':<{col1}} : {getpass.getuser()}")
+    logging.info(f"{'Host':<{col1}} : {socket.gethostname()}")
+    logging.info(f"{'Platform':<{col1}} : {platform.system()} ({platform.release()})")
+    py_version = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
+    logging.info(f"{'Python version':<{col1}} : {py_version}")
+
+    config_.input
+    config_.output
+    config_.zonation
+    config_.computesettings
+    config_.mapsettings
+    config_.co2_mass_settings
+    # input: Input
+    # output: Output
+    # zonation: Zonation = field(default_factory=Zonation)
+    # computesettings: ComputeSettings = field(default_factory=ComputeSettings)
+    # mapsettings: MapSettings = field(default_factory=MapSettings)
+    # co2_mass_settings: Optional[CO2MassSettings] = None
+
+    logging.info("\nInput:")
+    logging.info(f"{'  Grid file':<{col1}} : {config_.input.grid}")
+    logging.info("  Properties:")
+    if config_.input.properties is None:
+        logging.info("    No properties specified")
+    else:
+        for p in config_.input.properties:
+            logging.info(f"{'    - Name':<{col1}} : {p.name}")
+            logging.info(f"{'      Source':<{col1}} : {p.source if p.source is not None else '-'}")
+            logging.info(f"{'      Lower threshold':<{col1}} : {p.lower_threshold if p.lower_threshold is not None else '-'}")
+    logging.info("\nOutput:")
+    logging.info(f"{'  Map folder':<{col1}} : {config_.output.mapfolder}")
+    logging.info(f"{'  Plot folder':<{col1}} : {config_.output.plotfolder if config_.output.plotfolder is not None else '- (plot export not selected)'}")
+    logging.info(f"{'  Grid folder':<{col1}} : {config_.output.gridfolder if config_.output.gridfolder is not None else '- (export of 3D grids not selected)'}")
+    logging.info(f"{'  Use lower case in file names':<{col1}} : {'yes' if config_.output.lowercase else 'no'}")
+    logging.info(f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if config_.output.use_plotly else 'quickplot from xtgeoviz'}")
+    logging.info(f"{'  Aggregation tag':<{col1}} : {config_.output.aggregation_tag}")  # NBNB-AS: Remove this from logging?
+
+
 def _distribute_config_property(config_: _config.RootConfig):
     if config_.input.properties is None:
         return
@@ -286,6 +360,7 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = process_arguments(arguments)
+    _log_input_configuration(config_)
     _distribute_config_property(config_)
     generate_from_config(config_)
 
