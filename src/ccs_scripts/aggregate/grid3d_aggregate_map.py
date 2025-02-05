@@ -103,6 +103,24 @@ def modify_mass_property_names(properties: List[xtgeo.GridProperty]):
                 p.name = f"{MapName[mass_prop_name].value}--{mass_prop_date}"
 
 
+def _log_grid_info(grid: xtgeo.Grid) -> None:
+    col1 = 25
+    logging.info("\nGrid read from file")
+    logging.info(f"{'  - Grid name':<{col1}} : {grid.name if grid.name is not None else '-'}")
+    logging.info(f"{'  - Number of columns (x)':<{col1}} : {grid.ncol}")
+    logging.info(f"{'  - Number of rows (y)':<{col1}} : {grid.nrow}")
+    logging.info(f"{'  - Number of layers':<{col1}} : {grid.nlay}")
+    logging.info(f"{'  - Units':<{col1}} : {grid.units.name.lower() if grid.units is not None else '?'}")
+
+
+def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
+    logging.info("\nProperties read from file")
+    logging.info(f"\n{'Name':<15} {'Date':<10} {'Mean':<7} {'Max':<7}")
+    logging.info("-"*40)
+    for p in properties:
+        name_stripped = p.name.split("--")[0] if "--" in p.name else p.name
+        logging.info(f"{name_stripped:<15} {p.date:<10} {p.values.mean():<7.3f} {p.values.max():<7.3f}")
+
 def generate_maps(
     input_: Input,
     zonation: Zonation,
@@ -115,14 +133,18 @@ def generate_maps(
     """
     logging.info("\nReading grid, properties and zone(s)")
     grid = xtgeo.grid_from_file(input_.grid)
+    _log_grid_info(grid)
     properties = extract_properties(input_.properties, grid, input_.dates)
+    _log_properties_info(properties)
     modify_mass_property_names(properties)
     _filters: List[Tuple[str, Optional[Union[np.ndarray, None]]]] = []
     if computesettings.all:
         _filters.append(("all", None))
     if computesettings.zone:
         _filters += extract_zonations(zonation, grid)
-    logging.info("\nGenerating Property Maps")
+    print(_filters)
+
+    logging.info(f"\nGenerating property maps for: {', '.join([f[0] for f in _filters])}")
     xn, yn, p_maps = _grid_aggregation.aggregate_maps(
         create_map_template(map_settings),
         grid,
@@ -131,11 +153,14 @@ def generate_maps(
         computesettings.aggregation,
         computesettings.weight_by_dz,
     )
+    logging.info(f"\nDone calculating properties")
+    # p_maps: 4 x n_dates x 30 * 30
     prop_tags = [
         _property_tag(p.name, computesettings.aggregation, output.aggregation_tag)
         for p in properties
     ]
     if computesettings.aggregate_map:
+        logging.info
         surfs = _ndarray_to_regsurfs(
             [f[0] for f in _filters],
             prop_tags,

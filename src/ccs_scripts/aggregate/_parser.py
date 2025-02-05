@@ -186,7 +186,7 @@ def extract_properties(
     """
     Extract 3D grid properties based on the provided property specification
     """
-    properties: List[Property] = []
+    properties: List[xtgeo.GridProperty] = []
     if property_spec is None:
         return properties
     for spec in property_spec:
@@ -286,6 +286,15 @@ def _zonation_from_zproperty(
     ]
 
 
+def _log_surface_repr(surf: xtgeo.RegularSurface):
+    col1 = 20
+    logging.info(f"{'  Origo x':<{col1}} : {surf.xori}")
+    logging.info(f"{'  Origo y':<{col1}} : {surf.yori}")
+    logging.info(f"{'  Increment x':<{col1}} : {surf.xinc if surf.xinc is not None else '-'}")
+    logging.info(f"{'  Increment y':<{col1}} : {surf.yinc if surf.yinc is not None else '-'}")
+    logging.info(f"{'  Number of columns (x)':<{col1}} : {surf.ncol}")
+    logging.info(f"{'  Number of rows (y)':<{col1}} : {surf.nrow}")
+
 def create_map_template(
     map_settings: MapSettings,
 ) -> Union[xtgeo.RegularSurface, float]:
@@ -298,6 +307,8 @@ def create_map_template(
         surf = xtgeo.surface_from_file(map_settings.templatefile)
         if surf.rotation != 0.0:
             raise NotImplementedError("Rotated surfaces are not handled correctly yet")
+        logging.info(f"\nUsing template file {map_settings.templatefile} to make surface representation.")
+        _log_surface_repr(surf)
         return surf
     if map_settings.xori is not None:
         surf_kwargs = dict(
@@ -314,5 +325,8 @@ def create_map_template(
                 f"Failed to create map template due to partial map specification. "
                 f"Missing: {', '.join(missing)}"
             )
-        return xtgeo.RegularSurface(**surf_kwargs)
+        logging.info(f"\nUsing input coordinates (xinc etc) to make surface representation.")
+        surf = xtgeo.RegularSurface(**surf_kwargs)
+        return surf
+    logging.info("Use pixel-to-cell ratio when making surface representation.")
     return map_settings.pixel_to_cell_ratio
