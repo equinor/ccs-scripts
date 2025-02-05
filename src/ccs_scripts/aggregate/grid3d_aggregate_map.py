@@ -217,12 +217,22 @@ def generate_from_config(config: _config.RootConfig):
     )
 
 
-def _distribute_config_property(config_: _config.RootConfig):
+def _distribute_config_properties(config_: _config.RootConfig):
     if config_.input.properties is None:
         return
+    elif isinstance(config_.input.properties, list):
+        properties_to_review = len(config_.input.properties)
+        while properties_to_review > 0:
+            _distribute_config_property(config_)
+            properties_to_review -= 1
+    else:
+        print("Something's wrong here!")
+
+
+def _distribute_config_property(config_):
     if not isinstance(config_.input.properties[0].name, list):
         return
-    tmp_props = config_.input.properties.pop()
+    tmp_props = config_.input.properties.pop(0)
     if isinstance(tmp_props.lower_threshold, list) and len(tmp_props.name) == len(
         tmp_props.lower_threshold
     ):
@@ -277,7 +287,7 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = process_arguments(arguments)
-    _distribute_config_property(config_)
+    _distribute_config_properties(config_)
     generate_from_config(config_)
 
 
