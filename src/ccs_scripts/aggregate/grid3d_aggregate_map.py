@@ -105,8 +105,8 @@ def modify_mass_property_names(properties: List[xtgeo.GridProperty]):
 
 def _log_grid_info(grid: xtgeo.Grid) -> None:
     col1 = 25
-    logging.info("\nGrid read from file")
-    logging.info(f"{'  - Grid name':<{col1}} : {grid.name if grid.name is not None else '-'}")
+    logging.info("\nGrid read from file:")
+    logging.info(f"{'  - Name':<{col1}} : {grid.name if grid.name is not None else '-'}")
     logging.info(f"{'  - Number of columns (x)':<{col1}} : {grid.ncol}")
     logging.info(f"{'  - Number of rows (y)':<{col1}} : {grid.nrow}")
     logging.info(f"{'  - Number of layers':<{col1}} : {grid.nlay}")
@@ -114,7 +114,7 @@ def _log_grid_info(grid: xtgeo.Grid) -> None:
 
 
 def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
-    logging.info("\nProperties read from file")
+    logging.info("\nProperties read from file:")
     logging.info(f"\n{'Name':<15} {'Date':<10} {'Mean':<7} {'Max':<7}")
     logging.info("-"*40)
     for p in properties:
@@ -142,7 +142,6 @@ def generate_maps(
         _filters.append(("all", None))
     if computesettings.zone:
         _filters += extract_zonations(zonation, grid)
-    print(_filters)
 
     logging.info(f"\nGenerating property maps for: {', '.join([f[0] for f in _filters])}")
     xn, yn, p_maps = _grid_aggregation.aggregate_maps(
@@ -154,13 +153,11 @@ def generate_maps(
         computesettings.weight_by_dz,
     )
     logging.info(f"\nDone calculating properties")
-    # p_maps: 4 x n_dates x 30 * 30
     prop_tags = [
         _property_tag(p.name, computesettings.aggregation, output.aggregation_tag)
         for p in properties
     ]
     if computesettings.aggregate_map:
-        logging.info
         surfs = _ndarray_to_regsurfs(
             [f[0] for f in _filters],
             prop_tags,
@@ -170,10 +167,11 @@ def generate_maps(
             output.lowercase,
         )
         _write_surfaces(surfs, output.mapfolder, output.plotfolder, output.use_plotly)
+        logging.info(f"\nDone exporting the following {len(prop_tags)} aggregate maps:\n{', '.join(prop_tags)}")
     if computesettings.indicator_map:
         prop_tags_indicator = [p.replace("max", "indicator") for p in prop_tags]
         p_maps_indicator = [
-            [np.where(np.isfinite(p), 1, p) for p in map] for map in p_maps
+            [np.where(np.isfinite(p), 1, p) for p in map_] for map_ in p_maps
         ]
         surfs_indicator = _ndarray_to_regsurfs(
             [f[0] for f in _filters],
@@ -186,6 +184,7 @@ def generate_maps(
         _write_surfaces(
             surfs_indicator, output.mapfolder, output.plotfolder, output.use_plotly
         )
+        logging.info(f"\nDone exporting the following {len(prop_tags_indicator)} indicator maps:\n{', '.join(prop_tags_indicator)}")
     if not computesettings.aggregate_map and not computesettings.indicator_map:
         error_text = (
             "As neither indicator_map nor aggregate_map were requested,"
