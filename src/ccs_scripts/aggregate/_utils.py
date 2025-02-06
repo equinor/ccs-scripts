@@ -9,6 +9,7 @@ import sys
 
 from ccs_scripts.aggregate._config import RootConfig
 
+
 def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -> None:
     """
     Log the provided input
@@ -61,8 +62,12 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         else:
             for p in config_.input.properties:
                 logging.info(f"{'    - Name':<{col1}} : {p.name}")
-                logging.info(f"{'      Source':<{col1}} : {p.source if p.source is not None else '-'}")
-                logging.info(f"{'      Lower threshold':<{col1}} : {p.lower_threshold if p.lower_threshold is not None else '-'}")
+                logging.info(
+                    f"{'      Source':<{col1}} : {p.source if p.source is not None else '-'}"
+                )
+                logging.info(
+                    f"{'      Lower threshold':<{col1}} : {p.lower_threshold if p.lower_threshold is not None else '-'}"
+                )
     if len(config_.input.dates) > 0:
         logging.info(f"{'  Dates':<{col1}} : {', '.join(config_.input.dates)}")
     else:
@@ -73,11 +78,21 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
 
     logging.info("\nOutput configuration:")
     logging.info(f"{'  Map folder':<{col1}} : {config_.output.mapfolder}")
-    logging.info(f"{'  Plot folder':<{col1}} : {config_.output.plotfolder if config_.output.plotfolder is not None else '- (plot export not selected)'}")
-    logging.info(f"{'  Grid folder':<{col1}} : {config_.output.gridfolder if config_.output.gridfolder is not None else '- (not specified, so temp exported 3D grid files will be deleted)'}")
-    logging.info(f"{'  Use lower case in file names':<{col1}} : {'yes' if config_.output.lowercase else 'no'}")
-    logging.info(f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if config_.output.use_plotly else 'quickplot from xtgeoviz'}")
-    logging.info(f"{'  Aggregation tag':<{col1}} : {config_.output.aggregation_tag}")  # NBNB-AS: Remove this from logging?
+    logging.info(
+        f"{'  Plot folder':<{col1}} : {config_.output.plotfolder if config_.output.plotfolder is not None else '- (plot export not selected)'}"
+    )
+    logging.info(
+        f"{'  Grid folder':<{col1}} : {config_.output.gridfolder if config_.output.gridfolder is not None else '- (not specified, so temp exported 3D grid files will be deleted)'}"
+    )
+    logging.info(
+        f"{'  Use lower case in file names':<{col1}} : {'yes' if config_.output.lowercase else 'no'}"
+    )
+    logging.info(
+        f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if config_.output.use_plotly else 'quickplot from xtgeoviz'}"
+    )
+    logging.info(
+        f"{'  Aggregation tag':<{col1}} : {config_.output.aggregation_tag}"
+    )  # NBNB-AS: Remove this from logging?
 
     logging.info("\nZonation configuration:")
     # NBNB-AS: Comment here that this information is not used when config_.computesettings.zone is False?
@@ -86,7 +101,9 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         logging.info("    No z-property specified")
     else:
         logging.info(f"{'    Source':<{col1}} : {config_.zonation.zproperty.source}")
-        logging.info(f"{'    Name':<{col1}} : {config_.zonation.zproperty.name if config_.zonation.zproperty.name is not None else '-'}")
+        logging.info(
+            f"{'    Name':<{col1}} : {config_.zonation.zproperty.name if config_.zonation.zproperty.name is not None else '-'}"
+        )
         logging.info("    Zones:")
         zones = config_.zonation.zproperty.zones
         if len(zones) == 0:
@@ -110,12 +127,20 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
                     logging.info(f"{f'      {k}':<{col1}} : {v}")
 
     logging.info("\nComputation configuration:")
-    logging.info(f"{'  Aggregation method':<{col1}} : {config_.computesettings.aggregation.name}")
+    logging.info(
+        f"{'  Aggregation method':<{col1}} : {config_.computesettings.aggregation.name}"
+    )
     logging.info(f"{'  Weight by dz':<{col1}} : {config_.computesettings.weight_by_dz}")
-    logging.info(f"{'  Make maps for full grid (all zones)':<{col1}} : {config_.computesettings.all}")
+    logging.info(
+        f"{'  Make maps for full grid (all zones)':<{col1}} : {config_.computesettings.all}"
+    )
     logging.info(f"{'  Make maps per zone':<{col1}} : {config_.computesettings.zone}")
-    logging.info(f"{'  Calculate aggregate maps':<{col1}} : {config_.computesettings.aggregate_map}")
-    logging.info(f"{'  Calculate indicator maps':<{col1}} : {config_.computesettings.indicator_map}")
+    logging.info(
+        f"{'  Calculate aggregate maps':<{col1}} : {config_.computesettings.aggregate_map}"
+    )
+    logging.info(
+        f"{'  Calculate indicator maps':<{col1}} : {config_.computesettings.indicator_map}"
+    )
 
     logging.info("\nMap configuration:")
     ms = config_.mapsettings
@@ -129,14 +154,24 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
             f" so will use pixel-to-cell-size ratio (Option 3)"
         )
     logging.info("  Option 1:")
-    logging.info(f"{'    Template file':<{col1}} : {ms.templatefile if ms.templatefile is not None else '- (not specified)'}")
+    logging.info(
+        f"{'    Template file':<{col1}} : {ms.templatefile if ms.templatefile is not None else '- (not specified)'}"
+    )
     logging.info("  Option 2:")
     logging.info(f"{'    Origo x':<{col1}} : {ms.xori if ms.xori is not None else '-'}")
     logging.info(f"{'    Origo y':<{col1}} : {ms.yori if ms.yori is not None else '-'}")
-    logging.info(f"{'    Increment x':<{col1}} : {ms.xinc if ms.xinc is not None else '-'}")
-    logging.info(f"{'    Increment y':<{col1}} : {ms.yinc if ms.yinc is not None else '-'}")
-    logging.info(f"{'    Number of columns (x)':<{col1}} : {ms.ncol if ms.ncol is not None else '-'}")
-    logging.info(f"{'    Number of rows (y)':<{col1}} : {ms.nrow if ms.nrow is not None else '-'}")
+    logging.info(
+        f"{'    Increment x':<{col1}} : {ms.xinc if ms.xinc is not None else '-'}"
+    )
+    logging.info(
+        f"{'    Increment y':<{col1}} : {ms.yinc if ms.yinc is not None else '-'}"
+    )
+    logging.info(
+        f"{'    Number of columns (x)':<{col1}} : {ms.ncol if ms.ncol is not None else '-'}"
+    )
+    logging.info(
+        f"{'    Number of rows (y)':<{col1}} : {ms.nrow if ms.nrow is not None else '-'}"
+    )
     if ms.xinc is not None and ms.ncol is not None:
         logging.info(f"{'    => Size x-direction':<{col1}} : {ms.xinc * ms.ncol}")
     if ms.yinc is not None and ms.nrow is not None:
@@ -149,5 +184,9 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         logging.info("\nCO2 mass configuration:")
         logging.info(f"{'  UNRST source':<{col1}} : {cms.unrst_source}")
         logging.info(f"{'  INIT source':<{col1}} : {cms.init_source}")
-        logging.info(f"{'  Maps to calculate':<{col1}} : {cms.maps if cms.maps is not None else '- (not specified => calculating all maps)'}")
-        logging.info(f"{'  Include residual trapping':<{col1}} : {'yes' if cms.residual_trapping else 'no'}")
+        logging.info(
+            f"{'  Maps to calculate':<{col1}} : {cms.maps if cms.maps is not None else '- (not specified => calculating all maps)'}"
+        )
+        logging.info(
+            f"{'  Include residual trapping':<{col1}} : {'yes' if cms.residual_trapping else 'no'}"
+        )

@@ -110,22 +110,31 @@ def modify_mass_property_names(properties: List[xtgeo.GridProperty]):
 def _log_grid_info(grid: xtgeo.Grid) -> None:
     col1 = 25
     logging.info("\nGrid read from file:")
-    logging.info(f"{'  - Name':<{col1}} : {grid.name if grid.name is not None else '-'}")
+    logging.info(
+        f"{'  - Name':<{col1}} : {grid.name if grid.name is not None else '-'}"
+    )
     logging.info(f"{'  - Number of columns (x)':<{col1}} : {grid.ncol}")
     logging.info(f"{'  - Number of rows (y)':<{col1}} : {grid.nrow}")
     logging.info(f"{'  - Number of layers':<{col1}} : {grid.nlay}")
-    logging.info(f"{'  - Units':<{col1}} : {grid.units.name.lower() if grid.units is not None else '?'}")
+    logging.info(
+        f"{'  - Units':<{col1}} : {grid.units.name.lower() if grid.units is not None else '?'}"
+    )
 
 
 def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
     logging.info("\nProperties read from file:")
     logging.info(f"\n{'Name':<21} {'Date':<10} {'Mean':<7} {'Max':<7}")
-    logging.info("-"*48)
+    logging.info("-" * 48)
     for p in properties:
         name_stripped = p.name.split("--")[0] if "--" in p.name else p.name
-        logging.info(f"{name_stripped:<21} {p.date if p.date is not None else '-':<10} {p.values.mean():<7.3f} {p.values.max():<7.3f}")
+        logging.info(
+            f"{name_stripped:<21} {p.date if p.date is not None else '-':<10} {p.values.mean():<7.3f} {p.values.max():<7.3f}"
+        )
 
-def _log_surfaces_exported(surfs: List[xtgeo.RegularSurface], zone_names: List[str], map_type: str) -> None:
+
+def _log_surfaces_exported(
+    surfs: List[xtgeo.RegularSurface], zone_names: List[str], map_type: str
+) -> None:
     categories = [s.name.split("--") for s in surfs]
     types = set([v[1] for v in categories])
     logging.info(f"\nDone exporting {len(surfs)} {map_type} maps")
@@ -168,7 +177,9 @@ def generate_maps(
                 f"({100.0 * np.count_nonzero(filt[1]) / len(filt[1]):.1f}%)"
             )
 
-    logging.info(f"\nGenerating property maps for: {', '.join([f[0] for f in _filters])}")
+    logging.info(
+        f"\nGenerating property maps for: {', '.join([f[0] for f in _filters])}"
+    )
     xn, yn, p_maps = _grid_aggregation.aggregate_maps(
         create_map_template(map_settings),
         grid,

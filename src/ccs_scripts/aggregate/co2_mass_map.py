@@ -142,12 +142,16 @@ def read_yml_file(file_path: str) -> Dict[str, List]:
         raise Exception(error_text)
     return zfile
 
+
 def _check_config(config_: RootConfig) -> None:
     if config_.input.properties:
         raise ValueError("CO2 mass computation does not take a property as input")
     if config_.co2_mass_settings is None:
         raise ValueError("CO2 mass computation needs co2_mass_settings as input")
-    if not config_.computesettings.aggregate_map and not config_.computesettings.indicator_map:
+    if (
+        not config_.computesettings.aggregate_map
+        and not config_.computesettings.indicator_map
+    ):
         error_text = (
             "As neither indicator_map nor aggregate_map were requested,"
             " no map is produced"
@@ -172,7 +176,7 @@ def main(arguments=None):
     config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
     config_.output.aggregation_tag = False
     _check_config(config_)
-    log_input_configuration(config_, calc_type = "co2_mass")
+    log_input_configuration(config_, calc_type="co2_mass")
     generate_co2_mass_maps(config_)
 
 

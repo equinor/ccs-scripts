@@ -46,6 +46,7 @@ EXAMPLES = """
   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
 """
 
+
 def _check_config(config_: RootConfig) -> None:
     if len(config_.input.properties) > 1:
         raise ValueError(
@@ -68,7 +69,10 @@ def _log_t_prop(t_prop: dict[str, xtgeo.GridProperty]):
         logging.info(f"{'  - Minimum':<{col1}} : {v.values.min():>{col2}.1f}")
         logging.info(f"{'  - Mean':<{col1}} : {v.values.mean():>{col2}.1f}")
         logging.info(f"{'  - Maximum':<{col1}} : {v.values.max():>{col2}.1f}")
-        logging.info(f"{'  - # cells with CO2':<{col1}} : {n_finite:>{col2}} ({100.0*n_finite/v.values.size:.1f}%)")
+        logging.info(
+            f"{'  - # cells with CO2':<{col1}} : {n_finite:>{col2}} ({100.0*n_finite/v.values.size:.1f}%)"
+        )
+
 
 def calculate_migration_time_property(
     properties_files: str,
@@ -106,7 +110,9 @@ def migration_time_property_to_map(
     The migration time property is written to a temporary file while performing the
     aggregation.
     """
-    logging.info("\nStart aggregating time migration property from temporary 3D grid file to 2D map")
+    logging.info(
+        "\nStart aggregating time migration property from temporary 3D grid file to 2D map"
+    )
     config_.computesettings.aggregation = _config.AggregationMethod.MIN
     config_.output.aggregation_tag = False
     config_.computesettings.aggregate_map = True

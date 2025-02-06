@@ -241,7 +241,9 @@ def extract_zonations(
     return _zonation_from_zproperty(grid, zonation.zproperty)
 
 
-def _zonation_from_zranges(grid: xtgeo.Grid, z_ranges: List[Dict[str, List[int]]]) -> List[Tuple[str, np.ndarray]]:
+def _zonation_from_zranges(
+    grid: xtgeo.Grid, z_ranges: List[Dict[str, List[int]]]
+) -> List[Tuple[str, np.ndarray]]:
     logging.info("\nUsing the following zone ranges:")
     for z_def in z_ranges:
         for k, v in z_def.items():
@@ -295,10 +297,15 @@ def _log_surface_repr(surf: xtgeo.RegularSurface):
     col1 = 20
     logging.info(f"{'  Origo x':<{col1}} : {surf.xori}")
     logging.info(f"{'  Origo y':<{col1}} : {surf.yori}")
-    logging.info(f"{'  Increment x':<{col1}} : {surf.xinc if surf.xinc is not None else '-'}")
-    logging.info(f"{'  Increment y':<{col1}} : {surf.yinc if surf.yinc is not None else '-'}")
+    logging.info(
+        f"{'  Increment x':<{col1}} : {surf.xinc if surf.xinc is not None else '-'}"
+    )
+    logging.info(
+        f"{'  Increment y':<{col1}} : {surf.yinc if surf.yinc is not None else '-'}"
+    )
     logging.info(f"{'  Number of columns (x)':<{col1}} : {surf.ncol}")
     logging.info(f"{'  Number of rows (y)':<{col1}} : {surf.nrow}")
+
 
 def create_map_template(
     map_settings: MapSettings,
@@ -312,7 +319,9 @@ def create_map_template(
         surf = xtgeo.surface_from_file(map_settings.templatefile)
         if surf.rotation != 0.0:
             raise NotImplementedError("Rotated surfaces are not handled correctly yet")
-        logging.info(f"\nUsing template file {map_settings.templatefile} to make surface representation.")
+        logging.info(
+            f"\nUsing template file {map_settings.templatefile} to make surface representation."
+        )
         _log_surface_repr(surf)
         return surf
     if map_settings.xori is not None:
@@ -330,7 +339,9 @@ def create_map_template(
                 f"Failed to create map template due to partial map specification. "
                 f"Missing: {', '.join(missing)}"
             )
-        logging.info(f"\nUsing input coordinates (xinc etc) to make surface representation.")
+        logging.info(
+            f"\nUsing input coordinates (xinc etc) to make surface representation."
+        )
         surf = xtgeo.RegularSurface(**surf_kwargs)
         return surf
     logging.info("Use pixel-to-cell ratio when making surface representation.")
