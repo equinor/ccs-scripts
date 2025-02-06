@@ -6,6 +6,7 @@ import sys
 import tempfile
 from typing import Dict, List, Optional, Union
 
+import numpy as np
 import xtgeo
 from xtgeo.common import XTGeoDialog
 
@@ -44,17 +45,29 @@ EXAMPLES = """
 """
 
 
+def _log_t_prop(t_prop: dict[str, xtgeo.GridProperty]):
+    col1 = 20
+    col2 = 8
+    for k, v in t_prop.items():
+        n_finite = np.sum(np.isfinite(v.values))
+        logging.info(f"\nSummary of time migration 3D grid property {k}:")
+        logging.info(f"{'  - Minimum':<{col1}} : {v.values.min():>{col2}.1f}")
+        logging.info(f"{'  - Mean':<{col1}} : {v.values.mean():>{col2}.1f}")
+        logging.info(f"{'  - Maximum':<{col1}} : {v.values.max():>{col2}.1f}")
+        logging.info(f"{'  - # cells with CO2':<{col1}} : {n_finite:>{col2}} ({100.0*n_finite/v.values.size:.1f}%)")
+
 def calculate_migration_time_property(
     properties_files: str,
     property_name: str,
     lower_threshold: Union[float, List],
     grid_file: Optional[str],
     dates: List[str],
-):
+) -> dict[str, xtgeo.GridProperty]:
     """
     Calculates a 3D migration time property from the provided grid and grid property
     files
     """
+    logging.info("\nStart calculating time migration property in 3D grid")
     prop_spec = [
         _config.Property(source=f, name=name)
         for f in glob.glob(properties_files, recursive=True)
@@ -62,9 +75,11 @@ def calculate_migration_time_property(
     ]
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
     properties = _parser.extract_properties(prop_spec, grid, dates)
+    grid3d_aggregate_map._log_properties_info(properties)
     t_prop = _migration_time.generate_migration_time_property(
         properties, lower_threshold
     )
+    _log_t_prop(t_prop)
     return t_prop
 
 
@@ -77,6 +92,7 @@ def migration_time_property_to_map(
     The migration time property is written to a temporary file while performing the
     aggregation.
     """
+    logging.info("\nStart aggregating time migration property from temporary 3D grid file to 2D map")
     config_.computesettings.aggregation = _config.AggregationMethod.MIN
     config_.output.aggregation_tag = False
     for prop in t_prop.values():
@@ -96,6 +112,7 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
+    grid3d_aggregate_map._log_input_configuration(config_, calc_type="time_migration")  # NBNB-AS: Temp ? At least move the method
     if len(config_.input.properties) > 1:
         raise ValueError(
             "Migration time computation is only supported for a single property"
@@ -107,14 +124,13 @@ def main(arguments=None):
         removed_props = [x for x in p_spec.name if x not in MIGRATION_TIME_PROPERTIES]
         p_spec.name = [x for x in p_spec.name if x in MIGRATION_TIME_PROPERTIES]
         if len(removed_props) > 0:
-            print(
-                "Time migration maps are not supported for these properties: ",
+            logging.warning(
+                "\nWARNING: Time migration maps are not supported for these properties: ",
                 ", ".join(str(x) for x in removed_props),
             )
     else:
-        error_text = (
-            "Time migration maps are not supported for any of the properties provided"
-        )
+        error_text = f"Time migration maps are not supported for any of the properties provided: "
+        error_text += f"{', '.join(p_spec.name)}"
         raise ValueError(error_text)
     t_prop = calculate_migration_time_property(
         p_spec.source,

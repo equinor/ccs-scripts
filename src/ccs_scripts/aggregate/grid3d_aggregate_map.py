@@ -115,11 +115,11 @@ def _log_grid_info(grid: xtgeo.Grid) -> None:
 
 def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
     logging.info("\nProperties read from file:")
-    logging.info(f"\n{'Name':<15} {'Date':<10} {'Mean':<7} {'Max':<7}")
-    logging.info("-"*40)
+    logging.info(f"\n{'Name':<21} {'Date':<10} {'Mean':<7} {'Max':<7}")
+    logging.info("-"*48)
     for p in properties:
         name_stripped = p.name.split("--")[0] if "--" in p.name else p.name
-        logging.info(f"{name_stripped:<15} {p.date:<10} {p.values.mean():<7.3f} {p.values.max():<7.3f}")
+        logging.info(f"{name_stripped:<21} {p.date if p.date is not None else '-':<10} {p.values.mean():<7.3f} {p.values.max():<7.3f}")
 
 def generate_maps(
     input_: Input,
@@ -259,7 +259,7 @@ def generate_from_config(config: _config.RootConfig):
     )
 
 
-def _log_input_configuration(config_: _config.RootConfig) -> None:
+def _log_input_configuration(config_: _config.RootConfig, calc_type: str = "aggregate") -> None:
     """
     Log the provided input
     """
@@ -280,11 +280,18 @@ def _log_input_configuration(config_: _config.RootConfig) -> None:
             short_hash = "-"
         version += " (latest git commit: " + short_hash + ")"
 
-    col1 = 30
+    col1 = 37
     now = datetime.now()
     date_time = now.strftime("%B %d, %Y %H:%M:%S")
-    logging.info("CCS-scripts - Aggregate maps")
-    logging.info("============================")
+    if calc_type == "aggregate":
+        logging.info("CCS-scripts - Aggregate maps")
+        logging.info("============================")
+    elif calc_type == "time_migration":
+        logging.info("CCS-scripts - Time migration maps")
+        logging.info("=================================")
+    elif calc_type == "co2_mass":
+        logging.info("CCS-scripts - CO2 mass maps")
+        logging.info("===========================")
     logging.info(f"{'Version':<{col1}} : {version}")
     logging.info(f"{'Date and time':<{col1}} : {date_time}")
     logging.info(f"{'User':<{col1}} : {getpass.getuser()}")
@@ -297,14 +304,23 @@ def _log_input_configuration(config_: _config.RootConfig) -> None:
 
     logging.info("\nInput configuration:")
     logging.info(f"{'  Grid file':<{col1}} : {config_.input.grid}")
-    logging.info("  Properties:")
-    if config_.input.properties is None:
-        logging.info("    No properties specified")
+    if calc_type != "co2_mass":
+        logging.info("  Properties:")
+        if config_.input.properties is None:
+            logging.info("    No properties specified")
+        else:
+            for p in config_.input.properties:
+                logging.info(f"{'    - Name':<{col1}} : {p.name}")
+                logging.info(f"{'      Source':<{col1}} : {p.source if p.source is not None else '-'}")
+                logging.info(f"{'      Lower threshold':<{col1}} : {p.lower_threshold if p.lower_threshold is not None else '-'}")
+    if len(config_.input.dates) > 0:
+        logging.info(f"{'  Dates':<{col1}} : {', '.join(config_.input.dates)}")
     else:
-        for p in config_.input.properties:
-            logging.info(f"{'    - Name':<{col1}} : {p.name}")
-            logging.info(f"{'      Source':<{col1}} : {p.source if p.source is not None else '-'}")
-            logging.info(f"{'      Lower threshold':<{col1}} : {p.lower_threshold if p.lower_threshold is not None else '-'}")
+        logging.info(f"{'  Dates':<{col1}} : - (not specified => using all dates)")
+
+    if calc_type == "time_migration":
+        return  # Everything else in the config is irrelevant for time migration, or will be overwritten later
+
     logging.info("\nOutput configuration:")
     logging.info(f"{'  Map folder':<{col1}} : {config_.output.mapfolder}")
     logging.info(f"{'  Plot folder':<{col1}} : {config_.output.plotfolder if config_.output.plotfolder is not None else '- (plot export not selected)'}")
@@ -322,7 +338,6 @@ def _log_input_configuration(config_: _config.RootConfig) -> None:
         logging.info(f"{'    Name':<{col1}} : {config_.zonation.zproperty.name if config_.zonation.zproperty.name is not None else '-'}")
         logging.info("    Zones:")
         zones = config_.zonation.zproperty.zones
-        # zones = [{"A:": [1,2,3], "B: ": [4,5,6]}, {"C:": [1,2,3], "D: ": [4,5,6]}]
         if len(zones) == 0:
             logging.info("      No zones specified")
         else:
@@ -346,8 +361,8 @@ def _log_input_configuration(config_: _config.RootConfig) -> None:
     logging.info("\nComputation configuration:")
     logging.info(f"{'  Aggregation method':<{col1}} : {config_.computesettings.aggregation.name}")
     logging.info(f"{'  Weight by dz':<{col1}} : {config_.computesettings.weight_by_dz}")
-    logging.info(f"{'  ...':<{col1}} : {config_.computesettings.all}")
-    logging.info(f"{'  ...':<{col1}} : {config_.computesettings.zone}")
+    logging.info(f"{'  Make maps for full grid (all zones)':<{col1}} : {config_.computesettings.all}")
+    logging.info(f"{'  Make maps per zone':<{col1}} : {config_.computesettings.zone}")
     logging.info(f"{'  Calculate aggregate maps':<{col1}} : {config_.computesettings.aggregate_map}")
     logging.info(f"{'  Calculate indicator maps':<{col1}} : {config_.computesettings.indicator_map}")
 
@@ -366,6 +381,16 @@ def _log_input_configuration(config_: _config.RootConfig) -> None:
     logging.info(f"{'  Template file':<{col1}} : {ms.templatefile if ms.templatefile is not None else '- (not specified)'}")
     logging.info(f"{'  Pixel-to-cell-size ratio':<{col1}} : {ms.pixel_to_cell_ratio}")  # NBNB-AS: Only used if ...
 
+    config_.co2_mass_settings.
+    if calc_type == "co2_mass":
+        config_.co
+        pass
+        # config_.co2_mass_settings
+    # unrst_source: str
+    # init_source: str
+    # maps: Optional[List[str]] = None
+    # residual_trapping: Optional[bool] = False
+    exit()
 
 def _distribute_config_property(config_: _config.RootConfig):
     if config_.input.properties is None:
@@ -425,7 +450,7 @@ def main(arguments=None):
         arguments = sys.argv[1:]
     config_ = process_arguments(arguments)
     _distribute_config_property(config_)
-    _log_input_configuration(config_)
+    _log_input_configuration(config_, calc_type="aggregate")
     generate_from_config(config_)
 
 

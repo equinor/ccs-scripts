@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import logging
 import os
 import shutil
 import sys
@@ -55,6 +56,7 @@ def generate_co2_mass_maps(config_):
         int_to_region=None,
         property_name=None,
     )
+    logging.info("\nCalculate CO2 mass 3D grid")
     co2_data = calculate_co2(
         grid_file=grid_file,
         unrst_file=co2_mass_settings.unrst_source,
@@ -87,6 +89,7 @@ def clean_tmp(out_property_list: List[Union[str, None]]):
     for props in out_property_list:
         if isinstance(props, str):
             directory_path = os.path.dirname(props[0])
+            # logging.info(f"Removing temporary directory for 3D grids: {directory_path}")  # NBNB-AS: Needs fix
             os.remove(props)
             if os.path.isdir(directory_path) and not os.listdir(directory_path):
                 shutil.rmtree(directory_path)
@@ -107,8 +110,6 @@ def co2_mass_property_to_map(
 
     """
     config_.input.properties = []
-    config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
-    config_.output.aggregation_tag = False
     for props in out_property_list:
         if isinstance(props, str):
             config_.input.properties.append(
@@ -152,6 +153,9 @@ def main(arguments=None):
         raise ValueError("CO2 mass computation does not take a property as input")
     if config_.co2_mass_settings is None:
         raise ValueError("CO2 mass computation needs co2_mass_settings as input")
+    config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
+    config_.output.aggregation_tag = False
+    grid3d_aggregate_map._log_input_configuration(config_, calc_type = "co2_mass")
     generate_co2_mass_maps(config_)
 
 

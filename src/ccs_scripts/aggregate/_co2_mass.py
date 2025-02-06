@@ -1,4 +1,5 @@
 import copy
+import logging
 import os
 import tempfile
 from enum import Enum
@@ -92,6 +93,7 @@ def translate_co2data_to_property(
             os.makedirs(grid_out_dir)
     else:
         grid_out_dir = tempfile.mkdtemp()
+        logging.info(f"\nMaking temporary directory for 3D grids: {grid_out_dir}")
     maps = co2_mass_settings.maps
     if maps is None:
         maps = []
