@@ -941,7 +941,7 @@ def _calculate_co2_data_from_source_data(
     calc_type: CalculationType,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
-    residual_trapping: Optional[bool] = False,
+    residual_trapping: bool = False,
 ) -> Co2Data:
     """
     Calculates a given calc_type (mass/cell_volume/actual_volume)

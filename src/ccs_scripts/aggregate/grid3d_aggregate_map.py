@@ -324,6 +324,7 @@ def _log_input_configuration(config_: _config.RootConfig, calc_type: str = "aggr
     logging.info("\nOutput configuration:")
     logging.info(f"{'  Map folder':<{col1}} : {config_.output.mapfolder}")
     logging.info(f"{'  Plot folder':<{col1}} : {config_.output.plotfolder if config_.output.plotfolder is not None else '- (plot export not selected)'}")
+    # NBNB-AS:
     logging.info(f"{'  Grid folder':<{col1}} : {config_.output.gridfolder if config_.output.gridfolder is not None else '- (export of 3D grids not selected)'}")
     logging.info(f"{'  Use lower case in file names':<{col1}} : {'yes' if config_.output.lowercase else 'no'}")
     logging.info(f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if config_.output.use_plotly else 'quickplot from xtgeoviz'}")
@@ -381,16 +382,16 @@ def _log_input_configuration(config_: _config.RootConfig, calc_type: str = "aggr
     logging.info(f"{'  Template file':<{col1}} : {ms.templatefile if ms.templatefile is not None else '- (not specified)'}")
     logging.info(f"{'  Pixel-to-cell-size ratio':<{col1}} : {ms.pixel_to_cell_ratio}")  # NBNB-AS: Only used if ...
 
-    config_.co2_mass_settings.
     if calc_type == "co2_mass":
-        config_.co
-        pass
-        # config_.co2_mass_settings
-    # unrst_source: str
-    # init_source: str
+        cms = config_.co2_mass_settings
+        logging.info("\nCO2 mass configuration:")
+        logging.info(f"{'  UNRST source':<{col1}} : {cms.unrst_source}")
+        logging.info(f"{'  INIT source':<{col1}} : {cms.init_source}")
+        logging.info(f"{'  Maps':<{col1}} : {cms.maps if cms.maps is not None else '-'}")  # NBNB-AS: What is this?
+        logging.info(f"{'  Include residual trapping':<{col1}} : {'yes' if cms.residual_trapping else 'no'}")
+
     # maps: Optional[List[str]] = None
-    # residual_trapping: Optional[bool] = False
-    exit()
+    # exit()
 
 def _distribute_config_property(config_: _config.RootConfig):
     if config_.input.properties is None:

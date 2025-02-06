@@ -89,7 +89,8 @@ def clean_tmp(out_property_list: List[Union[str, None]]):
     for props in out_property_list:
         if isinstance(props, str):
             directory_path = os.path.dirname(props[0])
-            # logging.info(f"Removing temporary directory for 3D grids: {directory_path}")  # NBNB-AS: Needs fix
+            directory_path = os.path.dirname(props)
+            logging.info(f"Removing temporary directory for 3D grids: {directory_path}")  # NBNB-AS: Needs fix
             os.remove(props)
             if os.path.isdir(directory_path) and not os.listdir(directory_path):
                 shutil.rmtree(directory_path)
@@ -120,6 +121,7 @@ def co2_mass_property_to_map(
                 )
             )
     grid3d_aggregate_map.generate_from_config(config_)
+    exit()
     if not config_.output.gridfolder:
         clean_tmp(out_property_list)
 

@@ -90,7 +90,7 @@ class CO2MassSettings:
     unrst_source: str
     init_source: str
     maps: Optional[List[str]] = None
-    residual_trapping: Optional[bool] = False
+    residual_trapping: bool = False
 
     def __post_init__(self):
         pass
