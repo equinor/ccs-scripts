@@ -91,11 +91,30 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if config_.output.use_plotly else 'quickplot from xtgeoviz'}"
     )
     logging.info(
-        f"{'  Aggregation tag':<{col1}} : {config_.output.aggregation_tag}"
-    )  # NBNB-AS: Remove this from logging?
+        f"{'  Add tag to file name for aggr. maps':<{col1}} : {config_.output.aggregation_tag}"
+    )
+
+    logging.info("\nComputation configuration:")
+    logging.info(
+        f"{'  Aggregation method':<{col1}} : {config_.computesettings.aggregation.name}"
+    )
+    logging.info(f"{'  Weight by dz':<{col1}} : {config_.computesettings.weight_by_dz}")
+    logging.info(
+        f"{'  Make maps for full grid (all zones)':<{col1}} : {config_.computesettings.all}"
+    )
+    logging.info(f"{'  Make maps per zone':<{col1}} : {config_.computesettings.zone}")
+    logging.info(
+        f"{'  Calculate aggregate maps':<{col1}} : {config_.computesettings.aggregate_map}"
+    )
+    logging.info(
+        f"{'  Calculate indicator maps':<{col1}} : {config_.computesettings.indicator_map}"
+    )
 
     logging.info("\nZonation configuration:")
-    # NBNB-AS: Comment here that this information is not used when config_.computesettings.zone is False?
+    if not config_.computesettings.zone:
+        logging.info(
+            "(Note that these are not used since zone in computesettings is set to 'no')"
+        )
     logging.info("  Z-property:")
     if config_.zonation.zproperty is None:
         logging.info("    No z-property specified")
@@ -125,22 +144,6 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
                     logging.info(f"{f'    - {k}':<{col1}} : {v}")
                 else:
                     logging.info(f"{f'      {k}':<{col1}} : {v}")
-
-    logging.info("\nComputation configuration:")
-    logging.info(
-        f"{'  Aggregation method':<{col1}} : {config_.computesettings.aggregation.name}"
-    )
-    logging.info(f"{'  Weight by dz':<{col1}} : {config_.computesettings.weight_by_dz}")
-    logging.info(
-        f"{'  Make maps for full grid (all zones)':<{col1}} : {config_.computesettings.all}"
-    )
-    logging.info(f"{'  Make maps per zone':<{col1}} : {config_.computesettings.zone}")
-    logging.info(
-        f"{'  Calculate aggregate maps':<{col1}} : {config_.computesettings.aggregate_map}"
-    )
-    logging.info(
-        f"{'  Calculate indicator maps':<{col1}} : {config_.computesettings.indicator_map}"
-    )
 
     logging.info("\nMap configuration:")
     ms = config_.mapsettings
