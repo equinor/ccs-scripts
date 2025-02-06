@@ -1,12 +1,6 @@
 #!/usr/bin/env python
-from datetime import datetime
-import getpass
 import logging
-import os
 import pathlib
-import platform
-import socket
-import subprocess
 import sys
 from typing import List, Optional, Tuple, Union
 
@@ -29,6 +23,7 @@ from ccs_scripts.aggregate._parser import (
     extract_zonations,
     process_arguments,
 )
+from ccs_scripts.aggregate._utils import log_input_configuration
 
 from . import _config, _grid_aggregation
 
@@ -275,140 +270,6 @@ def generate_from_config(config: _config.RootConfig):
     )
 
 
-def _log_input_configuration(config_: _config.RootConfig, calc_type: str = "aggregate") -> None:
-    """
-    Log the provided input
-    """
-    version = "v0.9.0"
-    is_dev_version = True
-    if is_dev_version:
-        version += "_dev"
-        try:
-            source_dir = os.path.dirname(os.path.abspath(__file__))
-            short_hash = (
-                subprocess.check_output(
-                    ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
-                )
-                .decode("ascii")
-                .strip()
-            )
-        except subprocess.CalledProcessError:
-            short_hash = "-"
-        version += " (latest git commit: " + short_hash + ")"
-
-    col1 = 37
-    now = datetime.now()
-    date_time = now.strftime("%B %d, %Y %H:%M:%S")
-    if calc_type == "aggregate":
-        logging.info("CCS-scripts - Aggregate maps")
-        logging.info("============================")
-    elif calc_type == "time_migration":
-        logging.info("CCS-scripts - Time migration maps")
-        logging.info("=================================")
-    elif calc_type == "co2_mass":
-        logging.info("CCS-scripts - CO2 mass maps")
-        logging.info("===========================")
-    logging.info(f"{'Version':<{col1}} : {version}")
-    logging.info(f"{'Date and time':<{col1}} : {date_time}")
-    logging.info(f"{'User':<{col1}} : {getpass.getuser()}")
-    logging.info(f"{'Host':<{col1}} : {socket.gethostname()}")
-    logging.info(f"{'Platform':<{col1}} : {platform.system()} ({platform.release()})")
-    py_version = (
-        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-    )
-    logging.info(f"{'Python version':<{col1}} : {py_version}")
-
-    logging.info("\nInput configuration:")
-    logging.info(f"{'  Grid file':<{col1}} : {config_.input.grid}")
-    if calc_type != "co2_mass":
-        logging.info("  Properties:")
-        if config_.input.properties is None:
-            logging.info("    No properties specified")
-        else:
-            for p in config_.input.properties:
-                logging.info(f"{'    - Name':<{col1}} : {p.name}")
-                logging.info(f"{'      Source':<{col1}} : {p.source if p.source is not None else '-'}")
-                logging.info(f"{'      Lower threshold':<{col1}} : {p.lower_threshold if p.lower_threshold is not None else '-'}")
-    if len(config_.input.dates) > 0:
-        logging.info(f"{'  Dates':<{col1}} : {', '.join(config_.input.dates)}")
-    else:
-        logging.info(f"{'  Dates':<{col1}} : - (not specified => using all dates)")
-
-    if calc_type == "time_migration":
-        return  # Everything else in the config is irrelevant for time migration, or will be overwritten later
-
-    logging.info("\nOutput configuration:")
-    logging.info(f"{'  Map folder':<{col1}} : {config_.output.mapfolder}")
-    logging.info(f"{'  Plot folder':<{col1}} : {config_.output.plotfolder if config_.output.plotfolder is not None else '- (plot export not selected)'}")
-    # NBNB-AS:
-    logging.info(f"{'  Grid folder':<{col1}} : {config_.output.gridfolder if config_.output.gridfolder is not None else '- (export of 3D grids not selected)'}")
-    logging.info(f"{'  Use lower case in file names':<{col1}} : {'yes' if config_.output.lowercase else 'no'}")
-    logging.info(f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if config_.output.use_plotly else 'quickplot from xtgeoviz'}")
-    logging.info(f"{'  Aggregation tag':<{col1}} : {config_.output.aggregation_tag}")  # NBNB-AS: Remove this from logging?
-
-    logging.info("\nZonation configuration:")
-    logging.info("  Z-property:")
-    if config_.zonation.zproperty is None:
-        logging.info("    No z-property specified")
-    else:
-        logging.info(f"{'    Source':<{col1}} : {config_.zonation.zproperty.source}")
-        logging.info(f"{'    Name':<{col1}} : {config_.zonation.zproperty.name if config_.zonation.zproperty.name is not None else '-'}")
-        logging.info("    Zones:")
-        zones = config_.zonation.zproperty.zones
-        if len(zones) == 0:
-            logging.info("      No zones specified")
-        else:
-            for z in zones:
-                for i, (k, v) in enumerate(z.items()):
-                    if i == 0:
-                        logging.info(f"{f'      - {k}':<{col1}} : {v}")
-                    else:
-                        logging.info(f"{f'        {k}':<{col1}} : {v}")
-    logging.info("  Z-ranges:")
-    if len(config_.zonation.zranges) == 0:
-        logging.info("    No z-ranges specified")
-    else:
-        for z in config_.zonation.zranges:
-            for i, (k, v) in enumerate(z.items()):
-                if i == 0:
-                    logging.info(f"{f'    - {k}':<{col1}} : {v}")
-                else:
-                    logging.info(f"{f'      {k}':<{col1}} : {v}")
-
-    logging.info("\nComputation configuration:")
-    logging.info(f"{'  Aggregation method':<{col1}} : {config_.computesettings.aggregation.name}")
-    logging.info(f"{'  Weight by dz':<{col1}} : {config_.computesettings.weight_by_dz}")
-    logging.info(f"{'  Make maps for full grid (all zones)':<{col1}} : {config_.computesettings.all}")
-    logging.info(f"{'  Make maps per zone':<{col1}} : {config_.computesettings.zone}")
-    logging.info(f"{'  Calculate aggregate maps':<{col1}} : {config_.computesettings.aggregate_map}")
-    logging.info(f"{'  Calculate indicator maps':<{col1}} : {config_.computesettings.indicator_map}")
-
-    logging.info("\nMap configuration:")
-    ms = config_.mapsettings
-    logging.info(f"{'  Origo x':<{col1}} : {ms.xori if ms.xori is not None else '-'}")
-    logging.info(f"{'  Origo y':<{col1}} : {ms.yori if ms.yori is not None else '-'}")
-    logging.info(f"{'  Increment x':<{col1}} : {ms.xinc if ms.xinc is not None else '-'}")
-    logging.info(f"{'  Increment y':<{col1}} : {ms.yinc if ms.yinc is not None else '-'}")
-    logging.info(f"{'  Number of columns (x)':<{col1}} : {ms.ncol if ms.ncol is not None else '-'}")
-    logging.info(f"{'  Number of rows (y)':<{col1}} : {ms.nrow if ms.nrow is not None else '-'}")
-    if ms.xinc is not None and ms.ncol is not None:
-        logging.info(f"{'  => Size x-direction':<{col1}} : {ms.xinc * ms.ncol}")
-    if ms.yinc is not None and ms.nrow is not None:
-        logging.info(f"{'  => Size y-direction':<{col1}} : {ms.yinc * ms.nrow}")
-    logging.info(f"{'  Template file':<{col1}} : {ms.templatefile if ms.templatefile is not None else '- (not specified)'}")
-    logging.info(f"{'  Pixel-to-cell-size ratio':<{col1}} : {ms.pixel_to_cell_ratio}")  # NBNB-AS: Only used if ...
-
-    if calc_type == "co2_mass":
-        cms = config_.co2_mass_settings
-        logging.info("\nCO2 mass configuration:")
-        logging.info(f"{'  UNRST source':<{col1}} : {cms.unrst_source}")
-        logging.info(f"{'  INIT source':<{col1}} : {cms.init_source}")
-        logging.info(f"{'  Maps':<{col1}} : {cms.maps if cms.maps is not None else '-'}")  # NBNB-AS: What is this?
-        logging.info(f"{'  Include residual trapping':<{col1}} : {'yes' if cms.residual_trapping else 'no'}")
-
-    # maps: Optional[List[str]] = None
-    # exit()
-
 def _distribute_config_property(config_: _config.RootConfig):
     if config_.input.properties is None:
         return
@@ -467,7 +328,7 @@ def main(arguments=None):
         arguments = sys.argv[1:]
     config_ = process_arguments(arguments)
     _distribute_config_property(config_)
-    _log_input_configuration(config_, calc_type="aggregate")
+    log_input_configuration(config_, calc_type="aggregate")
     generate_from_config(config_)
 
 

@@ -16,6 +16,7 @@ from ccs_scripts.aggregate import (
     _parser,
     grid3d_aggregate_map,
 )
+from ccs_scripts.aggregate._utils import log_input_configuration
 
 _XTG = XTGeoDialog()
 
@@ -112,7 +113,7 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
-    grid3d_aggregate_map._log_input_configuration(config_, calc_type="time_migration")  # NBNB-AS: Temp ? At least move the method
+    log_input_configuration(config_, calc_type="time_migration")
     if len(config_.input.properties) > 1:
         raise ValueError(
             "Migration time computation is only supported for a single property"

@@ -10,6 +10,7 @@ import yaml
 from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map
 from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
 from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
+from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
     RegionInfo,
@@ -89,8 +90,8 @@ def clean_tmp(out_property_list: List[Union[str, None]]):
     for props in out_property_list:
         if isinstance(props, str):
             directory_path = os.path.dirname(props[0])
-            directory_path = os.path.dirname(props)
-            logging.info(f"Removing temporary directory for 3D grids: {directory_path}")  # NBNB-AS: Needs fix
+            # directory_path = os.path.dirname(props)
+            # logging.info(f"Removing temporary directory for 3D grids: {directory_path}")  # NBNB-AS: Needs fix
             os.remove(props)
             if os.path.isdir(directory_path) and not os.listdir(directory_path):
                 shutil.rmtree(directory_path)
@@ -165,7 +166,7 @@ def main(arguments=None):
     _check_config(config_)
     config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
     config_.output.aggregation_tag = False
-    grid3d_aggregate_map._log_input_configuration(config_, calc_type = "co2_mass")
+    log_input_configuration(config_, calc_type = "co2_mass")
     generate_co2_mass_maps(config_)
 
 
