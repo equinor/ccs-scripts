@@ -159,6 +159,14 @@ def generate_maps(
         _filters.append(("all", None))
     if computesettings.zone:
         _filters += extract_zonations(zonation, grid)
+        logging.info("\nNumber of grid cells for each zone")
+        for filt in _filters:
+            if filt[0] == "all":
+                continue
+            logging.info(
+                f"{filt[0]:<14}: {np.count_nonzero(filt[1])} "
+                f"({100.0 * np.count_nonzero(filt[1]) / len(filt[1]):.1f}%)"
+            )
 
     logging.info(f"\nGenerating property maps for: {', '.join([f[0] for f in _filters])}")
     xn, yn, p_maps = _grid_aggregation.aggregate_maps(

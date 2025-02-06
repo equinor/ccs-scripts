@@ -241,7 +241,12 @@ def extract_zonations(
     return _zonation_from_zproperty(grid, zonation.zproperty)
 
 
-def _zonation_from_zranges(grid: xtgeo.Grid, z_ranges) -> List[Tuple[str, np.ndarray]]:
+def _zonation_from_zranges(grid: xtgeo.Grid, z_ranges: List[Dict[str, List[int]]]) -> List[Tuple[str, np.ndarray]]:
+    logging.info("\nUsing the following zone ranges:")
+    for z_def in z_ranges:
+        for k, v in z_def.items():
+            logging.info(f"{k:<14}: {v}")
+
     actnum = grid.actnum_indices
     zones = []
     k = grid.get_ijk()[2].values1d[actnum]
@@ -259,7 +264,7 @@ def _zonation_from_zproperty(
             try:
                 zfile = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                print(exc)
+                logging.error(exc)
                 sys.exit()
         if "zranges" not in zfile:
             error_text = "The yaml zone file must be in the format:\nzranges:\

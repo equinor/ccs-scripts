@@ -74,13 +74,13 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     logging.info("\nOutput configuration:")
     logging.info(f"{'  Map folder':<{col1}} : {config_.output.mapfolder}")
     logging.info(f"{'  Plot folder':<{col1}} : {config_.output.plotfolder if config_.output.plotfolder is not None else '- (plot export not selected)'}")
-    # NBNB-AS:
     logging.info(f"{'  Grid folder':<{col1}} : {config_.output.gridfolder if config_.output.gridfolder is not None else '- (not specified, so temp exported 3D grid files will be deleted)'}")
     logging.info(f"{'  Use lower case in file names':<{col1}} : {'yes' if config_.output.lowercase else 'no'}")
     logging.info(f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if config_.output.use_plotly else 'quickplot from xtgeoviz'}")
     logging.info(f"{'  Aggregation tag':<{col1}} : {config_.output.aggregation_tag}")  # NBNB-AS: Remove this from logging?
 
     logging.info("\nZonation configuration:")
+    # NBNB-AS: Comment here that this information is not used when config_.computesettings.zone is False?
     logging.info("  Z-property:")
     if config_.zonation.zproperty is None:
         logging.info("    No z-property specified")
@@ -122,7 +122,7 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     if ms.templatefile is not None:
         logging.info(f"  Using template file (Option 1)")
     elif ms.xori is not None:
-        logging.info(f"  No template file specified, so will use Option 2")
+        logging.info(f"  Will use Option 2 since no template file has been specified")
     else:
         logging.info(
             f"  Neither template file nor Origo x (etc) is specified,"
