@@ -153,6 +153,12 @@ def _check_config(config_: RootConfig) -> None:
             " no map is produced"
         )
         raise ValueError(error_text)
+    if config_.computesettings.indicator_map:
+        logging.warning(
+            "\nWARNING: Indicator maps cannot be calculated for CO2 mass maps. "
+            "Changing 'indicator_map' to 'no'."
+        )
+        config_.computesettings.indicator_map = False
 
 
 def main(arguments=None):
@@ -163,9 +169,9 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
-    _check_config(config_)
     config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
     config_.output.aggregation_tag = False
+    _check_config(config_)
     log_input_configuration(config_, calc_type = "co2_mass")
     generate_co2_mass_maps(config_)
 

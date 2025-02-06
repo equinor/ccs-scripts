@@ -16,6 +16,7 @@ from ccs_scripts.aggregate import (
     _parser,
     grid3d_aggregate_map,
 )
+from ccs_scripts.aggregate._config import RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
 
 _XTG = XTGeoDialog()
@@ -44,6 +45,18 @@ EXAMPLES = """
 
   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
 """
+
+def _check_config(config_: RootConfig) -> None:
+    if len(config_.input.properties) > 1:
+        raise ValueError(
+            "Migration time computation is only supported for a single property"
+        )
+    if config_.computesettings.indicator_map:
+        logging.warning(
+            "\nWARNING: Indicator maps cannot be calculated for CO2 mass maps. "
+            "Changing 'indicator_map' to 'no'."
+        )
+        config_.computesettings.indicator_map = False
 
 
 def _log_t_prop(t_prop: dict[str, xtgeo.GridProperty]):
@@ -85,7 +98,7 @@ def calculate_migration_time_property(
 
 
 def migration_time_property_to_map(
-    config_: _config.RootConfig,
+    config_: RootConfig,
     t_prop: Dict[str, xtgeo.GridProperty],
 ):
     """
@@ -96,6 +109,7 @@ def migration_time_property_to_map(
     logging.info("\nStart aggregating time migration property from temporary 3D grid file to 2D map")
     config_.computesettings.aggregation = _config.AggregationMethod.MIN
     config_.output.aggregation_tag = False
+    config_.computesettings.aggregate_map = True
     for prop in t_prop.values():
         temp_file, temp_path = tempfile.mkstemp()
         os.close(temp_file)
@@ -113,11 +127,8 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
+    _check_config(config_)
     log_input_configuration(config_, calc_type="time_migration")
-    if len(config_.input.properties) > 1:
-        raise ValueError(
-            "Migration time computation is only supported for a single property"
-        )
     p_spec = config_.input.properties.pop()
     if isinstance(p_spec.name, str):
         p_spec.name = [p_spec.name]
