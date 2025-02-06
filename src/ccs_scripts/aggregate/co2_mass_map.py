@@ -9,7 +9,7 @@ import yaml
 
 from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map
 from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
-from ccs_scripts.aggregate._config import AggregationMethod
+from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
 from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
     RegionInfo,
@@ -37,7 +37,7 @@ CATEGORY = "modelling.reservoir"
 # """
 
 
-def generate_co2_mass_maps(config_):
+def generate_co2_mass_maps(config_: RootConfig):
     """
     Calculates and exports 2D and 3D CO2 mass properties from the provided config file
 
@@ -97,7 +97,7 @@ def clean_tmp(out_property_list: List[Union[str, None]]):
 
 
 def co2_mass_property_to_map(
-    config_: _config.RootConfig,
+    config_: RootConfig,
     out_property_list: List[Optional[str]],
 ):
     """
@@ -121,7 +121,6 @@ def co2_mass_property_to_map(
                 )
             )
     grid3d_aggregate_map.generate_from_config(config_)
-    exit()
     if not config_.output.gridfolder:
         clean_tmp(out_property_list)
 
@@ -142,6 +141,18 @@ def read_yml_file(file_path: str) -> Dict[str, List]:
         raise Exception(error_text)
     return zfile
 
+def _check_config(config_: RootConfig) -> None:
+    if config_.input.properties:
+        raise ValueError("CO2 mass computation does not take a property as input")
+    if config_.co2_mass_settings is None:
+        raise ValueError("CO2 mass computation needs co2_mass_settings as input")
+    if not config_.computesettings.aggregate_map and not config_.computesettings.indicator_map:
+        error_text = (
+            "As neither indicator_map nor aggregate_map were requested,"
+            " no map is produced"
+        )
+        raise ValueError(error_text)
+
 
 def main(arguments=None):
     """
@@ -151,10 +162,7 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
-    if config_.input.properties:
-        raise ValueError("CO2 mass computation does not take a property as input")
-    if config_.co2_mass_settings is None:
-        raise ValueError("CO2 mass computation needs co2_mass_settings as input")
+    _check_config(config_)
     config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
     config_.output.aggregation_tag = False
     grid3d_aggregate_map._log_input_configuration(config_, calc_type = "co2_mass")

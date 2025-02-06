@@ -94,6 +94,15 @@ def write_plot_using_quickplot(surface, filename):
     quickplot(surface, filename=filename.with_suffix(".png"))
 
 
+def _check_input(computesettings: ComputeSettings) -> None:
+    if not computesettings.aggregate_map and not computesettings.indicator_map:
+        error_text = (
+            "As neither indicator_map nor aggregate_map were requested,"
+            " no map is produced"
+        )
+        raise Exception(error_text)
+
+
 def modify_mass_property_names(properties: List[xtgeo.GridProperty]):
     if any("MASS" in p.name for p in properties):
         for p in properties:
@@ -121,6 +130,18 @@ def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
         name_stripped = p.name.split("--")[0] if "--" in p.name else p.name
         logging.info(f"{name_stripped:<21} {p.date if p.date is not None else '-':<10} {p.values.mean():<7.3f} {p.values.max():<7.3f}")
 
+def _log_surfaces_exported(surfs: List[xtgeo.RegularSurface], zone_names: List[str], map_type: str) -> None:
+    categories = [s.name.split("--") for s in surfs]
+    types = set([v[1] for v in categories])
+    logging.info(f"\nDone exporting {len(surfs)} {map_type} maps")
+    logging.info(f"  - {len(types):>2} types: {', '.join(types)}")
+    logging.info(f"  - {len(zone_names):>2} zones: {', '.join(zone_names)}")
+    if len(categories[0]) == 3:  # No date for time migration maps
+        dates = list(set([v[2] for v in categories]))
+        dates.sort()
+        logging.info(f"  - {len(dates):>2} dates: {', '.join(dates)}")
+
+
 def generate_maps(
     input_: Input,
     zonation: Zonation,
@@ -131,6 +152,7 @@ def generate_maps(
     """
     Calculate and write aggregated property maps to file
     """
+    _check_input(computesettings)
     logging.info("\nReading grid, properties and zone(s)")
     grid = xtgeo.grid_from_file(input_.grid)
     _log_grid_info(grid)
@@ -167,7 +189,7 @@ def generate_maps(
             output.lowercase,
         )
         _write_surfaces(surfs, output.mapfolder, output.plotfolder, output.use_plotly)
-        logging.info(f"\nDone exporting the following {len(prop_tags)} aggregate maps:\n{', '.join(prop_tags)}")
+        _log_surfaces_exported(surfs, [f[0] for f in _filters], "aggregate")
     if computesettings.indicator_map:
         prop_tags_indicator = [p.replace("max", "indicator") for p in prop_tags]
         p_maps_indicator = [
@@ -184,13 +206,7 @@ def generate_maps(
         _write_surfaces(
             surfs_indicator, output.mapfolder, output.plotfolder, output.use_plotly
         )
-        logging.info(f"\nDone exporting the following {len(prop_tags_indicator)} indicator maps:\n{', '.join(prop_tags_indicator)}")
-    if not computesettings.aggregate_map and not computesettings.indicator_map:
-        error_text = (
-            "As neither indicator_map nor aggregate_map were requested,"
-            " no map is produced"
-        )
-        raise Exception(error_text)
+        _log_surfaces_exported(surfs_indicator, [f[0] for f in _filters], "indicator")
 
 
 def _property_tag(prop: str, agg_method: AggregationMethod, agg_tag: bool):
