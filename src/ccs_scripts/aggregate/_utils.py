@@ -75,7 +75,7 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     logging.info(f"{'  Map folder':<{col1}} : {config_.output.mapfolder}")
     logging.info(f"{'  Plot folder':<{col1}} : {config_.output.plotfolder if config_.output.plotfolder is not None else '- (plot export not selected)'}")
     # NBNB-AS:
-    logging.info(f"{'  Grid folder':<{col1}} : {config_.output.gridfolder if config_.output.gridfolder is not None else '- (export of 3D grids not selected)'}")
+    logging.info(f"{'  Grid folder':<{col1}} : {config_.output.gridfolder if config_.output.gridfolder is not None else '- (not specified, so temp exported 3D grid files will be deleted)'}")
     logging.info(f"{'  Use lower case in file names':<{col1}} : {'yes' if config_.output.lowercase else 'no'}")
     logging.info(f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if config_.output.use_plotly else 'quickplot from xtgeoviz'}")
     logging.info(f"{'  Aggregation tag':<{col1}} : {config_.output.aggregation_tag}")  # NBNB-AS: Remove this from logging?
