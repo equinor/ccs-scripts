@@ -119,23 +119,35 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
 
     logging.info("\nMap configuration:")
     ms = config_.mapsettings
-    logging.info(f"{'  Origo x':<{col1}} : {ms.xori if ms.xori is not None else '-'}")
-    logging.info(f"{'  Origo y':<{col1}} : {ms.yori if ms.yori is not None else '-'}")
-    logging.info(f"{'  Increment x':<{col1}} : {ms.xinc if ms.xinc is not None else '-'}")
-    logging.info(f"{'  Increment y':<{col1}} : {ms.yinc if ms.yinc is not None else '-'}")
-    logging.info(f"{'  Number of columns (x)':<{col1}} : {ms.ncol if ms.ncol is not None else '-'}")
-    logging.info(f"{'  Number of rows (y)':<{col1}} : {ms.nrow if ms.nrow is not None else '-'}")
+    if ms.templatefile is not None:
+        logging.info(f"  Using template file (Option 1)")
+    elif ms.xori is not None:
+        logging.info(f"  No template file specified, so will use Option 2")
+    else:
+        logging.info(
+            f"  Neither template file nor Origo x (etc) is specified,"
+            f" so will use pixel-to-cell-size ratio (Option 3)"
+        )
+    logging.info("  Option 1:")
+    logging.info(f"{'    Template file':<{col1}} : {ms.templatefile if ms.templatefile is not None else '- (not specified)'}")
+    logging.info("  Option 2:")
+    logging.info(f"{'    Origo x':<{col1}} : {ms.xori if ms.xori is not None else '-'}")
+    logging.info(f"{'    Origo y':<{col1}} : {ms.yori if ms.yori is not None else '-'}")
+    logging.info(f"{'    Increment x':<{col1}} : {ms.xinc if ms.xinc is not None else '-'}")
+    logging.info(f"{'    Increment y':<{col1}} : {ms.yinc if ms.yinc is not None else '-'}")
+    logging.info(f"{'    Number of columns (x)':<{col1}} : {ms.ncol if ms.ncol is not None else '-'}")
+    logging.info(f"{'    Number of rows (y)':<{col1}} : {ms.nrow if ms.nrow is not None else '-'}")
     if ms.xinc is not None and ms.ncol is not None:
-        logging.info(f"{'  => Size x-direction':<{col1}} : {ms.xinc * ms.ncol}")
+        logging.info(f"{'    => Size x-direction':<{col1}} : {ms.xinc * ms.ncol}")
     if ms.yinc is not None and ms.nrow is not None:
-        logging.info(f"{'  => Size y-direction':<{col1}} : {ms.yinc * ms.nrow}")
-    logging.info(f"{'  Template file':<{col1}} : {ms.templatefile if ms.templatefile is not None else '- (not specified)'}")
-    logging.info(f"{'  Pixel-to-cell-size ratio':<{col1}} : {ms.pixel_to_cell_ratio}")  # NBNB-AS: Only used if ...
+        logging.info(f"{'    => Size y-direction':<{col1}} : {ms.yinc * ms.nrow}")
+    logging.info("  Option 3:")
+    logging.info(f"{'    Pixel-to-cell-size ratio':<{col1}} : {ms.pixel_to_cell_ratio}")
 
     if calc_type == "co2_mass":
         cms = config_.co2_mass_settings
         logging.info("\nCO2 mass configuration:")
         logging.info(f"{'  UNRST source':<{col1}} : {cms.unrst_source}")
         logging.info(f"{'  INIT source':<{col1}} : {cms.init_source}")
-        logging.info(f"{'  Maps':<{col1}} : {cms.maps if cms.maps is not None else '-'}")  # NBNB-AS: What is this?
+        logging.info(f"{'  Maps to calculate':<{col1}} : {cms.maps if cms.maps is not None else '- (not specified => calculating all maps)'}")
         logging.info(f"{'  Include residual trapping':<{col1}} : {'yes' if cms.residual_trapping else 'no'}")
