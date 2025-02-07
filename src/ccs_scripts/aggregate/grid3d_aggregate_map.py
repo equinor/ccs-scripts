@@ -117,7 +117,8 @@ def _log_grid_info(grid: xtgeo.Grid) -> None:
     logging.info(f"{'  - Number of rows (y)':<{col1}} : {grid.nrow}")
     logging.info(f"{'  - Number of layers':<{col1}} : {grid.nlay}")
     logging.info(
-        f"{'  - Units':<{col1}} : {grid.units.name.lower() if grid.units is not None else '?'}"
+        f"{'  - Units':<{col1}} : "
+        f"{grid.units.name.lower() if grid.units is not None else '?'}"
     )
 
 
@@ -128,7 +129,8 @@ def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
     for p in properties:
         name_stripped = p.name.split("--")[0] if "--" in p.name else p.name
         logging.info(
-            f"{name_stripped:<21} {p.date if p.date is not None else '-':<10} {p.values.mean():<7.3f} {p.values.max():<7.3f}"
+            f"{name_stripped:<21} {p.date if p.date is not None else '-':<10} "
+            f"{p.values.mean():<7.3f} {p.values.max():<7.3f}"
         )
 
 
@@ -188,7 +190,7 @@ def generate_maps(
         computesettings.aggregation,
         computesettings.weight_by_dz,
     )
-    logging.info(f"\nDone calculating properties")
+    logging.info("\nDone calculating properties")
     prop_tags = [
         _property_tag(p.name, computesettings.aggregation, output.aggregation_tag)
         for p in properties

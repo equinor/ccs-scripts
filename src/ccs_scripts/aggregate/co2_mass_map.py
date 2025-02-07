@@ -91,7 +91,8 @@ def clean_tmp(out_property_list: List[Union[str, None]]):
         if isinstance(props, str):
             directory_path = os.path.dirname(props[0])
             # directory_path = os.path.dirname(props)
-            # logging.info(f"Removing temporary directory for 3D grids: {directory_path}")  # NBNB-AS: Needs fix
+            # NBNB-AS: Needs fix
+            # logging.info(f"Removing temp directory for 3D grids: {directory_path}")
             os.remove(props)
             if os.path.isdir(directory_path) and not os.listdir(directory_path):
                 shutil.rmtree(directory_path)

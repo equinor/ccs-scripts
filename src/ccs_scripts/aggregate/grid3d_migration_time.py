@@ -70,7 +70,8 @@ def _log_t_prop(t_prop: dict[str, xtgeo.GridProperty]):
         logging.info(f"{'  - Mean':<{col1}} : {v.values.mean():>{col2}.1f}")
         logging.info(f"{'  - Maximum':<{col1}} : {v.values.max():>{col2}.1f}")
         logging.info(
-            f"{'  - # cells with CO2':<{col1}} : {n_finite:>{col2}} ({100.0*n_finite/v.values.size:.1f}%)"
+            f"{'  - # cells with CO2':<{col1}} : "
+            f"{n_finite:>{col2}} ({100.0*n_finite/v.values.size:.1f}%)"
         )
 
 
@@ -111,7 +112,8 @@ def migration_time_property_to_map(
     aggregation.
     """
     logging.info(
-        "\nStart aggregating time migration property from temporary 3D grid file to 2D map"
+        "\nStart aggregating time migration property from "
+        "temporary 3D grid file to 2D map"
     )
     config_.computesettings.aggregation = _config.AggregationMethod.MIN
     config_.output.aggregation_tag = False
@@ -143,11 +145,15 @@ def main(arguments=None):
         p_spec.name = [x for x in p_spec.name if x in MIGRATION_TIME_PROPERTIES]
         if len(removed_props) > 0:
             logging.warning(
-                "\nWARNING: Time migration maps are not supported for these properties: ",
+                "\nWARNING: Time migration maps are "
+                "not supported for these properties: ",
                 ", ".join(str(x) for x in removed_props),
             )
     else:
-        error_text = f"Time migration maps are not supported for any of the properties provided: "
+        error_text = (
+            "Time migration maps are not supported for "
+            "any of the properties provided: "
+        )
         error_text += f"{', '.join(p_spec.name)}"
         raise ValueError(error_text)
     t_prop = calculate_migration_time_property(
