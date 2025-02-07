@@ -268,16 +268,16 @@ class Co2Data:
 
 @dataclass
 class ZoneInfo:
-    source: str
+    source: Optional[str]
     zranges: Optional[Dict[str, List[int]]]
     int_to_zone: Optional[List[Optional[str]]]
 
 
 @dataclass
 class RegionInfo:
-    source: str
+    source: Optional[str]
     int_to_region: Optional[List[Optional[str]]]
-    property_name: str
+    property_name: Optional[str]
 
 
 def _try_prop(unrst: ResdataFile, prop_name: str):

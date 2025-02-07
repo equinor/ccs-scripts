@@ -45,6 +45,7 @@ def generate_co2_mass_maps(config_: RootConfig):
     Args:
         config_: Arguments in the config file
     """
+    assert config_.co2_mass_settings is not None
     co2_mass_settings = config_.co2_mass_settings
     grid_file = config_.input.grid
     zone_info = ZoneInfo(
