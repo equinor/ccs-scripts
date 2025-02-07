@@ -168,8 +168,8 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         logging.info("  Will use Option 2 since no template file has been specified")
     else:
         logging.info(
-            f"  Neither template file nor Origo x (etc) is specified,"
-            f" so will use pixel-to-cell-size ratio (Option 3)"
+            "  Neither template file nor Origo x (etc) is specified,"
+            " so will use pixel-to-cell-size ratio (Option 3)"
         )
     logging.info("  Option 1:")
     logging.info(

@@ -242,7 +242,7 @@ def extract_zonations(
 
 
 def _zonation_from_zranges(
-    grid: xtgeo.Grid, z_ranges: List[Dict[str, List[int]]]
+    grid: xtgeo.Grid, z_ranges: List[Dict[str, Tuple[int, int]]]
 ) -> List[Tuple[str, np.ndarray]]:
     logging.info("\nUsing the following zone ranges:")
     for z_def in z_ranges:
