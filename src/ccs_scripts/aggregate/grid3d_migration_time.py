@@ -71,7 +71,7 @@ def _log_t_prop(t_prop: dict[str, xtgeo.GridProperty]):
         logging.info(f"{'  - Maximum':<{col1}} : {v.values.max():>{col2}.1f}")
         logging.info(
             f"{'  - # cells with CO2':<{col1}} : "
-            f"{n_finite:>{col2}} ({100.0*n_finite/v.values.size:.1f}%)"
+            f"{n_finite:>{col2}} ({100.0 * n_finite / v.values.size:.1f}%)"
         )
 
 
