@@ -153,12 +153,12 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     if len(zon.zranges) == 0:
         logging.info("    No z-ranges specified")
     else:
-        for z in zon.zranges:
-            for i, (k, v) in enumerate(z.items()):
+        for zr in zon.zranges:
+            for i, (key, v2) in enumerate(zr.items()):
                 if i == 0:
-                    logging.info(f"{f'    - {k}':<{col1}} : {v}")
+                    logging.info(f"{f'    - {key}':<{col1}} : {v2}")
                 else:
-                    logging.info(f"{f'      {k}':<{col1}} : {v}")
+                    logging.info(f"{f'      {key}':<{col1}} : {v2}")
 
     logging.info("\nMap configuration:")
     ms = config_.mapsettings

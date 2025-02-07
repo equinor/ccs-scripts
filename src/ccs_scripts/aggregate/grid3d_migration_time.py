@@ -48,7 +48,7 @@ EXAMPLES = """
 
 
 def _check_config(config_: RootConfig) -> None:
-    if len(config_.input.properties) > 1:
+    if config_.input.properties is not None and len(config_.input.properties) > 1:
         raise ValueError(
             "Migration time computation is only supported for a single property"
         )
