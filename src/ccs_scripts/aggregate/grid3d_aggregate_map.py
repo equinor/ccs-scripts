@@ -283,7 +283,7 @@ def main(arguments=None):
     """
     Main function that wraps `generate_from_config` with argument parsing
     """
-    print("Running grid3d_aggregate_map using code from ccs-scripts")
+    print("Running grid3d_aggregate_map using code from ccs-scripts")  # Temp test
     logging.info("Running grid3d_aggregate_map using code from ccs-scripts")
     _XTG.say("Running grid3d_aggregate_map using code from ccs-scripts")
     if arguments is None:
