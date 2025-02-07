@@ -246,8 +246,8 @@ def _zonation_from_zranges(
 ) -> List[Tuple[str, np.ndarray]]:
     logging.info("\nUsing the following zone ranges:")
     for z_def in z_ranges:
-        for k, v in z_def.items():
-            logging.info(f"{k:<14}: {v}")
+        for key, v in z_def.items():
+            logging.info(f"{key:<14}: {v}")
 
     actnum = grid.actnum_indices
     zones = []

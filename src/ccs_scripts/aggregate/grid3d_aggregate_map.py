@@ -172,7 +172,7 @@ def generate_maps(
         _filters += extract_zonations(zonation, grid)
         logging.info("\nNumber of grid cells for each zone")
         for filt in _filters:
-            if filt[0] == "all":
+            if filt[0] == "all" or filt[1] is None:
                 continue
             logging.info(
                 f"{filt[0]:<14}: {np.count_nonzero(filt[1])} "
