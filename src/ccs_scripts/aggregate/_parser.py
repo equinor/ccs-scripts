@@ -341,7 +341,7 @@ def create_map_template(
                 f"Missing: {', '.join(missing)}"
             )
         logging.info(
-            f"\nUsing input coordinates (xinc etc) to make surface representation."
+            "\nUsing input coordinates (xinc etc) to make surface representation."
         )
         surf = xtgeo.RegularSurface(**surf_kwargs)
         return surf

@@ -81,9 +81,10 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     op = config_.output
     logging.info("\nOutput configuration:")
     logging.info(f"{'  Map folder':<{col1}} : {op.mapfolder}")
+    txt = "(plot export not selected)"
     logging.info(
         f"{'  Plot folder':<{col1}} : "
-        f"{op.plotfolder if op.plotfolder is not None else '- (plot export not selected)'}"
+        f"{op.plotfolder if op.plotfolder is not None else f'- {txt}'}"
     )
     txt = "(not specified, so temp exported 3D grid files will be deleted)"
     logging.info(
@@ -108,21 +109,25 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     )
     logging.info(f"{'  Weight by dz':<{col1}} : {config_.computesettings.weight_by_dz}")
     logging.info(
-        f"{'  Make maps for full grid (all zones)':<{col1}} : {config_.computesettings.all}"
+        f"{'  Make maps for full grid (all zones)':<{col1}} : "
+        f"{config_.computesettings.all}"
     )
     logging.info(f"{'  Make maps per zone':<{col1}} : {config_.computesettings.zone}")
     logging.info(
-        f"{'  Calculate aggregate maps':<{col1}} : {config_.computesettings.aggregate_map}"
+        f"{'  Calculate aggregate maps':<{col1}} : "
+        f"{config_.computesettings.aggregate_map}"
     )
     logging.info(
-        f"{'  Calculate indicator maps':<{col1}} : {config_.computesettings.indicator_map}"
+        f"{'  Calculate indicator maps':<{col1}} : "
+        f"{config_.computesettings.indicator_map}"
     )
 
     zon = config_.zonation
     logging.info("\nZonation configuration:")
     if not config_.computesettings.zone:
         logging.info(
-            "(Note that these are not used since zone in computesettings is set to 'no')"
+            "(Note that these are not used since zone "
+            "in computesettings is set to 'no')"
         )
     logging.info("  Z-property:")
     if zon.zproperty is None:
@@ -158,9 +163,9 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     logging.info("\nMap configuration:")
     ms = config_.mapsettings
     if ms.templatefile is not None:
-        logging.info(f"  Using template file (Option 1)")
+        logging.info("  Using template file (Option 1)")
     elif ms.xori is not None:
-        logging.info(f"  Will use Option 2 since no template file has been specified")
+        logging.info("  Will use Option 2 since no template file has been specified")
     else:
         logging.info(
             f"  Neither template file nor Origo x (etc) is specified,"
@@ -181,10 +186,12 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         f"{'    Increment y':<{col1}} : {ms.yinc if ms.yinc is not None else '-'}"
     )
     logging.info(
-        f"{'    Number of columns (x)':<{col1}} : {ms.ncol if ms.ncol is not None else '-'}"
+        f"{'    Number of columns (x)':<{col1}} : "
+        f"{ms.ncol if ms.ncol is not None else '-'}"
     )
     logging.info(
-        f"{'    Number of rows (y)':<{col1}} : {ms.nrow if ms.nrow is not None else '-'}"
+        f"{'    Number of rows (y)':<{col1}} : "
+        f"{ms.nrow if ms.nrow is not None else '-'}"
     )
     if ms.xinc is not None and ms.ncol is not None:
         logging.info(f"{'    => Size x-direction':<{col1}} : {ms.xinc * ms.ncol}")
