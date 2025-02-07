@@ -85,14 +85,18 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         f"{'  Plot folder':<{col1}} : "
         f"{op.plotfolder if op.plotfolder is not None else '- (plot export not selected)'}"
     )
+    txt = "(not specified, so temp exported 3D grid files will be deleted)"
     logging.info(
-        f"{'  Grid folder':<{col1}} : {op.gridfolder if op.gridfolder is not None else '- (not specified, so temp exported 3D grid files will be deleted)'}"
+        f"{'  Grid folder':<{col1}} : "
+        f"{op.gridfolder if op.gridfolder is not None else f'- {txt}'}"
     )
     logging.info(
-        f"{'  Use lower case in file names':<{col1}} : {'yes' if op.lowercase else 'no'}"
+        f"{'  Use lower case in file names':<{col1}} : "
+        f"{'yes' if op.lowercase else 'no'}"
     )
     logging.info(
-        f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if op.use_plotly else 'quickplot from xtgeoviz'}"
+        f"{'  Module/method for 2D plots':<{col1}} : "
+        f"{'plotly library' if op.use_plotly else 'quickplot from xtgeoviz'}"
     )
     logging.info(
         f"{'  Add tag to file name for aggr. maps':<{col1}} : {op.aggregation_tag}"
@@ -114,21 +118,23 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         f"{'  Calculate indicator maps':<{col1}} : {config_.computesettings.indicator_map}"
     )
 
+    zon = config_.zonation
     logging.info("\nZonation configuration:")
     if not config_.computesettings.zone:
         logging.info(
             "(Note that these are not used since zone in computesettings is set to 'no')"
         )
     logging.info("  Z-property:")
-    if config_.zonation.zproperty is None:
+    if zon.zproperty is None:
         logging.info("    No z-property specified")
     else:
-        logging.info(f"{'    Source':<{col1}} : {config_.zonation.zproperty.source}")
+        logging.info(f"{'    Source':<{col1}} : {zon.zproperty.source}")
         logging.info(
-            f"{'    Name':<{col1}} : {config_.zonation.zproperty.name if config_.zonation.zproperty.name is not None else '-'}"
+            f"{'    Name':<{col1}} : "
+            f"{zon.zproperty.name if zon.zproperty.name is not None else '-'}"
         )
         logging.info("    Zones:")
-        zones = config_.zonation.zproperty.zones
+        zones = zon.zproperty.zones
         if len(zones) == 0:
             logging.info("      No zones specified")
         else:
@@ -139,10 +145,10 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
                     else:
                         logging.info(f"{f'        {k}':<{col1}} : {v}")
     logging.info("  Z-ranges:")
-    if len(config_.zonation.zranges) == 0:
+    if len(zon.zranges) == 0:
         logging.info("    No z-ranges specified")
     else:
-        for z in config_.zonation.zranges:
+        for z in zon.zranges:
             for i, (k, v) in enumerate(z.items()):
                 if i == 0:
                     logging.info(f"{f'    - {k}':<{col1}} : {v}")
@@ -162,7 +168,8 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         )
     logging.info("  Option 1:")
     logging.info(
-        f"{'    Template file':<{col1}} : {ms.templatefile if ms.templatefile is not None else '- (not specified)'}"
+        f"{'    Template file':<{col1}} : "
+        f"{ms.templatefile if ms.templatefile is not None else '- (not specified)'}"
     )
     logging.info("  Option 2:")
     logging.info(f"{'    Origo x':<{col1}} : {ms.xori if ms.xori is not None else '-'}")
@@ -191,9 +198,12 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         logging.info("\nCO2 mass configuration:")
         logging.info(f"{'  UNRST source':<{col1}} : {cms.unrst_source}")
         logging.info(f"{'  INIT source':<{col1}} : {cms.init_source}")
+        txt = "(not specified => calculating all maps)"
         logging.info(
-            f"{'  Maps to calculate':<{col1}} : {cms.maps if cms.maps is not None else '- (not specified => calculating all maps)'}"
+            f"{'  Maps to calculate':<{col1}} : "
+            f"{cms.maps if cms.maps is not None else f'- {txt}'}"
         )
         logging.info(
-            f"{'  Include residual trapping':<{col1}} : {'yes' if cms.residual_trapping else 'no'}"
+            f"{'  Include residual trapping':<{col1}} : "
+            f"{'yes' if cms.residual_trapping else 'no'}"
         )
