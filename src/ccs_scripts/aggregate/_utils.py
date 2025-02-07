@@ -193,8 +193,8 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     logging.info("  Option 3:")
     logging.info(f"{'    Pixel-to-cell-size ratio':<{col1}} : {ms.pixel_to_cell_ratio}")
 
-    if calc_type == "co2_mass":
-        cms = config_.co2_mass_settings
+    cms = config_.co2_mass_settings
+    if calc_type == "co2_mass" and cms is not None:
         logging.info("\nCO2 mass configuration:")
         logging.info(f"{'  UNRST source':<{col1}} : {cms.unrst_source}")
         logging.info(f"{'  INIT source':<{col1}} : {cms.init_source}")
