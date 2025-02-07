@@ -320,7 +320,8 @@ def create_map_template(
         if surf.rotation != 0.0:
             raise NotImplementedError("Rotated surfaces are not handled correctly yet")
         logging.info(
-            f"\nUsing template file {map_settings.templatefile} to make surface representation."
+            f"\nUsing template file {map_settings.templatefile}"
+            f" to make surface representation."
         )
         _log_surface_repr(surf)
         return surf
@@ -336,7 +337,7 @@ def create_map_template(
         if not all((s is not None for s in surf_kwargs.values())):
             missing = [k for k, v in surf_kwargs.items() if v is None]
             raise ValueError(
-                f"Failed to create map template due to partial map specification. "
+                "Failed to create map template due to partial map specification. "
                 f"Missing: {', '.join(missing)}"
             )
         logging.info(

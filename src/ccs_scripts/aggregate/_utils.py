@@ -1,4 +1,3 @@
-from datetime import datetime
 import getpass
 import logging
 import os
@@ -6,6 +5,7 @@ import platform
 import socket
 import subprocess
 import sys
+from datetime import datetime
 
 from ccs_scripts.aggregate._config import RootConfig
 
@@ -63,10 +63,12 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
             for p in config_.input.properties:
                 logging.info(f"{'    - Name':<{col1}} : {p.name}")
                 logging.info(
-                    f"{'      Source':<{col1}} : {p.source if p.source is not None else '-'}"
+                    f"{'      Source':<{col1}} : "
+                    f"{p.source if p.source is not None else '-'}"
                 )
                 logging.info(
-                    f"{'      Lower threshold':<{col1}} : {p.lower_threshold if p.lower_threshold is not None else '-'}"
+                    f"{'      Lower threshold':<{col1}} : "
+                    f"{p.lower_threshold if p.lower_threshold is not None else '-'}"
                 )
     if len(config_.input.dates) > 0:
         logging.info(f"{'  Dates':<{col1}} : {', '.join(config_.input.dates)}")
@@ -74,24 +76,26 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         logging.info(f"{'  Dates':<{col1}} : - (not specified => using all dates)")
 
     if calc_type == "time_migration":
-        return  # Everything else in the config is irrelevant for time migration, or will be overwritten later
+        return  # The rest of the config is not used, or overwritten later
 
+    op = config_.output
     logging.info("\nOutput configuration:")
-    logging.info(f"{'  Map folder':<{col1}} : {config_.output.mapfolder}")
+    logging.info(f"{'  Map folder':<{col1}} : {op.mapfolder}")
     logging.info(
-        f"{'  Plot folder':<{col1}} : {config_.output.plotfolder if config_.output.plotfolder is not None else '- (plot export not selected)'}"
+        f"{'  Plot folder':<{col1}} : "
+        f"{op.plotfolder if op.plotfolder is not None else '- (plot export not selected)'}"
     )
     logging.info(
-        f"{'  Grid folder':<{col1}} : {config_.output.gridfolder if config_.output.gridfolder is not None else '- (not specified, so temp exported 3D grid files will be deleted)'}"
+        f"{'  Grid folder':<{col1}} : {op.gridfolder if op.gridfolder is not None else '- (not specified, so temp exported 3D grid files will be deleted)'}"
     )
     logging.info(
-        f"{'  Use lower case in file names':<{col1}} : {'yes' if config_.output.lowercase else 'no'}"
+        f"{'  Use lower case in file names':<{col1}} : {'yes' if op.lowercase else 'no'}"
     )
     logging.info(
-        f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if config_.output.use_plotly else 'quickplot from xtgeoviz'}"
+        f"{'  Module/method for 2D plots':<{col1}} : {'plotly library' if op.use_plotly else 'quickplot from xtgeoviz'}"
     )
     logging.info(
-        f"{'  Add tag to file name for aggr. maps':<{col1}} : {config_.output.aggregation_tag}"
+        f"{'  Add tag to file name for aggr. maps':<{col1}} : {op.aggregation_tag}"
     )
 
     logging.info("\nComputation configuration:")
