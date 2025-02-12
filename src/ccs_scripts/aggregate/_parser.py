@@ -20,6 +20,7 @@ from ccs_scripts.aggregate._config import (
     Zonation,
     ZProperty,
 )
+from ccs_scripts.co2_containment.co2_containment import str_to_bool
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
@@ -61,6 +62,21 @@ def parse_arguments(arguments):
         " overrides yaml file)",
         default=None,
     )
+    parser.add_argument(
+        "--no_logging",
+        help="Skip print of detailed information during execution of script",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
+    )
+    parser.add_argument(
+        "--debug",
+        help="Enable print of debugging data during execution of script. "
+        "Normally not necessary for most users.",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
+    )
     return parser.parse_args(arguments)
 
 
@@ -75,6 +91,10 @@ def _replace_default_dummies_from_ert(args):
         args.gridfolder = None
     if args.folderroot == "-1":
         args.folderroot = None
+    if args.no_logging == "-1":
+        args.no_logging = False
+    if args.debug == "-1":
+        args.debug = False
 
 
 def process_arguments(arguments) -> RootConfig:
@@ -89,6 +109,14 @@ def process_arguments(arguments) -> RootConfig:
         replacements["eclroot"] = parsed_args.eclroot
     if parsed_args.folderroot is not None:
         replacements["folderroot"] = parsed_args.folderroot
+
+    if parsed_args.debug:
+        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+    elif parsed_args.no_logging:
+        logging.basicConfig(format="%(message)s", level=logging.WARNING)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
+
     config = parse_yaml(
         parsed_args.config,
         parsed_args.mapfolder,
