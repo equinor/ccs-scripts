@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import logging
 import os
 import shutil
 import sys
@@ -8,7 +9,8 @@ import yaml
 
 from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map
 from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
-from ccs_scripts.aggregate._config import AggregationMethod
+from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
+from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
     RegionInfo,
@@ -36,13 +38,14 @@ CATEGORY = "modelling.reservoir"
 # """
 
 
-def generate_co2_mass_maps(config_):
+def generate_co2_mass_maps(config_: RootConfig):
     """
     Calculates and exports 2D and 3D CO2 mass properties from the provided config file
 
     Args:
         config_: Arguments in the config file
     """
+    assert config_.co2_mass_settings is not None
     co2_mass_settings = config_.co2_mass_settings
     grid_file = config_.input.grid
     zone_info = ZoneInfo(
@@ -55,6 +58,7 @@ def generate_co2_mass_maps(config_):
         int_to_region=None,
         property_name=None,
     )
+    logging.info("\nCalculate CO2 mass 3D grid")
     co2_data = calculate_co2(
         grid_file=grid_file,
         unrst_file=co2_mass_settings.unrst_source,
@@ -87,13 +91,16 @@ def clean_tmp(out_property_list: List[Union[str, None]]):
     for props in out_property_list:
         if isinstance(props, str):
             directory_path = os.path.dirname(props[0])
+            # directory_path = os.path.dirname(props)
+            # NBNB-AS: Needs fix
+            # logging.info(f"Removing temp directory for 3D grids: {directory_path}")
             os.remove(props)
             if os.path.isdir(directory_path) and not os.listdir(directory_path):
                 shutil.rmtree(directory_path)
 
 
 def co2_mass_property_to_map(
-    config_: _config.RootConfig,
+    config_: RootConfig,
     out_property_list: List[Optional[str]],
 ):
     """
@@ -107,8 +114,6 @@ def co2_mass_property_to_map(
 
     """
     config_.input.properties = []
-    config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
-    config_.output.aggregation_tag = False
     for props in out_property_list:
         if isinstance(props, str):
             config_.input.properties.append(
@@ -140,6 +145,28 @@ def read_yml_file(file_path: str) -> Dict[str, List]:
     return zfile
 
 
+def _check_config(config_: RootConfig) -> None:
+    if config_.input.properties:
+        raise ValueError("CO2 mass computation does not take a property as input")
+    if config_.co2_mass_settings is None:
+        raise ValueError("CO2 mass computation needs co2_mass_settings as input")
+    if (
+        not config_.computesettings.aggregate_map
+        and not config_.computesettings.indicator_map
+    ):
+        error_text = (
+            "As neither indicator_map nor aggregate_map were requested,"
+            " no map is produced"
+        )
+        raise ValueError(error_text)
+    if config_.computesettings.indicator_map:
+        logging.warning(
+            "\nWARNING: Indicator maps cannot be calculated for CO2 mass maps. "
+            "Changing 'indicator_map' to 'no'."
+        )
+        config_.computesettings.indicator_map = False
+
+
 def main(arguments=None):
     """
     Takes input arguments and calculates co2 mass as a property and aggregates
@@ -148,10 +175,10 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
-    if config_.input.properties:
-        raise ValueError("CO2 mass computation does not take a property as input")
-    if config_.co2_mass_settings is None:
-        raise ValueError("CO2 mass computation needs co2_mass_settings as input")
+    config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
+    config_.output.aggregation_tag = False
+    _check_config(config_)
+    log_input_configuration(config_, calc_type="co2_mass")
     generate_co2_mass_maps(config_)
 
 
