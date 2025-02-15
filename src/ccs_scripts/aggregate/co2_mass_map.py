@@ -74,18 +74,19 @@ def generate_co2_mass_maps(config_: RootConfig):
         co2_data.data_list = [x for x in co2_data.data_list if x.date in dates]
 
     grid_folder, delete_tmp_grid_folder = _process_grid_dir(config_.output.gridfolder)
-
-    out_property_list = translate_co2data_to_property(
-        co2_data,
-        grid_file,
-        co2_mass_settings,
-        grid_folder,
-        RELEVANT_PROPERTIES,
-    )
-    co2_mass_property_to_map(config_, out_property_list)
-
-    if delete_tmp_grid_folder:
-        clean_tmp(grid_folder)
+    try:
+        out_property_list = translate_co2data_to_property(
+            co2_data,
+            grid_file,
+            co2_mass_settings,
+            grid_folder,
+            RELEVANT_PROPERTIES,
+        )
+        co2_mass_property_to_map(config_, out_property_list)
+    finally:
+        # Make sure temp directory is deleted even if exception is thrown above
+        if delete_tmp_grid_folder:
+            clean_tmp(grid_folder)
 
 
 def _process_grid_dir(grid_folder: Optional[str]) -> Tuple[str, bool]:
