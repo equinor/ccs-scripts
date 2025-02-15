@@ -4,7 +4,7 @@ import os
 import shutil
 import sys
 import tempfile
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import yaml
 
