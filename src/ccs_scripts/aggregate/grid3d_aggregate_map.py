@@ -31,10 +31,7 @@ _XTG = XTGeoDialog()
 
 
 # Module variables for ERT hook implementation:
-DESCRIPTION = (
-    "Aggregate property maps from 3D grids. Docs:\n"
-    + "https://fmu-docs.equinor.com/docs/xtgeoapp-grd3dmaps/"
-)
+DESCRIPTION = "Aggregate property maps from 3D grids."
 CATEGORY = "modelling.reservoir"
 EXAMPLES = """
 .. code-block:: console
