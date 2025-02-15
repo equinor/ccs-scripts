@@ -94,8 +94,9 @@ def _process_grid_dir(grid_folder: Optional[str]) -> Tuple[str, bool]:
     """
     if grid_folder is not None:
         if not os.path.exists(grid_folder):
-            logging.info(f"\nCreating specified directory for 3D grids: "
-                         f"{grid_folder}")
+            logging.info(
+                f"\nCreating specified directory for 3D grids: " f"{grid_folder}"
+            )
             os.makedirs(grid_folder)
         return grid_folder, False
     else:
@@ -111,6 +112,10 @@ def clean_tmp(grid_folder: str):
     Args:
         grid_folder: Path to directory of files for 3d GridProperties
     """
+    logging.info(
+        f'\nDeleting temp grid folder "{grid_folder}"'
+        f" containing {len(os.listdir(grid_folder))} files"
+    )
     for file_name in os.listdir(grid_folder):
         if file_name.endswith(".EGRID") or file_name.endswith(".UNRST"):
             os.remove(os.path.join(grid_folder, file_name))
