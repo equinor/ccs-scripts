@@ -37,7 +37,7 @@ EXAMPLES = """
 .. code-block:: console
 
   FORWARD_MODEL GRID3D_AGGREGATE_MAP(<CONFIG_AGGREGATE>=conf.yml, <ECLROOT>=<ECLBASE>)
-"""
+"""  # NBNB-AS
 
 
 def write_map(x_nodes, y_nodes, map_, filename):
@@ -120,14 +120,24 @@ def _log_grid_info(grid: xtgeo.Grid) -> None:
 
 
 def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
-    logging.info("\nProperties read from file:")
-    logging.info(f"\n{'Name':<21} {'Date':<10} {'Mean':<7} {'Max':<7}")
-    logging.info("-" * 48)
+    logging.info("\nProperties read from file:")  # NBNB-AS: Not always from file
+    logging.info(
+        f"\n{'Name':<21} {'Date':>10} {'Mean':>10} {'Max':>10} "
+        f"{'n_values':>10} {'n_masked':>10}"
+    )
+    logging.info("-" * 76)
     for p in properties:
+        n_values = p.values.count()
         name_stripped = p.name.split("--")[0] if "--" in p.name else p.name
+        mean_val = f"{p.values.mean():.3f}" if n_values > 0 else "-"
+        max_val = f"{p.values.max():.3f}" if n_values > 0 else "-"
         logging.info(
-            f"{name_stripped:<21} {p.date if p.date is not None else '-':<10} "
-            f"{p.values.mean():<7.3f} {p.values.max():<7.3f}"
+            f"{name_stripped:<21} "
+            f"{p.date if p.date is not None else '-':>10} "
+            f"{mean_val:>10} "
+            f"{max_val:>10} "
+            f"{n_values:>10} "
+            f"{np.ma.count_masked(p.values):>10}"
         )
 
 
