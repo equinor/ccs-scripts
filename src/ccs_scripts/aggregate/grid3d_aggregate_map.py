@@ -37,7 +37,7 @@ EXAMPLES = """
 .. code-block:: console
 
   FORWARD_MODEL GRID3D_AGGREGATE_MAP(<CONFIG_AGGREGATE>=conf.yml, <ECLROOT>=<ECLBASE>)
-"""  # NBNB-AS
+"""
 
 
 def write_map(x_nodes, y_nodes, map_, filename):
