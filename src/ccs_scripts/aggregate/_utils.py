@@ -90,11 +90,6 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         logging.info(
             f"{'    => Absolute path':<{col1}} : " f"{os.path.abspath(op.mapfolder)}"
         )
-    if not os.path.isabs(config_.input.grid):
-        logging.info(
-            f"{'    => Absolute path':<{col1}} : "
-            f"{os.path.abspath(config_.input.grid)}"
-        )
     if op.plotfolder is not None:
         logging.info(f"{'  Plot folder':<{col1}} : {op.plotfolder}")
         if not os.path.isabs(op.plotfolder):
