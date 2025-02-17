@@ -952,10 +952,14 @@ def export_output_to_csv(
     (mass / cell_volume / actual_volume).
     """
     file_name = f"plume_{calc_type_input}.csv"
-    logging.info(f"\nExport results to CSV file: {file_name}")
+    logging.info("\nExport results to CSV file")
+    logging.info(f"    - File name     : {file_name}")
     file_path = os.path.join(out_dir, file_name)
+    logging.info(f"    - Path          : {file_path}")
+    if not os.path.isabs(file_path):
+        logging.info(f"    - Absolute path : {os.path.abspath(file_path)}")
     if os.path.isfile(file_path):
-        logging.info(f"Output CSV file already exists. Overwriting: {file_path}")
+        logging.info("Output CSV file already exists => Will overwrite existing file")
 
     data_frame.to_csv(file_path, index=False)
 
