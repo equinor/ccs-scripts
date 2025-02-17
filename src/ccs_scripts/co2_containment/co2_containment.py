@@ -720,7 +720,10 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
         f"{'yes' if arguments_processed.residual_trapping else 'no'}"
     )
     readable_output_str = (
-        "yes" if arguments_processed.readable_output is not None else "no"
+        "yes"
+        if arguments_processed.readable_output is not None
+        and arguments_processed.readable_output
+        else "no"
     )
     logging.info(f"{'Readable output':<{col1}} : " f"{readable_output_str}")
     config_file_inj_wells_str = (
