@@ -562,6 +562,8 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     logging.info(f"Python version      : {py_version}")
 
     logging.info(f"\nCase                    : {arguments.case}")
+    if not os.path.isabs(arguments.case):
+        logging.info(f"  => Absolute path      : {os.path.abspath(arguments.case)}")
     logging.info(
         f"Configuration YAML-file : "
         f"{arguments.config_file if arguments.config_file != '' else 'Not specified'}"

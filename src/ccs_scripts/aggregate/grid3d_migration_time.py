@@ -35,10 +35,7 @@ MIGRATION_TIME_PROPERTIES = [
 ]
 
 # Module variables for ERT hook implementation:
-DESCRIPTION = (
-    "Generate migration time property maps. Docs:\n"
-    + "https://fmu-docs.equinor.com/docs/xtgeoapp-grd3dmaps/"
-)
+DESCRIPTION = "Generate migration time property maps."
 CATEGORY = "modelling.reservoir"
 EXAMPLES = """
 .. code-block:: console

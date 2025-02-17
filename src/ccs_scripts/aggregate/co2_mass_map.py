@@ -3,7 +3,8 @@ import logging
 import os
 import shutil
 import sys
-from typing import Dict, List, Optional, Union
+import tempfile
+from typing import Dict, List, Optional, Tuple
 
 import yaml
 
@@ -31,11 +32,11 @@ DESCRIPTION = """
 
 CATEGORY = "modelling.reservoir"
 
-# EXAMPLES = """
-# .. code-block:: console
-#
-#   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
-# """
+EXAMPLES = """
+.. code-block:: console
+
+  FORWARD_MODEL CO2_MASS_MAP(<CONFIG_CO2_MASS_MAP>=conf.yml, <ECLROOT>=<ECLBASE>)
+"""
 
 
 def generate_co2_mass_maps(config_: RootConfig):
@@ -71,32 +72,56 @@ def generate_co2_mass_maps(config_: RootConfig):
     dates = config_.input.dates
     if len(dates) > 0:
         co2_data.data_list = [x for x in co2_data.data_list if x.date in dates]
-    out_property_list = translate_co2data_to_property(
-        co2_data,
-        grid_file,
-        co2_mass_settings,
-        RELEVANT_PROPERTIES,
-        config_.output.gridfolder,
-    )
-    co2_mass_property_to_map(config_, out_property_list)
+
+    grid_folder, delete_tmp_grid_folder = _process_grid_dir(config_.output.gridfolder)
+    try:
+        out_property_list = translate_co2data_to_property(
+            co2_data,
+            grid_file,
+            co2_mass_settings,
+            grid_folder,
+            RELEVANT_PROPERTIES,
+        )
+        co2_mass_property_to_map(config_, out_property_list)
+    finally:
+        # Make sure temp directory is deleted even if exception is thrown above
+        if delete_tmp_grid_folder:
+            clean_tmp(grid_folder)
 
 
-def clean_tmp(out_property_list: List[Union[str, None]]):
+def _process_grid_dir(grid_folder: Optional[str]) -> Tuple[str, bool]:
+    """
+    Setting up the grid folder to store the gridproperties
+    """
+    if grid_folder is not None:
+        if not os.path.exists(grid_folder):
+            logging.info(
+                f"\nCreating specified directory for 3D grids: " f"{grid_folder}"
+            )
+            os.makedirs(grid_folder)
+        return grid_folder, False
+    else:
+        grid_folder = tempfile.mkdtemp()
+        logging.info(f"\nMaking temporary directory for 3D grids: {grid_folder}")
+        return grid_folder, True
+
+
+def clean_tmp(grid_folder: str):
     """
     Removes the 3d grids produced if not specific output folder is provided
 
     Args:
-        out_property_list: List with paths of the 3d GridProperties
+        grid_folder: Path to directory of files for 3d GridProperties
     """
-    for props in out_property_list:
-        if isinstance(props, str):
-            directory_path = os.path.dirname(props[0])
-            # directory_path = os.path.dirname(props)
-            # NBNB-AS: Needs fix
-            # logging.info(f"Removing temp directory for 3D grids: {directory_path}")
-            os.remove(props)
-            if os.path.isdir(directory_path) and not os.listdir(directory_path):
-                shutil.rmtree(directory_path)
+    logging.info(
+        f'\nDeleting temp grid folder "{grid_folder}"'
+        f" containing {len(os.listdir(grid_folder))} files"
+    )
+    for file_name in os.listdir(grid_folder):
+        if file_name.endswith(".EGRID") or file_name.endswith(".UNRST"):
+            os.remove(os.path.join(grid_folder, file_name))
+    if len(os.listdir(grid_folder)) == 0:
+        shutil.rmtree(grid_folder)
 
 
 def co2_mass_property_to_map(
@@ -124,8 +149,6 @@ def co2_mass_property_to_map(
                 )
             )
     grid3d_aggregate_map.generate_from_config(config_)
-    if not config_.output.gridfolder:
-        clean_tmp(out_property_list)
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:

@@ -683,6 +683,11 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     logging.info(f"{'Python version':<{col1}} : {py_version}")
 
     logging.info(f"\n{'Case':<{col1}} : {arguments_processed.case}")
+    if not os.path.isabs(arguments_processed.case):
+        logging.info(
+            f"{'  => Absolute path':<{col1}} : "
+            f"{os.path.abspath(arguments_processed.case)}"
+        )
     logging.info(
         f"{'Calculation type':<{col1}} : {arguments_processed.calc_type_input}"
     )

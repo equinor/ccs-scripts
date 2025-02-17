@@ -55,6 +55,11 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
 
     logging.info("\nInput configuration:")
     logging.info(f"{'  Grid file':<{col1}} : {config_.input.grid}")
+    if not os.path.isabs(config_.input.grid):
+        logging.info(
+            f"{'    => Absolute path':<{col1}} : "
+            f"{os.path.abspath(config_.input.grid)}"
+        )
     if calc_type != "co2_mass":
         logging.info("  Properties:")
         if config_.input.properties is None:
@@ -81,16 +86,32 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     op = config_.output
     logging.info("\nOutput configuration:")
     logging.info(f"{'  Map folder':<{col1}} : {op.mapfolder}")
-    txt = "(plot export not selected)"
-    logging.info(
-        f"{'  Plot folder':<{col1}} : "
-        f"{op.plotfolder if op.plotfolder is not None else f'- {txt}'}"
-    )
-    txt = "(not specified, so temp exported 3D grid files will be deleted)"
-    logging.info(
-        f"{'  Grid folder':<{col1}} : "
-        f"{op.gridfolder if op.gridfolder is not None else f'- {txt}'}"
-    )
+    if not os.path.isabs(op.mapfolder):
+        logging.info(
+            f"{'    => Absolute path':<{col1}} : " f"{os.path.abspath(op.mapfolder)}"
+        )
+    if op.plotfolder is not None:
+        logging.info(f"{'  Plot folder':<{col1}} : {op.plotfolder}")
+        if not os.path.isabs(op.plotfolder):
+            logging.info(
+                f"{'    => Absolute path':<{col1}} : "
+                f"{os.path.abspath(op.plotfolder)}"
+            )
+    else:
+        logging.info(f"{'  Plot folder':<{col1}} : - (plot export not selected)")
+
+    if op.gridfolder is not None:
+        logging.info(f"{'  Grid folder':<{col1}} : {op.gridfolder}")
+        if not os.path.isabs(op.gridfolder):
+            logging.info(
+                f"{'    => Absolute path':<{col1}} : "
+                f"{os.path.abspath(op.gridfolder)}"
+            )
+    else:
+        logging.info(
+            f"{'  Grid folder':<{col1}} : "
+            f"(not specified, so temp exported 3D grid files will be deleted)"
+        )
     logging.info(
         f"{'  Use lower case in file names':<{col1}} : "
         f"{'yes' if op.lowercase else 'no'}"
@@ -134,6 +155,11 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         logging.info("    No z-property specified")
     else:
         logging.info(f"{'    Source':<{col1}} : {zon.zproperty.source}")
+        if not os.path.isabs(zon.zproperty.source):
+            logging.info(
+                f"{'      => Absolute path':<{col1}} : "
+                f"{os.path.abspath(zon.zproperty.source)}"
+            )
         logging.info(
             f"{'    Name':<{col1}} : "
             f"{zon.zproperty.name if zon.zproperty.name is not None else '-'}"
@@ -176,6 +202,11 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         f"{'    Template file':<{col1}} : "
         f"{ms.templatefile if ms.templatefile is not None else '- (not specified)'}"
     )
+    if ms.templatefile is not None and not os.path.isabs(ms.templatefile):
+        logging.info(
+            f"{'      => Absolute path':<{col1}} : "
+            f"{os.path.abspath(ms.templatefile)}"
+        )
     logging.info("  Option 2:")
     logging.info(f"{'    Origo x':<{col1}} : {ms.xori if ms.xori is not None else '-'}")
     logging.info(f"{'    Origo y':<{col1}} : {ms.yori if ms.yori is not None else '-'}")
@@ -204,7 +235,17 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     if calc_type == "co2_mass" and cms is not None:
         logging.info("\nCO2 mass configuration:")
         logging.info(f"{'  UNRST source':<{col1}} : {cms.unrst_source}")
+        if not os.path.isabs(cms.unrst_source):
+            logging.info(
+                f"{'    => Absolute path':<{col1}} : "
+                f"{os.path.abspath(cms.unrst_source)}"
+            )
         logging.info(f"{'  INIT source':<{col1}} : {cms.init_source}")
+        if not os.path.isabs(cms.init_source):
+            logging.info(
+                f"{'    => Absolute path':<{col1}} : "
+                f"{os.path.abspath(cms.init_source)}"
+            )
         txt = "(not specified => calculating all maps)"
         logging.info(
             f"{'  Maps to calculate':<{col1}} : "

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+import os
 import pathlib
 import sys
 from typing import List, Optional, Tuple, Union
@@ -31,10 +32,7 @@ _XTG = XTGeoDialog()
 
 
 # Module variables for ERT hook implementation:
-DESCRIPTION = (
-    "Aggregate property maps from 3D grids. Docs:\n"
-    + "https://fmu-docs.equinor.com/docs/xtgeoapp-grd3dmaps/"
-)
+DESCRIPTION = "Aggregate property maps from 3D grids."
 CATEGORY = "modelling.reservoir"
 EXAMPLES = """
 .. code-block:: console
@@ -123,14 +121,24 @@ def _log_grid_info(grid: xtgeo.Grid) -> None:
 
 
 def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
-    logging.info("\nProperties read from file:")
-    logging.info(f"\n{'Name':<21} {'Date':<10} {'Mean':<7} {'Max':<7}")
-    logging.info("-" * 48)
+    logging.info("\nProperties read from file:")  # NBNB-AS: Not always from file
+    logging.info(
+        f"\n{'Name':<21} {'Date':>10} {'Mean':>10} {'Max':>10} "
+        f"{'n_values':>10} {'n_masked':>10}"
+    )
+    logging.info("-" * 76)
     for p in properties:
+        n_values = p.values.count()
         name_stripped = p.name.split("--")[0] if "--" in p.name else p.name
+        mean_val = f"{p.values.mean():.3f}" if n_values > 0 else "-"
+        max_val = f"{p.values.max():.3f}" if n_values > 0 else "-"
         logging.info(
-            f"{name_stripped:<21} {p.date if p.date is not None else '-':<10} "
-            f"{p.values.mean():<7.3f} {p.values.max():<7.3f}"
+            f"{name_stripped:<21} "
+            f"{p.date if p.date is not None else '-':>10} "
+            f"{mean_val:>10} "
+            f"{max_val:>10} "
+            f"{n_values:>10} "
+            f"{np.ma.count_masked(p.values):>10}"
         )
 
 
@@ -268,9 +276,15 @@ def _write_surfaces(
     plot_folder: Optional[str],
     use_plotly: bool,
 ):
+    if plot_folder and not os.path.exists(plot_folder):
+        logging.warning("\nWARNING: Specified plot folder does not exist")
+        logging.warning(f"         Path: {plot_folder}")
+        if not os.path.isabs(plot_folder):
+            logging.warning(f"         Absolute path: {os.path.abspath(plot_folder)}")
+
     for surface in surfaces:
         surface.to_file((pathlib.Path(map_folder) / surface.name).with_suffix(".gri"))
-        if plot_folder:
+        if plot_folder and os.path.exists(plot_folder):
             pn = pathlib.Path(plot_folder) / surface.name
             if use_plotly:
                 write_plot_using_plotly(surface, pn)
