@@ -114,7 +114,8 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
             )
     else:
         logging.info(
-            f"{'  Grid folder':<{col1}} : (not specified, so temp exported 3D grid files will be deleted)"
+            f"{'  Grid folder':<{col1}} : "
+            f"(not specified, so temp exported 3D grid files will be deleted)"
         )
     logging.info(
         f"{'  Use lower case in file names':<{col1}} : "
