@@ -303,8 +303,13 @@ def main():
     _log_results(df)
 
     if df is not None:
+        logging.info("\nExport results to CSV file")
+        logging.info(f"    - File path: {output_path}")
+        if os.path.isfile(output_path):
+            logging.info(
+                "Output CSV file already exists => Will overwrite existing file"
+            )
         df.to_csv(output_path, index=False)
-        logging.info("\nDone exporting results to CSV file.\n")
 
     return 0
 

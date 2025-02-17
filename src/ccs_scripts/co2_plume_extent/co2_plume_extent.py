@@ -1284,8 +1284,6 @@ def main():
         args.threshold_dissolved,
     )
 
-    output_file = _find_output_file(args.output_csv, args.case)
-
     df = _collect_results_into_dataframe(
         all_results,
         config,
@@ -1293,8 +1291,13 @@ def main():
     )
     _log_results(df)
     _log_results_detailed(df)
+
+    output_file = _find_output_file(args.output_csv, args.case)
+    logging.info("\nExport results to CSV file")
+    logging.info(f"    - File path: {output_file}")
+    if os.path.isfile(output_file):
+        logging.info("Output CSV file already exists => Will overwrite existing file")
     df.to_csv(output_file, index=False, na_rep="0.0")
-    logging.info("\nDone exporting results to CSV file.\n")
 
     return 0
 

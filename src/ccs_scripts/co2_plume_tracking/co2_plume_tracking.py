@@ -686,6 +686,11 @@ def main():
         dissolved_prop_key,
         config.injection_wells,
     )
+
+    logging.info("\nExport results to CSV file")
+    logging.info(f"    - File path: {output_file}")
+    if os.path.isfile(output_file):
+        logging.info("Output CSV file already exists => Will overwrite existing file")
     df.to_csv(output_file, index=False)
 
     dt = time.time() - time_start

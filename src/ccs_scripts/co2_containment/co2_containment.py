@@ -720,9 +720,7 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
         f"{'yes' if arguments_processed.residual_trapping else 'no'}"
     )
     readable_output_str = (
-        "yes"
-        if arguments_processed.readable_output is not None and arguments_processed
-        else "no"
+        "yes" if arguments_processed.readable_output is not None else "no"
     )
     logging.info(f"{'Readable output':<{col1}} : " f"{readable_output_str}")
     config_file_inj_wells_str = (
@@ -954,10 +952,14 @@ def export_output_to_csv(
     (mass / cell_volume / actual_volume).
     """
     file_name = f"plume_{calc_type_input}.csv"
-    logging.info(f"\nExport results to CSV file: {file_name}")
+    logging.info("\nExport results to CSV file")
+    logging.info(f"    - File name     : {file_name}")
     file_path = os.path.join(out_dir, file_name)
+    logging.info(f"    - Path          : {file_path}")
+    if not os.path.isabs(file_path):
+        logging.info(f"    - Absolute path : {os.path.abspath(file_path)}")
     if os.path.isfile(file_path):
-        logging.info(f"Output CSV file already exists. Overwriting: {file_path}")
+        logging.info("Output CSV file already exists => Will overwrite existing file")
 
     data_frame.to_csv(file_path, index=False)
 
