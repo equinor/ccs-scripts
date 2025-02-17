@@ -88,8 +88,7 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     logging.info(f"{'  Map folder':<{col1}} : {op.mapfolder}")
     if not os.path.isabs(op.mapfolder):
         logging.info(
-            f"{'    => Absolute path':<{col1}} : "
-            f"{os.path.abspath(op.mapfolder)}"
+            f"{'    => Absolute path':<{col1}} : " f"{os.path.abspath(op.mapfolder)}"
         )
     if not os.path.isabs(config_.input.grid):
         logging.info(
@@ -97,23 +96,17 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
             f"{os.path.abspath(config_.input.grid)}"
         )
     if op.plotfolder is not None:
-        logging.info(
-            f"{'  Plot folder':<{col1}} : {op.plotfolder}"
-        )
+        logging.info(f"{'  Plot folder':<{col1}} : {op.plotfolder}")
         if not os.path.isabs(op.plotfolder):
             logging.info(
                 f"{'    => Absolute path':<{col1}} : "
                 f"{os.path.abspath(op.plotfolder)}"
             )
     else:
-        logging.info(
-            f"{'  Plot folder':<{col1}} : - (plot export not selected)"
-        )
+        logging.info(f"{'  Plot folder':<{col1}} : - (plot export not selected)")
 
     if op.gridfolder is not None:
-        logging.info(
-            f"{'  Grid folder':<{col1}} : {op.gridfolder}"
-        )
+        logging.info(f"{'  Grid folder':<{col1}} : {op.gridfolder}")
         if not os.path.isabs(op.gridfolder):
             logging.info(
                 f"{'    => Absolute path':<{col1}} : "

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+import os
 import pathlib
 import sys
 from typing import List, Optional, Tuple, Union
@@ -275,14 +276,24 @@ def _write_surfaces(
     plot_folder: Optional[str],
     use_plotly: bool,
 ):
-    for surface in surfaces:
-        surface.to_file((pathlib.Path(map_folder) / surface.name).with_suffix(".gri"))
-        if plot_folder:
-            pn = pathlib.Path(plot_folder) / surface.name
-            if use_plotly:
-                write_plot_using_plotly(surface, pn)
-            else:
-                write_plot_using_quickplot(surface, pn)
+    if plot_folder:
+        if os.path.exists(plot_folder):
+            for surface in surfaces:
+                surface.to_file(
+                    (pathlib.Path(map_folder) / surface.name).with_suffix(".gri")
+                )
+                pn = pathlib.Path(plot_folder) / surface.name
+                if use_plotly:
+                    write_plot_using_plotly(surface, pn)
+                else:
+                    write_plot_using_quickplot(surface, pn)
+        else:
+            logging.warning("\nWARNING: Specified plot folder does not exist")
+            logging.warning(f"         Path: {plot_folder}")
+            if not os.path.isabs(plot_folder):
+                logging.warning(
+                    f"         Absolute path: {os.path.abspath(plot_folder)}"
+                )
 
 
 def generate_from_config(config: _config.RootConfig):
