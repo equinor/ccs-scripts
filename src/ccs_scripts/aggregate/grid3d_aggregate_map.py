@@ -41,28 +41,6 @@ EXAMPLES = """
 """
 
 
-def write_map(x_nodes, y_nodes, map_, filename):
-    """
-    Writes a 2D map to file as an xtgeo.RegularSurface. Returns the xtgeo.RegularSurface
-    instance.
-    """
-    dx = x_nodes[1] - x_nodes[0]
-    dy = y_nodes[1] - y_nodes[0]
-    masked_map = np.ma.array(map_)
-    masked_map.mask = np.isnan(map_)
-    surface = xtgeo.RegularSurface(
-        ncol=x_nodes.size,
-        nrow=y_nodes.size,
-        xinc=dx,
-        yinc=dy,
-        xori=x_nodes[0],
-        yori=y_nodes[0],
-        values=masked_map,
-    )
-    surface.to_file(filename)
-    return surface
-
-
 def write_plot_using_plotly(surf: xtgeo.RegularSurface, filename):
     """
     Writes a 2D map to an html using the plotly library
