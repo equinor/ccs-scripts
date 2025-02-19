@@ -254,11 +254,19 @@ def _write_surfaces(
     plot_folder: Optional[str],
     use_plotly: bool,
 ):
-    if plot_folder and not os.path.exists(plot_folder):
-        logging.warning("\nWARNING: Specified plot folder does not exist")
-        logging.warning(f"         Path: {plot_folder}")
+    logging.info("\nWriting to map folder")
+    logging.info(f"     Path         : {map_folder}")
+    if not os.path.isabs(map_folder):
+        logging.info(f"     Absolute path: {os.path.abspath(map_folder)}")
+    # Note: Error handling of invalid map folder happens earlier
+
+    if plot_folder:
+        logging.info("\nWriting to plot folder")
+        logging.info(f"     Path         : {plot_folder}")
         if not os.path.isabs(plot_folder):
-            logging.warning(f"         Absolute path: {os.path.abspath(plot_folder)}")
+            logging.info(f"     Absolute path: {os.path.abspath(plot_folder)}")
+        if not os.path.exists(plot_folder):
+            logging.warning("WARNING: Specified plot folder does not exist")
 
     for surface in surfaces:
         surface.to_file((pathlib.Path(map_folder) / surface.name).with_suffix(".gri"))
