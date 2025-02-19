@@ -80,9 +80,6 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     else:
         logging.info(f"{'  Dates':<{col1}} : - (not specified => using all dates)")
 
-    if calc_type == "time_migration":
-        return  # The rest of the config is not used, or overwritten later
-
     op = config_.output
     logging.info("\nOutput configuration:")
     logging.info(f"{'  Map folder':<{col1}} : {op.mapfolder}")
@@ -100,18 +97,21 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     else:
         logging.info(f"{'  Plot folder':<{col1}} : - (plot export not selected)")
 
-    if op.gridfolder is not None:
-        logging.info(f"{'  Grid folder':<{col1}} : {op.gridfolder}")
-        if not os.path.isabs(op.gridfolder):
+    if calc_type == "co2_mass":
+        if op.gridfolder is not None:
+            logging.info(f"{'  Grid folder':<{col1}} : {op.gridfolder}")
+            if not os.path.isabs(op.gridfolder):
+                logging.info(
+                    f"{'    => Absolute path':<{col1}} : "
+                    f"{os.path.abspath(op.gridfolder)}"
+                )
+        else:
             logging.info(
-                f"{'    => Absolute path':<{col1}} : "
-                f"{os.path.abspath(op.gridfolder)}"
+                f"{'  Grid folder':<{col1}} : - "
+                f"(not specified, so temp exported 3D grid files will be deleted)"
             )
     else:
-        logging.info(
-            f"{'  Grid folder':<{col1}} : "
-            f"(not specified, so temp exported 3D grid files will be deleted)"
-        )
+        logging.info(f"{'  Grid folder':<{col1}} : - (only relevant for co2 mass maps)")
     logging.info(
         f"{'  Use lower case in file names':<{col1}} : "
         f"{'yes' if op.lowercase else 'no'}"

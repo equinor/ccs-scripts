@@ -55,6 +55,9 @@ def _check_config(config_: RootConfig) -> None:
             "Changing 'indicator_map' to 'no'."
         )
         config_.computesettings.indicator_map = False
+    config_.computesettings.aggregation = _config.AggregationMethod.MIN
+    config_.output.aggregation_tag = False
+    config_.computesettings.aggregate_map = True
 
 
 def _log_t_prop(t_prop: dict[str, xtgeo.GridProperty]):
@@ -112,9 +115,6 @@ def migration_time_property_to_map(
         "\nStart aggregating time migration property from "
         "temporary 3D grid file to 2D map"
     )
-    config_.computesettings.aggregation = _config.AggregationMethod.MIN
-    config_.output.aggregation_tag = False
-    config_.computesettings.aggregate_map = True
     for prop in t_prop.values():
         temp_file, temp_path = tempfile.mkstemp()
         os.close(temp_file)
