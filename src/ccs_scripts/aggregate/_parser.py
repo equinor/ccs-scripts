@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import logging
+import os
 import pathlib
 import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -124,6 +125,7 @@ def process_arguments(arguments) -> RootConfig:
         parsed_args.gridfolder,
         replacements,
     )
+    _check_directories(config.output.mapfolder)
     return config
 
 
@@ -204,6 +206,16 @@ def load_yaml(
             "Keyword 'superranges' is not supported by this action"
         )
     return config
+
+
+def _check_directories(map_folder: str):
+    if not os.path.exists(map_folder):
+        error_txt = "\nERROR: Specified map folder does not exist:"
+        error_txt += f"\n    Path         : {map_folder}"
+        if not os.path.isabs(map_folder):
+            error_txt += f"\n    Absolute path: {os.path.abspath(map_folder)}"
+        logging.error(error_txt)
+        raise FileNotFoundError(error_txt)
 
 
 def extract_properties(
