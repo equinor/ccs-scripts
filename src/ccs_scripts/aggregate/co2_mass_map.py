@@ -95,12 +95,26 @@ def _process_grid_dir(grid_folder: Optional[str]) -> Tuple[str, bool]:
     """
     if grid_folder is not None:
         if not os.path.exists(grid_folder):
-            error_txt = "\nERROR: Specified grid folder does not exist:"
-            error_txt += f"\n    Path         : {grid_folder}"
-            if not os.path.isabs(grid_folder):
-                error_txt += f"\n    Absolute path: {os.path.abspath(grid_folder)}"
-            logging.error(error_txt)
-            raise FileNotFoundError(error_txt)
+            parent_dir = os.path.dirname(grid_folder)
+            if os.path.exists(parent_dir):
+                os.mkdir(grid_folder)
+                logging.info(f"\nCreated new grid folder: {grid_folder}")
+            else:
+                error_txt = (
+                    "\nERROR: Specified grid folder is invalid (no parent folder):"
+                )
+                error_txt += f"\n    Path            : {grid_folder}"
+                if not os.path.isabs(grid_folder):
+                    error_txt += (
+                        f"\n    -> Absolute path: {os.path.abspath(grid_folder)}"
+                    )
+                error_txt += f"\n    Parent folder   : {parent_dir}"
+                if not os.path.isabs(parent_dir):
+                    error_txt += (
+                        f"\n    -> Absolute path: {os.path.abspath(parent_dir)}"
+                    )
+                logging.error(error_txt)
+                raise FileNotFoundError(error_txt)
         return grid_folder, False
     else:
         grid_folder = tempfile.mkdtemp()
