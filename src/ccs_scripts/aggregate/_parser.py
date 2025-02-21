@@ -210,12 +210,20 @@ def load_yaml(
 
 def _check_directories(map_folder: str):
     if not os.path.exists(map_folder):
-        error_txt = "\nERROR: Specified map folder does not exist:"
-        error_txt += f"\n    Path         : {map_folder}"
-        if not os.path.isabs(map_folder):
-            error_txt += f"\n    Absolute path: {os.path.abspath(map_folder)}"
-        logging.error(error_txt)
-        raise FileNotFoundError(error_txt)
+        parent_dir = os.path.dirname(map_folder)
+        if os.path.exists(parent_dir):
+            os.mkdir(map_folder)
+            logging.info(f"\nCreated new map folder: {map_folder}")
+        else:
+            error_txt = "\nERROR: Specified map folder is invalid (no parent folder):"
+            error_txt += f"\n    Path            : {map_folder}"
+            if not os.path.isabs(map_folder):
+                error_txt += f"\n    -> Absolute path: {os.path.abspath(map_folder)}"
+            error_txt += f"\n    Parent folder   : {parent_dir}"
+            if not os.path.isabs(parent_dir):
+                error_txt += f"\n    -> Absolute path: {os.path.abspath(parent_dir)}"
+            logging.error(error_txt)
+            raise FileNotFoundError(error_txt)
 
 
 def extract_properties(
