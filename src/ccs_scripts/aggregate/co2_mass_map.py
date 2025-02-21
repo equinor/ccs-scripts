@@ -95,10 +95,12 @@ def _process_grid_dir(grid_folder: Optional[str]) -> Tuple[str, bool]:
     """
     if grid_folder is not None:
         if not os.path.exists(grid_folder):
-            logging.info(
-                f"\nCreating specified directory for 3D grids: " f"{grid_folder}"
-            )
-            os.makedirs(grid_folder)
+            error_txt = "\nERROR: Specified grid folder does not exist:"
+            error_txt += f"\n    Path         : {grid_folder}"
+            if not os.path.isabs(grid_folder):
+                error_txt += f"\n    Absolute path: {os.path.abspath(grid_folder)}"
+            logging.error(error_txt)
+            raise FileNotFoundError(error_txt)
         return grid_folder, False
     else:
         grid_folder = tempfile.mkdtemp()
