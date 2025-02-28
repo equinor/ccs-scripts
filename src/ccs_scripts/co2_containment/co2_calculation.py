@@ -149,6 +149,7 @@ fields_to_add = [
     ('XMFG' , Optional[Dict[str, np.ndarray]] , None),
     ('DWAT' , Optional[Dict[str, np.ndarray]] , None),
     ('DGAS' , Optional[Dict[str, np.ndarray]] , None),
+    ('DOIL', Optional[Dict[str, np.ndarray]], None),
     ('BWAT' , Optional[Dict[str, np.ndarray]] , None),
     ('BGAS' , Optional[Dict[str, np.ndarray]] , None),
     ('AMFS' , Optional[Dict[str, np.ndarray]] , None),
