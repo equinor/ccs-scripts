@@ -232,6 +232,7 @@ def _lists_of_phases(
     else:
         phases = ["total", "dissolved"]
         phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
+        phases += ["oil"]
     return phases
 
 
@@ -253,6 +254,7 @@ def _lists_of_co2_for_each_phase(
             if residual_trapping
             else [co2_at_date.gas_phase]
         )
+        arrays += [co2_at_date.oil_phase]
     return arrays
 
 
