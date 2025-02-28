@@ -1,6 +1,4 @@
 import copy
-import os
-import tempfile
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 
@@ -66,8 +64,8 @@ def translate_co2data_to_property(
     co2_data: Co2Data,
     grid_file: str,
     co2_mass_settings: CO2MassSettings,
+    grid_out_dir: str,
     properties_to_extract: List[str],
-    grid_out_dir: Optional[str] = None,
 ) -> List[Optional[str]]:
     """
     Convert CO2 data into 3D GridProperty
@@ -78,20 +76,14 @@ def translate_co2data_to_property(
         grid_file (str): Path to EGRID-file
         co2_mass_settings (CO2MassSettings): Settings from config file for calculation
                                              of CO2 mass maps.
+        grid_out_dir (str): Path to store the produced 3D GridProperties.
         properties_to_extract (List): Names of the properties to be extracted
-        grid_out_dir (str): If provided, path to store the produced 3D GridProperties.
 
     Returns:
         List[List[xtgeo.GridProperty]]
 
     """
     gas_idxs = _get_gas_idxs(co2_mass_settings.unrst_source, properties_to_extract)
-    # Setting up the grid folder to store the gridproperties
-    if grid_out_dir:
-        if not os.path.exists(grid_out_dir):
-            os.makedirs(grid_out_dir)
-    else:
-        grid_out_dir = tempfile.mkdtemp()
     maps = co2_mass_settings.maps
     if maps is None:
         maps = []
@@ -336,7 +328,7 @@ def _convert_to_grid(
                                                at each time step
         gas_idxs (np.ndarray):                 Global index of cells with CO2
         grid_file (str):                       Path to EGRID-file
-        grid_out_dir (str):                    If provided, path to store the produced
+        grid_out_dir (str):                    Path to store the produced
                                                3D GridProperties
 
     Returns:

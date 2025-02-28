@@ -6,6 +6,7 @@ import sys
 import tempfile
 from typing import Dict, List, Optional, Union
 
+import numpy as np
 import xtgeo
 from xtgeo.common import XTGeoDialog
 
@@ -15,6 +16,8 @@ from ccs_scripts.aggregate import (
     _parser,
     grid3d_aggregate_map,
 )
+from ccs_scripts.aggregate._config import RootConfig
+from ccs_scripts.aggregate._utils import log_input_configuration
 
 _XTG = XTGeoDialog()
 
@@ -32,10 +35,7 @@ MIGRATION_TIME_PROPERTIES = [
 ]
 
 # Module variables for ERT hook implementation:
-DESCRIPTION = (
-    "Generate migration time property maps. Docs:\n"
-    + "https://fmu-docs.equinor.com/docs/xtgeoapp-grd3dmaps/"
-)
+DESCRIPTION = "Generate migration time property maps."
 CATEGORY = "modelling.reservoir"
 EXAMPLES = """
 .. code-block:: console
@@ -44,17 +44,49 @@ EXAMPLES = """
 """
 
 
+def _check_config(config_: RootConfig) -> None:
+    if config_.input.properties is not None and len(config_.input.properties) > 1:
+        raise ValueError(
+            "Migration time computation is only supported for a single property"
+        )
+    if config_.computesettings.indicator_map:
+        logging.warning(
+            "\nWARNING: Indicator maps cannot be calculated for CO2 mass maps. "
+            "Changing 'indicator_map' to 'no'."
+        )
+        config_.computesettings.indicator_map = False
+    config_.computesettings.aggregation = _config.AggregationMethod.MIN
+    config_.output.aggregation_tag = False
+    config_.computesettings.aggregate_map = True
+
+
+def _log_t_prop(t_prop: dict[str, xtgeo.GridProperty]):
+    col1 = 20
+    col2 = 8
+    for k, v in t_prop.items():
+        n_finite = np.sum(np.isfinite(v.values))
+        logging.info(f"\nSummary of time migration 3D grid property {k}:")
+        logging.info(f"{'  - Minimum':<{col1}} : {v.values.min():>{col2}.1f}")
+        logging.info(f"{'  - Mean':<{col1}} : {v.values.mean():>{col2}.1f}")
+        logging.info(f"{'  - Maximum':<{col1}} : {v.values.max():>{col2}.1f}")
+        logging.info(
+            f"{'  - # cells with CO2':<{col1}} : "
+            f"{n_finite:>{col2}} ({100.0 * n_finite / v.values.size:.1f}%)"
+        )
+
+
 def calculate_migration_time_property(
     properties_files: str,
     property_name: str,
     lower_threshold: Union[float, List],
     grid_file: Optional[str],
     dates: List[str],
-):
+) -> dict[str, xtgeo.GridProperty]:
     """
     Calculates a 3D migration time property from the provided grid and grid property
     files
     """
+    logging.info("\nStart calculating time migration property in 3D grid")
     prop_spec = [
         _config.Property(source=f, name=name)
         for f in glob.glob(properties_files, recursive=True)
@@ -62,14 +94,16 @@ def calculate_migration_time_property(
     ]
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
     properties = _parser.extract_properties(prop_spec, grid, dates)
+    grid3d_aggregate_map._log_properties_info(properties)
     t_prop = _migration_time.generate_migration_time_property(
         properties, lower_threshold
     )
+    _log_t_prop(t_prop)
     return t_prop
 
 
 def migration_time_property_to_map(
-    config_: _config.RootConfig,
+    config_: RootConfig,
     t_prop: Dict[str, xtgeo.GridProperty],
 ):
     """
@@ -77,8 +111,10 @@ def migration_time_property_to_map(
     The migration time property is written to a temporary file while performing the
     aggregation.
     """
-    config_.computesettings.aggregation = _config.AggregationMethod.MIN
-    config_.output.aggregation_tag = False
+    logging.info(
+        "\nStart aggregating time migration property from "
+        "temporary 3D grid file to 2D map"
+    )
     for prop in t_prop.values():
         temp_file, temp_path = tempfile.mkstemp()
         os.close(temp_file)
@@ -93,16 +129,11 @@ def main(arguments=None):
     """
     Calculates a migration time property and aggregates it to a 2D map
     """
-    print("Running grid3d_aggregate_map using code from ccs-scripts")
-    logging.info("Running grid3d_aggregate_map using code from ccs-scripts")
-    _XTG.say("Running grid3d_aggregate_map using code from ccs-scripts")
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
-    if len(config_.input.properties) > 1:
-        raise ValueError(
-            "Migration time computation is only supported for a single property"
-        )
+    _check_config(config_)
+    log_input_configuration(config_, calc_type="time_migration")
     p_spec = config_.input.properties.pop()
     if isinstance(p_spec.name, str):
         p_spec.name = [p_spec.name]
@@ -110,14 +141,17 @@ def main(arguments=None):
         removed_props = [x for x in p_spec.name if x not in MIGRATION_TIME_PROPERTIES]
         p_spec.name = [x for x in p_spec.name if x in MIGRATION_TIME_PROPERTIES]
         if len(removed_props) > 0:
-            print(
-                "Time migration maps are not supported for these properties: ",
+            logging.warning(
+                "\nWARNING: Time migration maps are "
+                "not supported for these properties: ",
                 ", ".join(str(x) for x in removed_props),
             )
     else:
         error_text = (
-            "Time migration maps are not supported for any of the properties provided"
+            "Time migration maps are not supported for "
+            "any of the properties provided: "
         )
+        error_text += f"{', '.join(p_spec.name)}"
         raise ValueError(error_text)
     t_prop = calculate_migration_time_property(
         p_spec.source,

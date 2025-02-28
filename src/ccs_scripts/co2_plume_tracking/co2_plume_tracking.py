@@ -195,6 +195,8 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     logging.info(f"Python version      : {py_version}")
 
     logging.info(f"\nCase                    : {arguments.case}")
+    if not os.path.isabs(arguments.case):
+        logging.info(f"  => Absolute path      : {os.path.abspath(arguments.case)}")
     logging.info(
         f"Configuration YAML-file : "
         f"{arguments.config_file if arguments.config_file != '' else 'Not specified'}"
@@ -684,6 +686,11 @@ def main():
         dissolved_prop_key,
         config.injection_wells,
     )
+
+    logging.info("\nExport results to CSV file")
+    logging.info(f"    - File path: {output_file}")
+    if os.path.isfile(output_file):
+        logging.info("Output CSV file already exists => Will overwrite existing file")
     df.to_csv(output_file, index=False)
 
     dt = time.time() - time_start

@@ -5,11 +5,13 @@ DEFAULT <MAPFOLDER> -1
 DEFAULT <PLOTFOLDER> -1
 DEFAULT <GRIDFOLDER> -1
 DEFAULT <FOLDERROOT> -1
+DEFAULT <NO_LOGGING> -1
+DEFAULT <DEBUG> -1
 
-ARGLIST  "--config" <CONFIG_CO2_MASS_MAP> "--eclroot" <ECLROOT> "--mapfolder" <MAPFOLDER> "--plotfolder" <PLOTFOLDER> "--gridfolder" <GRIDFOLDER> "--folderroot" <FOLDERROOT>
+ARGLIST  "--config" <CONFIG_CO2_MASS_MAP> "--eclroot" <ECLROOT> "--mapfolder" <MAPFOLDER> "--plotfolder" <PLOTFOLDER> "--gridfolder" <GRIDFOLDER> "--folderroot" <FOLDERROOT> "--no_logging" <NO_LOGGING> "--debug" <DEBUG>
 
 STDERR CO2_MASS_MAP.stderr
 STDOUT CO2_MASS_MAP.stdout
 
 MIN_ARG 1
-MAX_ARG 5
+MAX_ARG 7

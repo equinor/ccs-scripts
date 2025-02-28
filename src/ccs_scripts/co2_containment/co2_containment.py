@@ -683,6 +683,11 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     logging.info(f"{'Python version':<{col1}} : {py_version}")
 
     logging.info(f"\n{'Case':<{col1}} : {arguments_processed.case}")
+    if not os.path.isabs(arguments_processed.case):
+        logging.info(
+            f"{'  => Absolute path':<{col1}} : "
+            f"{os.path.abspath(arguments_processed.case)}"
+        )
     logging.info(
         f"{'Calculation type':<{col1}} : {arguments_processed.calc_type_input}"
     )
@@ -716,7 +721,8 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     )
     readable_output_str = (
         "yes"
-        if arguments_processed.readable_output is not None and arguments_processed
+        if arguments_processed.readable_output is not None
+        and arguments_processed.readable_output
         else "no"
     )
     logging.info(f"{'Readable output':<{col1}} : " f"{readable_output_str}")
@@ -949,10 +955,14 @@ def export_output_to_csv(
     (mass / cell_volume / actual_volume).
     """
     file_name = f"plume_{calc_type_input}.csv"
-    logging.info(f"\nExport results to CSV file: {file_name}")
+    logging.info("\nExport results to CSV file")
+    logging.info(f"    - File name     : {file_name}")
     file_path = os.path.join(out_dir, file_name)
+    logging.info(f"    - Path          : {file_path}")
+    if not os.path.isabs(file_path):
+        logging.info(f"    - Absolute path : {os.path.abspath(file_path)}")
     if os.path.isfile(file_path):
-        logging.info(f"Output CSV file already exists. Overwriting: {file_path}")
+        logging.info("Output CSV file already exists => Will overwrite existing file")
 
     data_frame.to_csv(file_path, index=False)
 

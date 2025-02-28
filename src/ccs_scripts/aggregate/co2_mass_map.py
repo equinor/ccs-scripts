@@ -1,14 +1,17 @@
 #!/usr/bin/env python
+import logging
 import os
 import shutil
 import sys
-from typing import Dict, List, Optional, Union
+import tempfile
+from typing import Dict, List, Optional, Tuple
 
 import yaml
 
 from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map
 from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
-from ccs_scripts.aggregate._config import AggregationMethod
+from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
+from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
     RegionInfo,
@@ -29,20 +32,21 @@ DESCRIPTION = """
 
 CATEGORY = "modelling.reservoir"
 
-# EXAMPLES = """
-# .. code-block:: console
-#
-#   FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
-# """
+EXAMPLES = """
+.. code-block:: console
+
+  FORWARD_MODEL CO2_MASS_MAP(<CONFIG_CO2_MASS_MAP>=conf.yml, <ECLROOT>=<ECLBASE>)
+"""
 
 
-def generate_co2_mass_maps(config_):
+def generate_co2_mass_maps(config_: RootConfig):
     """
     Calculates and exports 2D and 3D CO2 mass properties from the provided config file
 
     Args:
         config_: Arguments in the config file
     """
+    assert config_.co2_mass_settings is not None
     co2_mass_settings = config_.co2_mass_settings
     grid_file = config_.input.grid
     zone_info = ZoneInfo(
@@ -55,6 +59,7 @@ def generate_co2_mass_maps(config_):
         int_to_region=None,
         property_name=None,
     )
+    logging.info("\nCalculate CO2 mass 3D grid")
     co2_data = calculate_co2(
         grid_file=grid_file,
         unrst_file=co2_mass_settings.unrst_source,
@@ -67,33 +72,76 @@ def generate_co2_mass_maps(config_):
     dates = config_.input.dates
     if len(dates) > 0:
         co2_data.data_list = [x for x in co2_data.data_list if x.date in dates]
-    out_property_list = translate_co2data_to_property(
-        co2_data,
-        grid_file,
-        co2_mass_settings,
-        RELEVANT_PROPERTIES,
-        config_.output.gridfolder,
-    )
-    co2_mass_property_to_map(config_, out_property_list)
+
+    grid_folder, delete_tmp_grid_folder = _process_grid_dir(config_.output.gridfolder)
+    try:
+        out_property_list = translate_co2data_to_property(
+            co2_data,
+            grid_file,
+            co2_mass_settings,
+            grid_folder,
+            RELEVANT_PROPERTIES,
+        )
+        co2_mass_property_to_map(config_, out_property_list)
+    finally:
+        # Make sure temp directory is deleted even if exception is thrown above
+        if delete_tmp_grid_folder:
+            clean_tmp(grid_folder)
 
 
-def clean_tmp(out_property_list: List[Union[str, None]]):
+def _process_grid_dir(grid_folder: Optional[str]) -> Tuple[str, bool]:
+    """
+    Setting up the grid folder to store the gridproperties
+    """
+    if grid_folder is not None:
+        if not os.path.exists(grid_folder):
+            parent_dir = os.path.dirname(grid_folder)
+            if os.path.exists(parent_dir):
+                os.mkdir(grid_folder)
+                logging.info(f"\nCreated new grid folder: {grid_folder}")
+            else:
+                error_txt = (
+                    "\nERROR: Specified grid folder is invalid (no parent folder):"
+                )
+                error_txt += f"\n    Path            : {grid_folder}"
+                if not os.path.isabs(grid_folder):
+                    error_txt += (
+                        f"\n    -> Absolute path: {os.path.abspath(grid_folder)}"
+                    )
+                error_txt += f"\n    Parent folder   : {parent_dir}"
+                if not os.path.isabs(parent_dir):
+                    error_txt += (
+                        f"\n    -> Absolute path: {os.path.abspath(parent_dir)}"
+                    )
+                logging.error(error_txt)
+                raise FileNotFoundError(error_txt)
+        return grid_folder, False
+    else:
+        grid_folder = tempfile.mkdtemp()
+        logging.info(f"\nMaking temporary directory for 3D grids: {grid_folder}")
+        return grid_folder, True
+
+
+def clean_tmp(grid_folder: str):
     """
     Removes the 3d grids produced if not specific output folder is provided
 
     Args:
-        out_property_list: List with paths of the 3d GridProperties
+        grid_folder: Path to directory of files for 3d GridProperties
     """
-    for props in out_property_list:
-        if isinstance(props, str):
-            directory_path = os.path.dirname(props[0])
-            os.remove(props)
-            if os.path.isdir(directory_path) and not os.listdir(directory_path):
-                shutil.rmtree(directory_path)
+    logging.info(
+        f'\nDeleting temp grid folder "{grid_folder}"'
+        f" containing {len(os.listdir(grid_folder))} files"
+    )
+    for file_name in os.listdir(grid_folder):
+        if file_name.endswith(".EGRID") or file_name.endswith(".UNRST"):
+            os.remove(os.path.join(grid_folder, file_name))
+    if len(os.listdir(grid_folder)) == 0:
+        shutil.rmtree(grid_folder)
 
 
 def co2_mass_property_to_map(
-    config_: _config.RootConfig,
+    config_: RootConfig,
     out_property_list: List[Optional[str]],
 ):
     """
@@ -107,8 +155,6 @@ def co2_mass_property_to_map(
 
     """
     config_.input.properties = []
-    config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
-    config_.output.aggregation_tag = False
     for props in out_property_list:
         if isinstance(props, str):
             config_.input.properties.append(
@@ -119,8 +165,6 @@ def co2_mass_property_to_map(
                 )
             )
     grid3d_aggregate_map.generate_from_config(config_)
-    if not config_.output.gridfolder:
-        clean_tmp(out_property_list)
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:
@@ -140,6 +184,28 @@ def read_yml_file(file_path: str) -> Dict[str, List]:
     return zfile
 
 
+def _check_config(config_: RootConfig) -> None:
+    if config_.input.properties:
+        raise ValueError("CO2 mass computation does not take a property as input")
+    if config_.co2_mass_settings is None:
+        raise ValueError("CO2 mass computation needs co2_mass_settings as input")
+    if (
+        not config_.computesettings.aggregate_map
+        and not config_.computesettings.indicator_map
+    ):
+        error_text = (
+            "As neither indicator_map nor aggregate_map were requested,"
+            " no map is produced"
+        )
+        raise ValueError(error_text)
+    if config_.computesettings.indicator_map:
+        logging.warning(
+            "\nWARNING: Indicator maps cannot be calculated for CO2 mass maps. "
+            "Changing 'indicator_map' to 'no'."
+        )
+        config_.computesettings.indicator_map = False
+
+
 def main(arguments=None):
     """
     Takes input arguments and calculates co2 mass as a property and aggregates
@@ -148,10 +214,10 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = _parser.process_arguments(arguments)
-    if config_.input.properties:
-        raise ValueError("CO2 mass computation does not take a property as input")
-    if config_.co2_mass_settings is None:
-        raise ValueError("CO2 mass computation needs co2_mass_settings as input")
+    config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
+    config_.output.aggregation_tag = False
+    _check_config(config_)
+    log_input_configuration(config_, calc_type="co2_mass")
     generate_co2_mass_maps(config_)
 
 

@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import logging
+import os
 import pathlib
 import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -20,6 +21,7 @@ from ccs_scripts.aggregate._config import (
     Zonation,
     ZProperty,
 )
+from ccs_scripts.co2_containment.co2_containment import str_to_bool
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
@@ -61,6 +63,21 @@ def parse_arguments(arguments):
         " overrides yaml file)",
         default=None,
     )
+    parser.add_argument(
+        "--no_logging",
+        help="Skip print of detailed information during execution of script",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
+    )
+    parser.add_argument(
+        "--debug",
+        help="Enable print of debugging data during execution of script. "
+        "Normally not necessary for most users.",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
+    )
     return parser.parse_args(arguments)
 
 
@@ -75,6 +92,10 @@ def _replace_default_dummies_from_ert(args):
         args.gridfolder = None
     if args.folderroot == "-1":
         args.folderroot = None
+    if args.no_logging == "-1":
+        args.no_logging = False
+    if args.debug == "-1":
+        args.debug = False
 
 
 def process_arguments(arguments) -> RootConfig:
@@ -89,6 +110,14 @@ def process_arguments(arguments) -> RootConfig:
         replacements["eclroot"] = parsed_args.eclroot
     if parsed_args.folderroot is not None:
         replacements["folderroot"] = parsed_args.folderroot
+
+    if parsed_args.debug:
+        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+    elif parsed_args.no_logging:
+        logging.basicConfig(format="%(message)s", level=logging.WARNING)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
+
     config = parse_yaml(
         parsed_args.config,
         parsed_args.mapfolder,
@@ -96,6 +125,7 @@ def process_arguments(arguments) -> RootConfig:
         parsed_args.gridfolder,
         replacements,
     )
+    _check_directories(config.output.mapfolder)
     return config
 
 
@@ -178,6 +208,24 @@ def load_yaml(
     return config
 
 
+def _check_directories(map_folder: str):
+    if not os.path.exists(map_folder):
+        parent_dir = os.path.dirname(map_folder)
+        if os.path.exists(parent_dir):
+            os.mkdir(map_folder)
+            logging.info(f"\nCreated new map folder: {map_folder}")
+        else:
+            error_txt = "\nERROR: Specified map folder is invalid (no parent folder):"
+            error_txt += f"\n    Path            : {map_folder}"
+            if not os.path.isabs(map_folder):
+                error_txt += f"\n    -> Absolute path: {os.path.abspath(map_folder)}"
+            error_txt += f"\n    Parent folder   : {parent_dir}"
+            if not os.path.isabs(parent_dir):
+                error_txt += f"\n    -> Absolute path: {os.path.abspath(parent_dir)}"
+            logging.error(error_txt)
+            raise FileNotFoundError(error_txt)
+
+
 def extract_properties(
     property_spec: Optional[List[Property]],
     grid: Optional[xtgeo.Grid],
@@ -186,7 +234,7 @@ def extract_properties(
     """
     Extract 3D grid properties based on the provided property specification
     """
-    properties: List[Property] = []
+    properties: List[xtgeo.GridProperty] = []
     if property_spec is None:
         return properties
     for spec in property_spec:
@@ -241,7 +289,14 @@ def extract_zonations(
     return _zonation_from_zproperty(grid, zonation.zproperty)
 
 
-def _zonation_from_zranges(grid: xtgeo.Grid, z_ranges) -> List[Tuple[str, np.ndarray]]:
+def _zonation_from_zranges(
+    grid: xtgeo.Grid, z_ranges: List[Dict[str, Tuple[int, int]]]
+) -> List[Tuple[str, np.ndarray]]:
+    logging.info("\nUsing the following zone ranges:")
+    for z_def in z_ranges:
+        for key, v in z_def.items():
+            logging.info(f"{key:<14}: {v}")
+
     actnum = grid.actnum_indices
     zones = []
     k = grid.get_ijk()[2].values1d[actnum]
@@ -259,7 +314,7 @@ def _zonation_from_zproperty(
             try:
                 zfile = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                print(exc)
+                logging.error(exc)
                 sys.exit()
         if "zranges" not in zfile:
             error_text = "The yaml zone file must be in the format:\nzranges:\
@@ -286,6 +341,20 @@ def _zonation_from_zproperty(
     ]
 
 
+def _log_surface_repr(surf: xtgeo.RegularSurface):
+    col1 = 20
+    logging.info(f"{'  Origo x':<{col1}} : {surf.xori}")
+    logging.info(f"{'  Origo y':<{col1}} : {surf.yori}")
+    logging.info(
+        f"{'  Increment x':<{col1}} : {surf.xinc if surf.xinc is not None else '-'}"
+    )
+    logging.info(
+        f"{'  Increment y':<{col1}} : {surf.yinc if surf.yinc is not None else '-'}"
+    )
+    logging.info(f"{'  Number of columns (x)':<{col1}} : {surf.ncol}")
+    logging.info(f"{'  Number of rows (y)':<{col1}} : {surf.nrow}")
+
+
 def create_map_template(
     map_settings: MapSettings,
 ) -> Union[xtgeo.RegularSurface, float]:
@@ -298,6 +367,11 @@ def create_map_template(
         surf = xtgeo.surface_from_file(map_settings.templatefile)
         if surf.rotation != 0.0:
             raise NotImplementedError("Rotated surfaces are not handled correctly yet")
+        logging.info(
+            f"\nUsing template file {map_settings.templatefile}"
+            f" to make surface representation."
+        )
+        _log_surface_repr(surf)
         return surf
     if map_settings.xori is not None:
         surf_kwargs = dict(
@@ -311,8 +385,13 @@ def create_map_template(
         if not all((s is not None for s in surf_kwargs.values())):
             missing = [k for k, v in surf_kwargs.items() if v is None]
             raise ValueError(
-                f"Failed to create map template due to partial map specification. "
+                "Failed to create map template due to partial map specification. "
                 f"Missing: {', '.join(missing)}"
             )
-        return xtgeo.RegularSurface(**surf_kwargs)
+        logging.info(
+            "\nUsing input coordinates (xinc etc) to make surface representation."
+        )
+        surf = xtgeo.RegularSurface(**surf_kwargs)
+        return surf
+    logging.info("Use pixel-to-cell ratio when making surface representation.")
     return map_settings.pixel_to_cell_ratio
