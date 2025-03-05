@@ -11,7 +11,7 @@ import xtgeo
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
-DEFAULT_CO2_MOLAR_MASS = 44.01
+DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
 DEFAULT_GAS_MOLAR_MASS = 26#16
 DEFAULT_OIL_MOLAR_MASS = 0
@@ -115,6 +115,7 @@ class Co2Data:
     y_coord: np.ndarray
     data_list: List[Co2DataAtTimeStep]
     units: Literal["kg", "tons", "m3"]
+    scenario: str
     zone: Optional[np.ndarray] = None
     region: Optional[np.ndarray] = None
 
@@ -671,23 +672,29 @@ def _pflotran_co2mass(
     xmfs = source_data.XMFS
     sgas = source_data.SGAS
     swat = source_data.SWAT
+    if swat is None and scenario != "CO2 + Water + Gas + Oil":
+        swat = {key: 1 - sgas[key] for key in sgas}
     sgstrand = source_data.SGSTRAND
     eff_vols = source_data.PORV
     mole_fraction_dic = {
         'Aqueous': {'CO2': amfg if scenario == "CO2 + Water" else amfs,
-                    'Water': amfw,
+                    'Water': amfw if amfw is not None
+                    else {key: 1-amfg[key] for key in amfg} if scenario == "CO2 + Water"
+                    else None,
                     'Gas': {key: np.zeros_like(value) for key, value in amfg.items()} if scenario == "CO2 + Water" else amfg
                     },
         'Gas': {'CO2': ymfg if scenario == "CO2 + Water" else ymfs,
-                'Water': ymfw,
+                'Water': ymfw if ymfw is not None
+                    else {key: 1-ymfg[key] for key in ymfg} if scenario == "CO2 + Water"
+                    else None,
                 'Gas': {key: np.zeros_like(value) for key, value in ymfg.items()} if scenario == "CO2 + Water" else ymfg
                 },
         'Oil': {'CO2': xmfs  if scenario == "CO2 + Water + Gas + Oil"
-                       else {key: np.zeros_like(value) for key, value in ymfw.items()},
+                       else {key: np.zeros_like(value) for key, value in ymfg.items()},
                 'Water': xmfw  if scenario == "CO2 + Water + Gas + Oil"
-                         else {key: np.zeros_like(value) for key, value in ymfw.items()},
+                         else {key: np.zeros_like(value) for key, value in ymfg.items()},
                 'Gas': xmfg if scenario == "CO2 + Water + Gas + Oil"
-                       else {key: np.zeros_like(value) for key, value in ymfw.items()},
+                       else {key: np.zeros_like(value) for key, value in ymfg.items()},
                 },
     }
     co2_mass = {}
@@ -729,14 +736,19 @@ def _pflotran_co2mass(
                     * sgstrand[date]
                     * dgas[date]
                     * _mole_to_mass_fraction(
-                        ymfg[date], co2_molar_mass, water_molar_mass
-                    ),
+                        mole_fraction_dic["Gas"]["CO2"][date],
+                        mole_fraction_dic["Gas"]["Gas"][date],
+                        mole_fraction_dic["Gas"]["Water"][date],
+                        co2_molar_mass, water_molar_mass,gas_molar_mass, oil_molar_mass)
+                    ,
                     eff_vols[date]
                     * (sgas[date] - sgstrand[date])
                     * dgas[date]
                     * _mole_to_mass_fraction(
-                        ymfg[date], co2_molar_mass, water_molar_mass
-                    ),
+                        mole_fraction_dic["Gas"]["CO2"][date],
+                        mole_fraction_dic["Gas"]["Gas"][date],
+                        mole_fraction_dic["Gas"]["Water"][date],
+                        co2_molar_mass, water_molar_mass, gas_molar_mass, oil_molar_mass),
                 ]
             )
     return co2_mass
@@ -768,7 +780,7 @@ def _eclipse_co2mass(
     sgas = source_data.SGAS
     swat = source_data.SWAT
     sgtrh = source_data.SGTRH
-    eff_vols = source_data.PORV ##NBNB: Careful
+    eff_vols = source_data.RPORV ##NBNB: Careful
     conv_fact = co2_molar_mass
     co2_mass = {}
     for date in dates:
@@ -991,7 +1003,8 @@ def _calculate_co2_data_from_source_data(
     if _is_subset(["SGAS"], active_props):
         if _is_subset(["PORV", "RPORV"], active_props):
             porv_prop = "RPORV"
-            active_props.remove(*["PORV","RPORV"])
+            active_props.remove("PORV")
+            active_props.remove("RPORV")
             logging.info("Using attribute RPORV instead of PORV")
         elif _is_subset(["PORV"], active_props):
             active_props.remove("PORV")
@@ -1015,7 +1028,7 @@ def _calculate_co2_data_from_source_data(
             source = "Eclipse"
             if _is_subset(["XMF2", "SOIL"], active_props):
                 scenario = "CO2 + Water + Gas + Oil"
-            elif _n_components(active_props)>2:
+            elif _n_components(active_props)>3:
                 scenario = "CO2 + Water + Gas"
                 active_props = [
                     prop for prop in active_props
@@ -1088,6 +1101,7 @@ def _calculate_co2_data_from_source_data(
                 for key, value in co2_mass_cell.items()
             ],
             "kg",
+            scenario,
             source_data.zone,
             source_data.region,
         )
@@ -1141,15 +1155,31 @@ def _calculate_co2_data_from_source_data(
                         co2_mass_output.data_list[t].dis_phase,
                         co2_mass_output.data_list[t].gas_phase,
                         co2_mass_output.data_list[t].oil_phase,
-                    ]
-                    if source_data.SGSTRAND is None and source_data.SGTRH is None
-                    else [
-                        co2_mass_output.data_list[t].dis_phase,
-                        co2_mass_output.data_list[t].gas_phase,
-                        co2_mass_output.data_list[t].oil_phase,
                         co2_mass_output.data_list[t].trapped_gas_phase,
                         co2_mass_output.data_list[t].free_gas_phase,
                     ]
+                    if (source_data.SGSTRAND is not None or source_data.SGTRH is not None) and scenario == "CO2 + Water + Gas + Oil"
+                    else(
+                        [
+                            co2_mass_output.data_list[t].dis_phase,
+                            co2_mass_output.data_list[t].gas_phase,
+                            co2_mass_output.data_list[t].trapped_gas_phase,
+                            co2_mass_output.data_list[t].free_gas_phase,
+                        ]
+                        if (source_data.SGSTRAND is not None or source_data.SGTRH is not None) and scenario != "CO2 + Water + Gas + Oil"
+                        else (
+                            [
+                                co2_mass_output.data_list[t].dis_phase,
+                                co2_mass_output.data_list[t].gas_phase,
+                                co2_mass_output.data_list[t].oil_phase,
+                            ]
+                            if scenario == "CO2 + Water + Gas + Oil"
+                            else [
+                                co2_mass_output.data_list[t].dis_phase,
+                                co2_mass_output.data_list[t].gas_phase,
+                            ]
+                        )
+                    )
                 )
                 for t in range(0, len(co2_mass_output.data_list))
             }

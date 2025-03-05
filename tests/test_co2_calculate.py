@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Tuple
+from dataclasses import make_dataclass
 
 import numpy as np
 import pytest
@@ -11,7 +12,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
     CalculationType,
     RegionInfo,
-    SourceData,
+    fields_to_add,
     ZoneInfo,
     _calculate_co2_data_from_source_data,
     _extract_source_data,
@@ -73,13 +74,13 @@ def _get_dummy_co2_masses():
     rng = np.random.RandomState(123)
     x_coord, y_coord, vol = _xy_and_volume(dummy_co2_grid)
     dates = [str(2020 + i) for i in range(n_time_steps)]
+    SourceData = make_dataclass("SourceData", fields_to_add)
     source_data = SourceData(
         x_coord,
         y_coord,
         PORV={date: _random_prop(dims, rng, 0.1, 0.3) for date in dates},
         VOL=vol,
         DATES=dates,
-        SWAT={date: _random_prop(dims, rng, 0.05, 0.6) for date in dates},
         DWAT={date: _random_prop(dims, rng, 950, 1050) for date in dates},
         SGAS={date: _random_prop(dims, rng, 0.05, 0.6) for date in dates},
         DGAS={date: _random_prop(dims, rng, 700, 850) for date in dates},
@@ -124,12 +125,13 @@ def test_single_poly_co2_containment():
         ]
     )
     table = _calc_and_compare(poly, dummy_co2_masses)
-    assert extract_amount(table, "contained", "gas") == pytest.approx(0.090262207)
+    assert extract_amount(table, "contained", "gas") == pytest.approx(0.0806020202183655)
     assert extract_amount(
         table,
         "contained",
         "dissolved",
-    ) == pytest.approx(0.1727292176064847)
+    #) == pytest.approx(0.1727292176064847)
+    ) == pytest.approx(0.193662335166215)
     assert extract_amount(table, "hazardous", "gas") == pytest.approx(0.0)
     assert extract_amount(
         table,
@@ -170,12 +172,12 @@ def test_multi_poly_co2_containment():
         table,
         "contained",
         "gas",
-    ) == pytest.approx(0.12370267352027123)
+    ) == pytest.approx(0.117430393740658)
     assert extract_amount(
         table,
         "contained",
         "dissolved",
-    ) == pytest.approx(0.25279970312163525)
+    ) == pytest.approx(0.314587815245215)
     assert extract_amount(table, "hazardous", "gas") == pytest.approx(0.0)
     assert extract_amount(
         table,
@@ -208,23 +210,22 @@ def test_hazardous_poly_co2_containment():
         ]
     )
     table = _calc_and_compare(poly, dummy_co2_masses, poly_hazardous)
-    assert extract_amount(table, "contained", "gas") == pytest.approx(0.090262207)
+    assert extract_amount(table, "contained", "gas") == pytest.approx(0.0806020202183655)
     assert extract_amount(
         table,
         "contained",
         "dissolved",
-    ) == pytest.approx(0.17272921760648467)
+    ) == pytest.approx(0.193662335166215)
     assert extract_amount(
         table,
         "hazardous",
         "gas",
-    ) == pytest.approx(0.012687891108274542)
+    ) == pytest.approx(0.0104613371367665)
     assert extract_amount(
         table,
         "hazardous",
         "dissolved",
-    ) == pytest.approx(0.02033893251315071)
-
+    ) == pytest.approx(0.027464813694839)
 
 def test_reek_grid():
     """
@@ -262,13 +263,14 @@ def test_reek_grid():
         reek_gridfile.with_suffix(".INIT"), name="PORO", grid=grid
     ).values1d.compressed()
     x_coord, y_coord, vol = _xy_and_volume(grid)
+    SourceData = make_dataclass("SourceData", fields_to_add)
     source_data = SourceData(
         x_coord,
         y_coord,
         PORV={"2042": np.ones_like(poro) * 0.1},
         VOL=vol,
         DATES=["2042"],
-        SWAT={"2042": np.ones_like(poro) * 0.1},
+        #SWAT={"2042": np.ones_like(poro) * 0.1},
         DWAT={"2042": np.ones_like(poro) * 1000.0},
         SGAS={"2042": np.ones_like(poro) * 0.1},
         DGAS={"2042": np.ones_like(poro) * 100.0},
@@ -322,13 +324,14 @@ def test_reek_grid():
     for c, p, amount in zip(cs, ps, amounts2):
         assert extract_amount(table2, c, p, 0) == pytest.approx(amount)
 
+    SourceData = make_dataclass("SourceData", fields_to_add)
     source_data_with_trapping = SourceData(
         x_coord,
         y_coord,
         PORV={"2042": np.ones_like(poro) * 0.1},
         VOL=vol,
         DATES=["2042"],
-        SWAT={"2042": np.ones_like(poro) * 0.1},
+        #SWAT={"2042": np.ones_like(poro) * 0.1},
         DWAT={"2042": np.ones_like(poro) * 1000.0},
         SGAS={"2042": np.ones_like(poro) * 0.1},
         SGSTRAND={"2042": np.ones_like(poro) * 0.06},
