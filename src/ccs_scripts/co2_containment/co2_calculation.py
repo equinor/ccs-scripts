@@ -955,7 +955,10 @@ def _pflotran_co2_molar_volume(
                             )
                             / (1000 * doil[date][x])
                         )
+                        if not mole_fraction_dic["Oil"]["CO2"][date][x] == 0
+                        else 0
                     )
+                    for x in range(len(mole_fraction_dic["Oil"]["CO2"][date]))
                 ]
             )
         else:
