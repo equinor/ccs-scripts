@@ -222,6 +222,7 @@ def _log_summary_of_grid_node_location(locations: Dict) -> None:
 def _lists_of_phases(
     calc_type: CalculationType,
     residual_trapping: bool,
+    scenario: str,
 ) -> List[str]:
     """
     Returns a list of the relevant phases depending on calculation type and whether
@@ -232,7 +233,7 @@ def _lists_of_phases(
     else:
         phases = ["total", "dissolved"]
         phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
-        phases += ["oil"]
+        phases += (["oil"] if scenario == "CO2 + Water + Gas + Oil" else [])
     return phases
 
 

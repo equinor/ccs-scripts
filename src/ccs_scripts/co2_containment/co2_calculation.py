@@ -11,7 +11,7 @@ import xtgeo
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
-DEFAULT_CO2_MOLAR_MASS = 44.01
+DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
 DEFAULT_GAS_MOLAR_MASS = 26#16
 DEFAULT_OIL_MOLAR_MASS = 0
@@ -115,6 +115,7 @@ class Co2Data:
     y_coord: np.ndarray
     data_list: List[Co2DataAtTimeStep]
     units: Literal["kg", "tons", "m3"]
+    scenario: str
     zone: Optional[np.ndarray] = None
     region: Optional[np.ndarray] = None
 
@@ -133,7 +134,7 @@ class RegionInfo:
     property_name: Optional[str]
 
 
-fields_to_add = [
+base_fields = [
     ('x_coord', np.ndarray),
     ('y_coord', np.ndarray),
     ('DATES' , List[str]),
@@ -161,7 +162,7 @@ fields_to_add = [
     ('zone' , Optional[np.ndarray] , None),
     ('region' , Optional[np.ndarray] , None)
 ]
-def _detect_eclipse_mole_fraction_props(unrst_file: str, properties_to_extract: List):
+def _detect_eclipse_mole_fraction_props(unrst_file: str, properties_to_extract: List, fields_to_add: List):
     """
     Detects which and how many components are there in Eclipse data
 
@@ -184,6 +185,7 @@ def _detect_eclipse_mole_fraction_props(unrst_file: str, properties_to_extract: 
             fields_to_add.extend([(name + str(suffix_count), Optional[Dict[str, np.ndarray]], None) for name in ["XMF","YMF"]])
             properties_to_extract.extend([name + str(suffix_count) for name in ["XMF", "YMF"]])
         suffix_count += 1
+    return fields_to_add
 
 def _n_components(active_props: List):
     """
@@ -359,6 +361,7 @@ def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = Fal
 def _extract_source_data(
     grid_file: str,
     unrst_file: str,
+    fields_to_add: List[str],
     properties_to_extract: List[str],
     zone_info: ZoneInfo,
     region_info: RegionInfo,
@@ -671,23 +674,29 @@ def _pflotran_co2mass(
     xmfs = source_data.XMFS
     sgas = source_data.SGAS
     swat = source_data.SWAT
+    if swat is None and scenario != "CO2 + Water + Gas + Oil":
+        swat = {key: 1 - sgas[key] for key in sgas}
     sgstrand = source_data.SGSTRAND
     eff_vols = source_data.PORV
     mole_fraction_dic = {
         'Aqueous': {'CO2': amfg if scenario == "CO2 + Water" else amfs,
-                    'Water': amfw,
+                    'Water': amfw if amfw is not None
+                    else {key: 1-amfg[key] for key in amfg} if scenario == "CO2 + Water"
+                    else None,
                     'Gas': {key: np.zeros_like(value) for key, value in amfg.items()} if scenario == "CO2 + Water" else amfg
                     },
         'Gas': {'CO2': ymfg if scenario == "CO2 + Water" else ymfs,
-                'Water': ymfw,
+                'Water': ymfw if ymfw is not None
+                    else {key: 1-ymfg[key] for key in ymfg} if scenario == "CO2 + Water"
+                    else None,
                 'Gas': {key: np.zeros_like(value) for key, value in ymfg.items()} if scenario == "CO2 + Water" else ymfg
                 },
         'Oil': {'CO2': xmfs  if scenario == "CO2 + Water + Gas + Oil"
-                       else {key: np.zeros_like(value) for key, value in ymfw.items()},
+                       else {key: np.zeros_like(value) for key, value in ymfg.items()},
                 'Water': xmfw  if scenario == "CO2 + Water + Gas + Oil"
-                         else {key: np.zeros_like(value) for key, value in ymfw.items()},
+                         else {key: np.zeros_like(value) for key, value in ymfg.items()},
                 'Gas': xmfg if scenario == "CO2 + Water + Gas + Oil"
-                       else {key: np.zeros_like(value) for key, value in ymfw.items()},
+                       else {key: np.zeros_like(value) for key, value in ymfg.items()},
                 },
     }
     co2_mass = {}
@@ -729,14 +738,19 @@ def _pflotran_co2mass(
                     * sgstrand[date]
                     * dgas[date]
                     * _mole_to_mass_fraction(
-                        ymfg[date], co2_molar_mass, water_molar_mass
-                    ),
+                        mole_fraction_dic["Gas"]["CO2"][date],
+                        mole_fraction_dic["Gas"]["Gas"][date],
+                        mole_fraction_dic["Gas"]["Water"][date],
+                        co2_molar_mass, water_molar_mass,gas_molar_mass, oil_molar_mass)
+                    ,
                     eff_vols[date]
                     * (sgas[date] - sgstrand[date])
                     * dgas[date]
                     * _mole_to_mass_fraction(
-                        ymfg[date], co2_molar_mass, water_molar_mass
-                    ),
+                        mole_fraction_dic["Gas"]["CO2"][date],
+                        mole_fraction_dic["Gas"]["Gas"][date],
+                        mole_fraction_dic["Gas"]["Water"][date],
+                        co2_molar_mass, water_molar_mass, gas_molar_mass, oil_molar_mass),
                 ]
             )
     return co2_mass
@@ -768,7 +782,7 @@ def _eclipse_co2mass(
     sgas = source_data.SGAS
     swat = source_data.SWAT
     sgtrh = source_data.SGTRH
-    eff_vols = source_data.PORV ##NBNB: Careful
+    eff_vols = source_data.RPORV ##NBNB: Careful
     conv_fact = co2_molar_mass
     co2_mass = {}
     for date in dates:
@@ -797,9 +811,14 @@ def _eclipse_co2mass(
 
 def _pflotran_co2_molar_volume(
     source_data,
+    scenario: str,
     water_density: np.ndarray,
+    gas_density = np.ndarray,
+    oil_density = Optional[np.ndarray],
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
+    gas_molar_mass: float = DEFAULT_GAS_MOLAR_MASS,
+    oil_molar_mass: float = DEFAULT_OIL_MOLAR_MASS,
 ) -> Dict:
     """
     Calculates CO2 molar volume (mol/m3) based on the existing properties in PFlotran
@@ -818,55 +837,142 @@ def _pflotran_co2_molar_volume(
     dates = source_data.DATES
     dgas = source_data.DGAS
     dwat = source_data.DWAT
+    doil = source_data.DOIL
     ymfg = source_data.YMFG
     amfg = source_data.AMFG
+    xmfg = source_data.XMFG
+    amfw = source_data.AMFW
+    ymfw = source_data.YMFW
+    xmfw = source_data.XMFW
+    amfs = source_data.AMFS
+    ymfs = source_data.YMFS
+    xmfs = source_data.XMFS
+
+    mole_fraction_dic = {
+        'Aqueous': {'CO2': amfg if scenario == "CO2 + Water" else amfs,
+                    'Water': amfw if amfw is not None
+                    else {key: 1 - amfg[key] for key in amfg} if scenario == "CO2 + Water"
+                    else None,
+                    'Gas': {key: np.zeros_like(value) for key, value in
+                            amfg.items()} if scenario == "CO2 + Water" else amfg
+                    },
+        'Gas': {'CO2': ymfg if scenario == "CO2 + Water" else ymfs,
+                'Water': ymfw if ymfw is not None
+                else {key: 1 - ymfg[key] for key in ymfg} if scenario == "CO2 + Water"
+                else None,
+                'Gas': {key: np.zeros_like(value) for key, value in ymfg.items()} if scenario == "CO2 + Water" else ymfg
+                },
+        'Oil': {'CO2': xmfs if scenario == "CO2 + Water + Gas + Oil"
+        else {key: np.zeros_like(value) for key, value in ymfg.items()},
+                'Water': xmfw if scenario == "CO2 + Water + Gas + Oil"
+                else {key: np.zeros_like(value) for key, value in ymfg.items()},
+                'Gas': xmfg if scenario == "CO2 + Water + Gas + Oil"
+                else {key: np.zeros_like(value) for key, value in ymfg.items()},
+                },
+    }
+
     co2_molar_vol = {}
     for date in dates:
         co2_molar_vol[date] = [
             [
                 (
-                    (1 / amfg[date][x])
+                    (1 / mole_fraction_dic["Aqueous"]["CO2"][date][x])
                     * (
                         -water_molar_mass
-                        * (1 - amfg[date][x])
+                        * (mole_fraction_dic["Aqueous"]["Water"][date][x])
                         / (1000 * water_density[x])
                         + (
-                            co2_molar_mass * amfg[date][x]
-                            + water_molar_mass * (1 - amfg[date][x])
+                            co2_molar_mass * mole_fraction_dic["Aqueous"]["CO2"][date][x]
+                            + water_molar_mass * (mole_fraction_dic["Aqueous"]["Water"][date][x])
                         )
                         / (1000 * dwat[date][x])
                     )
-                    if not amfg[date][x] == 0
+                    if not mole_fraction_dic["Aqueous"]["CO2"][date][x] == 0
                     else 0
                 )
-                for x in range(len(amfg[date]))
+                for x in range(len(mole_fraction_dic["Aqueous"]["CO2"][date]))
             ],
             [
                 (
-                    (1 / ymfg[date][x])
+                    (1 / mole_fraction_dic["Gas"]["CO2"][date][x])
                     * (
                         -water_molar_mass
-                        * (1 - ymfg[date][x])
+                        * mole_fraction_dic["Gas"]["Water"][date][x]
                         / (1000 * water_density[x])
+                        -gas_molar_mass
+                        * mole_fraction_dic["Gas"]["Gas"][date][x]
+                        / (1000 * gas_density[x])
+                        -oil_molar_mass
+                        * (1 - mole_fraction_dic["Gas"]["CO2"][date][x]
+                             - mole_fraction_dic["Gas"]["Water"][date][x]
+                             - mole_fraction_dic["Gas"]["Gas"][date][x]
+                           )
+                        / (1000 * oil_density[x])
+                        ##Q
                         + (
-                            co2_molar_mass * ymfg[date][x]
-                            + water_molar_mass * (1 - ymfg[date][x])
+                            co2_molar_mass * mole_fraction_dic["Gas"]["CO2"][date][x]
+                            + water_molar_mass * mole_fraction_dic["Gas"]["Water"][date][x]
+                            + gas_molar_mass * mole_fraction_dic["Gas"]["Gas"][date][x]
+                            + oil_molar_mass * (1 - mole_fraction_dic["Gas"]["CO2"][date][x]
+                                                  - mole_fraction_dic["Gas"]["Water"][date][x]
+                                                  - mole_fraction_dic["Gas"]["Gas"][date][x]
+                                                )
                         )
                         / (1000 * dgas[date][x])
                     )
-                    if not ymfg[date][x] == 0
+                    if not mole_fraction_dic["Gas"]["CO2"][date][x] == 0
                     else 0
                 )
-                for x in range(len(ymfg[date]))
+                for x in range(len(mole_fraction_dic["Gas"]["CO2"][date]))
             ],
         ]
+        if scenario == "CO2 + Water + Gas + Oil":
+            co2_molar_vol[date].extend(
+                [
+                    (
+                        (1 / mole_fraction_dic["Oil"]["CO2"][date][x])
+                        * (
+                            -water_molar_mass
+                            * mole_fraction_dic["Oil"]["Water"][date][x]
+                            / (1000 * water_density[x])
+                            -gas_molar_mass
+                            * mole_fraction_dic["Oil"]["Gas"][date][x]
+                            / (1000 * gas_density[x])
+                            -oil_molar_mass
+                            * (1 - mole_fraction_dic["Oil"]["CO2"][date][x]
+                               - mole_fraction_dic["Oil"]["Water"][date][x]
+                               - mole_fraction_dic["Oil"]["Gas"][date][x]
+                               )
+                            / (1000 * oil_density[x])
+                            + (
+                                co2_molar_mass * mole_fraction_dic["Oil"]["CO2"][date][x]
+                                + water_molar_mass * mole_fraction_dic["Oil"]["Water"][date][x]
+                                + gas_molar_mass * mole_fraction_dic["Oil"]["Gas"][date][x]
+                                + oil_molar_mass * (1 - mole_fraction_dic["Oil"]["CO2"][date][x]
+                                                  - mole_fraction_dic["Oil"]["Water"][date][x]
+                                                  - mole_fraction_dic["Oil"]["Gas"][date][x]
+                                                )
+                            )
+                            / (1000 * doil[date][x])
+                        )
+                    )
+                ]
+            )
+        else:
+            co2_molar_vol[date].extend(
+                [np.zeros_like(co2_molar_vol[date][0])]
+            )
         co2_molar_vol[date][0] = [
             0 if x < 0 or y == 0 else x
-            for x, y in zip(co2_molar_vol[date][0], amfg[date])
+            for x, y in zip(co2_molar_vol[date][0], mole_fraction_dic["Aqueous"]["CO2"][date])
         ]
         co2_molar_vol[date][1] = [
             0 if x < 0 or y == 0 else x
-            for x, y in zip(co2_molar_vol[date][1], ymfg[date])
+            for x, y in zip(co2_molar_vol[date][1], mole_fraction_dic["Gas"]["CO2"][date])
+        ]
+        co2_molar_vol[date][2] = [
+            0 if x < 0 or y == 0 else x
+            for x, y in zip(co2_molar_vol[date][2], mole_fraction_dic["Oil"]["CO2"][date])
         ]
         if source_data.SGSTRAND is not None:
             co2_molar_vol[date].extend([co2_molar_vol[date][1], co2_molar_vol[date][1]])
@@ -928,6 +1034,9 @@ def _eclipse_co2_molar_volume(
                 for x in range(len(ymf2[date]))
             ],
         ]
+        co2_molar_vol[date].extend(
+            [np.zeros_like(co2_molar_vol[date][0])]
+        )
         co2_molar_vol[date][0] = [
             0 if x < 0 or y == 0 else x
             for x, y in zip(co2_molar_vol[date][0], xmf2[date])
@@ -991,7 +1100,8 @@ def _calculate_co2_data_from_source_data(
     if _is_subset(["SGAS"], active_props):
         if _is_subset(["PORV", "RPORV"], active_props):
             porv_prop = "RPORV"
-            active_props.remove(*["PORV","RPORV"])
+            active_props.remove("PORV")
+            active_props.remove("RPORV")
             logging.info("Using attribute RPORV instead of PORV")
         elif _is_subset(["PORV"], active_props):
             active_props.remove("PORV")
@@ -1015,7 +1125,7 @@ def _calculate_co2_data_from_source_data(
             source = "Eclipse"
             if _is_subset(["XMF2", "SOIL"], active_props):
                 scenario = "CO2 + Water + Gas + Oil"
-            elif _n_components(active_props)>2:
+            elif _n_components(active_props)>3:
                 scenario = "CO2 + Water + Gas"
                 active_props = [
                     prop for prop in active_props
@@ -1088,31 +1198,68 @@ def _calculate_co2_data_from_source_data(
                 for key, value in co2_mass_cell.items()
             ],
             "kg",
+            scenario,
             source_data.zone,
             source_data.region,
         )
         if calc_type != CalculationType.MASS:
             if source == "PFlotran":
-                y = source_data.get_amfg()[source_data.DATES[0]]
+                y_prop = source_data.AMFG if scenario == "CO2 + Water" else source_data.AMFS
+                y = y_prop[source_data.DATES[0]]
                 min_y = np.min(y)
-                where_min_amfg = np.where(np.isclose(y, min_y))[0]
+                where_min_amf_co2 = np.where(np.isclose(y, min_y))[0]
                 # Where amfg is 0, or the closest approximation available
-                dwat = source_data.get_dwat()[source_data.DATES[0]]
+                dwat = source_data.DWAT[source_data.DATES[0]]
                 water_density = np.array(
                     [
                         (
                             x[1]
                             if np.isclose((y[x[0]]), 0)
-                            else np.mean(dwat[where_min_amfg])
+                            else np.mean(dwat[where_min_amf_co2])
                         )
                         for x in enumerate(dwat)
                     ]
                 )
+                y = source_data.YMFG[source_data.DATES[0]]
+                max_y = np.max(y)
+                where_max_ymfg = np.where(np.isclose(y, max_y))[0]
+                dgas = source_data.DGAS[source_data.DATES[0]]
+                gas_density = np.array(
+                    [
+                        (
+                            x[1]
+                            if np.isclose((y[x[0]]), 1)
+                            else np.mean(dgas[where_max_ymfg])
+                        )
+                        for x in enumerate(dgas)
+                    ]
+                )
+                oil_density = np.ones_like(water_density)
+                if scenario == "CO2 + Water + Gas + Oil":
+                    y = source_data.YMFO[source_data.DATES[0]]
+                    max_y = np.max(y)
+                    where_max_xmfo = np.where(np.isclose(y, max_y))[0]
+                    doil = source_data.DOIL[source_data.DATES[0]]
+                    oil_density = np.array(
+                        [
+                            (
+                                x[1]
+                                if np.isclose((y[x[0]]), 1)
+                                else np.mean(doil[where_max_xmfo])
+                            )
+                            for x in enumerate(doil)
+                        ]
+                    )
                 molar_vols_co2 = _pflotran_co2_molar_volume(
                     source_data,
+                    scenario,
                     water_density,
+                    gas_density,
+                    oil_density,
                     co2_molar_mass,
                     water_molar_mass,
+                    gas_molar_mass,
+                    oil_molar_mass,
                 )
             else:
                 y = source_data.XMF2[source_data.DATES[0]]
@@ -1142,8 +1289,9 @@ def _calculate_co2_data_from_source_data(
                         co2_mass_output.data_list[t].gas_phase,
                         co2_mass_output.data_list[t].oil_phase,
                     ]
-                    if source_data.SGSTRAND is None and source_data.SGTRH is None
-                    else [
+                    if (source_data.SGSTRAND is None and source_data.SGTRH is None)
+                    else
+                    [
                         co2_mass_output.data_list[t].dis_phase,
                         co2_mass_output.data_list[t].gas_phase,
                         co2_mass_output.data_list[t].oil_phase,
@@ -1186,6 +1334,7 @@ def _calculate_co2_data_from_source_data(
                     for t in vols_co2
                 ],
                 "m3",
+                scenario,
                 source_data.zone,
                 source_data.region,
             )
@@ -1198,6 +1347,8 @@ def _calculate_co2_data_from_source_data(
         )[0]
         props_names = [props_check[i] for i in props_idx]
         plume_props_names = [x for x in props_names if x in ["SGAS", "AMFG", "XMF2"]]
+        if scenario != "CO2 + Water":
+            plume_props_names[plume_props_names.idx("AMFG")] = "AMFS"
         properties = {x: getattr(source_data, x) for x in plume_props_names}
         inactive_gas_cells = {
             x: _identify_gas_less_cells(
@@ -1207,11 +1358,11 @@ def _calculate_co2_data_from_source_data(
             for x in source_data.DATES
         }
         vols_ext = {
-            t: np.array([0] * len(source_data.get_vol()[t])) for t in source_data.DATES
+            t: np.array([0] * len(source_data.VOL[t])) for t in source_data.DATES
         }
         for date in source_data.DATES:
             vols_ext[date][~inactive_gas_cells[date]] = np.array(
-                source_data.get_vol()[date]
+                source_data.VOL[date]
             )[~inactive_gas_cells[date]]
         co2_amount = Co2Data(
             source_data.x_coord,
@@ -1229,6 +1380,7 @@ def _calculate_co2_data_from_source_data(
                 for t in vols_ext
             ],
             "m3",
+            scenario,
             source_data.zone,
             source_data.region,
         )
@@ -1283,11 +1435,12 @@ def calculate_co2(
 
     """
     properties_to_extract = RELEVANT_PROPERTIES.copy()
-    _detect_eclipse_mole_fraction_props(unrst_file,properties_to_extract)
+    fields_to_add = base_fields.copy()
+    fields_to_add = _detect_eclipse_mole_fraction_props(unrst_file,properties_to_extract,fields_to_add)
     if residual_trapping:
         properties_to_extract.extend(["SGSTRAND", "SGTRH"])
     source_data = _extract_source_data(
-        grid_file, unrst_file, properties_to_extract, zone_info, region_info, init_file
+        grid_file, unrst_file, fields_to_add, properties_to_extract, zone_info, region_info, init_file
     )
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     co2_data = _calculate_co2_data_from_source_data(
