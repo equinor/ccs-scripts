@@ -96,7 +96,7 @@ def calculate_co2_containment(
         hazardous_polygon,
     )
     _log_summary_of_grid_node_location(locations)
-    phases = _lists_of_phases(calc_type, residual_trapping)
+    phases = _lists_of_phases(calc_type, residual_trapping, co2_data.scenario)
 
     # List of tuple with (zone/None, None/region, boolean array over grid)
     zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, int_to_region)
