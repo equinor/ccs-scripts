@@ -1,6 +1,6 @@
+from dataclasses import make_dataclass
 from pathlib import Path
 from typing import Tuple
-from dataclasses import make_dataclass
 
 import numpy as np
 import pytest
@@ -12,10 +12,10 @@ from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
     CalculationType,
     RegionInfo,
-    base_fields,
     ZoneInfo,
     _calculate_co2_data_from_source_data,
     _extract_source_data,
+    base_fields,
 )
 from ccs_scripts.co2_containment.co2_containment import (
     calculate_from_co2_data,

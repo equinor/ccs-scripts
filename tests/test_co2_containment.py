@@ -1,7 +1,8 @@
 import os
-from pathlib import Path
 from dataclasses import make_dataclass
-from typing import Optional, Dict
+from pathlib import Path
+from typing import Dict, Optional
+
 import numpy as np
 import pandas
 import pytest
@@ -10,8 +11,8 @@ import shapely.geometry
 from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
-    base_fields,
     _calculate_co2_data_from_source_data,
+    base_fields,
 )
 from ccs_scripts.co2_containment.co2_containment import main
 
