@@ -1098,7 +1098,6 @@ def _pflotran_co2_molar_volume(
             )
         else:
             co2_molar_vol[date].extend([list(np.zeros_like(co2_molar_vol[date][0]))])
-        """
         co2_molar_vol[date][0] = [
             0 if x < 0 or y == 0 else x
             for x, y in zip(
