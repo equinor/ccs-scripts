@@ -1055,46 +1055,46 @@ def _pflotran_co2_molar_volume(
             co2_molar_vol[date].extend(
                 [
                     [
-                    (
-                        (1 / mole_fraction_dic["Oil"]["CO2"][date][x])
-                        * (
-                            -water_molar_mass
-                            * mole_fraction_dic["Oil"]["Water"][date][x]
-                            / (1000 * water_density[x])
-                            - gas_molar_mass
-                            * mole_fraction_dic["Oil"]["Gas"][date][x]
-                            / (1000 * gas_density[x])
-                            - oil_molar_mass
+                        (
+                            (1 / mole_fraction_dic["Oil"]["CO2"][date][x])
                             * (
-                                1
-                                - mole_fraction_dic["Oil"]["CO2"][date][x]
-                                - mole_fraction_dic["Oil"]["Water"][date][x]
-                                - mole_fraction_dic["Oil"]["Gas"][date][x]
-                            )
-                            / (1000 * oil_density[x])
-                            + (
-                                co2_molar_mass
-                                * mole_fraction_dic["Oil"]["CO2"][date][x]
-                                + water_molar_mass
+                                -water_molar_mass
                                 * mole_fraction_dic["Oil"]["Water"][date][x]
-                                + gas_molar_mass
+                                / (1000 * water_density[x])
+                                - gas_molar_mass
                                 * mole_fraction_dic["Oil"]["Gas"][date][x]
-                                + oil_molar_mass
+                                / (1000 * gas_density[x])
+                                - oil_molar_mass
                                 * (
                                     1
                                     - mole_fraction_dic["Oil"]["CO2"][date][x]
                                     - mole_fraction_dic["Oil"]["Water"][date][x]
                                     - mole_fraction_dic["Oil"]["Gas"][date][x]
                                 )
+                                / (1000 * oil_density[x])
+                                + (
+                                    co2_molar_mass
+                                    * mole_fraction_dic["Oil"]["CO2"][date][x]
+                                    + water_molar_mass
+                                    * mole_fraction_dic["Oil"]["Water"][date][x]
+                                    + gas_molar_mass
+                                    * mole_fraction_dic["Oil"]["Gas"][date][x]
+                                    + oil_molar_mass
+                                    * (
+                                        1
+                                        - mole_fraction_dic["Oil"]["CO2"][date][x]
+                                        - mole_fraction_dic["Oil"]["Water"][date][x]
+                                        - mole_fraction_dic["Oil"]["Gas"][date][x]
+                                    )
+                                )
+                                / (1000 * doil[date][x])
                             )
-                            / (1000 * doil[date][x])
+                            if not mole_fraction_dic["Oil"]["CO2"][date][x] == 0
+                            else 0
                         )
-                        if not mole_fraction_dic["Oil"]["CO2"][date][x] == 0
-                        else 0
-                    )
-                    for x in range(len(mole_fraction_dic["Oil"]["CO2"][date]))
-                ]
-            ],
+                        for x in range(len(mole_fraction_dic["Oil"]["CO2"][date]))
+                    ]
+                ],
             )
         else:
             co2_molar_vol[date].extend([list(np.zeros_like(co2_molar_vol[date][0]))])
