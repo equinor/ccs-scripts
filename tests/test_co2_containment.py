@@ -77,8 +77,12 @@ def _simple_cube_grid_eclipse():
         )
     size = np.prod(dims)
     fields_to_add = base_fields.copy()
-    fields_to_add.extend([('XMF2',Optional[Dict[str, np.ndarray]], None),
-                          ('YMF2',Optional[Dict[str, np.ndarray]], None),])
+    fields_to_add.extend(
+        [
+            ("XMF2", Optional[Dict[str, np.ndarray]], None),
+            ("YMF2", Optional[Dict[str, np.ndarray]], None),
+        ]
+    )
     SourceData = make_dataclass("SourceData", fields_to_add)
     return SourceData(
         m_x.flatten(),

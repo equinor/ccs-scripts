@@ -126,12 +126,14 @@ def test_single_poly_co2_containment():
         ]
     )
     table = _calc_and_compare(poly, dummy_co2_masses)
-    assert extract_amount(table, "contained", "gas") == pytest.approx(0.0806020202183655)
+    assert extract_amount(table, "contained", "gas") == pytest.approx(
+        0.0806020202183655
+    )
     assert extract_amount(
         table,
         "contained",
         "dissolved",
-    #) == pytest.approx(0.1727292176064847)
+        # ) == pytest.approx(0.1727292176064847)
     ) == pytest.approx(0.193662335166215)
     assert extract_amount(table, "hazardous", "gas") == pytest.approx(0.0)
     assert extract_amount(
@@ -211,7 +213,9 @@ def test_hazardous_poly_co2_containment():
         ]
     )
     table = _calc_and_compare(poly, dummy_co2_masses, poly_hazardous)
-    assert extract_amount(table, "contained", "gas") == pytest.approx(0.0806020202183655)
+    assert extract_amount(table, "contained", "gas") == pytest.approx(
+        0.0806020202183655
+    )
     assert extract_amount(
         table,
         "contained",
@@ -227,6 +231,7 @@ def test_hazardous_poly_co2_containment():
         "hazardous",
         "dissolved",
     ) == pytest.approx(0.027464813694839)
+
 
 def test_reek_grid():
     """
@@ -272,7 +277,7 @@ def test_reek_grid():
         PORV={"2042": np.ones_like(poro) * 0.1},
         VOL=vol,
         DATES=["2042"],
-        #SWAT={"2042": np.ones_like(poro) * 0.1},
+        # SWAT={"2042": np.ones_like(poro) * 0.1},
         DWAT={"2042": np.ones_like(poro) * 1000.0},
         SGAS={"2042": np.ones_like(poro) * 0.1},
         DGAS={"2042": np.ones_like(poro) * 100.0},
@@ -334,7 +339,7 @@ def test_reek_grid():
         PORV={"2042": np.ones_like(poro) * 0.1},
         VOL=vol,
         DATES=["2042"],
-        #SWAT={"2042": np.ones_like(poro) * 0.1},
+        # SWAT={"2042": np.ones_like(poro) * 0.1},
         DWAT={"2042": np.ones_like(poro) * 1000.0},
         SGAS={"2042": np.ones_like(poro) * 0.1},
         SGSTRAND={"2042": np.ones_like(poro) * 0.06},
