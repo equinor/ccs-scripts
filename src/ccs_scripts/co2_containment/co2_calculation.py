@@ -180,11 +180,11 @@ def _detect_eclipse_mole_fraction_props(
         tmp_x = _try_prop(unrst, "XMF" + str(suffix_count))
         tmp_y = _try_prop(unrst, "YMF" + str(suffix_count))
         if tmp_x is None and tmp_y is None:
-            n_components = suffix_count - 1
             break
         elif (tmp_x is None) != (tmp_y is None):
             raise ValueError(
-                f"Error: Number of components with XMF property differ from the number of components with YMF"
+                "Error: Number of components with XMF property differ from "
+                "the number of components with YMF"
             )
         else:
             fields_to_add.extend(
@@ -220,7 +220,7 @@ def _n_components(active_props: List):
 
     if max_xmf_suffix != max_ymf_suffix:
         raise ValueError(
-            f"Error: Number of components with XMF property differ from the number of components with YMF"
+            "Error: Number of components with XMF property differ from the number of components with YMF"
         )
     return max_xmf_suffix
 
@@ -618,8 +618,8 @@ def _mole_to_mass_fraction(
 
     Args:
       co2_mf_prop (np.ndarray): Property with mole fractions of CO2 in a given phase
-      gas_mf_prop (np.ndarray): Property with mole fractions of hydrocarbon gas in a given phase.
-                                For more than two components
+      gas_mf_prop (np.ndarray): Property with mole fractions of hydrocarbon gas
+                                in a given phase.For more than two components
       h20_mf_prop (np.ndarray): Property with mole fractions of H2O in a given phase
       m_co2 (float): Molar mass of CO2
       m_h20 (float): Molar mass of H2O
@@ -860,7 +860,7 @@ def _eclipse_co2mass(
     sgas = source_data.SGAS
     swat = source_data.SWAT
     sgtrh = source_data.SGTRH
-    eff_vols = source_data.RPORV  ##NBNB: Careful
+    eff_vols = source_data.RPORV
     conv_fact = co2_molar_mass
     co2_mass = {}
     for date in dates:
@@ -1026,7 +1026,6 @@ def _pflotran_co2_molar_volume(
                             - mole_fraction_dic["Gas"]["Gas"][date][x]
                         )
                         / (1000 * oil_density[x])
-                        ##Q
                         + (
                             co2_molar_mass * mole_fraction_dic["Gas"]["CO2"][date][x]
                             + water_molar_mass
