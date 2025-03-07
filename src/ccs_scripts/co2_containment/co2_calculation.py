@@ -42,10 +42,8 @@ RELEVANT_PROPERTIES = [
 BaseFieldType = List[
     Tuple[
         str,
-        Union[Type[np.ndarray],
-              Type[List[str]],
-              Type[Dict[str, np.ndarray]],
-        ]
+        Any,
+        None
     ]
 ]
 
@@ -146,32 +144,32 @@ class RegionInfo:
 
 
 base_fields: BaseFieldType = [
-    ("x_coord", np.ndarray),
-    ("y_coord", np.ndarray),
-    ("DATES", List[str]),
-    ("VOL", Dict[str, np.ndarray]),
-    ("SWAT", Dict[str, np.ndarray]),
-    ("SGAS", Dict[str, np.ndarray]),
-    ("SGSTRAND", Dict[str, np.ndarray]),
-    ("SGTRH", Dict[str, np.ndarray]),
-    ("RPORV", Dict[str, np.ndarray]),
-    ("PORV", Dict[str, np.ndarray]),
-    ("AMFG", Dict[str, np.ndarray]),
-    ("YMFG", Dict[str, np.ndarray]),
-    ("XMFG", Dict[str, np.ndarray]),
-    ("DWAT", Dict[str, np.ndarray]),
-    ("DGAS", Dict[str, np.ndarray]),
-    ("DOIL", Dict[str, np.ndarray]),
-    ("BWAT", Dict[str, np.ndarray]),
-    ("BGAS", Dict[str, np.ndarray]),
-    ("AMFS", Dict[str, np.ndarray]),
-    ("YMFS", Dict[str, np.ndarray]),
-    ("XMFS", Dict[str, np.ndarray]),
-    ("AMFW", Dict[str, np.ndarray]),
-    ("YMFW", Dict[str, np.ndarray]),
-    ("XMFW", Dict[str, np.ndarray]),
-    ("zone", np.ndarray),
-    ("region", np.ndarray),
+    ("x_coord", np.ndarray, None),
+    ("y_coord", np.ndarray, None),
+    ("DATES", List[str], None),
+    ("VOL", Optional[Dict[str, np.ndarray]], None),
+    ("SWAT", Optional[Dict[str, np.ndarray]], None),
+    ("SGAS", Optional[Dict[str, np.ndarray]], None),
+    ("SGSTRAND", Optional[Dict[str, np.ndarray]], None),
+    ("SGTRH", Optional[Dict[str, np.ndarray]], None),
+    ("RPORV", Optional[Dict[str, np.ndarray]], None),
+    ("PORV", Optional[Dict[str, np.ndarray]], None),
+    ("AMFG", Optional[Dict[str, np.ndarray]], None),
+    ("YMFG", Optional[Dict[str, np.ndarray]], None),
+    ("XMFG", Optional[Dict[str, np.ndarray]], None),
+    ("DWAT", Optional[Dict[str, np.ndarray]], None),
+    ("DGAS", Optional[Dict[str, np.ndarray]], None),
+    ("DOIL", Optional[Dict[str, np.ndarray]], None),
+    ("BWAT", Optional[Dict[str, np.ndarray]], None),
+    ("BGAS", Optional[Dict[str, np.ndarray]], None),
+    ("AMFS", Optional[Dict[str, np.ndarray]], None),
+    ("YMFS", Optional[Dict[str, np.ndarray]], None),
+    ("XMFS", Optional[Dict[str, np.ndarray]], None),
+    ("AMFW", Optional[Dict[str, np.ndarray]], None),
+    ("YMFW", Optional[Dict[str, np.ndarray]], None),
+    ("XMFW", Optional[Dict[str, np.ndarray]], None),
+    ("zone", Optional[np.ndarray], None),
+    ("region", Optional[np.ndarray], None),
 ]
 
 
