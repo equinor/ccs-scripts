@@ -1051,10 +1051,10 @@ def _pflotran_co2_molar_volume(
                 for x in range(len(mole_fraction_dic["Gas"]["CO2"][date]))
             ],
         ]
-        """
         if scenario == "CO2 + Water + Gas + Oil":
             co2_molar_vol[date].extend(
                 [
+                    [
                     (
                         (1 / mole_fraction_dic["Oil"]["CO2"][date][x])
                         * (
@@ -1093,7 +1093,8 @@ def _pflotran_co2_molar_volume(
                         else 0
                     )
                     for x in range(len(mole_fraction_dic["Oil"]["CO2"][date]))
-                ],
+                ]
+            ],
             )
         else:
             co2_molar_vol[date].extend([list(np.zeros_like(co2_molar_vol[date][0]))])
