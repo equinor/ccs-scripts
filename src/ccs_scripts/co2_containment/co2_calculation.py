@@ -4,7 +4,7 @@
 import logging
 from dataclasses import dataclass, fields, make_dataclass
 from enum import Enum
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Tuple, Type, Any, Union
 
 import numpy as np
 import xtgeo
@@ -37,6 +37,16 @@ RELEVANT_PROPERTIES = [
     "AMFW",
     "YMFW",
     "XMFW",
+]
+
+BaseFieldType = List[
+    Tuple[
+        str,
+        Union[Type[np.ndarray],
+              Type[List[str]],
+              Type[Dict[str, np.ndarray]],
+        ]
+    ]
 ]
 
 
@@ -135,33 +145,33 @@ class RegionInfo:
     property_name: Optional[str]
 
 
-base_fields = [
+base_fields: BaseFieldType = [
     ("x_coord", np.ndarray),
     ("y_coord", np.ndarray),
     ("DATES", List[str]),
-    ("VOL", Optional[Dict[str, np.ndarray]], None),
-    ("SWAT", Optional[Dict[str, np.ndarray]], None),
-    ("SGAS", Optional[Dict[str, np.ndarray]], None),
-    ("SGSTRAND", Optional[Dict[str, np.ndarray]], None),
-    ("SGTRH", Optional[Dict[str, np.ndarray]], None),
-    ("RPORV", Optional[Dict[str, np.ndarray]], None),
-    ("PORV", Optional[Dict[str, np.ndarray]], None),
-    ("AMFG", Optional[Dict[str, np.ndarray]], None),
-    ("YMFG", Optional[Dict[str, np.ndarray]], None),
-    ("XMFG", Optional[Dict[str, np.ndarray]], None),
-    ("DWAT", Optional[Dict[str, np.ndarray]], None),
-    ("DGAS", Optional[Dict[str, np.ndarray]], None),
-    ("DOIL", Optional[Dict[str, np.ndarray]], None),
-    ("BWAT", Optional[Dict[str, np.ndarray]], None),
-    ("BGAS", Optional[Dict[str, np.ndarray]], None),
-    ("AMFS", Optional[Dict[str, np.ndarray]], None),
-    ("YMFS", Optional[Dict[str, np.ndarray]], None),
-    ("XMFS", Optional[Dict[str, np.ndarray]], None),
-    ("AMFW", Optional[Dict[str, np.ndarray]], None),
-    ("YMFW", Optional[Dict[str, np.ndarray]], None),
-    ("XMFW", Optional[Dict[str, np.ndarray]], None),
-    ("zone", Optional[np.ndarray], None),
-    ("region", Optional[np.ndarray], None),
+    ("VOL", Dict[str, np.ndarray]),
+    ("SWAT", Dict[str, np.ndarray]),
+    ("SGAS", Dict[str, np.ndarray]),
+    ("SGSTRAND", Dict[str, np.ndarray]),
+    ("SGTRH", Dict[str, np.ndarray]),
+    ("RPORV", Dict[str, np.ndarray]),
+    ("PORV", Dict[str, np.ndarray]),
+    ("AMFG", Dict[str, np.ndarray]),
+    ("YMFG", Dict[str, np.ndarray]),
+    ("XMFG", Dict[str, np.ndarray]),
+    ("DWAT", Dict[str, np.ndarray]),
+    ("DGAS", Dict[str, np.ndarray]),
+    ("DOIL", Dict[str, np.ndarray]),
+    ("BWAT", Dict[str, np.ndarray]),
+    ("BGAS", Dict[str, np.ndarray]),
+    ("AMFS", Dict[str, np.ndarray]),
+    ("YMFS", Dict[str, np.ndarray]),
+    ("XMFS", Dict[str, np.ndarray]),
+    ("AMFW", Dict[str, np.ndarray]),
+    ("YMFW", Dict[str, np.ndarray]),
+    ("XMFW", Dict[str, np.ndarray]),
+    ("zone", np.ndarray),
+    ("region", np.ndarray),
 ]
 
 
@@ -220,7 +230,8 @@ def _n_components(active_props: List):
 
     if max_xmf_suffix != max_ymf_suffix:
         raise ValueError(
-            "Error: Number of components with XMF property differ from the number of components with YMF"
+            "Error: Number of components with XMF property differ from "
+            "the number of components with YMF"
         )
     return max_xmf_suffix
 
@@ -374,7 +385,7 @@ def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = Fal
 def _extract_source_data(
     grid_file: str,
     unrst_file: str,
-    fields_to_add: List[str],
+    fields_to_add: BaseFieldType,
     properties_to_extract: List[str],
     zone_info: ZoneInfo,
     region_info: RegionInfo,
@@ -796,6 +807,7 @@ def _pflotran_co2mass(
                         co2_molar_mass,
                         water_molar_mass,
                         gas_molar_mass,
+                        oil_molar_mass,
                     ),
                 ]
             )
@@ -1088,10 +1100,10 @@ def _pflotran_co2_molar_volume(
                         else 0
                     )
                     for x in range(len(mole_fraction_dic["Oil"]["CO2"][date]))
-                ]
+                ],
             )
         else:
-            co2_molar_vol[date].extend([np.zeros_like(co2_molar_vol[date][0])])
+            co2_molar_vol[date].extend([list(np.zeros_like(co2_molar_vol[date][0]))])
         co2_molar_vol[date][0] = [
             0 if x < 0 or y == 0 else x
             for x, y in zip(
@@ -1170,7 +1182,7 @@ def _eclipse_co2_molar_volume(
                 for x in range(len(ymf2[date]))
             ],
         ]
-        co2_molar_vol[date].extend([np.zeros_like(co2_molar_vol[date][0])])
+        co2_molar_vol[date].extend([list(np.zeros_like(co2_molar_vol[date][0]))])
         co2_molar_vol[date][0] = [
             0 if x < 0 or y == 0 else x
             for x, y in zip(co2_molar_vol[date][0], xmf2[date])
@@ -1490,7 +1502,7 @@ def _calculate_co2_data_from_source_data(
         props_names = [props_check[i] for i in props_idx]
         plume_props_names = [x for x in props_names if x in ["SGAS", "AMFG", "XMF2"]]
         if scenario != "CO2 + Water":
-            plume_props_names[plume_props_names.idx("AMFG")] = "AMFS"
+            plume_props_names[plume_props_names.index("AMFG")] = "AMFS"
         properties = {x: getattr(source_data, x) for x in plume_props_names}
         inactive_gas_cells = {
             x: _identify_gas_less_cells(
