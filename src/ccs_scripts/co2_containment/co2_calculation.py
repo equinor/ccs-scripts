@@ -4,7 +4,7 @@
 import logging
 from dataclasses import dataclass, fields, make_dataclass
 from enum import Enum
-from typing import Dict, List, Literal, Optional, Tuple, Type, Any, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 import xtgeo
@@ -39,13 +39,7 @@ RELEVANT_PROPERTIES = [
     "XMFW",
 ]
 
-BaseFieldType = List[
-    Tuple[
-        str,
-        Any,
-        None
-    ]
-]
+BaseFieldType = List[Tuple[str, Any, None]]
 
 
 class CalculationType(Enum):
