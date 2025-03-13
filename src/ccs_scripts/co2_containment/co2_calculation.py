@@ -13,7 +13,7 @@ from resdata.resfile import ResdataFile
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
-DEFAULT_GAS_MOLAR_MASS = 26  # 16
+DEFAULT_GAS_MOLAR_MASS = 0  # 16
 DEFAULT_OIL_MOLAR_MASS = 0
 TRESHOLD_GAS = 1e-16
 TRESHOLD_DISSOLVED = 1e-16
@@ -1309,6 +1309,8 @@ def _calculate_co2_data_from_source_data(
         error_text += f"\nTo compute mass or actual volume in this scenario " \
                       f"hydrocarbon gas molar mass must be provided"
         raise ValueError(error_text)
+    elif scenario == "CO2 + Water":
+        gas_molar_mass = DEFAULT_GAS_MOLAR_MASS
     logging.info("Found valid properties")
     logging.info(f"Data source: {source}")
     logging.info(f"Scenario: {scenario}")
