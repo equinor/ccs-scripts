@@ -59,6 +59,9 @@ jobs:
       - name: List all installed packages
         run: pip freeze
 
+      - name: List files
+        run: ls -la
+
       - name: Lint with isort
         if: ${{ always() }}
         run: isort --check-only --profile black src tests
