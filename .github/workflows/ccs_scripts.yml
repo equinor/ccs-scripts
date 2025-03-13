@@ -62,6 +62,9 @@ jobs:
       - name: List files
         run: ls -la
 
+      - name: List all files in subdirectories
+        run: find . -type f -print
+
       - name: Lint with isort
         if: ${{ always() }}
         run: isort --check-only --profile black src tests
