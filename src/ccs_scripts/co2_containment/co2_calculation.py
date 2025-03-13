@@ -1308,7 +1308,7 @@ def _calculate_co2_data_from_source_data(
         error_text = f"\nScenario: {scenario}."
         error_text += (
             "\nTo compute mass or actual volume in this scenario "
-            f"hydrocarbon gas molar mass must be provided"
+            "hydrocarbon gas molar mass must be provided"
         )
         raise ValueError(error_text)
     elif scenario == "CO2 + Water":
