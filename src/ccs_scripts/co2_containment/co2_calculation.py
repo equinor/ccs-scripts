@@ -1195,9 +1195,9 @@ def _calculate_co2_data_from_source_data(
     calc_type: CalculationType,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
-    gas_molar_mass: float = DEFAULT_GAS_MOLAR_MASS,
     oil_molar_mass: float = DEFAULT_OIL_MOLAR_MASS,
     residual_trapping: bool = False,
+    gas_molar_mass: Optional[float] = None,
 ) -> Co2Data:
     """
     Calculates a given calc_type (mass/cell_volume/actual_volume)
@@ -1304,6 +1304,11 @@ def _calculate_co2_data_from_source_data(
         raise ValueError(error_text)
 
     active_props.extend([porv_prop])
+    if scenario != "CO2 + Water" and gas_molar_mass is None:
+        error_text = f"\nScenario: {scenario}."
+        error_text += f"\nTo compute mass or actual volume in this scenario " \
+                      f"hydrocarbon gas molar mass must be provided"
+        raise ValueError(error_text)
     logging.info("Found valid properties")
     logging.info(f"Data source: {source}")
     logging.info(f"Scenario: {scenario}")
@@ -1565,6 +1570,7 @@ def calculate_co2(
     residual_trapping: bool = False,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
+    gas_molar_mass: Optional[float] = None
 ) -> Co2Data:
     """
     Calculates the desired amount (calc_type_input) of CO2
@@ -1600,7 +1606,7 @@ def calculate_co2(
     )
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     co2_data = _calculate_co2_data_from_source_data(
-        source_data, calc_type=calc_type, residual_trapping=residual_trapping
+        source_data, calc_type=calc_type, residual_trapping=residual_trapping, gas_molar_mass = gas_molar_mass
     )
     return co2_data
 
