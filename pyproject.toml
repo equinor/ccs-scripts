@@ -94,6 +94,7 @@ line-length = 88
 
 [tool.isort]
 profile = "black"
+skip = ["src/ccs_scripts/version.py"]
 
 [tool.mypy]
 ignore_missing_imports = true
