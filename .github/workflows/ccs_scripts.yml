@@ -65,6 +65,12 @@ jobs:
       - name: List all files in subdirectories
         run: find . -type f -print
 
+      - name: Remove version-file
+        run: rm -f src/ccs_scripts/version.py
+
+      - name: List all files in subdirectories
+        run: find . -type f -print
+
       - name: Lint with isort
         if: ${{ always() }}
         run: isort --check-only --profile black src tests
