@@ -72,6 +72,8 @@ def _read_properties_and_find_active_cells(
     active = grid.actnum_array.flatten().astype(bool)
     props = [p.values1d[active] for p in grid_props]
     all_masked = np.all([p.mask for p in props], axis=0)
+    if isinstance(all_masked, np.bool_):
+        all_masked = np.full(len(props[0]), all_masked)
     if not any(i is None for i in inclusion_filters):
         inclusion_filters_copy = [x for x in inclusion_filters if x is not None]
         all_masked |= ~np.any(inclusion_filters_copy, axis=0)
