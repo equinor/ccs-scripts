@@ -43,6 +43,11 @@ jobs:
       #     sudo apt-get install libopm-simulators-bin
       #     sudo apt-get install resinsight
 
+      - name: Install libegl1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1
+
       - name: Install ccs-scripts with dependencies
         if: ${{ always() }}
         run: |
