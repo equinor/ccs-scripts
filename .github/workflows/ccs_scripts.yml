@@ -34,27 +34,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # - name: Install OPM-flow and ResInsight (for testing)
-      #   run: |
-      #     sudo apt-get install software-properties-common
-      #     sudo apt-add-repository ppa:opm/ppa
-      #     sudo apt-get update
-      #     sudo apt-get install mpi-default-bin
-      #     sudo apt-get install libopm-simulators-bin
-      #     sudo apt-get install resinsight
+      - name: Install libegl1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1
 
       - name: Install ccs-scripts with dependencies
         if: ${{ always() }}
         run: |
           pip install --upgrade pip
           pip install .[tests,docs]
-
-      # - name: Force correct RIPS version
-      #   run: |
-      #     ResInsight --console --help | grep "ResInsight v. 2021.06" \
-      #       && pip install rips==2021.6.0.1 || true
-      #     ResInsight --console --help | grep "ResInsight v. 2020.10" \
-      #       && pip install rips==2020.10.0.2 || true
 
       - name: List all installed packages
         run: pip freeze
@@ -86,30 +75,3 @@ jobs:
       - name: Syntax check documentation
         if: ${{ always() }}
         run: rstcheck -r docs
-
-      # - name: Build documentation
-      #   if: ${{ always() }}
-      #   run: sphinx-build -b html docs build/docs/html
-
-      # - name: Update GitHub pages
-      #   if: github.repository_owner == 'equinor' && github.ref == 'refs/heads/main' && matrix.python-version == '3.8'
-      #   run: |
-      #     cp -R ./build/docs/html ../html
-
-      #     git config --local user.email "subscript-github-action"
-      #     git config --local user.name "subscript-github-action"
-      #     git fetch origin gh-pages
-      #     git checkout --track origin/gh-pages
-      #     git clean -f -f -d -x  # Double -f is intentional
-      #     git rm -r *
-
-      #     cp -R ../html/* .
-      #     touch .nojekyll  # If not, github pages ignores _* directories.
-      #     git add .
-
-      #     if git diff-index --quiet HEAD; then
-      #       echo "No changes in documentation. Skip documentation deploy."
-      #     else
-      #     git commit -m "Update Github Pages"
-      #      git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
-      #   fi
