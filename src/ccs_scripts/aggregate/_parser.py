@@ -234,25 +234,37 @@ def extract_properties(
     """
     Extract 3D grid properties based on the provided property specification
     """
+    print("\nextract_properties()")
     properties: List[xtgeo.GridProperty] = []
     if property_spec is None:
+        print("AAAAAAAAAAA")
         return properties
     for spec in property_spec:
         try:
+            print("A")
             names = (
                 "all"
                 if spec.name is None
                 else [spec.name] if isinstance(spec.name, str) else spec.name
             )
+            print(spec.source)
+            print(names)
+            print(grid)
+            print(dates)
             props = xtgeo.gridproperties_from_file(
                 spec.source,
                 names=names,
                 grid=grid,
                 dates=dates or "all",
             ).props
+            print(dates or "all")
+            print("B")
+            exit()
         except (RuntimeError, ValueError):
             props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
+        print([p.date for p in props])  # List of dates vs [None]
         if spec.lower_threshold is not None:
+            print("C")
             for prop in props:
                 if not isinstance(prop.values.mask, np.ndarray):
                     prop.values.mask = np.asarray(prop.values.mask)
@@ -261,6 +273,7 @@ def extract_properties(
         # stem, separated by a "--"
         for prop in props:
             if prop.date is None and "--" in spec.source:
+                print("D")
                 date = pathlib.Path(spec.source.split("--")[-1]).stem
                 try:
                     # Make sure time stamp is on a valid format
@@ -270,10 +283,16 @@ def extract_properties(
                 prop.date = date
                 prop.name += f"--{date}"
             if prop.date is not None and prop.name is not None:
+                print("E")
                 if prop.name.split("_")[-1] == prop.date:
+                    print("F")
                     prop.name = "--".join(prop.name.rsplit("_", 1))
-        if len(dates) > 0:
+        if len(dates) > 0 and props[0].date is not None:
+            print("HELLO")
+            print([p.date for p in props])
+            print(props)
             props = [p for p in props if p.date in dates]
+            print(props)
         properties += props
     return properties
 

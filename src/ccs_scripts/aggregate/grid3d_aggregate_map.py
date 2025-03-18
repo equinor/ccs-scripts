@@ -148,8 +148,15 @@ def generate_maps(
     logging.info("\nReading grid, properties and zone(s)")
     grid = xtgeo.grid_from_file(input_.grid)
     _log_grid_info(grid)
+    print("\n\ndates:")
+    print(input_.dates)
+    print("input_.properties:")
+    print(input_.properties)
     properties = extract_properties(input_.properties, grid, input_.dates)
+    print("properties:")
+    print(properties)
     _log_properties_info(properties)
+    # exit()
     modify_mass_property_names(properties)
     _filters: List[Tuple[str, Optional[Union[np.ndarray, None]]]] = []
     if computesettings.all:
