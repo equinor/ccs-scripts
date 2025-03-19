@@ -66,7 +66,7 @@ def translate_co2data_to_property(
     co2_mass_settings: CO2MassSettings,
     grid_out_dir: str,
     properties_to_extract: List[str],
-    dates_idx: Optional[List[str]],
+    dates_idx: List[int],
 ) -> List[Optional[str]]:
     """
     Convert CO2 data into 3D GridProperty
