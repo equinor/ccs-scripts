@@ -110,7 +110,7 @@ def translate_co2data_to_property(
 
     custom_egrid = _create_custom_egrid_kw(grid_data)
 
-    for date_idx, co2_at_date in zip(dates_idx,co2_data.data_list):
+    for date_idx, co2_at_date in zip(dates_idx, co2_data.data_list):
         mass_as_grid = _convert_to_grid(co2_at_date, gas_idxs, grid_file, grid_out_dir)
         logihead_array = np.array([x for x in unrst_data["LOGIHEAD"][date_idx]])
         if store_all or "total_co2" in maps:
