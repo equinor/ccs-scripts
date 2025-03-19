@@ -70,13 +70,11 @@ def generate_co2_mass_maps(config_: RootConfig):
         residual_trapping=co2_mass_settings.residual_trapping,
     )
     dates = config_.input.dates
-    print(f"co2 mass maps dates: {dates}")
+    dates_idx = None
     if len(dates) > 0:
+        all_dates = [x.date for x in co2_data.data_list]
         co2_data.data_list = [x for x in co2_data.data_list if x.date in dates]
-    # for x in co2_data.data_list:
-    #     print(x)
-    # exit()
-
+        dates_idx = [i for i, val in enumerate(all_dates) if val in dates]
     grid_folder, delete_tmp_grid_folder = _process_grid_dir(config_.output.gridfolder)
     try:
         out_property_list = translate_co2data_to_property(
@@ -85,16 +83,8 @@ def generate_co2_mass_maps(config_: RootConfig):
             co2_mass_settings,
             grid_folder,
             RELEVANT_PROPERTIES,
+            dates_idx,
         )
-        # print(f"out_property_list")
-        # print(out_property_list)
-        from resdata.resfile import ResdataFile
-        unrst = ResdataFile(out_property_list[0])
-        print("\n\nunrst file:")
-        print(unrst)
-        for x in unrst.report_dates:
-            print(f"  {x}")
-        exit()
         co2_mass_property_to_map(config_, out_property_list)
     finally:
         # Make sure temp directory is deleted even if exception is thrown above

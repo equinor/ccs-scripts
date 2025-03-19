@@ -66,6 +66,7 @@ def translate_co2data_to_property(
     co2_mass_settings: CO2MassSettings,
     grid_out_dir: str,
     properties_to_extract: List[str],
+    dates_idx: Optional[List[str]],
 ) -> List[Optional[str]]:
     """
     Convert CO2 data into 3D GridProperty
@@ -109,14 +110,14 @@ def translate_co2data_to_property(
 
     custom_egrid = _create_custom_egrid_kw(grid_data)
 
-    for i, co2_at_date in enumerate(co2_data.data_list):
+    for date_idx, co2_at_date in zip(dates_idx,co2_data.data_list):
         mass_as_grid = _convert_to_grid(co2_at_date, gas_idxs, grid_file, grid_out_dir)
-        logihead_array = np.array([x for x in unrst_data["LOGIHEAD"][i]])
+        logihead_array = np.array([x for x in unrst_data["LOGIHEAD"][date_idx]])
         if store_all or "total_co2" in maps:
             total_mass_data["unrst_kw"].extend(
                 [
-                    ("SEQNUM  ", [i]),
-                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("SEQNUM  ", [date_idx]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
                     ("LOGIHEAD", logihead_array),
                     ("MASS_TOT", mass_as_grid["MASS_TOT"]["data"]),
                 ]
@@ -135,8 +136,8 @@ def translate_co2data_to_property(
         if store_all or "dissolved_co2" in maps:
             dissolved_mass_data["unrst_kw"].extend(
                 [
-                    ("SEQNUM  ", [i]),
-                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("SEQNUM  ", [date_idx]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
                     ("LOGIHEAD", logihead_array),
                     ("MASS_DIS", mass_as_grid["MASS_DIS"]["data"]),
                 ]
@@ -157,8 +158,8 @@ def translate_co2data_to_property(
         ) and not co2_mass_settings.residual_trapping:
             free_mass_data["unrst_kw"].extend(
                 [
-                    ("SEQNUM  ", [i]),
-                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("SEQNUM  ", [date_idx]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
                     ("LOGIHEAD", logihead_array),
                     ("MASS_GAS", mass_as_grid["MASS_GAS"]["data"]),
                 ]
@@ -177,8 +178,8 @@ def translate_co2data_to_property(
         if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
             free_gas_mass_data["unrst_kw"].extend(
                 [
-                    ("SEQNUM  ", [i]),
-                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("SEQNUM  ", [date_idx]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
                     ("LOGIHEAD", logihead_array),
                     ("MASSFGAS", mass_as_grid["MASSFGAS"]["data"]),
                 ]
@@ -196,8 +197,8 @@ def translate_co2data_to_property(
                 free_gas_mass_data["egrid_kw"].extend(custom_egrid)
             trapped_gas_mass_data["unrst_kw"].extend(
                 [
-                    ("SEQNUM  ", [i]),
-                    ("INTEHEAD", unrst_data["INTEHEAD"][i].numpyView()),
+                    ("SEQNUM  ", [date_idx]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
                     ("LOGIHEAD", logihead_array),
                     ("MASSTGAS", mass_as_grid["MASSTGAS"]["data"]),
                 ]
