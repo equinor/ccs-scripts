@@ -68,6 +68,7 @@ source_data_: List[Tuple[str, Any, None]] = [
     ("region", Optional[np.ndarray], None),
 ]
 
+
 class CalculationType(Enum):
     """
     Which type of CO2 calculation is made
@@ -163,10 +164,10 @@ class RegionInfo:
     property_name: Optional[str]
 
 
-
-
 def _detect_eclipse_mole_fraction_props(
-    unrst_file: str, properties_to_extract: List, current_source_data: List[Tuple[str, Any, None]]
+    unrst_file: str,
+    properties_to_extract: List,
+    current_source_data: List[Tuple[str, Any, None]],
 ):
     """
     Detects which and how many components are there in Eclipse data
@@ -1268,7 +1269,7 @@ def _calculate_co2_data_from_source_data(
             source = "Eclipse"
             if _is_subset(["XMF2", "SOIL"], active_props):
                 scenario = "CO2 + Water + Gas + Oil"
-            #NBNB: X/YMF properties ending in 2 are assumed to correspond to CO2
+            # NBNB: X/YMF properties ending in 2 are assumed to correspond to CO2
             elif _n_components(active_props) > 3:
                 scenario = "CO2 + Water + Gas"
                 active_props = [
