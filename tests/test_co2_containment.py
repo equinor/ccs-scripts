@@ -12,7 +12,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
     _calculate_co2_data_from_source_data,
-    base_fields,
+    source_data_,
 )
 from ccs_scripts.co2_containment.co2_containment import main
 
@@ -38,7 +38,7 @@ def _simple_cube_grid():
             np.exp(-3 * (dists.flatten() / ((count + 1) / len(dates))) ** 2) - 0.05, 0.0
         )
     size = np.prod(dims)
-    SourceData = make_dataclass("SourceData", base_fields)
+    SourceData = make_dataclass("SourceData", source_data_)
     return SourceData(
         m_x.flatten(),
         m_y.flatten(),
@@ -76,7 +76,7 @@ def _simple_cube_grid_eclipse():
             np.exp(-3 * (dists.flatten() / ((count + 1) / len(dates))) ** 2) - 0.05, 0.0
         )
     size = np.prod(dims)
-    fields_to_add = base_fields.copy()
+    fields_to_add = source_data_.copy()
     fields_to_add.extend(
         [
             ("XMF2", Optional[Dict[str, np.ndarray]], None),
