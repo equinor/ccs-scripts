@@ -99,6 +99,8 @@ def calculate_out_of_bounds_co2(
             and list connecting region-numbers to names, if available
         residual_trapping (bool): Indicate if residual trapping should be calculated
         injection_wells (List): Injection wells used for plume tracking
+        gas_molar_mass (float): Hydrocarbon gas molar mass. (Applies for cases with more
+            than two components)
 
     Returns:
         pd.DataFrame

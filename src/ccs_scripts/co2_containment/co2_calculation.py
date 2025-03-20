@@ -39,8 +39,34 @@ RELEVANT_PROPERTIES = [
     "XMFW",
 ]
 
-BaseFieldType = List[Tuple[str, Any, None]]
-
+source_data_: List[Tuple[str, Any, None]] = [
+    ("x_coord", np.ndarray, None),
+    ("y_coord", np.ndarray, None),
+    ("DATES", List[str], None),
+    ("VOL", Optional[Dict[str, np.ndarray]], None),
+    ("SWAT", Optional[Dict[str, np.ndarray]], None),
+    ("SGAS", Optional[Dict[str, np.ndarray]], None),
+    ("SGSTRAND", Optional[Dict[str, np.ndarray]], None),
+    ("SGTRH", Optional[Dict[str, np.ndarray]], None),
+    ("RPORV", Optional[Dict[str, np.ndarray]], None),
+    ("PORV", Optional[Dict[str, np.ndarray]], None),
+    ("AMFG", Optional[Dict[str, np.ndarray]], None),
+    ("YMFG", Optional[Dict[str, np.ndarray]], None),
+    ("XMFG", Optional[Dict[str, np.ndarray]], None),
+    ("DWAT", Optional[Dict[str, np.ndarray]], None),
+    ("DGAS", Optional[Dict[str, np.ndarray]], None),
+    ("DOIL", Optional[Dict[str, np.ndarray]], None),
+    ("BWAT", Optional[Dict[str, np.ndarray]], None),
+    ("BGAS", Optional[Dict[str, np.ndarray]], None),
+    ("AMFS", Optional[Dict[str, np.ndarray]], None),
+    ("YMFS", Optional[Dict[str, np.ndarray]], None),
+    ("XMFS", Optional[Dict[str, np.ndarray]], None),
+    ("AMFW", Optional[Dict[str, np.ndarray]], None),
+    ("YMFW", Optional[Dict[str, np.ndarray]], None),
+    ("XMFW", Optional[Dict[str, np.ndarray]], None),
+    ("zone", Optional[np.ndarray], None),
+    ("region", Optional[np.ndarray], None),
+]
 
 class CalculationType(Enum):
     """
@@ -137,44 +163,18 @@ class RegionInfo:
     property_name: Optional[str]
 
 
-base_fields: BaseFieldType = [
-    ("x_coord", np.ndarray, None),
-    ("y_coord", np.ndarray, None),
-    ("DATES", List[str], None),
-    ("VOL", Optional[Dict[str, np.ndarray]], None),
-    ("SWAT", Optional[Dict[str, np.ndarray]], None),
-    ("SGAS", Optional[Dict[str, np.ndarray]], None),
-    ("SGSTRAND", Optional[Dict[str, np.ndarray]], None),
-    ("SGTRH", Optional[Dict[str, np.ndarray]], None),
-    ("RPORV", Optional[Dict[str, np.ndarray]], None),
-    ("PORV", Optional[Dict[str, np.ndarray]], None),
-    ("AMFG", Optional[Dict[str, np.ndarray]], None),
-    ("YMFG", Optional[Dict[str, np.ndarray]], None),
-    ("XMFG", Optional[Dict[str, np.ndarray]], None),
-    ("DWAT", Optional[Dict[str, np.ndarray]], None),
-    ("DGAS", Optional[Dict[str, np.ndarray]], None),
-    ("DOIL", Optional[Dict[str, np.ndarray]], None),
-    ("BWAT", Optional[Dict[str, np.ndarray]], None),
-    ("BGAS", Optional[Dict[str, np.ndarray]], None),
-    ("AMFS", Optional[Dict[str, np.ndarray]], None),
-    ("YMFS", Optional[Dict[str, np.ndarray]], None),
-    ("XMFS", Optional[Dict[str, np.ndarray]], None),
-    ("AMFW", Optional[Dict[str, np.ndarray]], None),
-    ("YMFW", Optional[Dict[str, np.ndarray]], None),
-    ("XMFW", Optional[Dict[str, np.ndarray]], None),
-    ("zone", Optional[np.ndarray], None),
-    ("region", Optional[np.ndarray], None),
-]
 
 
 def _detect_eclipse_mole_fraction_props(
-    unrst_file: str, properties_to_extract: List, fields_to_add: List
+    unrst_file: str, properties_to_extract: List, current_source_data: List[Tuple[str, Any, None]]
 ):
     """
     Detects which and how many components are there in Eclipse data
 
     Args:
         unrst_file (str): Path to UNSRT file
+        properties_to_extract (List): List of current properties to extract
+        properties_to_add (List):
     """
     unrst = ResdataFile(unrst_file)
     suffix_count = 1
@@ -189,7 +189,7 @@ def _detect_eclipse_mole_fraction_props(
                 "the number of components with YMF"
             )
         else:
-            fields_to_add.extend(
+            current_source_data.extend(
                 [
                     (name + str(suffix_count), Optional[Dict[str, np.ndarray]], None)
                     for name in ["XMF", "YMF"]
@@ -199,7 +199,7 @@ def _detect_eclipse_mole_fraction_props(
                 [name + str(suffix_count) for name in ["XMF", "YMF"]]
             )
         suffix_count += 1
-    return fields_to_add
+    return current_source_data
 
 
 def _n_components(active_props: List):
@@ -377,7 +377,7 @@ def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = Fal
 def _extract_source_data(
     grid_file: str,
     unrst_file: str,
-    fields_to_add: BaseFieldType,
+    source_data_: List[Tuple[str, Any, None]],
     properties_to_extract: List[str],
     zone_info: ZoneInfo,
     region_info: RegionInfo,
@@ -430,7 +430,7 @@ def _extract_source_data(
             }
         except KeyError:
             pass
-    SourceData = make_dataclass("SourceData", fields_to_add)
+    SourceData = make_dataclass("SourceData", source_data_)
     source_data = SourceData(
         cells_x,
         cells_y,
@@ -679,8 +679,10 @@ def _pflotran_co2mass(
       scenario (str): Which scenario co2 mass is computed for
       co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
       water_molar_mass (float): Water molar mass - Default is 18 g/mol
-      gas_molar_mass (float): Gas molar mass - Default is XX g/mol
-      oil_molar_mass (float): Water molar mass - Default is XX g/mol
+      gas_molar_mass (float): Gas molar mass - Default is 0 g/mol,
+                              input required if more than 2 components
+      oil_molar_mass (float): Oil molar mass - Default is 0 g/mol
+                              input required if more than 3 components
 
     Returns:
       Dict
@@ -1210,8 +1212,9 @@ def _calculate_co2_data_from_source_data(
                                      actual_volume)
         co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
         water_molar_mass (float): Water molar mass - Default is 18 g/mol
-        gas_molar_mass (float): Hydrocarbon gas molar mass - Default is xx g/mol,
-        oil_molar_mass (float) = Oil molar mass - Default is xx g/mol,
+        gas_molar_mass (float): Hydrocarbon gas molar mass - Default is 0 g/mol,
+                                should by provided by user
+        oil_molar_mass (float) = Oil molar mass - Default is 0 g/mol, not there yet
         residual_trapping (bool): Indicate if residual trapping should be calculated
 
     Returns:
@@ -1265,6 +1268,7 @@ def _calculate_co2_data_from_source_data(
             source = "Eclipse"
             if _is_subset(["XMF2", "SOIL"], active_props):
                 scenario = "CO2 + Water + Gas + Oil"
+            #NBNB: X/YMF properties ending in 2 are assumed to correspond to CO2
             elif _n_components(active_props) > 3:
                 scenario = "CO2 + Water + Gas"
                 active_props = [
@@ -1587,22 +1591,24 @@ def calculate_co2(
       zone_info (ZoneInfo): Zone information
       region_info (Dict): Region information
       residual_trapping (bool): Calculate residual trapping or not
+      gas_molar_mass (float): Hydrocarbon gas molar mass (Applies for cases with more
+            than two components)
 
     Returns:
       CO2Data
 
     """
     properties_to_extract = RELEVANT_PROPERTIES.copy()
-    fields_to_add = base_fields.copy()
-    fields_to_add = _detect_eclipse_mole_fraction_props(
-        unrst_file, properties_to_extract, fields_to_add
+    current_source_data = source_data_.copy()
+    properties_to_add = _detect_eclipse_mole_fraction_props(
+        unrst_file, properties_to_extract, current_source_data
     )
     if residual_trapping:
         properties_to_extract.extend(["SGSTRAND", "SGTRH"])
     source_data = _extract_source_data(
         grid_file,
         unrst_file,
-        fields_to_add,
+        properties_to_add,
         properties_to_extract,
         zone_info,
         region_info,
