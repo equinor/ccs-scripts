@@ -272,7 +272,7 @@ def extract_properties(
             if prop.date is not None and prop.name is not None:
                 if prop.name.split("_")[-1] == prop.date:
                     prop.name = "--".join(prop.name.rsplit("_", 1))
-        if len(dates) > 0:
+        if len(dates) > 0 and props[0].date is not None:
             props = [p for p in props if p.date in dates]
         properties += props
     return properties
