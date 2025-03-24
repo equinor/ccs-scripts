@@ -195,7 +195,7 @@ def generate_maps(
     if computesettings.indicator_map:
         prop_tags_indicator = [p.replace("max", "indicator") for p in prop_tags]
         p_maps_indicator = [
-            [np.where(np.isfinite(p), 1, p) for p in map_] for map_ in p_maps
+            [np.where(np.isfinite(p), 1, 0) for p in map_] for map_ in p_maps
         ]
         surfs_indicator = _ndarray_to_regsurfs(
             [f[0] for f in _filters],
