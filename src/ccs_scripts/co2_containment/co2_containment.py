@@ -485,6 +485,17 @@ def _replace_default_dummies_from_ert(args):
         args.readable_output = False
 
 
+def _replace_none_with_defaults(args):
+    if args.no_logging is None:
+        args.no_logging = False
+    if args.debug is None:
+        args.debug = False
+    if args.residual_trapping is None:
+        args.residual_trapping = False
+    if args.readable_output is None:
+        args.readable_output = False
+
+
 class InputError(Exception):
     """Raised for various mistakes in the provided input."""
 
@@ -506,6 +517,17 @@ def process_args() -> argparse.Namespace:
         args.residual_trapping = False
 
     _replace_default_dummies_from_ert(args)
+    print("\n-------------")
+    print("DEBUG LOGGING")
+    print("-------------")
+    print(f"residual_trapping: {args.residual_trapping}")
+    print(f"readable_output: {args.readable_output}")
+    print(f"debug: {args.debug}")
+    _replace_none_with_defaults(args)
+    print(f"residual_trapping: {args.residual_trapping}")
+    print(f"readable_output: {args.readable_output}")
+    print(f"debug: {args.debug}")
+    # exit()
 
     if args.root_dir is None:
         p = pathlib.Path(args.case).parents
@@ -875,6 +897,12 @@ def convert_data_frame(
     """
     Convert output format to human-/Excel-readable state.
     """
+    print("\n-------------")
+    print("DEBUG LOGGING")
+    print("-------------")
+    print(f"residual_trapping: {residual_trapping}")
+    print("Phases in data frame:")
+    print(set(data_frame["phase"].to_list()))
     calc_type = _set_calc_type_from_input_string(calc_type_input)
     logging.info("\nMerge data rows for data frame")
     total_df = _merge_date_rows(
