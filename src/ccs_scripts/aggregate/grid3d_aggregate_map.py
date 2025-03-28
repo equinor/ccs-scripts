@@ -294,50 +294,54 @@ def generate_from_config(config: _config.RootConfig):
 def _distribute_config_property(config_: _config.RootConfig):
     if config_.input.properties is None:
         return
-    if not isinstance(config_.input.properties[0].name, list):
-        return
-    tmp_props = config_.input.properties.pop()
-    if isinstance(tmp_props.lower_threshold, list) and len(tmp_props.name) == len(
-        tmp_props.lower_threshold
-    ):
-        config_.input.properties.extend(
-            [
-                _config.Property(tmp_props.source, name, threshold)
-                for name, threshold in zip(tmp_props.name, tmp_props.lower_threshold)
-            ]
-        )
-    elif isinstance(tmp_props.lower_threshold, float) or (
-        isinstance(tmp_props.lower_threshold, list)
-        and len(tmp_props.lower_threshold) == 1
-    ):
-        logging.info(
-            f"Only one value of threshold for {str(len(tmp_props.name))}."
-            f"properties. The same threshold will be assumed for all the"
-            f"properties."
-        )
-        if (
-            isinstance(tmp_props.lower_threshold, list)
-            and len(tmp_props.lower_threshold) == 1
-        ):
-            tmp_props.lower_threshold = tmp_props.lower_threshold * len(tmp_props.name)
-        else:
-            tmp_props.lower_threshold = [tmp_props.lower_threshold] * len(
-                tmp_props.name
+    distributed_props = []
+    for prop in config_.input.properties:
+        if not isinstance(prop.name, list):
+            distributed_props.append(prop)
+            continue
+        if isinstance(prop.lower_threshold, list):
+            if len(prop.name) == len(prop.lower_threshold):
+                distributed_props.extend(
+                    [
+                        _config.Property(prop.source, name, threshold)
+                        for name, threshold in zip(prop.name, prop.lower_threshold)
+                    ]
+                )
+            elif len(prop.lower_threshold) == 1:
+                logging.info(
+                    f"Only one value of threshold for {str(len(prop.name))} "
+                    f"properties. The same threshold will be assumed for all the "
+                    f"properties."
+                )
+                distributed_props.extend(
+                    [
+                        _config.Property(prop.source, name, threshold)
+                        for name, threshold in zip(prop.name, prop.lower_threshold)
+                    ]
+                )
+            else:
+                error_text = (
+                    f"{str(len(prop.lower_threshold))} values of co2_threshold "
+                    f"provided, but {str(len(prop.name))} properties in config"
+                    f" file input. Fix the amount of values in co2_threshold or "
+                    f"the amount of properties in config file"
+                )
+                raise Exception(error_text)
+        elif isinstance(prop.lower_threshold, float):
+            logging.info(
+                f"Only one value of threshold for {str(len(prop.name))} "
+                f"properties. The same threshold will be assumed for all the "
+                f"properties."
             )
-        config_.input.properties.extend(
-            [
-                _config.Property(tmp_props.source, name, threshold)
-                for name, threshold in zip(tmp_props.name, tmp_props.lower_threshold)
-            ]
-        )
-    else:
-        error_text = (
-            f"{str(len(tmp_props.lower_threshold))} values of co2_threshold"
-            f"provided, but {str(len(tmp_props.name))} properties in config"
-            f" file input. Fix the amount of values in co2_threshold or"
-            f"the amount of properties in config file"
-        )
-        raise Exception(error_text)
+            distributed_props.extend(
+                [
+                    _config.Property(prop.source, name, prop.lower_threshold)
+                    for name in prop.name
+                ]
+            )
+        else:
+            raise Exception("Unsupported type for lower_threshold")
+    config_.input.properties = distributed_props
     return
 
 
