@@ -13,8 +13,8 @@ from resdata.resfile import ResdataFile
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
-DEFAULT_GAS_MOLAR_MASS = 0  # 16
-DEFAULT_OIL_MOLAR_MASS = 0
+DEFAULT_GAS_MOLAR_MASS = None
+DEFAULT_OIL_MOLAR_MASS = None
 TRESHOLD_GAS = 1e-16
 TRESHOLD_DISSOLVED = 1e-16
 PROPERTIES_NEEDED_PFLOTRAN = ["DGAS", "DWAT", "AMFG", "YMFG"]
@@ -635,6 +635,8 @@ def _mole_to_mass_fraction(
 
     """
 
+    m_gas = m_gas if m_gas is not None else 0.0
+    m_oil = m_oil if m_oil is not None else 0.0
     return (
         co2_mf_prop
         * m_co2
@@ -937,6 +939,9 @@ def _pflotran_co2_molar_volume(
     amfs = source_data.AMFS
     ymfs = source_data.YMFS
     xmfs = source_data.XMFS
+
+    gas_molar_mass = gas_molar_mass if gas_molar_mass is not None else 0.0
+    oil_molar_mass = oil_molar_mass if oil_molar_mass is not None else 0.0
 
     mole_fraction_dic = {
         "Aqueous": {
@@ -1318,6 +1323,7 @@ def _calculate_co2_data_from_source_data(
         raise ValueError(error_text)
     elif scenario == "CO2 + Water":
         gas_molar_mass = DEFAULT_GAS_MOLAR_MASS
+        oil_molar_mass = DEFAULT_OIL_MOLAR_MASS
     logging.info("Found valid properties")
     logging.info(f"Data source: {source}")
     logging.info(f"Scenario: {scenario}")
