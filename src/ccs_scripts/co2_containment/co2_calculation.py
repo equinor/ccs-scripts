@@ -91,6 +91,15 @@ class CalculationType(Enum):
             error_text += "\nExiting"
             raise ValueError(error_text)
 
+class Scenario(Enum):
+    """
+    Which scenario is CO2 amounts calculated in
+    """
+
+    AQUIFER  = 0
+    DEPLETED_GAS_FIELD = 1
+    DEPLETED_OIL_GAS_FIELD = 2
+
 
 @dataclass
 class Co2DataAtTimeStep:
@@ -145,7 +154,7 @@ class Co2Data:
     y_coord: np.ndarray
     data_list: List[Co2DataAtTimeStep]
     units: Literal["kg", "tons", "m3"]
-    scenario: str
+    scenario: Scenario
     zone: Optional[np.ndarray] = None
     region: Optional[np.ndarray] = None
 
@@ -667,7 +676,7 @@ def _set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
 
 def _pflotran_co2mass(
     source_data,
-    scenario: str,
+    scenario: Scenario,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
     gas_molar_mass: Optional[float] = DEFAULT_GAS_MOLAR_MASS,
@@ -679,7 +688,7 @@ def _pflotran_co2mass(
     Args:
       source_data (SourceData): Data with the information of the necessary properties
                                 for the calculation of CO2 mass
-      scenario (str): Which scenario co2 mass is computed for
+      scenario (Scenario): Which scenario co2 mass is computed for
       co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
       water_molar_mass (float): Water molar mass - Default is 18 g/mol
       gas_molar_mass (float): Gas molar mass - Default is 0 g/mol,
@@ -706,59 +715,59 @@ def _pflotran_co2mass(
     xmfs = source_data.XMFS
     sgas = source_data.SGAS
     swat = source_data.SWAT
-    if swat is None and scenario != "CO2 + Water + Gas + Oil":
+    if swat is None and scenario != Scenario.DEPLETED_OIL_GAS_FIELD:
         swat = {key: 1 - sgas[key] for key in sgas}
     sgstrand = source_data.SGSTRAND
     eff_vols = source_data.PORV
     mole_fraction_dic = {
         "Aqueous": {
-            "CO2": amfg if scenario == "CO2 + Water" else amfs,
+            "CO2": amfg if scenario == Scenario.AQUIFER else amfs,
             "Water": (
                 amfw
                 if amfw is not None
                 else (
                     {key: 1 - amfg[key] for key in amfg}
-                    if scenario == "CO2 + Water"
+                    if scenario == Scenario.AQUIFER
                     else None
                 )
             ),
             "Gas": (
                 {key: np.zeros_like(value) for key, value in amfg.items()}
-                if scenario == "CO2 + Water"
+                if scenario == Scenario.AQUIFER
                 else amfg
             ),
         },
         "Gas": {
-            "CO2": ymfg if scenario == "CO2 + Water" else ymfs,
+            "CO2": ymfg if scenario == Scenario.AQUIFER else ymfs,
             "Water": (
                 ymfw
                 if ymfw is not None
                 else (
                     {key: 1 - ymfg[key] for key in ymfg}
-                    if scenario == "CO2 + Water"
+                    if scenario == Scenario.AQUIFER
                     else None
                 )
             ),
             "Gas": (
                 {key: np.zeros_like(value) for key, value in ymfg.items()}
-                if scenario == "CO2 + Water"
+                if scenario == Scenario.AQUIFER
                 else ymfg
             ),
         },
         "Oil": {
             "CO2": (
                 xmfs
-                if scenario == "CO2 + Water + Gas + Oil"
+                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
                 else {key: np.zeros_like(value) for key, value in ymfg.items()}
             ),
             "Water": (
                 xmfw
-                if scenario == "CO2 + Water + Gas + Oil"
+                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
                 else {key: np.zeros_like(value) for key, value in ymfg.items()}
             ),
             "Gas": (
                 xmfg
-                if scenario == "CO2 + Water + Gas + Oil"
+                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
                 else {key: np.zeros_like(value) for key, value in ymfg.items()}
             ),
         },
@@ -791,7 +800,7 @@ def _pflotran_co2mass(
                 oil_molar_mass,
             ),
         ]
-        if scenario == "CO2 + Water + Gas + Oil":
+        if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
             co2_mass[date].extend(
                 [
                     eff_vols[date]
@@ -845,7 +854,7 @@ def _pflotran_co2mass(
 
 def _eclipse_co2mass(
     source_data,
-    scenario: str,
+    scenario: Scenario,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
 ) -> Dict[str, List[np.ndarray]]:
     """
@@ -854,7 +863,7 @@ def _eclipse_co2mass(
     Args:
       source_data (SourceData): Data with the information of the necessary properties
                                 for the calculation of CO2 mass
-      scenario (str): Which scenario co2 mass is computed for
+      scenario (Scenario): Which scenario co2 mass is computed for
       co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
 
     Returns:
@@ -876,7 +885,7 @@ def _eclipse_co2mass(
         co2_mass[date] = [
             (
                 conv_fact * bwat[date] * xmf2[date] * swat[date] * eff_vols[date]
-                if scenario == "CO2 + Water + Gas + Oil"
+                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
                 else conv_fact
                 * bwat[date]
                 * xmf2[date]
@@ -903,7 +912,7 @@ def _eclipse_co2mass(
 
 def _pflotran_co2_molar_volume(
     source_data,
-    scenario: str,
+    scenario: Scenario,
     water_density: np.ndarray,
     gas_density=np.ndarray,
     oil_density=Optional[np.ndarray],
@@ -918,6 +927,7 @@ def _pflotran_co2_molar_volume(
     Args:
       source_data (SourceData): Data with the information of the necessary properties
                                 for the calculation of CO2 molar volume
+      scenario (Scenario): Scenario under which CO2 is calculated
       water_density (float): Water density - Default is 1000 kg/m3
       co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
       water_molar_mass (float): Water molar mass - Default is 18 g/mol
@@ -945,53 +955,53 @@ def _pflotran_co2_molar_volume(
 
     mole_fraction_dic = {
         "Aqueous": {
-            "CO2": amfg if scenario == "CO2 + Water" else amfs,
+            "CO2": amfg if scenario == Scenario.AQUIFER else amfs,
             "Water": (
                 amfw
                 if amfw is not None
                 else (
                     {key: 1 - amfg[key] for key in amfg}
-                    if scenario == "CO2 + Water"
+                    if scenario == Scenario.AQUIFER
                     else None
                 )
             ),
             "Gas": (
                 {key: np.zeros_like(value) for key, value in amfg.items()}
-                if scenario == "CO2 + Water"
+                if scenario == Scenario.AQUIFER
                 else amfg
             ),
         },
         "Gas": {
-            "CO2": ymfg if scenario == "CO2 + Water" else ymfs,
+            "CO2": ymfg if scenario == Scenario.AQUIFER else ymfs,
             "Water": (
                 ymfw
                 if ymfw is not None
                 else (
                     {key: 1 - ymfg[key] for key in ymfg}
-                    if scenario == "CO2 + Water"
+                    if scenario == Scenario.AQUIFER
                     else None
                 )
             ),
             "Gas": (
                 {key: np.zeros_like(value) for key, value in ymfg.items()}
-                if scenario == "CO2 + Water"
+                if scenario == Scenario.AQUIFER
                 else ymfg
             ),
         },
         "Oil": {
             "CO2": (
                 xmfs
-                if scenario == "CO2 + Water + Gas + Oil"
+                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
                 else {key: np.zeros_like(value) for key, value in ymfg.items()}
             ),
             "Water": (
                 xmfw
-                if scenario == "CO2 + Water + Gas + Oil"
+                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
                 else {key: np.zeros_like(value) for key, value in ymfg.items()}
             ),
             "Gas": (
                 xmfg
-                if scenario == "CO2 + Water + Gas + Oil"
+                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
                 else {key: np.zeros_like(value) for key, value in ymfg.items()}
             ),
         },
@@ -1059,7 +1069,7 @@ def _pflotran_co2_molar_volume(
                 for x in range(len(mole_fraction_dic["Gas"]["CO2"][date]))
             ],
         ]
-        if scenario == "CO2 + Water + Gas + Oil":
+        if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
             co2_molar_vol[date].extend(
                 [
                     [
@@ -1244,7 +1254,7 @@ def _calculate_co2_data_from_source_data(
         [getattr(source_data, x) is not None for x in props_check]
     )[0]
     active_props = [props_check[i] for i in active_props_idx]
-    scenario = "CO2 + Water"
+    scenario = Scenario.AQUIFER
     porv_prop = None
     if _is_subset(["SGAS"], active_props):
         if _is_subset(["PORV", "RPORV"], active_props):
@@ -1267,16 +1277,16 @@ def _calculate_co2_data_from_source_data(
         if _is_subset(properties_needed_pflotran, active_props):
             source = "PFlotran"
             if _is_subset(["AMFS", "SOIL"], active_props):
-                scenario = "CO2 + Water + Gas + Oil"
+                scenario = Scenario.DEPLETED_OIL_GAS_FIELD
             elif _is_subset(["AMFS"], active_props):
-                scenario = "CO2 + Water + Gas"
+                scenario = Scenario.DEPLETED_GAS_FIELD
         elif _is_subset(properties_needed_eclipse, active_props):
             source = "Eclipse"
             if _is_subset(["XMF2", "SOIL"], active_props):
-                scenario = "CO2 + Water + Gas + Oil"
+                scenario = Scenario.DEPLETED_OIL_GAS_FIELD
             # NBNB: X/YMF properties ending in 2 are assumed to correspond to CO2
             elif _n_components(active_props) > 3:
-                scenario = "CO2 + Water + Gas"
+                scenario = Scenario.DEPLETED_GAS_FIELD
                 active_props = [
                     prop
                     for prop in active_props
@@ -1314,19 +1324,19 @@ def _calculate_co2_data_from_source_data(
         raise ValueError(error_text)
 
     active_props.extend([porv_prop])
-    if scenario != "CO2 + Water" and gas_molar_mass is None:
-        error_text = f"\nScenario: {scenario}."
+    if scenario != Scenario.AQUIFER and gas_molar_mass is None:
+        error_text = f"\nScenario: {scenario.name}."
         error_text += (
             "\nTo compute mass or actual volume in this scenario "
             "hydrocarbon gas molar mass must be provided"
         )
         raise ValueError(error_text)
-    elif scenario == "CO2 + Water":
+    elif scenario == Scenario.AQUIFER:
         gas_molar_mass = DEFAULT_GAS_MOLAR_MASS
         oil_molar_mass = DEFAULT_OIL_MOLAR_MASS
     logging.info("Found valid properties")
     logging.info(f"Data source: {source}")
-    logging.info(f"Scenario: {scenario}")
+    logging.info(f"Scenario: {scenario.name}")
     logging.info(f"Properties used in the calculations: {', '.join(active_props)}")
 
     if calc_type in (CalculationType.ACTUAL_VOLUME, CalculationType.MASS):
@@ -1372,7 +1382,7 @@ def _calculate_co2_data_from_source_data(
         if calc_type != CalculationType.MASS:
             if source == "PFlotran":
                 y_prop = (
-                    source_data.AMFG if scenario == "CO2 + Water" else source_data.AMFS
+                    source_data.AMFG if scenario == Scenario.AQUIFER else source_data.AMFS
                 )
                 y = y_prop[source_data.DATES[0]]
                 min_y = np.min(y)
@@ -1404,7 +1414,7 @@ def _calculate_co2_data_from_source_data(
                     ]
                 )
                 oil_density = np.ones_like(water_density)
-                if scenario == "CO2 + Water + Gas + Oil":
+                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
                     y = source_data.YMFO[source_data.DATES[0]]
                     max_y = np.max(y)
                     where_max_xmfo = np.where(np.isclose(y, max_y))[0]
@@ -1515,7 +1525,7 @@ def _calculate_co2_data_from_source_data(
         )[0]
         props_names = [props_check[i] for i in props_idx]
         plume_props_names = [x for x in props_names if x in ["SGAS", "AMFG", "XMF2"]]
-        if scenario != "CO2 + Water":
+        if scenario != Scenario.AQUIFER:
             plume_props_names[plume_props_names.index("AMFG")] = "AMFS"
         properties = {x: getattr(source_data, x) for x in plume_props_names}
         inactive_gas_cells = {
