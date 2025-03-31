@@ -11,6 +11,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
     Co2DataAtTimeStep,
+    Scenario,
 )
 
 
@@ -222,7 +223,7 @@ def _log_summary_of_grid_node_location(locations: Dict) -> None:
 def _lists_of_phases(
     calc_type: CalculationType,
     residual_trapping: bool,
-    scenario: str,
+    scenario: Scenario,
 ) -> List[str]:
     """
     Returns a list of the relevant phases depending on calculation type and whether
@@ -233,7 +234,7 @@ def _lists_of_phases(
     else:
         phases = ["total", "dissolved"]
         phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
-        phases += ["oil"] if scenario == "CO2 + Water + Gas + Oil" else []
+        phases += ["oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
     return phases
 
 
