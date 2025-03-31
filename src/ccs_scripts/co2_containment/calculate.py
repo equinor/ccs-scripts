@@ -249,13 +249,13 @@ def _lists_of_co2_for_each_phase(
     if calc_type == CalculationType.CELL_VOLUME:
         arrays = [co2_at_date.volume_coverage]
     else:
-        arrays = [co2_at_date.total_mass(), co2_at_date.dis_phase]
+        arrays = [co2_at_date.total_mass(), co2_at_date.dis_water_phase]
         arrays += (
             [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
             if residual_trapping
             else [co2_at_date.gas_phase]
         )
-        arrays += [co2_at_date.oil_phase]
+        arrays += [co2_at_date.dis_oil_phase]
     return arrays
 
 

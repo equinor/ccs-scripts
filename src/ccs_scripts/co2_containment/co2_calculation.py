@@ -100,9 +100,9 @@ class Co2DataAtTimeStep:
 
     Args:
       date (str): The time step
-      dis_phase (np.ndarray): The amount of CO2 in dissolved phase
+      dis_water_phase (np.ndarray): The amount of CO2 in dissolved phase
       gas_phase (np.ndarray): The amount of CO2 in gaseous phase
-      oil_phase (np.ndarray): The amount of CO2 in oil phase
+      dis_oil_phase (np.ndarray): The amount of CO2 in oil phase
       volume_coverage (np.ndarray): The volume of a cell (specific of
                                     calc_type_input = volume_extent)
       trapped_gas_phase (np.ndarray): The amount of CO2 in trapped/stranded gas phase
@@ -110,9 +110,9 @@ class Co2DataAtTimeStep:
     """
 
     date: str
-    dis_phase: np.ndarray
+    dis_water_phase: np.ndarray
     gas_phase: np.ndarray
-    oil_phase: np.ndarray
+    dis_oil_phase: np.ndarray
     volume_coverage: np.ndarray
     trapped_gas_phase: np.ndarray
     free_gas_phase: np.ndarray
@@ -122,7 +122,7 @@ class Co2DataAtTimeStep:
         Computes total mass as the sum of gas in dissolved and gas
         phase.
         """
-        return self.dis_phase + self.gas_phase + self.oil_phase
+        return self.dis_water_phase + self.gas_phase + self.dis_oil_phase
 
 
 @dataclass
@@ -1454,15 +1454,15 @@ def _calculate_co2_data_from_source_data(
             co2_mass = {
                 co2_mass_output.data_list[t].date: (
                     [
-                        co2_mass_output.data_list[t].dis_phase,
+                        co2_mass_output.data_list[t].dis_water_phase,
                         co2_mass_output.data_list[t].gas_phase,
-                        co2_mass_output.data_list[t].oil_phase,
+                        co2_mass_output.data_list[t].dis_oil_phase,
                     ]
                     if (source_data.SGSTRAND is None and source_data.SGTRH is None)
                     else [
-                        co2_mass_output.data_list[t].dis_phase,
+                        co2_mass_output.data_list[t].dis_water_phase,
                         co2_mass_output.data_list[t].gas_phase,
-                        co2_mass_output.data_list[t].oil_phase,
+                        co2_mass_output.data_list[t].dis_oil_phase,
                         co2_mass_output.data_list[t].trapped_gas_phase,
                         co2_mass_output.data_list[t].free_gas_phase,
                     ]
@@ -1568,9 +1568,9 @@ def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
     co2_mass_output.units = "tons"
     for values in co2_mass_output.data_list:
         for x in [
-            values.dis_phase,
+            values.dis_water_phase,
             values.gas_phase,
-            values.oil_phase,
+            values.dis_oil_phase,
             values.trapped_gas_phase,
             values.free_gas_phase,
         ]:
