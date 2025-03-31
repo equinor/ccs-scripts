@@ -295,7 +295,7 @@ def _distribute_config_property(
     properties: Optional[List[_config.Property]],
 ) -> List[_config.Property]:
     if properties is None:
-        return
+        return properties
     distributed_props = []
     for prop in properties:
         if not isinstance(prop.name, list):

@@ -45,7 +45,7 @@ EXAMPLES = """
 
 
 def _check_config(config_: RootConfig) -> None:
-    _distribute_config_property(config_)
+    config_.input.properties = _distribute_config_property(config_.input.properties)
     if config_.computesettings.indicator_map:
         logging.warning(
             "\nWARNING: Indicator maps cannot be calculated for CO2 mass maps. "
