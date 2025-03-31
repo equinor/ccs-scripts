@@ -91,12 +91,13 @@ class CalculationType(Enum):
             error_text += "\nExiting"
             raise ValueError(error_text)
 
+
 class Scenario(Enum):
     """
     Which scenario is CO2 amounts calculated in
     """
 
-    AQUIFER  = 0
+    AQUIFER = 0
     DEPLETED_GAS_FIELD = 1
     DEPLETED_OIL_GAS_FIELD = 2
 
@@ -184,11 +185,11 @@ def _detect_eclipse_mole_fraction_props(
     Args:
         unrst_file (str): Path to UNSRT file
         properties_to_extract (List): List of current properties to extract
-        properties_to_add (List):
+        current_source_data (List): List with properties to edit
     """
     unrst = ResdataFile(unrst_file)
     suffix_count = 1
-    while True:
+    while True and suffix_count < 50:
         tmp_x = _try_prop(unrst, "XMF" + str(suffix_count))
         tmp_y = _try_prop(unrst, "YMF" + str(suffix_count))
         if tmp_x is None and tmp_y is None:
@@ -370,7 +371,7 @@ def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = Fal
         error_text = (
             "CO2 containment calculation failed. Cannot find required properties "
         )
-        error_text += "SGAS+AMFG or SGAS+XMF2."
+        error_text += "SGAS+AMFG, SGAS+XMF2 or SGAS+AMFS"
         raise RuntimeError(error_text)
 
     if do_logging:
@@ -1213,9 +1214,9 @@ def _calculate_co2_data_from_source_data(
     calc_type: CalculationType,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
-    oil_molar_mass: float = DEFAULT_OIL_MOLAR_MASS,
     residual_trapping: bool = False,
     gas_molar_mass: Optional[float] = None,
+    oil_molar_mass: Optional[float] = None,
 ) -> Co2Data:
     """
     Calculates a given calc_type (mass/cell_volume/actual_volume)
@@ -1382,7 +1383,9 @@ def _calculate_co2_data_from_source_data(
         if calc_type != CalculationType.MASS:
             if source == "PFlotran":
                 y_prop = (
-                    source_data.AMFG if scenario == Scenario.AQUIFER else source_data.AMFS
+                    source_data.AMFG
+                    if scenario == Scenario.AQUIFER
+                    else source_data.AMFS
                 )
                 y = y_prop[source_data.DATES[0]]
                 min_y = np.min(y)
@@ -1596,6 +1599,7 @@ def calculate_co2(
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
     gas_molar_mass: Optional[float] = None,
+    oil_molar_mass: Optional[float] = None,
 ) -> Co2Data:
     """
     Calculates the desired amount (calc_type_input) of CO2
@@ -1610,6 +1614,8 @@ def calculate_co2(
       residual_trapping (bool): Calculate residual trapping or not
       gas_molar_mass (float): Hydrocarbon gas molar mass (Applies for cases with more
             than two components)
+      oil_molar_mass (float): Oil molar mass (Applies for cases with more than two
+            components)
 
     Returns:
       CO2Data
@@ -1637,6 +1643,7 @@ def calculate_co2(
         calc_type=calc_type,
         residual_trapping=residual_trapping,
         gas_molar_mass=gas_molar_mass,
+        oil_molar_mass=oil_molar_mass,
     )
     return co2_data
 
