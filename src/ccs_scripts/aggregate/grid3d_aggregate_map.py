@@ -291,11 +291,13 @@ def generate_from_config(config: _config.RootConfig):
     )
 
 
-def _distribute_config_property(config_: _config.RootConfig):
-    if config_.input.properties is None:
+def _distribute_config_property(
+    properties: Optional[List[_config.Property]],
+) -> List[_config.Property]:
+    if properties is None:
         return
     distributed_props = []
-    for prop in config_.input.properties:
+    for prop in properties:
         if not isinstance(prop.name, list):
             distributed_props.append(prop)
             continue
@@ -341,8 +343,8 @@ def _distribute_config_property(config_: _config.RootConfig):
             )
         else:
             raise Exception("Unsupported type for lower_threshold")
-    config_.input.properties = distributed_props
-    return
+
+    return distributed_props
 
 
 def main(arguments=None):
@@ -352,7 +354,7 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv[1:]
     config_ = process_arguments(arguments)
-    _distribute_config_property(config_)
+    config_.input.properties = _distribute_config_property(config_.input.properties)
     log_input_configuration(config_, calc_type="aggregate")
     generate_from_config(config_)
 
