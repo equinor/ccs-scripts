@@ -13,8 +13,6 @@ from resdata.resfile import ResdataFile
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
-DEFAULT_GAS_MOLAR_MASS = None
-DEFAULT_OIL_MOLAR_MASS = None
 TRESHOLD_GAS = 1e-16
 TRESHOLD_DISSOLVED = 1e-16
 PROPERTIES_NEEDED_PFLOTRAN = ["DGAS", "DWAT", "AMFG", "YMFG"]
@@ -680,8 +678,8 @@ def _pflotran_co2mass(
     scenario: Scenario,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
-    gas_molar_mass: Optional[float] = DEFAULT_GAS_MOLAR_MASS,
-    oil_molar_mass: Optional[float] = DEFAULT_OIL_MOLAR_MASS,
+    gas_molar_mass: Optional[float] = None,
+    oil_molar_mass: Optional[float] = None,
 ) -> Dict[str, List[np.ndarray]]:
     """
     Calculates CO2 mass based on the existing properties in PFlotran
@@ -919,8 +917,8 @@ def _pflotran_co2_molar_volume(
     oil_density=Optional[np.ndarray],
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
-    gas_molar_mass: Optional[float] = DEFAULT_GAS_MOLAR_MASS,
-    oil_molar_mass: Optional[float] = DEFAULT_OIL_MOLAR_MASS,
+    gas_molar_mass: Optional[float] = None,
+    oil_molar_mass: Optional[float] = None,
 ) -> Dict:
     """
     Calculates CO2 molar volume (mol/m3) based on the existing properties in PFlotran
@@ -1333,8 +1331,8 @@ def _calculate_co2_data_from_source_data(
         )
         raise ValueError(error_text)
     elif scenario == Scenario.AQUIFER:
-        gas_molar_mass = DEFAULT_GAS_MOLAR_MASS
-        oil_molar_mass = DEFAULT_OIL_MOLAR_MASS
+        gas_molar_mass = None
+        oil_molar_mass = None
     logging.info("Found valid properties")
     logging.info(f"Data source: {source}")
     logging.info(f"Scenario: {scenario.name}")
