@@ -11,6 +11,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
     Co2DataAtTimeStep,
+    Scenario,
 )
 
 
@@ -96,7 +97,7 @@ def calculate_co2_containment(
         hazardous_polygon,
     )
     _log_summary_of_grid_node_location(locations)
-    phases = _lists_of_phases(calc_type, residual_trapping)
+    phases = _lists_of_phases(calc_type, residual_trapping, co2_data.scenario)
 
     # List of tuple with (zone/None, None/region, boolean array over grid)
     zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, int_to_region)
@@ -222,6 +223,7 @@ def _log_summary_of_grid_node_location(locations: Dict) -> None:
 def _lists_of_phases(
     calc_type: CalculationType,
     residual_trapping: bool,
+    scenario: Scenario,
 ) -> List[str]:
     """
     Returns a list of the relevant phases depending on calculation type and whether
@@ -232,6 +234,7 @@ def _lists_of_phases(
     else:
         phases = ["total", "dissolved"]
         phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
+        phases += ["oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
     return phases
 
 
@@ -247,12 +250,13 @@ def _lists_of_co2_for_each_phase(
     if calc_type == CalculationType.CELL_VOLUME:
         arrays = [co2_at_date.volume_coverage]
     else:
-        arrays = [co2_at_date.total_mass(), co2_at_date.dis_phase]
+        arrays = [co2_at_date.total_mass(), co2_at_date.dis_water_phase]
         arrays += (
             [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
             if residual_trapping
             else [co2_at_date.gas_phase]
         )
+        arrays += [co2_at_date.dis_oil_phase]
     return arrays
 
 
