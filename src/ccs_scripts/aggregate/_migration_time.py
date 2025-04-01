@@ -1,6 +1,5 @@
 import datetime
-import logging
-from typing import Dict, List, Union
+from typing import List, Union
 
 import numpy as np
 import xtgeo
@@ -23,9 +22,7 @@ def generate_migration_time_property(
     # Duplicate first property to ensure equal actnum
     prop_name = co2_props[0].name.split("--")[0]
     t_props = {
-        prop_name: co2_props[0].copy(
-            newname=MIGRATION_TIME_PNAME + "_" + prop_name
-        )
+        prop_name: co2_props[0].copy(newname=MIGRATION_TIME_PNAME + "_" + prop_name)
     }
     t_props[prop_name].values[~t_props[prop_name].values.mask] = np.inf
     for co2, dt in zip(
