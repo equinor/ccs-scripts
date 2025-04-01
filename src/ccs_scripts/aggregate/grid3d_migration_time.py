@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import glob
 import logging
 import os
 import sys
@@ -18,6 +17,7 @@ from ccs_scripts.aggregate import (
 )
 from ccs_scripts.aggregate._config import RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
+from ccs_scripts.aggregate.grid3d_aggregate_map import _distribute_config_property
 
 _XTG = XTGeoDialog()
 
@@ -45,10 +45,7 @@ EXAMPLES = """
 
 
 def _check_config(config_: RootConfig) -> None:
-    if config_.input.properties is not None and len(config_.input.properties) > 1:
-        raise ValueError(
-            "Migration time computation is only supported for a single property"
-        )
+    config_.input.properties = _distribute_config_property(config_.input.properties)
     if config_.computesettings.indicator_map:
         logging.warning(
             "\nWARNING: Indicator maps cannot be calculated for CO2 mass maps. "
@@ -87,11 +84,7 @@ def calculate_migration_time_property(
     files
     """
     logging.info("\nStart calculating time migration property in 3D grid")
-    prop_spec = [
-        _config.Property(source=f, name=name)
-        for f in glob.glob(properties_files, recursive=True)
-        for name in property_name
-    ]
+    prop_spec = [_config.Property(source=properties_files, name=property_name)]
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
     properties = _parser.extract_properties(prop_spec, grid, dates)
     grid3d_aggregate_map._log_properties_info(properties)
@@ -118,8 +111,7 @@ def migration_time_property_to_map(
     for prop in t_prop.values():
         temp_file, temp_path = tempfile.mkstemp()
         os.close(temp_file)
-        if config_.input.properties is not None:
-            config_.input.properties.append(_config.Property(temp_path, None, None))
+        config_.input.properties = [_config.Property(temp_path, None, None)]
         prop.to_file(temp_path)
     grid3d_aggregate_map.generate_from_config(config_)
     os.unlink(temp_path)
@@ -134,12 +126,16 @@ def main(arguments=None):
     config_ = _parser.process_arguments(arguments)
     _check_config(config_)
     log_input_configuration(config_, calc_type="time_migration")
-    p_spec = config_.input.properties.pop()
-    if isinstance(p_spec.name, str):
-        p_spec.name = [p_spec.name]
-    if any(x in MIGRATION_TIME_PROPERTIES for x in p_spec.name):
-        removed_props = [x for x in p_spec.name if x not in MIGRATION_TIME_PROPERTIES]
-        p_spec.name = [x for x in p_spec.name if x in MIGRATION_TIME_PROPERTIES]
+    p_spec = []
+    if any(x.name in MIGRATION_TIME_PROPERTIES for x in config_.input.properties):
+        removed_props = [
+            x.name
+            for x in config_.input.properties
+            if x.name not in MIGRATION_TIME_PROPERTIES
+        ]
+        p_spec.extend(
+            [x for x in config_.input.properties if x.name in MIGRATION_TIME_PROPERTIES]
+        )
         if len(removed_props) > 0:
             logging.warning(
                 "\nWARNING: Time migration maps are "
@@ -153,14 +149,16 @@ def main(arguments=None):
         )
         error_text += f"{', '.join(p_spec.name)}"
         raise ValueError(error_text)
-    t_prop = calculate_migration_time_property(
-        p_spec.source,
-        p_spec.name,
-        p_spec.lower_threshold,
-        config_.input.grid,
-        config_.input.dates,
-    )
-    migration_time_property_to_map(config_, t_prop)
+    config_.input.properties = p_spec
+    for prop in config_.input.properties:
+        t_prop = calculate_migration_time_property(
+            prop.source,
+            prop.name,
+            prop.lower_threshold,
+            config_.input.grid,
+            config_.input.dates,
+        )
+        migration_time_property_to_map(config_, t_prop)
 
 
 if __name__ == "__main__":
