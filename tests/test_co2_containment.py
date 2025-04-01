@@ -1,5 +1,7 @@
 import os
+from dataclasses import make_dataclass
 from pathlib import Path
+from typing import Dict, Optional
 
 import numpy as np
 import pandas
@@ -9,8 +11,8 @@ import shapely.geometry
 from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
-    SourceData,
     _calculate_co2_data_from_source_data,
+    source_data_,
 )
 from ccs_scripts.co2_containment.co2_containment import main
 
@@ -36,6 +38,7 @@ def _simple_cube_grid():
             np.exp(-3 * (dists.flatten() / ((count + 1) / len(dates))) ** 2) - 0.05, 0.0
         )
     size = np.prod(dims)
+    SourceData = make_dataclass("SourceData", source_data_)
     return SourceData(
         m_x.flatten(),
         m_y.flatten(),
@@ -73,6 +76,14 @@ def _simple_cube_grid_eclipse():
             np.exp(-3 * (dists.flatten() / ((count + 1) / len(dates))) ** 2) - 0.05, 0.0
         )
     size = np.prod(dims)
+    fields_to_add = source_data_.copy()
+    fields_to_add.extend(
+        [
+            ("XMF2", Optional[Dict[str, np.ndarray]], None),
+            ("YMF2", Optional[Dict[str, np.ndarray]], None),
+        ]
+    )
+    SourceData = make_dataclass("SourceData", fields_to_add)
     return SourceData(
         m_x.flatten(),
         m_y.flatten(),
@@ -122,7 +133,9 @@ def test_simple_cube_grid():
     assert co2_data.units == "tons"
     assert co2_data.data_list[-1].date == "20490101"
     assert co2_data.data_list[-1].gas_phase.sum() == pytest.approx(9.585032869548137)
-    assert co2_data.data_list[-1].dis_phase.sum() == pytest.approx(2.834956447728449)
+    assert co2_data.data_list[-1].dis_water_phase.sum() == pytest.approx(
+        2.834956447728449
+    )
 
     simple_cube_grid_eclipse = _simple_cube_grid_eclipse()
 
@@ -136,7 +149,7 @@ def test_simple_cube_grid():
     assert co2_data_eclipse.data_list[-1].gas_phase.sum() == pytest.approx(
         419.24933771403536
     )
-    assert co2_data_eclipse.data_list[-1].dis_phase.sum() == pytest.approx(
+    assert co2_data_eclipse.data_list[-1].dis_water_phase.sum() == pytest.approx(
         51.46854223011175
     )
 
@@ -158,7 +171,9 @@ def test_zoned_simple_cube_grid():
     assert isinstance(co2_data, Co2Data)
     assert co2_data.data_list[-1].date == "20490101"
     assert co2_data.data_list[-1].gas_phase.sum() == pytest.approx(9.585032869548137)
-    assert co2_data.data_list[-1].dis_phase.sum() == pytest.approx(2.834956447728449)
+    assert co2_data.data_list[-1].dis_water_phase.sum() == pytest.approx(
+        2.834956447728449
+    )
 
 
 def _get_synthetic_case_paths(case: str):

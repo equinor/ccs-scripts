@@ -75,6 +75,7 @@ def calculate_out_of_bounds_co2(
     injection_wells: List[InjectionWellData],
     file_containment_polygon: Optional[str] = None,
     file_hazardous_polygon: Optional[str] = None,
+    gas_molar_mass: Optional[float] = None,
 ) -> pd.DataFrame:
     """
     Calculates sum of co2 mass or volume at each time step. Use polygons
@@ -98,6 +99,8 @@ def calculate_out_of_bounds_co2(
             and list connecting region-numbers to names, if available
         residual_trapping (bool): Indicate if residual trapping should be calculated
         injection_wells (List): Injection wells used for plume tracking
+        gas_molar_mass (float): Hydrocarbon gas molar mass. (Applies for cases with more
+            than two components)
 
     Returns:
         pd.DataFrame
@@ -110,6 +113,7 @@ def calculate_out_of_bounds_co2(
         residual_trapping,
         calc_type_input,
         init_file,
+        gas_molar_mass,
     )
 
     if file_containment_polygon is not None:
@@ -450,6 +454,11 @@ def get_parser() -> argparse.ArgumentParser:
         help="YML file with configurations for plume tracking calculations.",
         default="",
     )
+    parser.add_argument(
+        "--gas_molar_mass",
+        help="Gas molar mass if working in COMP3/COMP4",
+        default=None,
+    )
 
     return parser
 
@@ -483,6 +492,8 @@ def _replace_default_dummies_from_ert(args):
         args.residual_trapping = False
     if args.readable_output == "-1":
         args.readable_output = False
+    if args.gas_molar_mass == "-1":
+        args.gas_molar_mass = None
 
 
 class InputError(Exception):
@@ -500,7 +511,11 @@ def process_args() -> argparse.Namespace:
     """
     args = get_parser().parse_args()
     args.calc_type_input = args.calc_type_input.lower()
-
+    if args.gas_molar_mass is not None:
+        try:
+            args.gas_molar_mass = float(args.gas_molar_mass)
+        except ValueError:
+            raise ValueError("Invalid input: gas_molar_mass must be numeric")
     # NBNB: Remove this when residual trapping is added for cell_volume
     if args.residual_trapping and args.calc_type_input == "cell_volume":
         args.residual_trapping = False
@@ -1199,6 +1214,7 @@ def main() -> None:
         injection_wells,
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
+        arguments_processed.gas_molar_mass,
     )
     sort_and_replace_nones(data_frame)
     log_summary_of_results(data_frame, arguments_processed.calc_type_input)

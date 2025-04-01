@@ -339,7 +339,7 @@ def _convert_to_grid(
     for mass, name in zip(
         [
             co2_at_date.total_mass(),
-            co2_at_date.dis_phase,
+            co2_at_date.dis_water_phase,
             co2_at_date.gas_phase,
             co2_at_date.trapped_gas_phase,
             co2_at_date.free_gas_phase,
