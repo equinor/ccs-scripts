@@ -1,6 +1,5 @@
 import datetime
-import logging
-from typing import Dict, List, Union
+from typing import List, Union
 
 import numpy as np
 import xtgeo
@@ -21,54 +20,21 @@ def generate_migration_time_property(
     times = [datetime.datetime.strptime(_prop.date, "%Y%m%d") for _prop in co2_props]
     time_since_start = [(t - times[0]).days / 365 for t in times]
     # Duplicate first property to ensure equal actnum
-    prop_names = [prop.name.split("--")[0] for prop in co2_props]
-    unique_prop_names = list(set(prop_names))
-    props_idx = {}
-    first_prop_idx = {}
-    if isinstance(co2_threshold, float):
-        co2_threshold = [co2_threshold]
-    if len(co2_threshold) != len(unique_prop_names):
-        if len(co2_threshold) == 1:
-            logging.info(
-                f"Only one value of co2_threshold for {str(len(unique_prop_names))}."
-                f"properties. The same threshold will be assumed for all the"
-                f"properties."
-            )
-            co2_threshold = [co2_threshold[0] for x in unique_prop_names]
-        else:
-            error_text = (
-                f"{str(len(co2_threshold))} values of co2_threshold provided,"
-                f" but {str(len(unique_prop_names))} properties in config file"
-                f" input. Fix the amount of values in co2_threshold or "
-                f" the amount of properties in config file"
-            )
-            raise Exception(error_text)
-    co2_thresholds: Dict[str, float] = {}
-    for index, value in enumerate(prop_names):
-        if value not in props_idx:
-            props_idx[value] = [index]
-            co2_thresholds[value] = co2_threshold[len(co2_thresholds)]
-            first_prop_idx[value] = index
-        else:
-            props_idx[value].append(index)
+    prop_name = co2_props[0].name.split("--")[0]
     t_props = {
-        prop_name: co2_props[first_prop_idx[prop_name]].copy(
-            newname=MIGRATION_TIME_PNAME + "_" + prop_name
-        )
-        for prop_name in unique_prop_names
+        prop_name: co2_props[0].copy(newname=MIGRATION_TIME_PNAME + "_" + prop_name)
     }
-    for name in unique_prop_names:
-        t_props[name].values[~t_props[name].values.mask] = np.inf
-        for co2, dt in zip(
-            [co2_props[i] for i in props_idx[name]],
-            [time_since_start[i] for i in props_idx[name]],
-        ):
-            above_threshold = co2.values > float(co2_thresholds[name])
-            t_props[name].values[above_threshold] = np.minimum(
-                t_props[name].values[above_threshold], dt
-            )
-        # Mask inf values
-        if not isinstance(t_props[name].values.mask, np.ndarray):
-            t_props[name].values.mask = np.asarray(t_props[name].values.mask)
-        t_props[name].values.mask[np.isinf(t_props[name].values)] = 1
+    t_props[prop_name].values[~t_props[prop_name].values.mask] = np.inf
+    for co2, dt in zip(
+        co2_props,
+        time_since_start,
+    ):
+        above_threshold = co2.values > co2_threshold
+        t_props[prop_name].values[above_threshold] = np.minimum(
+            t_props[prop_name].values[above_threshold], dt
+        )
+    # Mask inf values
+    if not isinstance(t_props[prop_name].values.mask, np.ndarray):
+        t_props[prop_name].values.mask = np.asarray(t_props[prop_name].values.mask)
+    t_props[prop_name].values.mask[np.isinf(t_props[prop_name].values)] = 1
     return t_props

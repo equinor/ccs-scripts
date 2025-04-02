@@ -329,7 +329,7 @@ def _distribute_config_property(
                     f"the amount of properties in config file"
                 )
                 raise Exception(error_text)
-        elif isinstance(prop.lower_threshold, float):
+        elif isinstance(prop.lower_threshold, (float, int)):
             logging.info(
                 f"Only one value of threshold for {str(len(prop.name))} "
                 f"properties. The same threshold will be assumed for all the "
