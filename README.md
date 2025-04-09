@@ -45,7 +45,7 @@ pip install ccs-scripts
 
 Do you have a script that processes CCS data? Would like to share it with the CCS community? **Contributions are welcome!** :star_struck: Please take contact with Floriane Mortier (fmmo).
 
-See [contribution](https://github.com/equinor/ccs-scripts/blob/main/CONTRIBUTING.md) for details.
+See [contribution](https://github.com/equinor/ccs-scripts/blob/contribution/CONTRIBUTING.md) for details.
 
 ## Documentation
 
