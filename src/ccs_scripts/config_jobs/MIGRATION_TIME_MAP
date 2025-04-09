@@ -1,4 +1,4 @@
-EXECUTABLE grid3d_migration_time
+EXECUTABLE migration_time_map
 
 DEFAULT <ECLROOT> -1
 DEFAULT <MAPFOLDER> -1
@@ -9,8 +9,8 @@ DEFAULT <DEBUG> -1
 
 ARGLIST "--config" <CONFIG_MIGTIME> "--eclroot" <ECLROOT> "--mapfolder" <MAPFOLDER> "--plotfolder" <PLOTFOLDER> "--folderroot" <FOLDERROOT> "--no_logging" <NO_LOGGING> "--debug" <DEBUG>
 
-STDERR GRID3D_MIGRATION_TIME.stderr
-STDOUT GRID3D_MIGRATION_TIME.stdout
+STDERR MIGRATION_TIME_MAP.stderr
+STDOUT MIGRATION_TIME_MAP.stdout
 
 MIN_ARG 1
 MAX_ARG 7
