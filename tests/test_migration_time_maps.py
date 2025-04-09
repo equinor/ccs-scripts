@@ -4,13 +4,13 @@ from pathlib import Path
 import pytest
 import xtgeo
 
-from ccs_scripts.aggregate import grid3d_migration_time
+from ccs_scripts.aggregate import migration_time_map
 
 
 def test_migration_time1():
     result = Path(__file__).absolute().parent / "migration_time1_folder"
     result.mkdir(parents=True)
-    grid3d_migration_time.main(
+    migration_time_map.main(
         [
             "--config",
             "tests/yaml/config_migration_time1.yml",
@@ -27,7 +27,7 @@ def test_migration_time1():
 def test_migration_time2():
     result = Path(__file__).absolute().parent / "migration_time2_folder"
     result.mkdir(parents=True)
-    grid3d_migration_time.main(
+    migration_time_map.main(
         [
             "--config",
             "tests/yaml/config_migration_time2.yml",

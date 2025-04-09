@@ -1,4 +1,4 @@
-EXECUTABLE grid3d_aggregate_map
+EXECUTABLE aggregate_map
 
 DEFAULT <ECLROOT> -1
 DEFAULT <MAPFOLDER> -1
@@ -9,8 +9,8 @@ DEFAULT <DEBUG> -1
 
 ARGLIST "--config" <CONFIG_AGGREGATE> "--eclroot" <ECLROOT> "--mapfolder" <MAPFOLDER> "--plotfolder" <PLOTFOLDER> "--folderroot" <FOLDERROOT> "--no_logging" <NO_LOGGING> "--debug" <DEBUG>
 
-STDERR GRID3D_AGGREGATE_MAP.stderr
-STDOUT GRID3D_AGGREGATE_MAP.stdout
+STDERR AGGREGATE_MAP.stderr
+STDOUT AGGREGATE_MAP.stdout
 
 MIN_ARG 1
 MAX_ARG 7
