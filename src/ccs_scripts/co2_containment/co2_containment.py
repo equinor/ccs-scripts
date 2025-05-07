@@ -704,9 +704,8 @@ def log_input_configuration(args: argparse.Namespace) -> None:
             f"{'  => Absolute path':<{col1}} : " f"{os.path.abspath(args.case)}"
         )
     logging.info(f"{'Calculation type':<{col1}} : {args.calc_type_input}")
-    logging.info(
-        f"{'Unit':<{col1}} : {'tons' if args.calc_type_input == 'mass' else 'cubic metres'}"
-    )
+    unit_str = "tons" if args.calc_type_input == "mass" else "cubic metres"
+    logging.info(f"{'Unit':<{col1}} : {unit_str}")
     logging.info(f"{'Root directory':<{col1}} : {args.root_dir}")
     logging.info(f"{'Output directory':<{col1}} : {args.out_dir}")
     logging.info(f"{'Containment polygon':<{col1}} : {args.containment_polygon}")
