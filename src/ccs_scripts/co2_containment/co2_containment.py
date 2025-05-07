@@ -361,7 +361,8 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "calc_type_input",
-        help="CO2 calculation options: mass / cell_volume / actual_volume.",
+        help="CO2 calculation options: mass / cell_volume / actual_volume. "
+        "Mass is calculated in tons, volume in cubic metres.",
     )
     parser.add_argument(
         "--root_dir",
@@ -661,7 +662,7 @@ def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
     return None
 
 
-def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
+def log_input_configuration(args: argparse.Namespace) -> None:
     """
     Log the provided input
     """
@@ -697,54 +698,38 @@ def log_input_configuration(arguments_processed: argparse.Namespace) -> None:
     )
     logging.info(f"{'Python version':<{col1}} : {py_version}")
 
-    logging.info(f"\n{'Case':<{col1}} : {arguments_processed.case}")
-    if not os.path.isabs(arguments_processed.case):
+    logging.info(f"\n{'Case':<{col1}} : {args.case}")
+    if not os.path.isabs(args.case):
         logging.info(
-            f"{'  => Absolute path':<{col1}} : "
-            f"{os.path.abspath(arguments_processed.case)}"
+            f"{'  => Absolute path':<{col1}} : " f"{os.path.abspath(args.case)}"
         )
-    logging.info(
-        f"{'Calculation type':<{col1}} : {arguments_processed.calc_type_input}"
-    )
-    logging.info(f"{'Root directory':<{col1}} : {arguments_processed.root_dir}")
-    logging.info(f"{'Output directory':<{col1}} : {arguments_processed.out_dir}")
-    logging.info(
-        f"{'Containment polygon':<{col1}} : {arguments_processed.containment_polygon}"
-    )
-    logging.info(
-        f"{'Hazardous polygon':<{col1}} : {arguments_processed.hazardous_polygon}"
-    )
-    logging.info(f"{'EGRID file':<{col1}} : {arguments_processed.egrid}")
-    logging.info(f"{'UNRST file':<{col1}} : {arguments_processed.unrst}")
-    logging.info(f"{'INIT file':<{col1}} : {arguments_processed.init}")
-    logging.info(f"{'Zone file':<{col1}} : {arguments_processed.zonefile}")
-    regionfile_str = (
-        arguments_processed.regionfile
-        if arguments_processed.regionfile is not None
-        else "-"
-    )
+    logging.info(f"{'Calculation type':<{col1}} : {args.calc_type_input}")
+    unit_str = "tons" if args.calc_type_input == "mass" else "cubic metres"
+    logging.info(f"{'Unit':<{col1}} : {unit_str}")
+    logging.info(f"{'Root directory':<{col1}} : {args.root_dir}")
+    logging.info(f"{'Output directory':<{col1}} : {args.out_dir}")
+    logging.info(f"{'Containment polygon':<{col1}} : {args.containment_polygon}")
+    logging.info(f"{'Hazardous polygon':<{col1}} : {args.hazardous_polygon}")
+    logging.info(f"{'EGRID file':<{col1}} : {args.egrid}")
+    logging.info(f"{'UNRST file':<{col1}} : {args.unrst}")
+    logging.info(f"{'INIT file':<{col1}} : {args.init}")
+    logging.info(f"{'Zone file':<{col1}} : {args.zonefile}")
+    regionfile_str = args.regionfile if args.regionfile is not None else "-"
     logging.info(f"{'Region file':<{col1}} : " f"{regionfile_str}")
     region_property_str = (
-        arguments_processed.region_property
-        if arguments_processed.region_property is not None
-        else "-"
+        args.region_property if args.region_property is not None else "-"
     )
     logging.info(f"{'Region property':<{col1}} : " f"{region_property_str}")
     logging.info(
         f"{'Residual trapping':<{col1}} : "
-        f"{'yes' if arguments_processed.residual_trapping else 'no'}"
+        f"{'yes' if args.residual_trapping else 'no'}"
     )
     readable_output_str = (
-        "yes"
-        if arguments_processed.readable_output is not None
-        and arguments_processed.readable_output
-        else "no"
+        "yes" if args.readable_output is not None and args.readable_output else "no"
     )
     logging.info(f"{'Readable output':<{col1}} : " f"{readable_output_str}")
     config_file_inj_wells_str = (
-        arguments_processed.config_file_inj_wells
-        if arguments_processed.config_file_inj_wells != ""
-        else "-"
+        args.config_file_inj_wells if args.config_file_inj_wells != "" else "-"
     )
     logging.info(
         f"{'Plume tracking YAML-file':<{col1}} : " f"{config_file_inj_wells_str}\n"

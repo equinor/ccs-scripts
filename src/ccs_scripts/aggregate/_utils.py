@@ -53,6 +53,9 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     )
     logging.info(f"{'Python version':<{col1}} : {py_version}")
 
+    if calc_type == "co2_mass":
+        logging.info(f"\n{'Unit':<{col1}} : tons")
+
     logging.info("\nInput configuration:")
     logging.info(f"{'  Grid file':<{col1}} : {config_.input.grid}")
     if not os.path.isabs(config_.input.grid):
