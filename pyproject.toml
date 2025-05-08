@@ -83,8 +83,8 @@ co2_containment = "ccs_scripts.co2_containment.co2_containment:main"
 grid3d_co2_mass_map = "ccs_scripts.aggregate.grid3d_co2_mass_map:main"
 co2_plume_area = "ccs_scripts.co2_plume_area.co2_plume_area:main"
 co2_plume_extent = "ccs_scripts.co2_plume_extent.co2_plume_extent:main"
-aggregate_map = "ccs_scripts.aggregate.aggregate_map:main"
-migration_time_map = "ccs_scripts.aggregate.migration_time_map:main"
+grid3d_aggregate_map = "ccs_scripts.aggregate.grid3d_aggregate_map:main"
+grid3d_migration_time = "ccs_scripts.aggregate.grid3d_migration_time:main"
 
 [project.entry-points.ert]
 ccs_scripts_jobs = "ccs_scripts.hook_implementations.jobs"

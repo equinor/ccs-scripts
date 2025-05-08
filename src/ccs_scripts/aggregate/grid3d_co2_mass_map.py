@@ -167,7 +167,7 @@ def co2_mass_property_to_map(
                     None,
                 )
             )
-    aggregate_map.generate_from_config(config_)
+    grid3d_aggregate_map.generate_from_config(config_)
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:
