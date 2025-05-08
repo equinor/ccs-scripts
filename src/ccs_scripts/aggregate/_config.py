@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Tuple
 
 class AggregationMethod(Enum):
     """
-    Enum representing the available aggregation methods for `grid3d_aggregate_map`
+    Enum representing the available aggregation methods for `aggregate_map`
     """
 
     MAX = "max"

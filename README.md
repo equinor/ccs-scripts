@@ -18,9 +18,9 @@
 
 - **co2_containment:** This scripts can output several different information: the plume mass, plume volume and returns volumes of CO2 inside/outside a boundary when 1 or 2 polygons are provided. 
 
-- **grid3d_migration_time:** Returns one map per formation showing the time it takes for the CO2 to migrate to a certain point (only SGAS ).
+- **migration_time_map:** Returns one map per formation showing the time it takes for the CO2 to migrate to a certain point (only SGAS ).
 
-- **grid3d_aggregate_map:** Returns one map per formation returning the highest saturation per location (in SGAS & AMFG).
+- **aggregate_map:** Returns one map per formation returning the highest saturation per location (in SGAS & AMFG).
 
 - **grid3d_co2_mass_map:** Returns one map per formation showing the aggregated mass of CO2 (Free, Dissolved & Total).
 

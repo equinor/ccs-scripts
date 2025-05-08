@@ -13,7 +13,7 @@ from ccs_scripts.aggregate import (
     _config,
     _migration_time,
     _parser,
-    grid3d_aggregate_map,
+    aggregate_map,
 )
 from ccs_scripts.aggregate._config import RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
@@ -40,7 +40,7 @@ CATEGORY = "modelling.reservoir"
 EXAMPLES = """
 .. code-block:: console
 
-  FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
+  FORWARD_MODEL MIGRATION_TIME_MAP(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
 """
 
 
@@ -87,7 +87,7 @@ def calculate_migration_time_property(
     prop_spec = [_config.Property(source=properties_files, name=property_name)]
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
     properties = _parser.extract_properties(prop_spec, grid, dates)
-    grid3d_aggregate_map._log_properties_info(properties)
+    aggregate_map._log_properties_info(properties)
     t_prop = _migration_time.generate_migration_time_property(
         properties, lower_threshold
     )
@@ -113,7 +113,7 @@ def migration_time_property_to_map(
         os.close(temp_file)
         config_.input.properties = [_config.Property(temp_path, None, None)]
         prop.to_file(temp_path)
-    grid3d_aggregate_map.generate_from_config(config_)
+    aggregate_map.generate_from_config(config_)
     os.unlink(temp_path)
 
 
