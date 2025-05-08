@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import yaml
 
-from ccs_scripts.aggregate import _config, _parser, aggregate_map
+from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map
 from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
 from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
@@ -149,7 +149,7 @@ def co2_mass_property_to_map(
 ):
     """
     Aggregates with SUM and writes a list of CO2 mass property to files
-    using `aggregate_map`.
+    using `grid3d_aggregate_map`.
 
     Args:
         config_:           Arguments in the config file
@@ -167,7 +167,7 @@ def co2_mass_property_to_map(
                     None,
                 )
             )
-    aggregate_map.generate_from_config(config_)
+    grid3d_aggregate_map.generate_from_config(config_)
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:

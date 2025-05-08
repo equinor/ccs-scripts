@@ -13,11 +13,11 @@ from ccs_scripts.aggregate import (
     _config,
     _migration_time,
     _parser,
-    aggregate_map,
+    grid3d_aggregate_map,
 )
 from ccs_scripts.aggregate._config import RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
-from ccs_scripts.aggregate.aggregate_map import _distribute_config_property
+from ccs_scripts.aggregate.grid3d_aggregate_map import _distribute_config_property
 
 _XTG = XTGeoDialog()
 
@@ -40,7 +40,7 @@ CATEGORY = "modelling.reservoir"
 EXAMPLES = """
 .. code-block:: console
 
-  FORWARD_MODEL MIGRATION_TIME_MAP(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
+  FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
 """
 
 
@@ -87,7 +87,7 @@ def calculate_migration_time_property(
     prop_spec = [_config.Property(source=properties_files, name=property_name)]
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
     properties = _parser.extract_properties(prop_spec, grid, dates)
-    aggregate_map._log_properties_info(properties)
+    grid3d_aggregate_map._log_properties_info(properties)
     t_prop = _migration_time.generate_migration_time_property(
         properties, lower_threshold
     )
@@ -100,7 +100,7 @@ def migration_time_property_to_map(
     t_prop: Dict[str, xtgeo.GridProperty],
 ):
     """
-    Aggregates and writes a migration time property to file using `aggregate_map`.
+    Aggregates and writes a migration time property to file using `grid3d_aggregate_map`.
     The migration time property is written to a temporary file while performing the
     aggregation.
     """
@@ -113,7 +113,7 @@ def migration_time_property_to_map(
         os.close(temp_file)
         config_.input.properties = [_config.Property(temp_path, None, None)]
         prop.to_file(temp_path)
-    aggregate_map.generate_from_config(config_)
+    grid3d_aggregate_map.generate_from_config(config_)
     os.unlink(temp_path)
 
 
