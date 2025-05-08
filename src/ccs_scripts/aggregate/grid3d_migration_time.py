@@ -40,7 +40,7 @@ CATEGORY = "modelling.reservoir"
 EXAMPLES = """
 .. code-block:: console
 
-  FORWARD_MODEL MIGRATION_TIME_MAP(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
+  FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
 """
 
 
