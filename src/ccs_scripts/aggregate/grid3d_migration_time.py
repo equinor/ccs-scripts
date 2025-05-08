@@ -87,7 +87,7 @@ def calculate_migration_time_property(
     prop_spec = [_config.Property(source=properties_files, name=property_name)]
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
     properties = _parser.extract_properties(prop_spec, grid, dates)
-    aggregate_map._log_properties_info(properties)
+    grid3d_aggregate_map._log_properties_info(properties)
     t_prop = _migration_time.generate_migration_time_property(
         properties, lower_threshold
     )
@@ -100,7 +100,7 @@ def migration_time_property_to_map(
     t_prop: Dict[str, xtgeo.GridProperty],
 ):
     """
-    Aggregates and writes a migration time property to file using `grid3d_aggregate_map`.
+    Aggregates and writes a migration time property to file using `grid3d_aggregate_map`
     The migration time property is written to a temporary file while performing the
     aggregation.
     """
@@ -113,7 +113,7 @@ def migration_time_property_to_map(
         os.close(temp_file)
         config_.input.properties = [_config.Property(temp_path, None, None)]
         prop.to_file(temp_path)
-    aggregate_map.generate_from_config(config_)
+    grid3d_aggregate_map.generate_from_config(config_)
     os.unlink(temp_path)
 
 
