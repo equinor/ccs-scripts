@@ -8,6 +8,7 @@ DEFAULT <NO_LOGGING> -1
 DEFAULT <DEBUG> -1
 
 ARGLIST "--config" <CONFIG_MIGTIME> "--eclroot" <ECLROOT> "--mapfolder" <MAPFOLDER> "--plotfolder" <PLOTFOLDER> "--folderroot" <FOLDERROOT> "--no_logging" <NO_LOGGING> "--debug" <DEBUG>
+
 STDERR GRID3D_MIGRATION_TIME.stderr
 STDOUT GRID3D_MIGRATION_TIME.stdout
 
