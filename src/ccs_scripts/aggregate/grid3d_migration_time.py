@@ -13,7 +13,7 @@ from ccs_scripts.aggregate import (
     _config,
     _migration_time,
     _parser,
-    aggregate_map,
+    grid3d_aggregate_map,
 )
 from ccs_scripts.aggregate._config import RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration

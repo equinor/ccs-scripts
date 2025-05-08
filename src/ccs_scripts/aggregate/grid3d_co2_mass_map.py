@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import yaml
 
-from ccs_scripts.aggregate import _config, _parser, aggregate_map
+from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map
 from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
 from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
