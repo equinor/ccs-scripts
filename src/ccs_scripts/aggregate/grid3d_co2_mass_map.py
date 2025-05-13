@@ -35,7 +35,7 @@ CATEGORY = "modelling.reservoir"
 EXAMPLES = """
 .. code-block:: console
 
-  FORWARD_MODEL CO2_MASS_MAP(<CONFIG_CO2_MASS_MAP>=conf.yml, <ECLROOT>=<ECLBASE>)
+  FORWARD_MODEL GRID3D_CO2_MASS_MAP(<CONFIG_CO2_MASS_MAP>=conf.yml, <ECLROOT>=<ECLBASE>)
 """
 
 
@@ -149,7 +149,7 @@ def co2_mass_property_to_map(
 ):
     """
     Aggregates with SUM and writes a list of CO2 mass property to files
-    using `grid3d_aggregate_maps`.
+    using `grid3d_aggregate_map`.
 
     Args:
         config_:           Arguments in the config file

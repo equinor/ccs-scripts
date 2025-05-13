@@ -100,7 +100,7 @@ def migration_time_property_to_map(
     t_prop: Dict[str, xtgeo.GridProperty],
 ):
     """
-    Aggregates and writes a migration time property to file using `grid3d_aggragte_map`.
+    Aggregates and writes a migration time property to file using `grid3d_aggregate_map`
     The migration time property is written to a temporary file while performing the
     aggregation.
     """

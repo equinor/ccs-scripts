@@ -4,7 +4,7 @@ from pathlib import Path
 
 from resdata.resfile import FortIO, ResdataFile, openFortIO
 
-from ccs_scripts.aggregate import co2_mass_map
+from ccs_scripts.aggregate import grid3d_co2_mass_map
 
 
 def adapt_reek_grid_for_co2_mass_map_test():
@@ -75,7 +75,7 @@ def test_co2_mass_map_reek_grid():
     result = str(Path(__file__).absolute().parent / "answers" / "mass_map")
     if not os.path.exists(result):
         os.makedirs(result)
-    co2_mass_map.main(
+    grid3d_co2_mass_map.main(
         [
             "--config",
             str(
@@ -129,7 +129,7 @@ def test_co2_mass_map_residual_trapping_pflotran():
     if not os.path.exists(result):
         os.makedirs(result)
 
-    co2_mass_map.main(
+    grid3d_co2_mass_map.main(
         [
             "--config",
             str(
