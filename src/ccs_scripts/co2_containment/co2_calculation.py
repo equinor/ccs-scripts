@@ -1,6 +1,6 @@
 # pylint: disable-msg=too-many-lines
 """Methods for CO2 containment calculations"""
-
+import copy
 import logging
 from dataclasses import dataclass, fields, make_dataclass
 from enum import Enum
