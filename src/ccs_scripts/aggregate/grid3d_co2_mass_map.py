@@ -17,9 +17,9 @@ from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
     RegionInfo,
     ZoneInfo,
+    _detect_eclipse_mole_fraction_props,
     calculate_co2,
     source_data_,
-    _detect_eclipse_mole_fraction_props,
 )
 
 # Module variables for ERT hook implementation:
