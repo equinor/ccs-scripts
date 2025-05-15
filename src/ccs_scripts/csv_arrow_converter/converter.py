@@ -84,6 +84,7 @@ def try_convert_containment_csv_to_arrow(
 
 
 def apply_to_realizations(
+    root_dir: Path,
     realization_pattern: str,
     kept_columns: List[str],
     overwrite_arrow: bool = False,
@@ -97,7 +98,7 @@ def apply_to_realizations(
     flags control whether existing files should be overwritten.
     """
     assert not overwrite_csv or not overwrite_arrow
-    for realization_dir in Path(".").glob(realization_pattern):
+    for realization_dir in root_dir.glob(realization_pattern):
         # Extract paths for CSV and Arrow files
         csv_path_1 = _get_csv_path(realization_dir, _FileType.PLUME_EXTENT)
         csv_path_2 = _get_csv_path(realization_dir, _FileType.PLUME_AREA)
@@ -179,10 +180,16 @@ def _read_data_frame_from_arrow(arrow_path: Path) -> pd.DataFrame:
     return table.to_pandas()
 
 
-if __name__ == "__main__":
+def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Create missing Arrow/CSV files for FMU realizations")
+    parser.add_argument(
+        "--root_dir",
+        type=Path,
+        help="Root directory for the glob pattern",
+        default=Path(".").resolve(),
+    )
     parser.add_argument(
         "--realization-pattern",
         type=Path,
@@ -210,8 +217,13 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     apply_to_realizations(
+        Path(".").resolve(),
         args.realization_pattern,
         args.kept_columns,
         args.force_arrow_overwrite,
         args.force_csv_overwrite,
     )
+
+
+if __name__ == "__main__":
+    main()
