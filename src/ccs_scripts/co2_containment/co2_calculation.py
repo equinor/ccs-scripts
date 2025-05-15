@@ -1,6 +1,6 @@
 # pylint: disable-msg=too-many-lines
 """Methods for CO2 containment calculations"""
-
+import copy
 import logging
 from dataclasses import dataclass, fields, make_dataclass
 from enum import Enum
@@ -208,7 +208,7 @@ def _detect_eclipse_mole_fraction_props(
                 [name + str(suffix_count) for name in ["XMF", "YMF"]]
             )
         suffix_count += 1
-    return current_source_data
+    return current_source_data, properties_to_extract
 
 
 def _n_components(active_props: List):
@@ -1619,9 +1619,9 @@ def calculate_co2(
       CO2Data
 
     """
-    properties_to_extract = RELEVANT_PROPERTIES.copy()
-    current_source_data = source_data_.copy()
-    properties_to_add = _detect_eclipse_mole_fraction_props(
+    properties_to_extract = copy.deepcopy(RELEVANT_PROPERTIES)
+    current_source_data = copy.deepcopy(source_data_)
+    properties_to_add, properties_to_extract = _detect_eclipse_mole_fraction_props(
         unrst_file, properties_to_extract, current_source_data
     )
     if residual_trapping:
