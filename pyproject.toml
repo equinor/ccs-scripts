@@ -45,6 +45,7 @@ dependencies = [
     "pyyaml",
     "ert",
     "resfo",
+    "pyarrow",
 ]
 
 [project.optional-dependencies]
@@ -85,6 +86,7 @@ co2_plume_area = "ccs_scripts.co2_plume_area.co2_plume_area:main"
 co2_plume_extent = "ccs_scripts.co2_plume_extent.co2_plume_extent:main"
 grid3d_aggregate_map = "ccs_scripts.aggregate.grid3d_aggregate_map:main"
 grid3d_migration_time = "ccs_scripts.aggregate.grid3d_migration_time:main"
+co2_csv_arrow_converter = "ccs_scripts.co2_csv_arrow_converter:main"
 
 [project.entry-points.ert]
 ccs_scripts_jobs = "ccs_scripts.hook_implementations.jobs"

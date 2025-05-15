@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 from pytest import fixture
-from ccs_scripts.csv_arrow_converter.converter import (
+from ccs_scripts.co2_csv_arrow_converter.converter import (
     try_convert_arrow_to_csv,
     try_convert_csv_to_arrow,
     try_convert_containment_csv_to_arrow,

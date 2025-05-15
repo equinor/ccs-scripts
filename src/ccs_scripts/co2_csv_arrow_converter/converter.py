@@ -192,16 +192,15 @@ def main():
     )
     parser.add_argument(
         "--realization-pattern",
-        type=Path,
+        type=str,
         help="Glob pattern (relative to current directory) for an FMU realization directory",
         default="",
     )
     parser.add_argument(
         "--kept-columns",
         type=str,
-        nargs="+",
-        help="Columns to keep when converting containment data",
-        default=["phase", "containment"],
+        help="Comma-separated list of columns to keep when converting containment data",
+        default="phase,containment",
     )
     parser.add_argument(
         "--force-arrow-overwrite",
@@ -217,9 +216,9 @@ def main():
     )
     args = parser.parse_args()
     apply_to_realizations(
-        Path(".").resolve(),
+        args.root_dir,
         args.realization_pattern,
-        args.kept_columns,
+        args.kept_columns.split(","),
         args.force_arrow_overwrite,
         args.force_csv_overwrite,
     )
