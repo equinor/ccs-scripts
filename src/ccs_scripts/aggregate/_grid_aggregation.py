@@ -1,4 +1,6 @@
 import dataclasses
+import logging
+import sys
 from dataclasses import dataclass
 from typing import Any, List, Optional, Tuple, Union
 
@@ -78,6 +80,11 @@ def _read_properties_and_find_active_cells(
         inclusion_filters_copy = [x for x in inclusion_filters if x is not None]
         all_masked |= ~np.any(inclusion_filters_copy, axis=0)
     active[active] = ~all_masked
+    if not any(active):
+        logging.error(
+            "\nERROR: All grid cells are inactive. This can be due to a high input threshold."
+        )
+        sys.exit(1)
     props = [p[~all_masked] for p in props]
     inclusion_filters = [
         None if inc is None else inc[~all_masked] for inc in inclusion_filters
