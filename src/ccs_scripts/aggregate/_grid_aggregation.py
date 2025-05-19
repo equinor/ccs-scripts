@@ -82,7 +82,8 @@ def _read_properties_and_find_active_cells(
     active[active] = ~all_masked
     if not any(active):
         logging.error(
-            "\nERROR: All grid cells are inactive. This can be due to a high input threshold."
+            "\nERROR: All grid cells are inactive. "
+            "This can be due to a high input threshold."
         )
         sys.exit(1)
     props = [p[~all_masked] for p in props]
