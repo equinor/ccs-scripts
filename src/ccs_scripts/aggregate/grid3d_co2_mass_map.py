@@ -85,6 +85,7 @@ def generate_co2_mass_maps(config_: RootConfig):
         _, properties_to_extract = _detect_eclipse_mole_fraction_props(
             co2_mass_settings.unrst_source, properties_to_extract, current_source_data
         )
+        print("Start translate_co2data_to_property()")
         out_property_list = translate_co2data_to_property(
             co2_data,
             grid_file,
@@ -93,7 +94,10 @@ def generate_co2_mass_maps(config_: RootConfig):
             properties_to_extract,
             dates_idx,
         )
+        print("End translate_co2data_to_property()")
+        print("Start co2_mass_property_to_map()")
         co2_mass_property_to_map(config_, out_property_list)
+        print("End co2_mass_property_to_map()")
     finally:
         # Make sure temp directory is deleted even if exception is thrown above
         if delete_tmp_grid_folder:

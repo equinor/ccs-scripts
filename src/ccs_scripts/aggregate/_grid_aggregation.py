@@ -48,6 +48,8 @@ def aggregate_maps(
     props, active_cells, inclusion_filters = _read_properties_and_find_active_cells(
         grid, grid_props, inclusion_filters
     )
+    print(f"\n\ngrid_props: {len(grid_props)}")
+    print(f"{[x.name for x in grid_props]}")
     weights = grid.get_dz().values1d[active_cells] if weight_by_dz else None
     # Map nodes (pixel locations) and connections
     conn_data = _find_connections(
@@ -273,6 +275,9 @@ def _properties_to_maps(
     method: AggregationMethod,
     conn_data: _ConnectionData,
 ):
+    print(f"\n\n_properties_to_maps")
+    print(f"Number of inclustion filters: {len(inclusion_filters)}")
+    print(f"Number of properties        : {len(properties)}")
     results: List[Any] = []
     for incl in inclusion_filters:
         map_ix = conn_data.node_indices
@@ -304,14 +309,26 @@ def _property_to_map(
     weights: Optional[np.ndarray],
     method: AggregationMethod,
 ):
+    # print(f"\n_property_to_map()")
+    import time
+    t0 = time.time()
+
     rows = conn_data.node_indices
     cols = conn_data.grid_indices
+    print(f"\nA  {(time.time() - t0):.4f}")
+    t0 = time.time()
     assert rows.shape == cols.shape
     assert weights is None or weights.shape == prop.shape
     if weights is not None:
         assert method in [AggregationMethod.MEAN, AggregationMethod.SUM]
+    print(f"B  {(time.time() - t0):.4f}")
+    t0 = time.time()
     data = prop[cols]
+    print(f"C  {(time.time() - t0):.4f}")
+    t0 = time.time()
     weights = np.ones_like(data) if weights is None else weights[cols]
+    print(f"D  {(time.time() - t0):.4f}")
+    t0 = time.time()
     if data.mask.any():
         invalid = data.mask
         rows = rows[~invalid]
@@ -319,8 +336,12 @@ def _property_to_map(
         data = data[~invalid]
         if weights is not None:
             weights = weights[~invalid]
+    print(f"E  {(time.time() - t0):.4f}")
+    t0 = time.time()
 
     nx, ny = conn_data.x_nodes.size, conn_data.y_nodes.size
+    print(f"F  {(time.time() - t0):.4f}")
+    t0 = time.time()
     if data.size == 0:
         return np.full((nx, ny), fill_value=np.nan)
     # Calculate temporary data shift to avoid unintended deletion of data by tocsc:
@@ -336,16 +357,50 @@ def _property_to_map(
         shift = 0.0
     else:
         raise NotImplementedError
+    print(f"G  {(time.time() - t0):.4f}")
+    t0 = time.time()
+
     shape = (nx * ny, max(cols) + 1)
+    a = scipy.sparse.coo_matrix((data - shift, (rows, cols)), shape=shape)
+    print(f"H1 {(time.time() - t0):.4f}")
+    t0 = time.time()
+
+    values_temp = a.tocsc()
+    print(f"H2 {(time.time() - t0):.4f}")
+    t0 = time.time()
+
+    b = scipy.sparse.coo_matrix((weights, (rows, cols)), shape=shape)
+    print(f"I1 {(time.time() - t0):.4f}")
+    t0 = time.time()
+
+    weight_temp = b.tocsc()
+    print(f"I2 {(time.time() - t0):.4f}")
+    t0 = time.time()
+
     res = _aggregate_sparse_data(
-        values=scipy.sparse.coo_matrix(
-            (data - shift, (rows, cols)), shape=shape
-        ).tocsc(),
-        weight=scipy.sparse.coo_matrix((weights, (rows, cols)), shape=shape).tocsc(),
+        values=values_temp,
+        weight=weight_temp,
         method=method,
     )
+    # res = _aggregate_sparse_data(
+    #     values=scipy.sparse.coo_matrix(
+    #         (data - shift, (rows, cols)), shape=shape
+    #     ).tocsc(),
+    #     weight=scipy.sparse.coo_matrix((weights, (rows, cols)), shape=shape).tocsc(),
+    #     method=method,
+    # )
+    print(f"J  {(time.time() - t0):.4f}")
+    t0 = time.time()
+
     res += shift
+    print(f"K  {(time.time() - t0):.4f}")
+    t0 = time.time()
+
     res = res.reshape(nx, ny)
+    print(f"L  {(time.time() - t0):.4f}")
+    t0 = time.time()
+
+    exit()
     return res
 
 
@@ -354,7 +409,13 @@ def _aggregate_sparse_data(
     weight: scipy.sparse.csc_matrix,
     method: AggregationMethod,
 ):
+    # method = AggregationMethod.DISTRIBUTE
+    # import time
+    # t0 = time.time()
+
     total_weight = weight.sum(axis=1)
+    # print(f"\nA {(time.time() - t0):.4f}")
+    # t0 = time.time()
     # Make sure to shift data to avoid
     if method == AggregationMethod.MAX:
         res = values.max(axis=1).toarray()
@@ -371,14 +432,38 @@ def _aggregate_sparse_data(
         # This method distributes the values from a grid cell to all the pixels that
         # overlap with this grid cell. This is especially relevant for maps where the
         # total sum needs to be preserved, e.g. when aggregating mass.
+        # t1 = time.time()
         w_csr = weight.tocsr()
+        # print(f"    B1 {(time.time() - t1):.4f}")
+        # t1 = time.time()
+
         col_sum = np.asarray(w_csr.sum(axis=0))
+        # print(f"    B2 {(time.time() - t1):.4f}")
+        # t1 = time.time()
+
         div = np.where(col_sum > 0, col_sum, 1)
+        # print(f"    B3 {(time.time() - t1):.4f}")
+        # t1 = time.time()
+
         w_csr = w_csr / div
+        # print(f"    B4 {(time.time() - t1):.4f}")
+        # t1 = time.time()
+
         res = np.asarray((values.multiply(w_csr.tocsc())).sum(axis=1))
+        # print(f"    B5 {(time.time() - t1):.4f}")
+        # t1 = time.time()
     else:
         raise NotImplementedError
+    # print(f"B {(time.time() - t0):.4f}")
+    # t0 = time.time()
     res = res.flatten()
+    # print(f"C {(time.time() - t0):.4f}")
+    # t0 = time.time()
     total_weight = np.array(total_weight).flatten()
+    # print(f"D {(time.time() - t0):.4f}")
+    # t0 = time.time()
     res[total_weight == 0] = np.nan
+    # print(f"E {(time.time() - t0):.4f}")
+    # t0 = time.time()
+    # exit()
     return res
