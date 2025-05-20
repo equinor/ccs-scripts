@@ -230,6 +230,7 @@ def extract_properties(
     property_spec: Optional[List[Property]],
     grid: Optional[xtgeo.Grid],
     dates: List[str],
+    mask_low_values: bool=True,
 ) -> List[xtgeo.GridProperty]:
     """
     Extract 3D grid properties based on the provided property specification
@@ -252,7 +253,7 @@ def extract_properties(
             ).props
         except (RuntimeError, ValueError):
             props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
-        if spec.lower_threshold is not None:
+        if mask_low_values:
             for prop in props:
                 if not isinstance(prop.values.mask, np.ndarray):
                     prop.values.mask = np.asarray(prop.values.mask)
@@ -261,6 +262,7 @@ def extract_properties(
                 print(f"Size         : {prop.values.size}")
                 print(f"n_masked     : {np.ma.count_masked(prop.values)}")
                 print(f"n_not_masked : {np.ma.count(prop.values)}")
+                print(prop.values.max())
                 prop.values.mask[prop.values < spec.lower_threshold] = True  # NBNB-AS
                 print(f"After:")
                 print(f"Size         : {prop.values.size}")

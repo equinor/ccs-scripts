@@ -176,7 +176,7 @@ def co2_mass_property_to_map(
                 _config.Property(
                     props,
                     None,
-                    None,  # NBNB-AS
+                    1e-6,  # 0.001 kg
                 )
             )
     grid3d_aggregate_map.generate_from_config(config_)
