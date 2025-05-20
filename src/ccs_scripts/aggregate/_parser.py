@@ -230,7 +230,7 @@ def extract_properties(
     property_spec: Optional[List[Property]],
     grid: Optional[xtgeo.Grid],
     dates: List[str],
-    mask_low_values: bool=True,
+    mask_low_values: bool = True,
 ) -> List[xtgeo.GridProperty]:
     """
     Extract 3D grid properties based on the provided property specification
