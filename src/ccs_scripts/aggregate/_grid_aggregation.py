@@ -49,12 +49,6 @@ def aggregate_maps(
     props, active_cells, inclusion_filters = _read_properties_and_find_active_cells(
         grid, grid_props, inclusion_filters
     )
-    print(f"\n\ngrid_props: {len(grid_props)}")
-    print(f"{[x.name for x in grid_props]}")
-    print(f"Shape of grid: {grid.actnum_array.shape}")
-    print(f"Size         : {grid.actnum_array.size}")
-    print(f"n_masked     : {np.ma.count_masked(grid.actnum_array)}")
-    print(f"n_not_masked : {np.ma.count(grid.actnum_array)}")
     weights = grid.get_dz().values1d[active_cells] if weight_by_dz else None
     # Map nodes (pixel locations) and connections
     conn_data = _find_connections(
@@ -280,17 +274,6 @@ def _properties_to_maps(
     method: AggregationMethod,
     conn_data: _ConnectionData,
 ):
-    print(f"\n\n_properties_to_maps")
-    print(f"Number of inclusion filters: {len(inclusion_filters)}")
-    print(f"Number of properties       : {len(properties)}")
-    p = properties[-1]
-    # print(p)
-    print(p.ndim)
-    print(p.dtype)
-    print(p.size)
-    print(np.ma.count_masked(p))
-    print(np.ma.count(p))
-    # exit()
     results: List[Any] = []
     for incl in inclusion_filters:
         map_ix = conn_data.node_indices

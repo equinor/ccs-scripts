@@ -25,7 +25,6 @@ class AggregationMethod(Enum):
 class Property:
     source: str
     name: Optional[str] = None
-    # lower_threshold: Optional[float] = None
     lower_threshold: float = 1e-10
 
     def __post_init__(self):

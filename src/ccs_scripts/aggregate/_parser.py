@@ -257,18 +257,7 @@ def extract_properties(
             for prop in props:
                 if not isinstance(prop.values.mask, np.ndarray):
                     prop.values.mask = np.asarray(prop.values.mask)
-                print(f"\nName: {prop.name}")
-                print(f"Before:")
-                print(f"Size         : {prop.values.size}")
-                print(f"n_masked     : {np.ma.count_masked(prop.values)}")
-                print(f"n_not_masked : {np.ma.count(prop.values)}")
-                print(prop.values.max())
-                prop.values.mask[prop.values < spec.lower_threshold] = True  # NBNB-AS
-                print(f"After:")
-                print(f"Size         : {prop.values.size}")
-                print(f"n_masked     : {np.ma.count_masked(prop.values)}")
-                print(f"n_not_masked : {np.ma.count(prop.values)}")
-            # exit()
+                prop.values.mask[prop.values < spec.lower_threshold] = True
         # Check if any of the properties missing a date had date as part of the file
         # stem, separated by a "--"
         for prop in props:
