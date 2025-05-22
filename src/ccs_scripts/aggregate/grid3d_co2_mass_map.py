@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 import logging
 import os
 import shutil
@@ -16,7 +17,9 @@ from ccs_scripts.co2_containment.co2_calculation import (
     RELEVANT_PROPERTIES,
     RegionInfo,
     ZoneInfo,
+    _detect_eclipse_mole_fraction_props,
     calculate_co2,
+    source_data_,
 )
 
 # Module variables for ERT hook implementation:
@@ -77,12 +80,17 @@ def generate_co2_mass_maps(config_: RootConfig):
         dates_idx = [i for i, val in enumerate(all_dates) if val in dates]
     grid_folder, delete_tmp_grid_folder = _process_grid_dir(config_.output.gridfolder)
     try:
+        properties_to_extract = copy.deepcopy(RELEVANT_PROPERTIES)
+        current_source_data = copy.deepcopy(source_data_)
+        _, properties_to_extract = _detect_eclipse_mole_fraction_props(
+            co2_mass_settings.unrst_source, properties_to_extract, current_source_data
+        )
         out_property_list = translate_co2data_to_property(
             co2_data,
             grid_file,
             co2_mass_settings,
             grid_folder,
-            RELEVANT_PROPERTIES,
+            properties_to_extract,
             dates_idx,
         )
         co2_mass_property_to_map(config_, out_property_list)

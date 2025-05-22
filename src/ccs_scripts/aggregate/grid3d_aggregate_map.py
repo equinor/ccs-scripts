@@ -3,6 +3,7 @@ import logging
 import os
 import pathlib
 import sys
+import warnings
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -269,7 +270,13 @@ def _write_surfaces(
             logging.warning("WARNING: Specified plot folder does not exist")
 
     for surface in surfaces:
-        surface.to_file((pathlib.Path(map_folder) / surface.name).with_suffix(".gri"))
+        with warnings.catch_warnings():
+            # Can ignore xtgeo-warning for few/zero active nodes
+            # (can happen for first map, before injection)
+            warnings.filterwarnings("ignore", message=r"Number of maps nodes are*")
+            surface.to_file(
+                (pathlib.Path(map_folder) / surface.name).with_suffix(".gri")
+            )
         if plot_folder and os.path.exists(plot_folder):
             pn = pathlib.Path(plot_folder) / surface.name
             if use_plotly:
