@@ -21,3 +21,4 @@ mapsettings:
 
 output:
   mapfolder: tmp
+  replace_masked_with_zero: no

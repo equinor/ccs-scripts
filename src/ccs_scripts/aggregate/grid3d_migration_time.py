@@ -54,6 +54,7 @@ def _check_config(config_: RootConfig) -> None:
         config_.computesettings.indicator_map = False
     config_.computesettings.aggregation = _config.AggregationMethod.MIN
     config_.output.aggregation_tag = False
+    config_.output.replace_masked_with_zero = False
     config_.computesettings.aggregate_map = True
 
 
@@ -86,7 +87,9 @@ def calculate_migration_time_property(
     logging.info("\nStart calculating time migration property in 3D grid")
     prop_spec = [_config.Property(source=properties_files, name=property_name)]
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
-    properties = _parser.extract_properties(prop_spec, grid, dates)
+    properties = _parser.extract_properties(
+        prop_spec, grid, dates, mask_low_values=False
+    )
     grid3d_aggregate_map._log_properties_info(properties)
     t_prop = _migration_time.generate_migration_time_property(
         properties, lower_threshold
@@ -111,7 +114,9 @@ def migration_time_property_to_map(
     for prop in t_prop.values():
         temp_file, temp_path = tempfile.mkstemp()
         os.close(temp_file)
-        config_.input.properties = [_config.Property(temp_path, None, None)]
+        config_.input.properties = [
+            _config.Property(temp_path, None)
+        ]  # NBNB-AS: Input threshold?
         prop.to_file(temp_path)
     grid3d_aggregate_map.generate_from_config(config_)
     os.unlink(temp_path)

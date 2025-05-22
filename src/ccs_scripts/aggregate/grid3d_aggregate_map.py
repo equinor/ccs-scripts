@@ -191,7 +191,13 @@ def generate_maps(
             p_maps,
             output.lowercase,
         )
-        _write_surfaces(surfs, output.mapfolder, output.plotfolder, output.use_plotly)
+        _write_surfaces(
+            surfs,
+            output.mapfolder,
+            output.plotfolder,
+            output.use_plotly,
+            output.replace_masked_with_zero,
+        )
         _log_surfaces_exported(surfs, [f[0] for f in _filters], "aggregate")
     if computesettings.indicator_map:
         prop_tags_indicator = [p.replace("max", "indicator") for p in prop_tags]
@@ -207,7 +213,11 @@ def generate_maps(
             output.lowercase,
         )
         _write_surfaces(
-            surfs_indicator, output.mapfolder, output.plotfolder, output.use_plotly
+            surfs_indicator,
+            output.mapfolder,
+            output.plotfolder,
+            output.use_plotly,
+            output.replace_masked_with_zero,
         )
         _log_surfaces_exported(surfs_indicator, [f[0] for f in _filters], "indicator")
 
@@ -254,6 +264,7 @@ def _write_surfaces(
     map_folder: str,
     plot_folder: Optional[str],
     use_plotly: bool,
+    replace_masked_with_zero: bool = True,
 ):
     logging.info("\nWriting to map folder")
     logging.info(f"     Path         : {map_folder}")
@@ -274,6 +285,8 @@ def _write_surfaces(
             # Can ignore xtgeo-warning for few/zero active nodes
             # (can happen for first map, before injection)
             warnings.filterwarnings("ignore", message=r"Number of maps nodes are*")
+            if replace_masked_with_zero:
+                surface.values = surface.values.filled(0)
             surface.to_file(
                 (pathlib.Path(map_folder) / surface.name).with_suffix(".gri")
             )

@@ -25,7 +25,7 @@ class AggregationMethod(Enum):
 class Property:
     source: str
     name: Optional[str] = None
-    lower_threshold: Optional[float] = None
+    lower_threshold: float = 1e-10
 
     def __post_init__(self):
         if isinstance(self.lower_threshold, str):
@@ -117,6 +117,7 @@ class Output:
     use_plotly: bool = False
     aggregation_tag: bool = True
     gridfolder: Optional[str] = None
+    replace_masked_with_zero: bool = True
 
     def __post_init__(self):
         if self.mapfolder == "fmu-dataio":
