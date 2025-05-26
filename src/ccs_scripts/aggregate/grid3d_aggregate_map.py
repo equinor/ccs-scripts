@@ -272,7 +272,8 @@ def _log_surfaces(surfaces: List[xtgeo.RegularSurface]):
         n_values = s.values.count()
         mean_val = f"{s.values.mean():.3f}" if n_values > 0 else "-"
         max_val = f"{s.values.max():.3f}" if n_values > 0 else "-"
-        txt = f"{s.name:<40} {mean_val:>10} {max_val:>10} {n_values:>10} {np.ma.count_masked(s.values):>10}"
+        txt = f"{s.name:<40} {mean_val:>10} {max_val:>10} "
+        txt += f"{n_values:>10} {np.ma.count_masked(s.values):>10}"
         if "all" in s.name:
             logging.info(txt)
         else:

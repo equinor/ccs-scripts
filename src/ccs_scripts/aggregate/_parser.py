@@ -11,10 +11,10 @@ import xtgeo
 import yaml
 
 from ccs_scripts.aggregate._config import (
+    DEFAULT_LOWER_THRESHOLD,
     AggregationMethod,
     CO2MassSettings,
     ComputeSettings,
-    DEFAULT_LOWER_THRESHOLD,
     Input,
     MapSettings,
     Output,
@@ -130,8 +130,10 @@ def process_arguments(arguments) -> RootConfig:
     _check_directories(config.output.mapfolder)
     _check_thresholds(config)
     if config.output.replace_masked_with_zero and config.output.mask_zeros:
-        warning_str = '\nWARNING: Both "replace_masked_with_zero" and "mask_zeros" have been requested.'
-        warning_str += '\n         This is not possible => "replace_masked_with_zero" has been changed to no.'
+        warning_str = '\nWARNING: Both "replace_masked_with_zero" and "mask_zeros" '
+        warning_str += "have been requested."
+        warning_str += '\n         This is not possible => "replace_masked_with_zero" '
+        warning_str += "has been changed to no."
         logging.warning(warning_str)
         config.output.replace_masked_with_zero = False
     return config
@@ -243,12 +245,14 @@ def _check_thresholds(config):
         for p in config.input.properties:
             p.lower_threshold = None
         if any([x not in [DEFAULT_LOWER_THRESHOLD, None] for x in thresholds_input]):
-            warnings_str = (
-                f"\nWARNING: Lower threshold cannot be used in combination with "
+            agg_name = config.computesettings.aggregation.name.lower()
+            warning_str = (
+                "\nWARNING: Lower threshold cannot be used in combination with "
             )
-            warnings_str += f'aggregation method "{config.computesettings.aggregation.name.lower()}".'
-            warnings_str += "\n         => Removing the lower threshold, using all grid cells in the calculations."
-            logging.warning(warnings_str)
+            warning_str += f'aggregation method "{agg_name}".'
+            warning_str += "\n         => Removing the lower threshold, "
+            warning_str += "using all grid cells in the calculations."
+            logging.warning(warning_str)
 
 
 def extract_properties(
