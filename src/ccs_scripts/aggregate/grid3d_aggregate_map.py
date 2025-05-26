@@ -191,14 +191,15 @@ def generate_maps(
             p_maps,
             output.lowercase,
         )
-        _log_surfaces(surfs)
         _write_surfaces(
             surfs,
             output.mapfolder,
             output.plotfolder,
             output.use_plotly,
             output.replace_masked_with_zero,
+            output.mask_zeros,
         )
+        _log_surfaces(surfs)
         _log_surfaces_exported(surfs, [f[0] for f in _filters], "aggregate")
     if computesettings.indicator_map:
         prop_tags_indicator = [p.replace("max", "indicator") for p in prop_tags]
@@ -219,6 +220,7 @@ def generate_maps(
             output.plotfolder,
             output.use_plotly,
             output.replace_masked_with_zero,
+            output.mask_zeros,
         )
         _log_surfaces_exported(surfs_indicator, [f[0] for f in _filters], "indicator")
 
@@ -283,6 +285,7 @@ def _write_surfaces(
     plot_folder: Optional[str],
     use_plotly: bool,
     replace_masked_with_zero: bool = True,
+    mask_zeros: bool = False,
 ):
     logging.info("\nWriting to map folder")
     logging.info(f"     Path         : {map_folder}")
@@ -305,6 +308,9 @@ def _write_surfaces(
             warnings.filterwarnings("ignore", message=r"Number of maps nodes are*")
             if replace_masked_with_zero:
                 surface.values = surface.values.filled(0)
+            if mask_zeros:
+                eps = 1e-30
+                surface.values = np.ma.masked_inside(surface.values, -eps, eps)
             surface.to_file(
                 (pathlib.Path(map_folder) / surface.name).with_suffix(".gri")
             )
