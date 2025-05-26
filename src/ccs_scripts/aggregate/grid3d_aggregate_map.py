@@ -302,15 +302,15 @@ def _write_surfaces(
             logging.warning("WARNING: Specified plot folder does not exist")
 
     for surface in surfaces:
+        if replace_masked_with_zero:
+            surface.values = surface.values.filled(0)
+        if mask_zeros:
+            eps = 1e-30
+            surface.values = np.ma.masked_inside(surface.values, -eps, eps)
         with warnings.catch_warnings():
             # Can ignore xtgeo-warning for few/zero active nodes
             # (can happen for first map, before injection)
             warnings.filterwarnings("ignore", message=r"Number of maps nodes are*")
-            if replace_masked_with_zero:
-                surface.values = surface.values.filled(0)
-            if mask_zeros:
-                eps = 1e-30
-                surface.values = np.ma.masked_inside(surface.values, -eps, eps)
             surface.to_file(
                 (pathlib.Path(map_folder) / surface.name).with_suffix(".gri")
             )
