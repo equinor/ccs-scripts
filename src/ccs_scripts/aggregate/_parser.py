@@ -230,13 +230,18 @@ def _check_directories(map_folder: str):
 
 
 def _check_thresholds(config):
-    if config.computesettings.aggregation in [AggregationMethod.MIN, AggregationMethod.MEAN]:
+    if config.computesettings.aggregation in [
+        AggregationMethod.MIN,
+        AggregationMethod.MEAN,
+    ]:
         thresholds_input = [p.lower_threshold for p in config.input.properties]
         for p in config.input.properties:
             p.lower_threshold = None
         if any([x not in [DEFAULT_LOWER_THRESHOLD, None] for x in thresholds_input]):
-            warnings_str = f"\nWARNING: Lower threshold cannot be used in combination with "
-            warnings_str += f"aggregation method \"{config.computesettings.aggregation.name.lower()}\"."
+            warnings_str = (
+                f"\nWARNING: Lower threshold cannot be used in combination with "
+            )
+            warnings_str += f'aggregation method "{config.computesettings.aggregation.name.lower()}".'
             warnings_str += "\n         => Removing the lower threshold, using all grid cells in the calculations."
             logging.warning(warnings_str)
 
@@ -268,7 +273,7 @@ def extract_properties(
             ).props
         except (RuntimeError, ValueError):
             props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
-        if mask_low_values:
+        if mask_low_values and spec.lower_threshold is not None:
             for prop in props:
                 if not isinstance(prop.values.mask, np.ndarray):
                     prop.values.mask = np.asarray(prop.values.mask)
