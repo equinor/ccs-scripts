@@ -11,8 +11,10 @@ import xtgeo
 import yaml
 
 from ccs_scripts.aggregate._config import (
+    AggregationMethod,
     CO2MassSettings,
     ComputeSettings,
+    DEFAULT_LOWER_THRESHOLD,
     Input,
     MapSettings,
     Output,
@@ -126,6 +128,7 @@ def process_arguments(arguments) -> RootConfig:
         replacements,
     )
     _check_directories(config.output.mapfolder)
+    _check_thresholds(config)
     return config
 
 
@@ -224,6 +227,18 @@ def _check_directories(map_folder: str):
                 error_txt += f"\n    -> Absolute path: {os.path.abspath(parent_dir)}"
             logging.error(error_txt)
             raise FileNotFoundError(error_txt)
+
+
+def _check_thresholds(config):
+    if config.computesettings.aggregation in [AggregationMethod.MIN, AggregationMethod.MEAN]:
+        thresholds_input = [p.lower_threshold for p in config.input.properties]
+        for p in config.input.properties:
+            p.lower_threshold = None
+        if any([x not in [DEFAULT_LOWER_THRESHOLD, None] for x in thresholds_input]):
+            warnings_str = f"\nWARNING: Lower threshold cannot be used in combination with "
+            warnings_str += f"aggregation method \"{config.computesettings.aggregation.name.lower()}\"."
+            warnings_str += "\n         => Removing the lower threshold, using all grid cells in the calculations."
+            logging.warning(warnings_str)
 
 
 def extract_properties(

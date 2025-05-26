@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
+DEFAULT_LOWER_THRESHOLD = 1e-10
+
 
 class AggregationMethod(Enum):
     """
@@ -25,7 +27,7 @@ class AggregationMethod(Enum):
 class Property:
     source: str
     name: Optional[str] = None
-    lower_threshold: float = 1e-10
+    lower_threshold: float = DEFAULT_LOWER_THRESHOLD
 
     def __post_init__(self):
         if isinstance(self.lower_threshold, str):
