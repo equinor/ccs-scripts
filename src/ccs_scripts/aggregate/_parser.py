@@ -129,6 +129,11 @@ def process_arguments(arguments) -> RootConfig:
     )
     _check_directories(config.output.mapfolder)
     _check_thresholds(config)
+    if config.output.replace_masked_with_zero and config.output.mask_zeros:
+        warning_str = '\nWARNING: Both "replace_masked_with_zero" and "mask_zeros" have been requested.'
+        warning_str += '\n         This is not possible => "replace_masked_with_zero" has been changed to no.'
+        logging.warning(warning_str)
+        config.output.replace_masked_with_zero = False
     return config
 
 
