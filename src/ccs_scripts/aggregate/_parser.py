@@ -277,7 +277,7 @@ def extract_properties(
             for prop in props:
                 if not isinstance(prop.values.mask, np.ndarray):
                     prop.values.mask = np.asarray(prop.values.mask)
-                prop.values.mask[prop.values < spec.lower_threshold] = True
+                prop.values.mask = np.abs(prop.values) <= spec.lower_threshold
         # Check if any of the properties missing a date had date as part of the file
         # stem, separated by a "--"
         for prop in props:
