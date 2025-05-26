@@ -263,15 +263,14 @@ def _deduce_surface_name(filter_name, property_name, lowercase):
 def _log_surfaces(surfaces: List[xtgeo.RegularSurface]):
     logging.info("\nSummary of calculated 2D maps:")
     logging.info(
-        f"\n{'Name':<35} {'Mean':>10} {'Max':>10} " f"{'n_values':>10} {'n_masked':>10}"
+        f"\n{'Name':<40} {'Mean':>10} {'Max':>10} " f"{'n_values':>10} {'n_masked':>10}"
     )
-    logging.info("-" * 79)
+    logging.info("-" * 84)
     for s in surfaces:
         n_values = s.values.count()
-        # name_stripped = s.name.split("--")[0] if "--" in s.name else s.name
         mean_val = f"{s.values.mean():.3f}" if n_values > 0 else "-"
-        max_val = f"{s.values.min():.3f}" if n_values > 0 else "-"
-        txt = f"{s.name:<35} {mean_val:>10} {max_val:>10} {n_values:>10} {np.ma.count_masked(s.values):>10}"
+        max_val = f"{s.values.max():.3f}" if n_values > 0 else "-"
+        txt = f"{s.name:<40} {mean_val:>10} {max_val:>10} {n_values:>10} {np.ma.count_masked(s.values):>10}"
         if "all" in s.name:
             logging.info(txt)
         else:
