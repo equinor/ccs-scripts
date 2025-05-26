@@ -191,6 +191,7 @@ def generate_maps(
             p_maps,
             output.lowercase,
         )
+        _log_surfaces(surfs)
         _write_surfaces(
             surfs,
             output.mapfolder,
@@ -257,6 +258,24 @@ def _deduce_surface_name(filter_name, property_name, lowercase):
     if lowercase:
         name = name.lower()
     return name
+
+
+def _log_surfaces(surfaces: List[xtgeo.RegularSurface]):
+    logging.info("\nSummary of calculated 2D maps:")
+    logging.info(
+        f"\n{'Name':<35} {'Mean':>10} {'Max':>10} " f"{'n_values':>10} {'n_masked':>10}"
+    )
+    logging.info("-" * 79)
+    for s in surfaces:
+        n_values = s.values.count()
+        # name_stripped = s.name.split("--")[0] if "--" in s.name else s.name
+        mean_val = f"{s.values.mean():.3f}" if n_values > 0 else "-"
+        max_val = f"{s.values.min():.3f}" if n_values > 0 else "-"
+        txt = f"{s.name:<35} {mean_val:>10} {max_val:>10} {n_values:>10} {np.ma.count_masked(s.values):>10}"
+        if "all" in s.name:
+            logging.info(txt)
+        else:
+            logging.debug(txt)
 
 
 def _write_surfaces(
