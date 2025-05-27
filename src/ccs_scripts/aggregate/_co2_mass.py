@@ -11,6 +11,7 @@ from xtgeo.io._file import FileWrapper
 from ccs_scripts.aggregate._config import CO2MassSettings
 from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
+    Scenario,
     Co2DataAtTimeStep,
     _fetch_properties,
     _identify_gas_less_cells,
@@ -25,7 +26,8 @@ CO2_MASS_PNAME = "CO2Mass"
 
 class MapName(Enum):
     MASS_TOT = "co2_mass_total"
-    MASS_DIS = "co2_mass_dissolved_phase"
+    MASSDISW = "co2_mass_dissolved_water_phase"
+    MASSDISO = "co2_mass_dissolved_oil_phase"
     MASS_GAS = "co2_mass_gas_phase"
     MASSTGAS = "co2_mass_trapped_gas_phase"
     MASSFGAS = "co2_mass_free_gas_phase"
@@ -102,7 +104,8 @@ def translate_co2data_to_property(
         "egrid_kw": [],
     }
     total_mass_data = copy.deepcopy(mass_data_template)
-    dissolved_mass_data = copy.deepcopy(mass_data_template)
+    dissolved_water_mass_data = copy.deepcopy(mass_data_template)
+    dissolved_oil_mass_data = copy.deepcopy(mass_data_template)
     free_mass_data = copy.deepcopy(mass_data_template)
     free_gas_mass_data = copy.deepcopy(mass_data_template)
     trapped_gas_mass_data = copy.deepcopy(mass_data_template)
@@ -140,26 +143,46 @@ def translate_co2data_to_property(
                     mass_as_grid["MASS_TOT"]["egrid_path"]
                 )
                 total_mass_data["egrid_kw"].extend(custom_egrid)
-        if store_all or "dissolved_co2" in maps:
-            dissolved_mass_data["unrst_kw"].extend(
+        if store_all or "dissolved_water_co2" in maps:
+            dissolved_water_mass_data["unrst_kw"].extend(
                 [
                     ("SEQNUM  ", [date_idx]),
                     ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
                     ("LOGIHEAD", logihead_array),
-                    ("MASS_DIS", mass_as_grid["MASS_DIS"]["data"]),
+                    ("MASSDISW", mass_as_grid["MASSDISW"]["data"]),
                 ]
             )
             if (
-                mass_as_grid["MASS_DIS"]["unrst_path"]
-                not in dissolved_mass_data["unrst_path"]
+                mass_as_grid["MASSDISW"]["unrst_path"]
+                not in dissolved_water_mass_data["unrst_path"]
             ):
-                dissolved_mass_data["unrst_path"].append(
-                    mass_as_grid["MASS_DIS"]["unrst_path"]
+                dissolved_water_mass_data["unrst_path"].append(
+                    mass_as_grid["MASSDISW"]["unrst_path"]
                 )
-                dissolved_mass_data["egrid_path"].append(
-                    mass_as_grid["MASS_DIS"]["egrid_path"]
+                dissolved_water_mass_data["egrid_path"].append(
+                    mass_as_grid["MASSDISW"]["egrid_path"]
                 )
-                dissolved_mass_data["egrid_kw"].extend(custom_egrid)
+                dissolved_water_mass_data["egrid_kw"].extend(custom_egrid)
+        if (store_all or "dissolved_oil_co2" in maps) and co2_data.scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
+            dissolved_oil_mass_data["unrst_kw"].extend(
+                [
+                    ("SEQNUM  ", [date_idx]),
+                    ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
+                    ("LOGIHEAD", logihead_array),
+                    ("MASSDISO", mass_as_grid["MASSDISO"]["data"]),
+                ]
+            )
+            if (
+                mass_as_grid["MASSDISO"]["unrst_path"]
+                not in dissolved_oil_mass_data["unrst_path"]
+            ):
+                dissolved_oil_mass_data["unrst_path"].append(
+                    mass_as_grid["MASSDISO"]["unrst_path"]
+                )
+                dissolved_oil_mass_data["egrid_path"].append(
+                    mass_as_grid["MASSDISO"]["egrid_path"]
+                )
+                dissolved_oil_mass_data["egrid_kw"].extend(custom_egrid)
         if (
             store_all or "free_co2" in maps
         ) and not co2_mass_settings.residual_trapping:
@@ -223,7 +246,8 @@ def translate_co2data_to_property(
                 trapped_gas_mass_data["egrid_kw"].extend(custom_egrid)
     out = [
         _export_unrst_and_kw_data(free_mass_data),
-        _export_unrst_and_kw_data(dissolved_mass_data),
+        _export_unrst_and_kw_data(dissolved_water_mass_data),
+        _export_unrst_and_kw_data(dissolved_oil_mass_data),
         _export_unrst_and_kw_data(total_mass_data),
         _export_unrst_and_kw_data(free_gas_mass_data),
         _export_unrst_and_kw_data(trapped_gas_mass_data),
@@ -349,13 +373,15 @@ def _convert_to_grid(
         [
             co2_at_date.total_mass(),
             co2_at_date.dis_water_phase,
+            co2_at_date.dis_oil_phase,
             co2_at_date.gas_phase,
             co2_at_date.trapped_gas_phase,
             co2_at_date.free_gas_phase,
         ],
         [
             "MASS_TOT",
-            "MASS_DIS",
+            "MASSDISW",
+            "MASSDISO",
             "MASS_GAS",
             "MASSTGAS",
             "MASSFGAS",

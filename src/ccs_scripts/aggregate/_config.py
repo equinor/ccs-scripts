@@ -93,6 +93,7 @@ class CO2MassSettings:
     init_source: str
     maps: Optional[List[str]] = None
     residual_trapping: bool = False
+    gas_molar_mass: Optional[str] = None
 
     def __post_init__(self):
         pass
