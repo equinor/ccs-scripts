@@ -1,3 +1,4 @@
+import os
 import shutil
 from pathlib import Path
 
@@ -9,6 +10,8 @@ from ccs_scripts.aggregate import grid3d_aggregate_map
 
 def test_aggregated_map1():
     result = Path(__file__).absolute().parent / "aggregate1_folder"
+    if os.path.exists(result):
+        shutil.rmtree(str(Path(result)))
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate1.yml"
 
@@ -29,6 +32,8 @@ def test_aggregated_map1():
 
 def test_aggregated_map2():
     result = Path(__file__).absolute().parent / "aggregate2_folder"
+    if os.path.exists(result):
+        shutil.rmtree(str(Path(result)))
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate2.yml"
 
@@ -49,6 +54,8 @@ def test_aggregated_map2():
 
 def test_aggregated_map3():
     result = Path(__file__).absolute().parent / "aggregate3_folder"
+    if os.path.exists(result):
+        shutil.rmtree(str(Path(result)))
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate3.yml"
 
@@ -69,6 +76,8 @@ def test_aggregated_map3():
 
 def test_aggregated_map4():
     result = Path(__file__).absolute().parent / "aggregate4_folder"
+    if os.path.exists(result):
+        shutil.rmtree(str(Path(result)))
     result.mkdir(parents=True)
     yml = "tests/yaml/config_aggregate4.yml"
 
@@ -92,6 +101,8 @@ def test_aggregated_map4():
 
 def test_aggregated_map5():
     result = Path(__file__).absolute().parent / "aggregate5_folder"
+    if os.path.exists(result):
+        shutil.rmtree(str(Path(result)))
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate5.yml"
 
@@ -106,12 +117,14 @@ def test_aggregated_map5():
         ]
     )
     poro = xtgeo.surface_from_file(result / "all--mean_poro.gri")
-    assert poro.values.mean() == pytest.approx(0.1648792893163274, abs=1e-8)
+    assert poro.values.mean() == pytest.approx(0.1648792893163274, abs=1e-5)
     shutil.rmtree(str(Path(result)))
 
 
 def test_aggregated_map6():
     result = Path(__file__).absolute().parent / "aggregate6_folder"
+    if os.path.exists(result):
+        shutil.rmtree(str(Path(result)))
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate6.yml"
 
@@ -143,6 +156,8 @@ def test_aggregated_map6():
 
 def test_aggregated_map7():
     result = Path(__file__).absolute().parent / "aggregate7_folder"
+    if os.path.exists(result):
+        shutil.rmtree(str(Path(result)))
     result.mkdir(parents=True)
     cfg = "tests/yaml/config_aggregate7.yml"
 

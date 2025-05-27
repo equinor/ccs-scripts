@@ -5,9 +5,7 @@ from dataclasses import dataclass
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
-import scipy.interpolate
 import scipy.sparse
-import scipy.spatial
 import xtgeo
 
 from ccs_scripts.aggregate._config import AggregationMethod

@@ -11,6 +11,8 @@ import xtgeo
 import yaml
 
 from ccs_scripts.aggregate._config import (
+    DEFAULT_LOWER_THRESHOLD,
+    AggregationMethod,
     CO2MassSettings,
     ComputeSettings,
     Input,
@@ -126,6 +128,14 @@ def process_arguments(arguments) -> RootConfig:
         replacements,
     )
     _check_directories(config.output.mapfolder)
+    _check_thresholds(config)
+    if config.output.replace_masked_with_zero and config.output.mask_zeros:
+        warning_str = '\nWARNING: Both "replace_masked_with_zero" and "mask_zeros" '
+        warning_str += "have been requested."
+        warning_str += '\n         This is not possible => "replace_masked_with_zero" '
+        warning_str += "has been changed to no."
+        logging.warning(warning_str)
+        config.output.replace_masked_with_zero = False
     return config
 
 
@@ -226,10 +236,30 @@ def _check_directories(map_folder: str):
             raise FileNotFoundError(error_txt)
 
 
+def _check_thresholds(config):
+    if config.computesettings.aggregation in [
+        AggregationMethod.MIN,
+        AggregationMethod.MEAN,
+    ]:
+        thresholds_input = [p.lower_threshold for p in config.input.properties]
+        for p in config.input.properties:
+            p.lower_threshold = None
+        if any([x not in [DEFAULT_LOWER_THRESHOLD, None] for x in thresholds_input]):
+            agg_name = config.computesettings.aggregation.name.lower()
+            warning_str = (
+                "\nWARNING: Lower threshold cannot be used in combination with "
+            )
+            warning_str += f'aggregation method "{agg_name}".'
+            warning_str += "\n         => Removing the lower threshold, "
+            warning_str += "using all grid cells in the calculations."
+            logging.warning(warning_str)
+
+
 def extract_properties(
     property_spec: Optional[List[Property]],
     grid: Optional[xtgeo.Grid],
     dates: List[str],
+    mask_low_values: bool = True,
 ) -> List[xtgeo.GridProperty]:
     """
     Extract 3D grid properties based on the provided property specification
@@ -252,11 +282,11 @@ def extract_properties(
             ).props
         except (RuntimeError, ValueError):
             props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
-        if spec.lower_threshold is not None:
+        if mask_low_values and spec.lower_threshold is not None:
             for prop in props:
                 if not isinstance(prop.values.mask, np.ndarray):
                     prop.values.mask = np.asarray(prop.values.mask)
-                prop.values.mask[prop.values < spec.lower_threshold] = True
+                prop.values.mask[np.abs(prop.values) < spec.lower_threshold] = True
         # Check if any of the properties missing a date had date as part of the file
         # stem, separated by a "--"
         for prop in props:
