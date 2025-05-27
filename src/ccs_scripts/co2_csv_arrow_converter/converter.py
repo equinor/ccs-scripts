@@ -194,7 +194,7 @@ def main():
         "--realization-pattern",
         type=str,
         help="Glob pattern (relative to current directory) for an FMU realization directory",
-        default="",
+        default="realization-*/iter-*",
     )
     parser.add_argument(
         "--kept-columns",
