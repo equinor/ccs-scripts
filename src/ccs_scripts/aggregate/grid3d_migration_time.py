@@ -62,19 +62,25 @@ def _check_threshold(
     lower_threshold: float,
     properties: List[xtgeo.GridProperty],
 ) -> float:
+    min_value_props = min([p.values.min() for p in properties])
+    max_value_props = max([p.values.max() for p in properties])
     if lower_threshold < 0:
-        neg_prop_value = False
-        for p in properties:
-            if p.values.min() < 0:
-                neg_prop_value = True
-                break
-        if not neg_prop_value:
+        if min_value_props < 0:
             warning_str = "\nWARNING: Specified lower threshold is negative, "
             warning_str += "but no property values are negative."
             warning_str += "\n         => Changing the lower threshold value:"
             warning_str += f"\n            - Specified value: {lower_threshold:>8}"
             lower_threshold = DEFAULT_LOWER_THRESHOLD
             warning_str += f"\n            - Changed to     : {lower_threshold:>8}"
+            logging.warning(warning_str)
+    else:
+        if lower_threshold > max_value_props:
+            warning_str = "\nWARNING: Specified lower threshold is "
+            warning_str += "higher than the maximum property value in the grid."
+            warning_str += f"\n         - Specified value       : {lower_threshold:>8}"
+            warning_str += (
+                f"\n         - Maximum property value: {max_value_props:>8.4f}"
+            )
             logging.warning(warning_str)
     return lower_threshold
 
