@@ -9,7 +9,7 @@ MIGRATION_TIME_PNAME = "MigrationTime"
 
 def generate_migration_time_property(
     co2_props: List[xtgeo.GridProperty],
-    co2_threshold: Union[float, List],
+    co2_threshold: float,
 ):
     """
     Calculates a 3D grid property reflecting the migration time. Migration time is

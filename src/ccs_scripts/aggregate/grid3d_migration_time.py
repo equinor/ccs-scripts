@@ -15,7 +15,7 @@ from ccs_scripts.aggregate import (
     _parser,
     grid3d_aggregate_map,
 )
-from ccs_scripts.aggregate._config import RootConfig
+from ccs_scripts.aggregate._config import RootConfig, DEFAULT_LOWER_THRESHOLD
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.aggregate.grid3d_aggregate_map import _distribute_config_property
 
@@ -58,6 +58,26 @@ def _check_config(config_: RootConfig) -> None:
     config_.computesettings.aggregate_map = True
 
 
+def _check_threshold(
+    lower_threshold: float,
+    properties: List[xtgeo.GridProperty],
+) -> float:
+    if lower_threshold < 0:
+        neg_prop_value = False
+        for p in properties:
+            if p.values.min() < 0:
+                neg_prop_value = True
+                break
+        if not neg_prop_value:
+            warning_str = f"\nWARNING: Specified lower threshold is negative, but no property values are negative."
+            warning_str += "\n         => Changing the lower threshold value:"
+            warning_str += f"\n            - Specified value: {lower_threshold:>8}"
+            lower_threshold = DEFAULT_LOWER_THRESHOLD
+            warning_str += f"\n            - Changed to     : {lower_threshold:>8}"
+            logging.warning(warning_str)
+    return lower_threshold
+
+
 def _log_t_prop(t_prop: dict[str, xtgeo.GridProperty]):
     col1 = 20
     col2 = 8
@@ -76,7 +96,7 @@ def _log_t_prop(t_prop: dict[str, xtgeo.GridProperty]):
 def calculate_migration_time_property(
     properties_files: str,
     property_name: str,
-    lower_threshold: Union[float, List],
+    lower_threshold: float,
     grid_file: Optional[str],
     dates: List[str],
 ) -> dict[str, xtgeo.GridProperty]:
@@ -90,6 +110,7 @@ def calculate_migration_time_property(
     properties = _parser.extract_properties(
         prop_spec, grid, dates, mask_low_values=False
     )
+    lower_threshold = _check_threshold(lower_threshold, properties)
     grid3d_aggregate_map._log_properties_info(properties)
     t_prop = _migration_time.generate_migration_time_property(
         properties, lower_threshold
