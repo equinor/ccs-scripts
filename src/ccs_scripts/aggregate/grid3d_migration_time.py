@@ -65,7 +65,7 @@ def _check_threshold(
     min_value_props = min([p.values.min() for p in properties])
     max_value_props = max([p.values.max() for p in properties])
     if lower_threshold < 0:
-        if min_value_props < 0:
+        if min_value_props >= 0:
             warning_str = "\nWARNING: Specified lower threshold is negative, "
             warning_str += "but no property values are negative."
             warning_str += "\n         => Changing the lower threshold value:"
