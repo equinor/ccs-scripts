@@ -120,7 +120,6 @@ class Output:
     aggregation_tag: bool = True
     gridfolder: Optional[str] = None
     replace_masked_with_zero: bool = True
-    mask_zeros: bool = False
 
     def __post_init__(self):
         if self.mapfolder == "fmu-dataio":

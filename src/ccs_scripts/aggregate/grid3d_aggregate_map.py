@@ -197,7 +197,6 @@ def generate_maps(
             output.plotfolder,
             output.use_plotly,
             output.replace_masked_with_zero,
-            output.mask_zeros,
         )
         _log_surfaces(surfs)
         _log_surfaces_exported(surfs, [f[0] for f in _filters], "aggregate")
@@ -220,7 +219,6 @@ def generate_maps(
             output.plotfolder,
             output.use_plotly,
             output.replace_masked_with_zero,
-            output.mask_zeros,
         )
         _log_surfaces_exported(surfs_indicator, [f[0] for f in _filters], "indicator")
 
@@ -286,7 +284,6 @@ def _write_surfaces(
     plot_folder: Optional[str],
     use_plotly: bool,
     replace_masked_with_zero: bool = True,
-    mask_zeros: bool = False,
 ):
     logging.info("\nWriting to map folder")
     logging.info(f"     Path         : {map_folder}")
@@ -305,9 +302,6 @@ def _write_surfaces(
     for surface in surfaces:
         if replace_masked_with_zero:
             surface.values = surface.values.filled(0)
-        if mask_zeros:
-            eps = 1e-30
-            surface.values = np.ma.masked_inside(surface.values, -eps, eps)
         with warnings.catch_warnings():
             # Can ignore xtgeo-warning for few/zero active nodes
             # (can happen for first map, before injection)

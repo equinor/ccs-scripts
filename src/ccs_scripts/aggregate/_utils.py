@@ -130,7 +130,6 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
         f"{'  Replace masked values with zeros':<{col1}} : "
         f"{_bool_str(op.replace_masked_with_zero)}"
     )
-    logging.info(f"{'  Mask zeros':<{col1}} : " f"{_bool_str(op.mask_zeros)}")
 
     logging.info("\nComputation configuration:")
     logging.info(
