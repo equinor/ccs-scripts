@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import tempfile
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import numpy as np
 import xtgeo
@@ -15,7 +15,7 @@ from ccs_scripts.aggregate import (
     _parser,
     grid3d_aggregate_map,
 )
-from ccs_scripts.aggregate._config import RootConfig, DEFAULT_LOWER_THRESHOLD
+from ccs_scripts.aggregate._config import DEFAULT_LOWER_THRESHOLD, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.aggregate.grid3d_aggregate_map import _distribute_config_property
 
@@ -69,7 +69,8 @@ def _check_threshold(
                 neg_prop_value = True
                 break
         if not neg_prop_value:
-            warning_str = f"\nWARNING: Specified lower threshold is negative, but no property values are negative."
+            warning_str = "\nWARNING: Specified lower threshold is negative, "
+            warning_str += "but no property values are negative."
             warning_str += "\n         => Changing the lower threshold value:"
             warning_str += f"\n            - Specified value: {lower_threshold:>8}"
             lower_threshold = DEFAULT_LOWER_THRESHOLD
