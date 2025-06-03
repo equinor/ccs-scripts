@@ -42,7 +42,7 @@ EXAMPLES = """
 """
 
 
-def write_plot_using_plotly(surf: xtgeo.RegularSurface, filename):
+def write_plot_using_plotly(surf: xtgeo.RegularSurface, filename: pathlib.Path):
     """
     Writes a 2D map to an html using the plotly library
     """
@@ -56,14 +56,15 @@ def write_plot_using_plotly(surf: xtgeo.RegularSurface, filename):
     ).write_html(filename.with_suffix(".html"), include_plotlyjs="cdn")
 
 
-def write_plot_using_quickplot(surface, filename):
+def write_plot_using_quickplot(surf: xtgeo.RegularSurface, filename: pathlib.Path):
     """
     Writes a 2D map using quickplot from xtgeoviz
     """
     # pylint: disable=import-outside-toplevel
     from xtgeoviz import quickplot
 
-    quickplot(surface, filename=filename.with_suffix(".png"))
+    if surf.values.count() >= 5:
+        quickplot(surf, filename=filename.with_suffix(".png"))
 
 
 def _check_input(computesettings: ComputeSettings) -> None:
