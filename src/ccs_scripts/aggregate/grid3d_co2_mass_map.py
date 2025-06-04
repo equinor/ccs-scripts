@@ -21,6 +21,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     calculate_co2,
     source_data_,
 )
+from ccs_scripts.utils.utils import Timer
 
 # Module variables for ERT hook implementation:
 DESCRIPTION = """
@@ -72,6 +73,7 @@ def generate_co2_mass_maps(config_: RootConfig):
         region_info=region_info,
         residual_trapping=co2_mass_settings.residual_trapping,
     )
+
     dates = config_.input.dates
     all_dates = [x.date for x in co2_data.data_list]
     dates_idx = list(range(len(all_dates)))
@@ -93,6 +95,7 @@ def generate_co2_mass_maps(config_: RootConfig):
             properties_to_extract,
             dates_idx,
         )
+
         co2_mass_property_to_map(config_, out_property_list)
     finally:
         # Make sure temp directory is deleted even if exception is thrown above
@@ -165,6 +168,8 @@ def co2_mass_property_to_map(
                            to be aggregated
 
     """
+    timer = Timer()
+    timer.start("co2_mass_property_to_map")
     config_.input.properties = []
     for props in out_property_list:
         if isinstance(props, str):
@@ -176,6 +181,7 @@ def co2_mass_property_to_map(
                 )
             )
     grid3d_aggregate_map.generate_from_config(config_)
+    timer.stop("co2_mass_property_to_map")
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:
@@ -217,6 +223,15 @@ def _check_config(config_: RootConfig) -> None:
         config_.computesettings.indicator_map = False
 
 
+def _init_timer():
+    timer = Timer()
+    timer.code_parts = {
+        "calculate_co2": "Calculate CO2 mass per grid cell",
+        "translate_co2data_to_property": "Create 3D properties for CO2 mass",
+        "co2_mass_property_to_map": "Create CO2 mass maps from 3D properties",
+    }
+
+
 def main(arguments=None):
     """
     Takes input arguments and calculates co2 mass as a property and aggregates
@@ -224,12 +239,19 @@ def main(arguments=None):
     """
     if arguments is None:
         arguments = sys.argv[1:]
+    _init_timer()
+    timer = Timer()
+    timer.start("total")
+
     config_ = _parser.process_arguments(arguments)
     config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
     config_.output.aggregation_tag = False
     _check_config(config_)
     log_input_configuration(config_, calc_type="co2_mass")
     generate_co2_mass_maps(config_)
+
+    timer.stop("total")
+    timer.report()
 
 
 if __name__ == "__main__":
