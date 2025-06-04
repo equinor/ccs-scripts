@@ -1622,7 +1622,6 @@ def calculate_co2(
 
     """
     timer = Timer()
-    timer.start("calculate_co2")
     properties_to_extract = copy.deepcopy(RELEVANT_PROPERTIES)
     current_source_data = copy.deepcopy(source_data_)
     properties_to_add, properties_to_extract = _detect_eclipse_mole_fraction_props(
@@ -1630,6 +1629,7 @@ def calculate_co2(
     )
     if residual_trapping:
         properties_to_extract.extend(["SGSTRAND", "SGTRH"])
+    timer.start("extract_source_data")
     source_data = _extract_source_data(
         grid_file,
         unrst_file,
@@ -1639,7 +1639,10 @@ def calculate_co2(
         region_info,
         init_file,
     )
+    timer.stop("extract_source_data")
     calc_type = _set_calc_type_from_input_string(calc_type_input)
+
+    timer.start("calculate_co2")
     co2_data = _calculate_co2_data_from_source_data(
         source_data,
         calc_type=calc_type,

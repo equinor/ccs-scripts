@@ -226,7 +226,8 @@ def _check_config(config_: RootConfig) -> None:
 def _init_timer():
     timer = Timer()
     timer.code_parts = {
-        "calculate_co2": "Calculate CO2 mass per grid cell",
+        "extract_source_data": "Extract source data",
+        "calculate_co2": "Calculate CO2 mass per grid cell from source data",
         "translate_co2data_to_property": "Create 3D properties for CO2 mass",
         "co2_mass_property_to_map": "Create CO2 mass maps from 3D properties",
     }

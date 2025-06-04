@@ -23,12 +23,8 @@ class Timer:
             self._timings[name]["elapsed"] += elapsed_time
             self._timings[name]["start"] = None
 
-    def get_elapsed_time(self, name):
-        return self._timings.get(name, {}).get("elapsed", 0)
-
     def report(self):
         max_len_category = max([len(x) for x in self.code_parts.values()])
-        print(max_len_category)
         logging.info("\nPerformance Timing Report:")
         logging.info(f"\n{'Category':<{max_len_category + 1}}  {'Time (s)':>10}")
         logging.info("=" * (max_len_category + 13))

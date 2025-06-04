@@ -163,8 +163,8 @@ def generate_maps(
             if filt[0] == "all" or filt[1] is None:
                 continue
             logging.info(
-                f"{filt[0]:<14}: {np.count_nonzero(filt[1])} "
-                f"({100.0 * np.count_nonzero(filt[1]) / len(filt[1]):.1f}%)"
+                f"{filt[0]:<14}: {np.count_nonzero(filt[1]):>9} "
+                f"({100.0 * np.count_nonzero(filt[1]) / len(filt[1]):.1f} %)"
             )
 
     logging.info(
