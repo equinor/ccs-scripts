@@ -106,12 +106,16 @@ def translate_co2data_to_property(
 
     unrst_data = ResdataFile(co2_mass_settings.unrst_source)
     grid_data = ResdataFile(grid_file)
+    grid_pf = xtgeo.grid_from_file(grid_file)
+    n_act_cells = len(grid_pf.actnum_indices)
     store_all = "all" in maps or len(maps) == 0
 
     custom_egrid = _create_custom_egrid_kw(grid_data)
 
     for date_idx, co2_at_date in zip(dates_idx, co2_data.data_list):
-        mass_as_grid = _convert_to_grid(co2_at_date, gas_idxs, grid_file, grid_out_dir)
+        mass_as_grid = _convert_to_grid(
+            co2_at_date, gas_idxs, n_act_cells, grid_out_dir
+        )
         logihead_array = np.array([x for x in unrst_data["LOGIHEAD"][date_idx]])
         if store_all or "total_co2" in maps:
             total_mass_data["unrst_kw"].extend(
@@ -318,7 +322,7 @@ def _get_gas_idxs(
 def _convert_to_grid(
     co2_at_date: Co2DataAtTimeStep,
     gas_idxs: np.ndarray,
-    grid_file: str,
+    n_act_cells: int,
     grid_out_dir: str,
 ) -> Dict[str, PropertyGridOutput]:
     """
@@ -328,7 +332,7 @@ def _convert_to_grid(
         co2_at_date (Co2DataAtTimeStep):       Amount of CO2 per phase at each cell
                                                at each time step
         gas_idxs (np.ndarray):                 Global index of cells with CO2
-        grid_file (str):                       Path to EGRID-file
+        n_act_cells (int):                     Number of active cells in EGRID
         grid_out_dir (str):                    Path to store the produced
                                                3D GridProperties
 
@@ -352,9 +356,7 @@ def _convert_to_grid(
             "MASSFGAS",
         ],
     ):
-        grid_pf = xtgeo.grid_from_file(grid_file)
-        act_cells = len(grid_pf.actnum_indices)
-        mass_array = np.zeros(act_cells, dtype=mass.dtype)
+        mass_array = np.zeros(n_act_cells, dtype=mass.dtype)
         mass_array[gas_idxs] = mass
         prop_grid_output: PropertyGridOutput = {
             "data": mass_array,
