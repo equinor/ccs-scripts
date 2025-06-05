@@ -169,9 +169,10 @@ def co2_mass_property_to_map(
 
     """
     timer = Timer()
-    timer.start("co2_mass_property_to_map")
+    # timer.start("co2_mass_property_to_map")
     config_.input.properties = []
     for props in out_property_list:
+        print(f"\n\n\nprops: {props}")
         if isinstance(props, str):
             config_.input.properties.append(
                 _config.Property(
@@ -181,7 +182,7 @@ def co2_mass_property_to_map(
                 )
             )
     grid3d_aggregate_map.generate_from_config(config_)
-    timer.stop("co2_mass_property_to_map")
+    # timer.stop("co2_mass_property_to_map")
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:
@@ -229,7 +230,11 @@ def _init_timer():
         "extract_source_data": "Extract source data",
         "calculate_co2": "Calculate CO2 mass per grid cell from source data",
         "translate_co2data_to_property": "Create 3D properties for CO2 mass",
-        "co2_mass_property_to_map": "Create CO2 mass maps from 3D properties",
+        # "co2_mass_property_to_map": "Create CO2 mass maps from 3D properties",
+        "read_xtgeo_grid": "Aggregate: Read grid using xtgeo",
+        "extract_properties": "Aggregate: Extract properties from files",
+        "aggregate_maps": "Aggregate: Aggregate 3D grid to 2D maps",
+        "write_surfaces": "Aggregate: Write maps to files",
     }
 
 

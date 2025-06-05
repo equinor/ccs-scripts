@@ -13,11 +13,22 @@ class Timer:
         return cls._instance
 
     def start(self, name: str):
+        active = [
+            x
+            for x, y in self._timings.items()
+            if y["start"] is not None and x is not "total"
+        ]
+        if len(active) > 0:
+            print(
+                f"\nTrying to start timings on {name}, but some timings are already active: {active}"
+            )
+            # exit()
+            return
         if name not in self._timings:
             self._timings[name] = {"start": None, "elapsed": 0}
         self._timings[name]["start"] = time.time()
 
-    def stop(self, name):
+    def stop(self, name: str):
         if name in self._timings and self._timings[name]["start"] is not None:
             elapsed_time = time.time() - self._timings[name]["start"]
             self._timings[name]["elapsed"] += elapsed_time

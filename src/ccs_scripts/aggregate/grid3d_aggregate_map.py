@@ -26,6 +26,7 @@ from ccs_scripts.aggregate._parser import (
     process_arguments,
 )
 from ccs_scripts.aggregate._utils import log_input_configuration
+from ccs_scripts.utils.utils import Timer
 
 from . import _config, _grid_aggregation
 
@@ -146,9 +147,13 @@ def generate_maps(
     """
     Calculate and write aggregated property maps to file
     """
+    timer = Timer()
     _check_input(computesettings)
     logging.info("\nReading grid, properties and zone(s)")
+    timer.start("read_xtgeo_grid")
     grid = xtgeo.grid_from_file(input_.grid)
+    timer.stop("read_xtgeo_grid")
+
     _log_grid_info(grid)
     properties = extract_properties(input_.properties, grid, input_.dates)
     _log_properties_info(properties)
@@ -183,6 +188,7 @@ def generate_maps(
         _property_tag(p.name, computesettings.aggregation, output.aggregation_tag)
         for p in properties
     ]
+    timer.start("write_surfaces")
     if computesettings.aggregate_map:
         surfs = _ndarray_to_regsurfs(
             [f[0] for f in _filters],
@@ -222,6 +228,7 @@ def generate_maps(
             output.replace_masked_with_zero,
         )
         _log_surfaces_exported(surfs_indicator, [f[0] for f in _filters], "indicator")
+    timer.stop("write_surfaces")
 
 
 def _property_tag(prop: str, agg_method: AggregationMethod, agg_tag: bool):
@@ -389,16 +396,33 @@ def _distribute_config_property(
     return distributed_props
 
 
+def _init_timer():
+    timer = Timer()
+    timer.code_parts = {
+        "read_xtgeo_grid": "Aggregate: Read grid using xtgeo",
+        "extract_properties": "Aggregate: Extract properties from files",
+        "aggregate_maps": "Aggregate: Aggregate 3D grid to 2D maps",
+        "write_surfaces": "Aggregate: Write maps to files",
+    }
+
+
 def main(arguments=None):
     """
     Main function that wraps `generate_from_config` with argument parsing
     """
     if arguments is None:
         arguments = sys.argv[1:]
+    _init_timer()
+    timer = Timer()
+    timer.start("total")
+
     config_ = process_arguments(arguments)
     config_.input.properties = _distribute_config_property(config_.input.properties)
     log_input_configuration(config_, calc_type="aggregate")
     generate_from_config(config_)
+
+    timer.stop("total")
+    timer.report()
 
 
 if __name__ == "__main__":
