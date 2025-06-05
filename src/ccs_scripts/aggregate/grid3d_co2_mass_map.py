@@ -227,7 +227,6 @@ def _init_timer():
         "extract_source_data": "Extract source data",
         "calculate_co2": "Calculate CO2 mass per grid cell from source data",
         "translate_co2data_to_property": "Create 3D properties for CO2 mass",
-        # "co2_mass_property_to_map": "Create CO2 mass maps from 3D properties",
         "read_xtgeo_grid": "Aggregate: Read grid using xtgeo",
         "extract_properties": "Aggregate: Extract properties from files",
         "aggregate_maps": "Aggregate: Aggregate 3D grid to 2D maps",
