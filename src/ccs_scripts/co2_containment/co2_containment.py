@@ -794,7 +794,8 @@ def log_summary_of_results(
         value = extract_amount(df_subset, "total", "dissolved_water")
         percent = 100.0 * value / total if total > 0.0 else 0.0
         logging.info(
-            f"{'End state dissolved in water':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+            f"{'End state dissolved in water':<{col1}} : "
+            f"{value:{n}.1f}  ={percent:>5.1f} %"
         )
         if "dissolved_oil" in list(df_subset["phase"]):
             value = extract_amount(df_subset, "total", "dissolved_oil")

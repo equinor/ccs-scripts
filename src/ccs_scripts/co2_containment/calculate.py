@@ -234,7 +234,9 @@ def _lists_of_phases(
     else:
         phases = ["total", "dissolved_water"]
         phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
-        phases += ["dissolved_oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
+        phases += (
+            ["dissolved_oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
+        )
     return phases
 
 

@@ -11,8 +11,8 @@ from xtgeo.io._file import FileWrapper
 from ccs_scripts.aggregate._config import CO2MassSettings
 from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
-    Scenario,
     Co2DataAtTimeStep,
+    Scenario,
     _fetch_properties,
     _identify_gas_less_cells,
     _is_subset,
@@ -165,7 +165,9 @@ def translate_co2data_to_property(
                     mass_as_grid["MASSDISW"]["egrid_path"]
                 )
                 dissolved_water_mass_data["egrid_kw"].extend(custom_egrid)
-        if (store_all or "dissolved_oil_co2" in maps) and co2_data.scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
+        if (
+            store_all or "dissolved_oil_co2" in maps
+        ) and co2_data.scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
             dissolved_oil_mass_data["unrst_kw"].extend(
                 [
                     ("SEQNUM  ", [date_idx]),

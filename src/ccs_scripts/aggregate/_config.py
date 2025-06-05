@@ -96,7 +96,8 @@ class CO2MassSettings:
     gas_molar_mass: Optional[str] = None
 
     def __post_init__(self):
-        pass
+        if self.gas_molar_mass is not None:
+            self.gas_molar_mass = float(self.gas_molar_mass)
 
 
 @dataclass
