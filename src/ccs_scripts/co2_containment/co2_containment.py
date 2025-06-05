@@ -1170,7 +1170,7 @@ def _init_timer():
     timer = Timer()
     timer.code_parts = {
         "extract_source_data": "Extract source data",
-        "calculate_co2": "Calculate CO2 mass per grid cell from source data",
+        "calculate_co2": "Calculate CO2 per grid cell from source data",
         "find_plume_groups": "Find plume groups (plume tracking)",
         "calculate_co2_containment": "Calculate CO2 containment",
         "export_results": "Export results",
