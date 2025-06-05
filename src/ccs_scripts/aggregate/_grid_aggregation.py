@@ -9,6 +9,7 @@ import scipy.sparse
 import xtgeo
 
 from ccs_scripts.aggregate._config import AggregationMethod
+from ccs_scripts.utils.utils import Timer
 
 
 def aggregate_maps(
@@ -43,6 +44,8 @@ def aggregate_maps(
         and the second index to `grid_props`.
     """
     # pylint: disable=too-many-arguments
+    timer = Timer()
+    timer.start("aggregate_maps")
     props, active_cells, inclusion_filters = _read_properties_and_find_active_cells(
         grid, grid_props, inclusion_filters
     )
@@ -61,6 +64,7 @@ def aggregate_maps(
         method,
         conn_data,
     )
+    timer.stop("aggregate_maps")
     return conn_data.x_nodes, conn_data.y_nodes, results
 
 

@@ -16,6 +16,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     _identify_gas_less_cells,
     _is_subset,
 )
+from ccs_scripts.utils.utils import Timer
 
 CO2_MASS_PNAME = "CO2Mass"
 
@@ -84,6 +85,8 @@ def translate_co2data_to_property(
         List[List[xtgeo.GridProperty]]
 
     """
+    timer = Timer()
+    timer.start("translate_co2data_to_property")
     gas_idxs = _get_gas_idxs(co2_mass_settings.unrst_source, properties_to_extract)
     maps = co2_mass_settings.maps
     if maps is None:
@@ -218,13 +221,15 @@ def translate_co2data_to_property(
                     mass_as_grid["MASSTGAS"]["egrid_path"]
                 )
                 trapped_gas_mass_data["egrid_kw"].extend(custom_egrid)
-    return [
+    out = [
         _export_unrst_and_kw_data(free_mass_data),
         _export_unrst_and_kw_data(dissolved_mass_data),
         _export_unrst_and_kw_data(total_mass_data),
         _export_unrst_and_kw_data(free_gas_mass_data),
         _export_unrst_and_kw_data(trapped_gas_mass_data),
     ]
+    timer.stop("translate_co2data_to_property")
+    return out
 
 
 def _create_custom_egrid_kw(

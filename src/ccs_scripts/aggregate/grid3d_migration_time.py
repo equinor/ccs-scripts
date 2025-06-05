@@ -18,6 +18,7 @@ from ccs_scripts.aggregate import (
 from ccs_scripts.aggregate._config import DEFAULT_LOWER_THRESHOLD, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.aggregate.grid3d_aggregate_map import _distribute_config_property
+from ccs_scripts.utils.utils import Timer
 
 _XTG = XTGeoDialog()
 
@@ -111,18 +112,27 @@ def calculate_migration_time_property(
     Calculates a 3D migration time property from the provided grid and grid property
     files
     """
+    timer = Timer()
     logging.info("\nStart calculating time migration property in 3D grid")
     prop_spec = [_config.Property(source=properties_files, name=property_name)]
+    timer.start("read_xtgeo_grid_migration_time")
     grid = None if grid_file is None else xtgeo.grid_from_file(grid_file)
+    timer.stop("read_xtgeo_grid_migration_time")
+    timer.start("extract_properties_migration_time")
     properties = _parser.extract_properties(
         prop_spec, grid, dates, mask_low_values=False
     )
+    timer.stop("extract_properties_migration_time")
     lower_threshold = _check_threshold(lower_threshold, properties)
     grid3d_aggregate_map._log_properties_info(properties)
+
+    timer.start("generate_migration_time_property")
     t_prop = _migration_time.generate_migration_time_property(
         properties, lower_threshold
     )
+    timer.stop("generate_migration_time_property")
     _log_t_prop(t_prop)
+
     return t_prop
 
 
@@ -150,12 +160,32 @@ def migration_time_property_to_map(
     os.unlink(temp_path)
 
 
+def _init_timer():
+    timer = Timer()
+    timer.reset_timings()
+    timer.code_parts = {
+        "read_xtgeo_grid_migration_time": "Read input grid using xtgeo",
+        "extract_properties_migration_time": "Extract input properties",
+        "generate_migration_time_property": "Generate migration time property",
+        "read_xtgeo_grid": "Aggregate: Read grid using xtgeo",
+        "extract_properties": "Aggregate: Extract properties from files",
+        "aggregate_maps": "Aggregate: Aggregate 3D grid to 2D maps",
+        "ndarray_to_regsurfs": "Aggregate: Convert results to xtgeo.RegularSurface",
+        "write_surfaces": "Aggregate: Write maps to files",
+        "logging": "Various logging",
+    }
+
+
 def main(arguments=None):
     """
     Calculates a migration time property and aggregates it to a 2D map
     """
     if arguments is None:
         arguments = sys.argv[1:]
+    _init_timer()
+    timer = Timer()
+    timer.start("total")
+
     config_ = _parser.process_arguments(arguments)
     _check_config(config_)
     log_input_configuration(config_, calc_type="time_migration")
@@ -192,6 +222,9 @@ def main(arguments=None):
             config_.input.dates,
         )
         migration_time_property_to_map(config_, t_prop)
+
+    timer.stop("total")
+    timer.report()
 
 
 if __name__ == "__main__":

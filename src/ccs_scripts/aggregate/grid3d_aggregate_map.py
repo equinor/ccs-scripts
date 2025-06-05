@@ -26,6 +26,7 @@ from ccs_scripts.aggregate._parser import (
     process_arguments,
 )
 from ccs_scripts.aggregate._utils import log_input_configuration
+from ccs_scripts.utils.utils import Timer
 
 from . import _config, _grid_aggregation
 
@@ -86,6 +87,8 @@ def modify_mass_property_names(properties: List[xtgeo.GridProperty]):
 
 
 def _log_grid_info(grid: xtgeo.Grid) -> None:
+    timer = Timer()
+    timer.start("logging")
     col1 = 25
     logging.info("\nGrid read from file:")
     logging.info(
@@ -98,9 +101,12 @@ def _log_grid_info(grid: xtgeo.Grid) -> None:
         f"{'  - Units':<{col1}} : "
         f"{grid.units.name.lower() if grid.units is not None else '?'}"
     )
+    timer.stop("logging")
 
 
 def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
+    timer = Timer()
+    timer.start("logging")
     logging.info("\nProperties read from file:")  # NBNB-AS: Not always from file
     logging.info(
         f"\n{'Name':<21} {'Date':>10} {'Mean':>10} {'Max':>10} "
@@ -120,11 +126,14 @@ def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
             f"{n_values:>10} "
             f"{np.ma.count_masked(p.values):>10}"
         )
+    timer.stop("logging")
 
 
 def _log_surfaces_exported(
     surfs: List[xtgeo.RegularSurface], zone_names: List[str], map_type: str
 ) -> None:
+    timer = Timer()
+    timer.start("logging")
     categories = [s.name.split("--") for s in surfs]
     types = set([v[1] for v in categories])
     logging.info(f"\nDone exporting {len(surfs)} {map_type} maps")
@@ -134,6 +143,7 @@ def _log_surfaces_exported(
         dates = list(set([v[2] for v in categories]))
         dates.sort()
         logging.info(f"  - {len(dates):>2} dates: {', '.join(dates)}")
+    timer.stop("logging")
 
 
 def generate_maps(
@@ -146,12 +156,19 @@ def generate_maps(
     """
     Calculate and write aggregated property maps to file
     """
+    timer = Timer()
     _check_input(computesettings)
     logging.info("\nReading grid, properties and zone(s)")
+    timer.start("read_xtgeo_grid")
     grid = xtgeo.grid_from_file(input_.grid)
+    timer.stop("read_xtgeo_grid")
     _log_grid_info(grid)
+
+    timer.start("extract_properties")
     properties = extract_properties(input_.properties, grid, input_.dates)
+    timer.stop("extract_properties")
     _log_properties_info(properties)
+
     modify_mass_property_names(properties)
     _filters: List[Tuple[str, Optional[Union[np.ndarray, None]]]] = []
     if computesettings.all:
@@ -163,8 +180,8 @@ def generate_maps(
             if filt[0] == "all" or filt[1] is None:
                 continue
             logging.info(
-                f"{filt[0]:<14}: {np.count_nonzero(filt[1])} "
-                f"({100.0 * np.count_nonzero(filt[1]) / len(filt[1]):.1f}%)"
+                f"{filt[0]:<14}: {np.count_nonzero(filt[1]):>9} "
+                f"({100.0 * np.count_nonzero(filt[1]) / len(filt[1]):.1f} %)"
             )
 
     logging.info(
@@ -238,7 +255,9 @@ def _ndarray_to_regsurfs(
     maps: List[List[np.ndarray]],
     lowercase: bool,
 ) -> List[xtgeo.RegularSurface]:
-    return [
+    timer = Timer()
+    timer.start("ndarray_to_regsurfs")
+    out = [
         xtgeo.RegularSurface(
             ncol=x_nodes.size,
             nrow=y_nodes.size,
@@ -252,6 +271,8 @@ def _ndarray_to_regsurfs(
         for fn, inner in zip(filter_names, maps)
         for prop, map_ in zip(prop_names, inner)
     ]
+    timer.stop("ndarray_to_regsurfs")
+    return out
 
 
 def _deduce_surface_name(filter_name, property_name, lowercase):
@@ -288,6 +309,8 @@ def _write_surfaces(
     use_plotly: bool,
     replace_masked_with_zero: bool = True,
 ):
+    timer = Timer()
+    timer.start("write_surfaces")
     logging.info("\nWriting to map folder")
     logging.info(f"     Path         : {map_folder}")
     if not os.path.isabs(map_folder):
@@ -318,6 +341,7 @@ def _write_surfaces(
                 write_plot_using_plotly(surface, pn)
             else:
                 write_plot_using_quickplot(surface, pn)
+    timer.stop("write_surfaces")
 
 
 def generate_from_config(config: _config.RootConfig):
@@ -389,16 +413,36 @@ def _distribute_config_property(
     return distributed_props
 
 
+def _init_timer():
+    timer = Timer()
+    timer.reset_timings()
+    timer.code_parts = {
+        "read_xtgeo_grid": "Aggregate: Read grid using xtgeo",
+        "extract_properties": "Aggregate: Extract properties from files",
+        "aggregate_maps": "Aggregate: Aggregate 3D grid to 2D maps",
+        "ndarray_to_regsurfs": "Aggregate: Convert results to xtgeo.RegularSurface",
+        "write_surfaces": "Aggregate: Write maps to files",
+        "logging": "Various logging",
+    }
+
+
 def main(arguments=None):
     """
     Main function that wraps `generate_from_config` with argument parsing
     """
     if arguments is None:
         arguments = sys.argv[1:]
+    _init_timer()
+    timer = Timer()
+    timer.start("total")
+
     config_ = process_arguments(arguments)
     config_.input.properties = _distribute_config_property(config_.input.properties)
     log_input_configuration(config_, calc_type="aggregate")
     generate_from_config(config_)
+
+    timer.stop("total")
+    timer.report()
 
 
 if __name__ == "__main__":

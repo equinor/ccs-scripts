@@ -44,6 +44,7 @@ from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
     calculate_plume_groups,
 )
 from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
+from ccs_scripts.utils.utils import Timer
 
 DESCRIPTION = """
 Calculates the amount of CO2 inside and outside a given perimeter, and
@@ -105,6 +106,7 @@ def calculate_out_of_bounds_co2(
     Returns:
         pd.DataFrame
     """
+    timer = Timer()
     co2_data = calculate_co2(
         grid_file,
         unrst_file,
@@ -128,7 +130,9 @@ def calculate_out_of_bounds_co2(
     if len(injection_wells) == 0:
         plume_groups = None
     else:
+        timer.start("find_plume_groups")
         plume_groups = _find_plume_groups(grid_file, unrst_file, injection_wells)
+        timer.stop("find_plume_groups")
 
     return calculate_from_co2_data(
         co2_data,
@@ -208,7 +212,9 @@ def calculate_from_co2_data(
     Returns:
         pd.DataFrame
     """
+    timer = Timer()
     calc_type = _set_calc_type_from_input_string(calc_type_input.lower())
+    timer.start("calculate_co2_containment")
     contained_co2 = calculate_co2_containment(
         co2_data,
         containment_polygon,
@@ -219,6 +225,7 @@ def calculate_from_co2_data(
         residual_trapping,
         plume_groups,
     )
+    timer.stop("calculate_co2_containment")
     return _construct_containment_table(contained_co2)
 
 
@@ -1159,12 +1166,27 @@ def write_lines(
     file.write(details["empty"])
 
 
+def _init_timer():
+    timer = Timer()
+    timer.reset_timings()
+    timer.code_parts = {
+        "extract_source_data": "Extract source data",
+        "calculate_co2": "Calculate CO2 per grid cell from source data",
+        "find_plume_groups": "Find plume groups (plume tracking)",
+        "calculate_co2_containment": "Calculate CO2 containment",
+        "export_results": "Export results",
+    }
+
+
 def main() -> None:
     """
     Takes input arguments and calculates total co2 mass or volume at each time
     step, divided into different phases and locations. Creates a data frame,
     then exports the data frame to a csv file.
     """
+    _init_timer()
+    timer = Timer()
+    timer.start("total")
     arguments_processed = process_args()
     check_input(arguments_processed)
     zone_info = ZoneInfo(
@@ -1203,6 +1225,7 @@ def main() -> None:
     )
     sort_and_replace_nones(data_frame)
     log_summary_of_results(data_frame, arguments_processed.calc_type_input)
+    timer.start("export_results")
     export_output_to_csv(
         arguments_processed.out_dir,
         arguments_processed.calc_type_input,
@@ -1224,6 +1247,10 @@ def main() -> None:
             arguments_processed.calc_type_input,
             arguments_processed.residual_trapping,
         )
+    timer.stop("export_results")
+
+    timer.stop("total")
+    timer.report()
 
 
 if __name__ == "__main__":

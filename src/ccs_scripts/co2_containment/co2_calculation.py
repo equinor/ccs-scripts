@@ -11,6 +11,8 @@ import xtgeo
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
+from ccs_scripts.utils.utils import Timer
+
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
 TRESHOLD_GAS = 1e-16
@@ -1619,6 +1621,7 @@ def calculate_co2(
       CO2Data
 
     """
+    timer = Timer()
     properties_to_extract = copy.deepcopy(RELEVANT_PROPERTIES)
     current_source_data = copy.deepcopy(source_data_)
     properties_to_add, properties_to_extract = _detect_eclipse_mole_fraction_props(
@@ -1626,6 +1629,7 @@ def calculate_co2(
     )
     if residual_trapping:
         properties_to_extract.extend(["SGSTRAND", "SGTRH"])
+    timer.start("extract_source_data")
     source_data = _extract_source_data(
         grid_file,
         unrst_file,
@@ -1635,7 +1639,10 @@ def calculate_co2(
         region_info,
         init_file,
     )
+    timer.stop("extract_source_data")
     calc_type = _set_calc_type_from_input_string(calc_type_input)
+
+    timer.start("calculate_co2")
     co2_data = _calculate_co2_data_from_source_data(
         source_data,
         calc_type=calc_type,
@@ -1643,6 +1650,7 @@ def calculate_co2(
         gas_molar_mass=gas_molar_mass,
         oil_molar_mass=oil_molar_mass,
     )
+    timer.stop("calculate_co2")
     return co2_data
 
 
