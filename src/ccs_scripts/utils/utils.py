@@ -12,6 +12,9 @@ class Timer:
             cls.code_parts = {"total": "Total"}
         return cls._instance
 
+    def reset_timings(self):
+        self._timings = {}
+
     def start(self, name: str):
         active = [
             x

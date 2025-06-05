@@ -162,6 +162,7 @@ def migration_time_property_to_map(
 
 def _init_timer():
     timer = Timer()
+    timer.reset_timings()
     timer.code_parts = {
         "read_xtgeo_grid_migration_time": "Read input grid using xtgeo",
         "extract_properties_migration_time": "Extract input properties",

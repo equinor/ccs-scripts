@@ -170,7 +170,6 @@ def co2_mass_property_to_map(
     """
     config_.input.properties = []
     for props in out_property_list:
-        print(f"\n\n\nprops: {props}")
         if isinstance(props, str):
             config_.input.properties.append(
                 _config.Property(
@@ -223,6 +222,7 @@ def _check_config(config_: RootConfig) -> None:
 
 def _init_timer():
     timer = Timer()
+    timer.reset_timings()
     timer.code_parts = {
         "extract_source_data": "Extract source data",
         "calculate_co2": "Calculate CO2 mass per grid cell from source data",

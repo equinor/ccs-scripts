@@ -415,6 +415,7 @@ def _distribute_config_property(
 
 def _init_timer():
     timer = Timer()
+    timer.reset_timings()
     timer.code_parts = {
         "read_xtgeo_grid": "Aggregate: Read grid using xtgeo",
         "extract_properties": "Aggregate: Extract properties from files",

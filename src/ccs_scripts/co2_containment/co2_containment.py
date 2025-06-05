@@ -1168,6 +1168,7 @@ def write_lines(
 
 def _init_timer():
     timer = Timer()
+    timer.reset_timings()
     timer.code_parts = {
         "extract_source_data": "Extract source data",
         "calculate_co2": "Calculate CO2 per grid cell from source data",
