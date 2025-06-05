@@ -16,12 +16,14 @@ class Timer:
         active = [
             x
             for x, y in self._timings.items()
-            if y["start"] is not None and x is not "total"
+            if y["start"] is not None and x != "total"
         ]
         if len(active) > 0:
-            print(
-                f"\nTrying to start timings on {name}, but some timings are already active: {active}"
-            )
+            # For debugging:
+            # print(
+            #     f"\nTrying to start timings on {name}, "
+            #     f"but some timings are already active: {active}"
+            # )
             # exit()
             return
         if name not in self._timings:
@@ -40,10 +42,16 @@ class Timer:
         logging.info(f"\n{'Category':<{max_len_category + 1}}  {'Time (s)':>10}")
         logging.info("=" * (max_len_category + 13))
         for name, timing in self._timings.items():
-            if name == "total":
+            if name in ["total", "logging"]:
                 continue
             desc = self.code_parts[name] if name in self.code_parts else name
             logging.info(f"{desc:<{max_len_category + 1}}: {timing['elapsed']:>10.2f}")
+        if "logging" in self._timings:
+            timing = self._timings["logging"]
+            logging.info(
+                f"{'Various logging':<{max_len_category + 1}}: "
+                f"{timing['elapsed']:>10.2f}"
+            )
         if "total" in self._timings:
             misc = self._timings["total"]["elapsed"] - sum(
                 [y["elapsed"] for x, y in self._timings.items() if x != "total"]
@@ -51,6 +59,7 @@ class Timer:
             logging.info(f"{'Miscellaneous':<{max_len_category + 1}}: {misc:>10.2f}")
             logging.info("-" * (max_len_category + 13))
             logging.info(
-                f"{'Total':<{max_len_category + 1}}: {self._timings['total']['elapsed']:>10.2f}"
+                f"{'Total':<{max_len_category + 1}}: "
+                f"{self._timings['total']['elapsed']:>10.2f}"
             )
         logging.info("")

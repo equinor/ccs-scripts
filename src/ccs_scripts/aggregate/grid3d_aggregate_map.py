@@ -87,6 +87,8 @@ def modify_mass_property_names(properties: List[xtgeo.GridProperty]):
 
 
 def _log_grid_info(grid: xtgeo.Grid) -> None:
+    timer = Timer()
+    timer.start("logging")
     col1 = 25
     logging.info("\nGrid read from file:")
     logging.info(
@@ -99,9 +101,12 @@ def _log_grid_info(grid: xtgeo.Grid) -> None:
         f"{'  - Units':<{col1}} : "
         f"{grid.units.name.lower() if grid.units is not None else '?'}"
     )
+    timer.stop("logging")
 
 
 def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
+    timer = Timer()
+    timer.start("logging")
     logging.info("\nProperties read from file:")  # NBNB-AS: Not always from file
     logging.info(
         f"\n{'Name':<21} {'Date':>10} {'Mean':>10} {'Max':>10} "
@@ -121,11 +126,14 @@ def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
             f"{n_values:>10} "
             f"{np.ma.count_masked(p.values):>10}"
         )
+    timer.stop("logging")
 
 
 def _log_surfaces_exported(
     surfs: List[xtgeo.RegularSurface], zone_names: List[str], map_type: str
 ) -> None:
+    timer = Timer()
+    timer.start("logging")
     categories = [s.name.split("--") for s in surfs]
     types = set([v[1] for v in categories])
     logging.info(f"\nDone exporting {len(surfs)} {map_type} maps")
@@ -135,6 +143,7 @@ def _log_surfaces_exported(
         dates = list(set([v[2] for v in categories]))
         dates.sort()
         logging.info(f"  - {len(dates):>2} dates: {', '.join(dates)}")
+    timer.stop("logging")
 
 
 def generate_maps(
@@ -188,7 +197,6 @@ def generate_maps(
         _property_tag(p.name, computesettings.aggregation, output.aggregation_tag)
         for p in properties
     ]
-    timer.start("write_surfaces")
     if computesettings.aggregate_map:
         surfs = _ndarray_to_regsurfs(
             [f[0] for f in _filters],
@@ -228,7 +236,6 @@ def generate_maps(
             output.replace_masked_with_zero,
         )
         _log_surfaces_exported(surfs_indicator, [f[0] for f in _filters], "indicator")
-    timer.stop("write_surfaces")
 
 
 def _property_tag(prop: str, agg_method: AggregationMethod, agg_tag: bool):
@@ -245,7 +252,9 @@ def _ndarray_to_regsurfs(
     maps: List[List[np.ndarray]],
     lowercase: bool,
 ) -> List[xtgeo.RegularSurface]:
-    return [
+    timer = Timer()
+    timer.start("ndarray_to_regsurfs")
+    out = [
         xtgeo.RegularSurface(
             ncol=x_nodes.size,
             nrow=y_nodes.size,
@@ -259,6 +268,8 @@ def _ndarray_to_regsurfs(
         for fn, inner in zip(filter_names, maps)
         for prop, map_ in zip(prop_names, inner)
     ]
+    timer.stop("ndarray_to_regsurfs")
+    return out
 
 
 def _deduce_surface_name(filter_name, property_name, lowercase):
@@ -295,6 +306,8 @@ def _write_surfaces(
     use_plotly: bool,
     replace_masked_with_zero: bool = True,
 ):
+    timer = Timer()
+    timer.start("write_surfaces")
     logging.info("\nWriting to map folder")
     logging.info(f"     Path         : {map_folder}")
     if not os.path.isabs(map_folder):
@@ -325,6 +338,7 @@ def _write_surfaces(
                 write_plot_using_plotly(surface, pn)
             else:
                 write_plot_using_quickplot(surface, pn)
+    timer.stop("write_surfaces")
 
 
 def generate_from_config(config: _config.RootConfig):
@@ -402,7 +416,9 @@ def _init_timer():
         "read_xtgeo_grid": "Aggregate: Read grid using xtgeo",
         "extract_properties": "Aggregate: Extract properties from files",
         "aggregate_maps": "Aggregate: Aggregate 3D grid to 2D maps",
+        "ndarray_to_regsurfs": "Aggregate: Convert results to xtgeo.RegularSurface",
         "write_surfaces": "Aggregate: Write maps to files",
+        "logging": "Various logging",
     }
 
 
