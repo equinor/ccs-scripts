@@ -24,7 +24,6 @@ from ccs_scripts.aggregate._config import (
     ZProperty,
 )
 from ccs_scripts.co2_containment.co2_containment import str_to_bool
-from ccs_scripts.utils.utils import Timer
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
@@ -258,8 +257,6 @@ def extract_properties(
     """
     Extract 3D grid properties based on the provided property specification
     """
-    timer = Timer()
-    timer.start("extract_properties")
     properties: List[xtgeo.GridProperty] = []
     if property_spec is None:
         return properties
@@ -301,7 +298,6 @@ def extract_properties(
         if len(dates) > 0 and props[0].date is not None:
             props = [p for p in props if p.date in dates]
         properties += props
-    timer.stop("extract_properties")
     return properties
 
 

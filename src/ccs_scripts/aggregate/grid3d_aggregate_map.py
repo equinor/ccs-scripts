@@ -162,10 +162,13 @@ def generate_maps(
     timer.start("read_xtgeo_grid")
     grid = xtgeo.grid_from_file(input_.grid)
     timer.stop("read_xtgeo_grid")
-
     _log_grid_info(grid)
+
+    timer.start("extract_properties")
     properties = extract_properties(input_.properties, grid, input_.dates)
+    timer.stop("extract_properties")
     _log_properties_info(properties)
+
     modify_mass_property_names(properties)
     _filters: List[Tuple[str, Optional[Union[np.ndarray, None]]]] = []
     if computesettings.all:
