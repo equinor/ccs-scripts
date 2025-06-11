@@ -57,19 +57,19 @@ class CellGroup:
 
 class PlumeGroups:
     def __init__(self, number_of_grid_cells: Optional[int] = None):
-        self.cells: List[CellGroup] = []
+        # self.cells: List[CellGroup] = []
         self.status: List[Status] = []
         self.all_groups: List[List[int]] = []
         if number_of_grid_cells is not None:
-            print(f"Number of grid cells: {number_of_grid_cells}")
-            self.cells = [CellGroup() for _ in range(0, number_of_grid_cells)]
-            print("A")
+            # print(f"Number of grid cells: {number_of_grid_cells}")
+            # self.cells = [CellGroup() for _ in range(0, number_of_grid_cells)]
+            # print("A")
             self.status = [Status.NO_CO2] * number_of_grid_cells
             self.all_groups = [[]] * number_of_grid_cells
-            print(len(self.cells))
-            print(len(self.status))
-            print(len(self.all_groups))
-            print("F")
+            # print(len(self.cells))
+            # print(len(self.status))
+            # print(len(self.all_groups))
+            # print("F")
             # a = [0.0 for _ in range(0, number_of_grid_cells)]
             # print("B")
             # b = np.array([CellGroup() for _ in range(0, number_of_grid_cells)])
@@ -84,7 +84,7 @@ class PlumeGroups:
 
     def copy(self):
         out = PlumeGroups()
-        out.cells = self.cells.copy()
+        # out.cells = self.cells.copy()
         out.status = self.status.copy()
         out.all_groups = self.all_groups.copy()
         return out
