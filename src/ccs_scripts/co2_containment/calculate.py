@@ -35,7 +35,7 @@ class ContainedCo2:
     """
 
     date: str
-    amount: Union[np.float64, np.int64]
+    amount: Union[np.float64, np.int64, float, np.floating]
     phase: str
     containment: str
     zone: Optional[str] = None
