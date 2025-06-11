@@ -512,7 +512,7 @@ def _process_zones(
                 zone_name_dict = {}
                 zone_values = []
             zone = zone.values.data.flatten(order="F")
-            zonevals = np.unique(zone)
+            zonevals = list(np.unique(zone))
             intvals = np.array(zonevals, dtype=int)
             if np.sum(intvals == zonevals) != len(zonevals):
                 logging.info(

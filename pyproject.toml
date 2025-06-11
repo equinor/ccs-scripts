@@ -89,7 +89,7 @@ grid3d_migration_time = "ccs_scripts.aggregate.grid3d_migration_time:main"
 co2_csv_arrow_converter = "ccs_scripts.co2_csv_arrow_converter.converter:main"
 
 [project.entry-points.ert]
-ccs_scripts_jobs = "ccs_scripts.hook_implementations.jobs"
+ccs_scripts_steps = "ccs_scripts.hook_implementations.forward_model_steps"
 
 [tool.black]
 line-length = 88

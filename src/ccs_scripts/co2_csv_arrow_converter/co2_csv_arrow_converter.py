@@ -10,12 +10,6 @@ from typing import List
 import pandas as pd
 import pyarrow as pa
 
-DESCRIPTION = """This scripts checks all FMU realizations for missing arrow or
-csv files representing plume extent, area or containment data. If one exists,
-but not the other, it will create the missing file."""
-
-CATEGORY = "modelling.reservoir"
-
 
 def try_convert_csv_to_arrow(
     csv_path: Path,
@@ -201,31 +195,31 @@ def main():
         description="Create missing Arrow/CSV files for FMU realizations"
     )
     parser.add_argument(
-        "--root-dir",
+        "--root_dir",
         type=Path,
         help="Root directory for the glob pattern",
         default=Path(".").resolve(),
     )
     parser.add_argument(
-        "--realization-pattern",
+        "--realization_pattern",
         type=str,
         help="Glob pattern (relative to root_dir) for an FMU realization directory",
         default="realization-*/iter-*",
     )
     parser.add_argument(
-        "--kept-columns",
+        "--kept_columns",
         type=str,
         help="Comma-separated list of columns to keep when converting containment data",
         default="phase,containment",
     )
     parser.add_argument(
-        "--force-arrow-overwrite",
+        "--force_arrow_overwrite",
         type=bool,
         default=False,
         help="Overwrite existing Arrow files even if they already exist",
     )
     parser.add_argument(
-        "--force-csv-overwrite",
+        "--force_csv_overwrite",
         type=bool,
         default=False,
         help="Overwrite existing CSV files even if they already exist",
