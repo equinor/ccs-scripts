@@ -23,25 +23,6 @@ from ccs_scripts.co2_containment.co2_calculation import (
 )
 from ccs_scripts.utils.utils import Timer
 
-# Module variables for ERT hook implementation:
-DESCRIPTION = """
-    Produces maps of CO2 mass per date, formation and phase (gas/dissolved).
-    Outputs are .gri files (one per requested combination of date, phase,
-    formation).
-
-    A yaml config file is the input file to co2_mass_maps. Through this file
-    the user can decide on which dates, phases or formations the maps are
-    produced. See tests/yaml for examples of yaml files.
-    """
-
-CATEGORY = "modelling.reservoir"
-
-EXAMPLES = """
-.. code-block:: console
-
-  FORWARD_MODEL GRID3D_CO2_MASS_MAP(<CONFIG_CO2_MASS_MAP>=conf.yml, <ECLROOT>=<ECLBASE>)
-"""
-
 
 def generate_co2_mass_maps(config_: RootConfig):
     """

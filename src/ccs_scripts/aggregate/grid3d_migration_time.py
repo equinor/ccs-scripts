@@ -38,15 +38,6 @@ MIGRATION_TIME_PROPERTIES = [
     "SOIL",
 ]
 
-# Module variables for ERT hook implementation:
-DESCRIPTION = "Generate migration time property maps."
-CATEGORY = "modelling.reservoir"
-EXAMPLES = """
-.. code-block:: console
-
-  FORWARD_MODEL GRID3D_MIGRATION_TIME(<CONFIG_MIGTIME>=conf.yml, <ECLROOT>=<ECLBASE>)
-"""
-
 
 def _check_config(config_: RootConfig) -> None:
     config_.input.properties = _distribute_config_property(config_.input.properties)

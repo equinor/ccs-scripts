@@ -36,19 +36,6 @@ DEFAULT_THRESHOLD_GAS = 0.2
 DEFAULT_THRESHOLD_DISSOLVED = 0.0005
 INJ_POINT_THRESHOLD = 60.0
 
-DESCRIPTION = """
-Calculates the maximum lateral distance of the CO2 plume from a given location,
-for instance an injection point. It is also possible to instead calculate the
-distance to a point or a line (north-south or east-west). The distances are
-calculated for each time step, for both SGAS and AMFG (Pflotran) / XMF2
-(Eclipse).
-
-Output is a table on CSV format. Multiple calculations specified in the
-YAML-file will be combined to a single CSV-file with many columns.
-"""
-
-CATEGORY = "modelling.reservoir"
-
 
 class CalculationType(Enum):
     """
@@ -680,10 +667,10 @@ def _calculate_grid_cell_distances(
     for inj_well, distance in dist.items():
         logging.info(f"Injection well: {inj_well}")
         logging.info(
-            f"    Smallest distance grid cell to {text} : {min(distance):>10.1f}"
+            f"    Smallest distance grid cell to {text} : {np.min(distance):>10.1f}"
         )
         logging.info(
-            f"    Largest distance grid cell to {text}  : {max(distance):>10.1f}"
+            f"    Largest distance grid cell to {text}  : {np.max(distance):>10.1f}"
         )
         logging.info(
             f"    Average distance grid cell to {text}  : "
