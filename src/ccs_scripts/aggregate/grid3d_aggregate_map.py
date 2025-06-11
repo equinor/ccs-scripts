@@ -33,16 +33,6 @@ from . import _config, _grid_aggregation
 _XTG = XTGeoDialog()
 
 
-# Module variables for ERT hook implementation:
-DESCRIPTION = "Aggregate property maps from 3D grids."
-CATEGORY = "modelling.reservoir"
-EXAMPLES = """
-.. code-block:: console
-
-  FORWARD_MODEL GRID3D_AGGREGATE_MAP(<CONFIG_AGGREGATE>=conf.yml, <ECLROOT>=<ECLBASE>)
-"""
-
-
 def write_plot_using_plotly(surf: xtgeo.RegularSurface, filename: pathlib.Path):
     """
     Writes a 2D map to an html using the plotly library

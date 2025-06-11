@@ -29,15 +29,6 @@ import xtgeo
 
 from ccs_scripts.co2_containment.co2_containment import str_to_bool
 
-DESCRIPTION = """
-Calculates the area of the CO2 plume for each formation and time step, for both
-SGAS and AMFG (Pflotran) / YMF2 (Eclipse).
-
-Output is a table on CSV format.
-"""
-
-CATEGORY = "modelling.reservoir"
-
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
 
