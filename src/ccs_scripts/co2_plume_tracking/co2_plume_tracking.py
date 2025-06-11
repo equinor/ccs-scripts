@@ -27,9 +27,11 @@ from resdata.resfile import ResdataFile
 from ccs_scripts.co2_plume_tracking.utils import (
     InjectionWellData,
     PlumeGroups,
+    Status,
     assemble_plume_groups_into_dict,
     sort_well_names,
 )
+from ccs_scripts.utils.utils import Timer
 
 DEFAULT_THRESHOLD_GAS = 0.2
 DEFAULT_THRESHOLD_DISSOLVED = 0.0005
@@ -363,6 +365,7 @@ def calculate_plume_groups(
     The string is the name of the plume group, for instance
     "well_A+well_B" (if well_A and well_B have merged).
     """
+    timer = Timer()
     time_start = time.time()
     n_time_steps = len(unrst.report_steps)
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
@@ -377,9 +380,14 @@ def calculate_plume_groups(
 
     # Plume group property
     pg_prop = [["" for _ in range(n_cells)] for _ in range(n_time_steps)]
+    timer.start("init PlumeGroups")
     prev_groups = PlumeGroups(n_cells)
+    timer.stop("init PlumeGroups")
     for i in range(n_time_steps):
+        timer.start("init PlumeGroups")
         groups = PlumeGroups(n_cells)
+        timer.stop("init PlumeGroups")
+        timer.start("plume_groups_at_time_step")
         _plume_groups_at_time_step(
             unrst,
             grid,
@@ -393,9 +401,11 @@ def calculate_plume_groups(
             groups,
             n_grid_cells_for_logging,
         )
+        timer.stop("plume_groups_at_time_step")
 
-        for j, cell in enumerate(groups.cells):
-            all_groups = cell.all_groups
+        # for j, cell in enumerate(groups.cells):
+        for j, all_groups in enumerate(groups.all_groups):
+            # all_groups = cell.all_groups
             if all_groups:
                 group_string = "+".join(
                     [
@@ -463,11 +473,16 @@ def _plume_groups_at_time_step(
     for full_group in groups_to_merge:
         new_group = [x for y in full_group for x in y]
         new_group.sort()
-        for cell in groups.cells:
-            if cell.has_co2():
+        # for cell in groups.cells:
+        #     if cell.has_co2():
+        #         for g in full_group:
+        #             if set(cell.all_groups) & set(g):
+        #                 cell.all_groups = new_group
+        for status, all_groups in zip(groups.status, groups.all_groups):
+            if status == Status.HAS_CO2:
                 for g in full_group:
-                    if set(cell.all_groups) & set(g):
-                        cell.all_groups = new_group
+                    if set(all_groups) & set(g):
+                        all_groups = new_group  # NBNB-AS: Does this still work?
 
     logging.debug("\nCurrent group after resolving undetermined cells:")
     groups.debug_print()
@@ -477,12 +492,18 @@ def _plume_groups_at_time_step(
         if g == [-1]:
             if "undetermined" not in n_grid_cells_for_logging:
                 n_grid_cells_for_logging["undetermined"] = [0] * n_time_steps
+            # n_grid_cells_for_logging["undetermined"][i] = len(
+            #     [j for j in cells_with_co2 if groups.cells[j].all_groups == [-1]]
+            # )
             n_grid_cells_for_logging["undetermined"][i] = len(
-                [j for j in cells_with_co2 if groups.cells[j].all_groups == [-1]]
+                [j for j in cells_with_co2 if groups.all_groups[j] == [-1]]
             )
             continue
+        # indices_this_group = [
+        #     j for j in cells_with_co2 if groups.cells[j].all_groups == g
+        # ]
         indices_this_group = [
-            j for j in cells_with_co2 if groups.cells[j].all_groups == g
+            j for j in cells_with_co2 if groups.all_groups[j] == g
         ]
 
         group_string = "+".join(
@@ -503,8 +524,12 @@ def _initialize_groups_from_prev_step_and_inj_wells(
 ):
     new_z_coords: Dict[str, List[float]] = {}
     for index in cells_with_co2:
-        if prev_groups.cells[index].has_co2():
-            groups.cells[index] = prev_groups.cells[index]
+        # if prev_groups.cells[index].has_co2():
+        #     groups.cells[index] = prev_groups.cells[index]
+        if prev_groups.status[index] == Status.HAS_CO2:
+            groups.status[index] = prev_groups.status[index]
+            # NBNB-AS: Does this still work? Or will lists in all_groups now not be copied, but refer to same list for prev_groups and groups ?
+            groups.all_groups[index] = prev_groups.all_groups[index]
         else:
             # This grid cell did not have CO2 in the last time step
             (i, j, k) = grid.get_ijk(active_index=index)
@@ -543,10 +568,14 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                     merged_group = groups.check_if_well_is_part_of_larger_group(
                         well.number
                     )
+                    # if merged_group is None:
+                    #     groups.cells[index].set_cell_groups(new_groups=[well.number])
+                    # else:
+                    #     groups.cells[index].set_cell_groups(new_groups=merged_group)
                     if merged_group is None:
-                        groups.cells[index].set_cell_groups(new_groups=[well.number])
+                        groups.set_cell_groups(index, [well.number])
                     else:
-                        groups.cells[index].set_cell_groups(new_groups=merged_group)
+                        groups.set_cell_groups(index, merged_group)
                     if (
                         well.name not in new_z_coords
                         or z not in new_z_coords[well.name]
@@ -557,7 +586,8 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                             new_z_coords[well.name].append(z)
                     break
             if not found:
-                groups.cells[index].set_undetermined()
+                # groups.cells[index].set_undetermined()
+                groups.status[index] = Status.UNDETERMINED
     _update_inj_z_coordinates(inj_wells, new_z_coords)
     _find_inj_wells_grid_indices(
         inj_wells_grid_indices, grid, inj_wells

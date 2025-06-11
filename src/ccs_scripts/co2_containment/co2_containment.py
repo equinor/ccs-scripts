@@ -130,9 +130,9 @@ def calculate_out_of_bounds_co2(
     if len(injection_wells) == 0:
         plume_groups = None
     else:
-        timer.start("find_plume_groups")
+        # timer.start("find_plume_groups")
         plume_groups = _find_plume_groups(grid_file, unrst_file, injection_wells)
-        timer.stop("find_plume_groups")
+        # timer.stop("find_plume_groups")
 
     return calculate_from_co2_data(
         co2_data,
@@ -151,6 +151,7 @@ def _find_plume_groups(
     unrst_file: str,
     injection_wells: List[InjectionWellData],
 ) -> Optional[List[List[str]]]:
+    timer = Timer()
     grid = Grid(grid_file)
     unrst = ResdataFile(unrst_file)
     if "AMFG" in unrst:
@@ -179,7 +180,9 @@ def _find_plume_groups(
         active, gasless = find_active_and_gasless_cells(grid, properties, False)
         global_active_idx = active[~gasless]
         non_gasless = np.where(np.isin(active, global_active_idx))[0]
+        timer.start("plume_groups_list")
         plume_groups = [list(np.array(x)[non_gasless]) for x in plume_groups]
+        timer.stop("plume_groups_list")
     return plume_groups
 
 
@@ -1254,4 +1257,12 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    import cProfile
+    import pstats
+    profiler = cProfile.Profile()
+    profiler.enable()
     main()
+    profiler.disable()
+    # stats = pstats.Stats(profiler).sort_stats('cumtime')
+    # stats.print_stats()
+    profiler.dump_stats('subprocess_profile.prof')
