@@ -139,12 +139,6 @@ def calculate_co2_containment(
                             co2_amount[is_in_section & is_in_location & is_in_plume],
                             dtype=dtype,
                         )
-                        # print(amount)
-                        # print(type(amount))
-                        # print(isinstance(amount, np.float64))
-                        # print(isinstance(amount, np.int64))
-                        # print(isinstance(amount, float))
-                        # print(isinstance(amount, np.floating))
                         containment += [
                             ContainedCo2(
                                 co2_at_timestep.date,
