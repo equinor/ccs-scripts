@@ -509,11 +509,8 @@ def _initialize_groups_from_prev_step_and_inj_wells(
 ):
     new_z_coords: Dict[str, List[float]] = {}
     for index in cells_with_co2:
-        # if prev_groups.cells[index].has_co2():
-        #     groups.cells[index] = prev_groups.cells[index]
         if prev_groups.status[index] == Status.HAS_CO2:
             groups.status[index] = prev_groups.status[index]
-            # NBNB-AS: Does this still work? Or will lists in all_groups now not be copied, but refer to same list for prev_groups and groups ?
             groups.all_groups[index] = prev_groups.all_groups[index]
         else:
             # This grid cell did not have CO2 in the last time step
@@ -553,10 +550,6 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                     merged_group = groups.check_if_well_is_part_of_larger_group(
                         well.number
                     )
-                    # if merged_group is None:
-                    #     groups.cells[index].set_cell_groups(new_groups=[well.number])
-                    # else:
-                    #     groups.cells[index].set_cell_groups(new_groups=merged_group)
                     if merged_group is None:
                         groups.set_cell_groups(index, [well.number])
                     else:
@@ -571,7 +564,6 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                             new_z_coords[well.name].append(z)
                     break
             if not found:
-                # groups.cells[index].set_undetermined()
                 groups.status[index] = Status.UNDETERMINED
     _update_inj_z_coordinates(inj_wells, new_z_coords)
     _find_inj_wells_grid_indices(
@@ -611,13 +603,6 @@ def _log_results(
 
     for col in df.drop("date", axis=1).columns:
         logging.info(f"End state {col:<{col_width}} : {dfs[col].iloc[-1]:>11.1f}")
-
-
-def _find_dates(all_results: List[Tuple[Dict, Optional[Dict], Optional[str]]]):
-    one_dict = all_results[0][0][next(iter(all_results[0][0]))]
-    one_array = one_dict[next(iter(one_dict))]
-    dates = [[date] for (date, _) in one_array]
-    return dates
 
 
 def _find_output_file(output: str, case: str):

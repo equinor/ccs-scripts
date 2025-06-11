@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional
 
-import numpy as np
 from resdata.grid import Grid
 
 MAX_STEPS_RESOLVE_CELLS = 20
@@ -28,7 +27,6 @@ class Status(Enum):
     HAS_CO2 = 2
 
 
-
 class PlumeGroups:
     def __init__(self, number_of_grid_cells: Optional[int] = None):
         self.status: List[Status] = []
@@ -49,7 +47,9 @@ class PlumeGroups:
 
     def resolve_undetermined_cells(self, grid: Grid) -> List:
         ind_to_resolve = [
-            ind for ind, status in enumerate(self.status) if status==Status.UNDETERMINED
+            ind
+            for ind, status in enumerate(self.status)
+            if status == Status.UNDETERMINED
         ]
         counter = 1
         groups_to_merge = []  # A list of list of groups to merge
@@ -68,7 +68,9 @@ class PlumeGroups:
                     self.set_cell_groups(ind, groups_nearby[0])
 
             updated_ind_to_resolve = [
-                ind for ind, status in enumerate(self.status) if status==Status.UNDETERMINED
+                ind
+                for ind, status in enumerate(self.status)
+                if status == Status.UNDETERMINED
             ]
             if len(updated_ind_to_resolve) == len(ind_to_resolve):
                 updated = False
@@ -86,7 +88,9 @@ class PlumeGroups:
                             break
                 if updated:
                     updated_ind_to_resolve = [
-                        ind for ind, status in enumerate(self.status) if status==Status.UNDETERMINED
+                        ind
+                        for ind, status in enumerate(self.status)
+                        if status == Status.UNDETERMINED
                     ]
                     ind_to_resolve = updated_ind_to_resolve
                     counter += 1
@@ -98,7 +102,9 @@ class PlumeGroups:
 
         # Any unresolved grid cells?
         for ind in ind_to_resolve:
-            self.set_cell_groups(ind, [-1])  # NBNB-AS: Can probably do this with list comprehension or something
+            self.set_cell_groups(
+                ind, [-1]
+            )  # NBNB-AS: Can probably do this with list comprehension or something
 
         # Resolve groups to merge:
         new_groups_to_merge: List = []
@@ -135,7 +141,7 @@ class PlumeGroups:
         for ijk in neigs:
             ind = grid.get_active_index(ijk=ijk)
             if ind != -1 and self.status[ind] == Status.HAS_CO2:
-                all_groups =  self.all_groups[ind]
+                all_groups = self.all_groups[ind]
                 if all_groups not in out:
                     out.append(all_groups.copy())
         return out
