@@ -667,10 +667,10 @@ def _calculate_grid_cell_distances(
     for inj_well, distance in dist.items():
         logging.info(f"Injection well: {inj_well}")
         logging.info(
-            f"    Smallest distance grid cell to {text} : {min(distance):>10.1f}"
+            f"    Smallest distance grid cell to {text} : {np.min(distance):>10.1f}"
         )
         logging.info(
-            f"    Largest distance grid cell to {text}  : {max(distance):>10.1f}"
+            f"    Largest distance grid cell to {text}  : {np.max(distance):>10.1f}"
         )
         logging.info(
             f"    Average distance grid cell to {text}  : "
