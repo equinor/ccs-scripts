@@ -28,63 +28,17 @@ class Status(Enum):
     HAS_CO2 = 2
 
 
-class CellGroup:
-    def __init__(self):  # NBNB-AS: , groups: Optional[List[int]] = None
-        self.status: Status = Status.NO_CO2
-        self.all_groups: List[int] = []
-        # NBNB-AS: Can delete:
-        # if groups is not None:
-        #     self.status = Status.HAS_CO2
-        #     self.all_groups = groups.copy()
-
-    # def set_cell_groups(self, new_groups: List[int]):
-    #     self.status = Status.HAS_CO2
-    #     self.all_groups = new_groups.copy()
-
-    def set_undetermined(self):
-        self.status = Status.UNDETERMINED
-        self.all_groups = []
-
-    def has_co2(self):
-        return self.status == Status.HAS_CO2
-
-    def has_no_co2(self):
-        return self.status == Status.NO_CO2
-
-    def is_undetermined(self):
-        return self.status == Status.UNDETERMINED
-
 
 class PlumeGroups:
     def __init__(self, number_of_grid_cells: Optional[int] = None):
-        # self.cells: List[CellGroup] = []
         self.status: List[Status] = []
         self.all_groups: List[List[int]] = []
         if number_of_grid_cells is not None:
-            # print(f"Number of grid cells: {number_of_grid_cells}")
-            # self.cells = [CellGroup() for _ in range(0, number_of_grid_cells)]
-            # print("A")
             self.status = [Status.NO_CO2] * number_of_grid_cells
             self.all_groups = [[]] * number_of_grid_cells
-            # print(len(self.cells))
-            # print(len(self.status))
-            # print(len(self.all_groups))
-            # print("F")
-            # a = [0.0 for _ in range(0, number_of_grid_cells)]
-            # print("B")
-            # b = np.array([CellGroup() for _ in range(0, number_of_grid_cells)])
-            # print("C")
-            # cells = [None] * number_of_grid_cells
-            # cells = [CellGroup() for _ in range(0, number_of_grid_cells)]
-            # print("D")
-            # cells = [None] * number_of_grid_cells
-            # for i in range(number_of_grid_cells):
-            #     cells[i] = CellGroup()
-            # print("E")
 
     def copy(self):
         out = PlumeGroups()
-        # out.cells = self.cells.copy()
         out.status = self.status.copy()
         out.all_groups = self.all_groups.copy()
         return out
@@ -94,9 +48,6 @@ class PlumeGroups:
         self.all_groups[ind] = new_groups.copy()
 
     def resolve_undetermined_cells(self, grid: Grid) -> List:
-        # ind_to_resolve = [
-        #     ind for ind, group in enumerate(self.cells) if group.is_undetermined()
-        # ]
         ind_to_resolve = [
             ind for ind, status in enumerate(self.status) if status==Status.UNDETERMINED
         ]
@@ -109,18 +60,13 @@ class PlumeGroups:
                 if [-1] in groups_nearby:
                     groups_nearby = [x for x in groups_nearby if x != [-1]]
                 if len(groups_nearby) == 1:
-                    # self.cells[ind].set_cell_groups(groups_nearby[0])
                     self.set_cell_groups(ind, groups_nearby[0])
                 elif len(groups_nearby) >= 2:
                     if groups_nearby not in groups_to_merge:
                         groups_to_merge.append(groups_nearby)
                     # Set to first group, but will be overwritten by merge later
-                    # self.cells[ind].set_cell_groups(groups_nearby[0])
                     self.set_cell_groups(ind, groups_nearby[0])
 
-            # updated_ind_to_resolve = [
-            #     ind for ind, group in enumerate(self.cells) if group.is_undetermined()
-            # ]
             updated_ind_to_resolve = [
                 ind for ind, status in enumerate(self.status) if status==Status.UNDETERMINED
             ]
@@ -139,11 +85,6 @@ class PlumeGroups:
                             updated = True
                             break
                 if updated:
-                    # updated_ind_to_resolve = [
-                    #     ind
-                    #     for ind, group in enumerate(self.cells)
-                    #     if group.is_undetermined()
-                    # ]
                     updated_ind_to_resolve = [
                         ind for ind, status in enumerate(self.status) if status==Status.UNDETERMINED
                     ]
@@ -157,7 +98,6 @@ class PlumeGroups:
 
         # Any unresolved grid cells?
         for ind in ind_to_resolve:
-            # self.cells[ind].set_cell_groups([-1])
             self.set_cell_groups(ind, [-1])  # NBNB-AS: Can probably do this with list comprehension or something
 
         # Resolve groups to merge:
@@ -194,9 +134,7 @@ class PlumeGroups:
 
         for ijk in neigs:
             ind = grid.get_active_index(ijk=ijk)
-            # if ind != -1 and self.cells[ind].has_co2():
             if ind != -1 and self.status[ind] == Status.HAS_CO2:
-                # all_groups = self.cells[ind].all_groups
                 all_groups =  self.all_groups[ind]
                 if all_groups not in out:
                     out.append(all_groups.copy())
@@ -204,13 +142,7 @@ class PlumeGroups:
 
     def find_unique_groups(self):
         unique_groups = []
-        # for cell in self.cells:
         for status, all_groups in zip(self.status, self.all_groups):
-            # if cell.has_co2():
-            #     if cell.all_groups not in unique_groups:
-            #         unique_groups.append(cell.all_groups)
-            # elif cell.is_undetermined() and [-1] not in unique_groups:
-            #     unique_groups.append([-1])
             if status == Status.HAS_CO2:
                 if all_groups not in unique_groups:
                     unique_groups.append(all_groups)
@@ -233,22 +165,13 @@ class PlumeGroups:
             unique_groups.sort()
             logging.debug(
                 f"Count '-'              : "
-                # f"{len([c for c in self.cells if c.has_no_co2()])}"
                 f"{len([c for c in self.status if c == Status.NO_CO2])}"
             )
             logging.debug(
                 f"Count 'undetermined'   : "
-                # f"{len([c for c in self.cells if c.is_undetermined()])}"
                 f"{len([c for c in self.status if c == Status.UNDETERMINED])}"
             )
             for unique_group in unique_groups:
-                # n = len(
-                #     [
-                #         c
-                #         for c in self.cells
-                #         if c.has_co2() and c.all_groups == unique_group
-                #     ]
-                # )
                 n = len(
                     [
                         s

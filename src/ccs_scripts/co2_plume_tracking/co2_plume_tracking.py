@@ -380,13 +380,9 @@ def calculate_plume_groups(
 
     # Plume group property
     pg_prop = [["" for _ in range(n_cells)] for _ in range(n_time_steps)]
-    timer.start("init PlumeGroups")
     prev_groups = PlumeGroups(n_cells)
-    timer.stop("init PlumeGroups")
     for i in range(n_time_steps):
-        timer.start("init PlumeGroups")
         groups = PlumeGroups(n_cells)
-        timer.stop("init PlumeGroups")
         timer.start("plume_groups_at_time_step")
         _plume_groups_at_time_step(
             unrst,
@@ -473,16 +469,11 @@ def _plume_groups_at_time_step(
     for full_group in groups_to_merge:
         new_group = [x for y in full_group for x in y]
         new_group.sort()
-        # for cell in groups.cells:
-        #     if cell.has_co2():
-        #         for g in full_group:
-        #             if set(cell.all_groups) & set(g):
-        #                 cell.all_groups = new_group
-        for status, all_groups in zip(groups.status, groups.all_groups):
-            if status == Status.HAS_CO2:
+        for j in range(len(groups.status)):
+            if groups.status[j] == Status.HAS_CO2:
                 for g in full_group:
-                    if set(all_groups) & set(g):
-                        all_groups = new_group  # NBNB-AS: Does this still work?
+                    if set(groups.all_groups[j]) & set(g):
+                        groups.all_groups[j] = new_group.copy()
 
     logging.debug("\nCurrent group after resolving undetermined cells:")
     groups.debug_print()
@@ -492,26 +483,20 @@ def _plume_groups_at_time_step(
         if g == [-1]:
             if "undetermined" not in n_grid_cells_for_logging:
                 n_grid_cells_for_logging["undetermined"] = [0] * n_time_steps
-            # n_grid_cells_for_logging["undetermined"][i] = len(
-            #     [j for j in cells_with_co2 if groups.cells[j].all_groups == [-1]]
-            # )
             n_grid_cells_for_logging["undetermined"][i] = len(
                 [j for j in cells_with_co2 if groups.all_groups[j] == [-1]]
             )
-            continue
-        # indices_this_group = [
-        #     j for j in cells_with_co2 if groups.cells[j].all_groups == g
-        # ]
-        indices_this_group = [
-            j for j in cells_with_co2 if groups.all_groups[j] == g
-        ]
+        else:
+            indices_this_group = [
+                j for j in cells_with_co2 if groups.all_groups[j] == g
+            ]
 
-        group_string = "+".join(
-            [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
-        )
-        if group_string not in n_grid_cells_for_logging:
-            n_grid_cells_for_logging[group_string] = [0] * n_time_steps
-        n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
+            group_string = "+".join(
+                [str([x.name for x in inj_wells if x.number == y][0]) for y in g]
+            )
+            if group_string not in n_grid_cells_for_logging:
+                n_grid_cells_for_logging[group_string] = [0] * n_time_steps
+            n_grid_cells_for_logging[group_string][i] = len(indices_this_group)
 
 
 def _initialize_groups_from_prev_step_and_inj_wells(
