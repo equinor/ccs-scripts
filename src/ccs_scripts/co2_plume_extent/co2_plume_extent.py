@@ -664,7 +664,7 @@ def _calculate_grid_cell_distances(
         text = "point          "
     elif calculation_type == CalculationType.LINE:
         text = "line           "
-    for inj_well, distance in dist.items():      
+    for inj_well, distance in dist.items():
         logging.info(f"Injection well: {inj_well}")
         logging.info(
             f"    Smallest distance grid cell to {text} : {np.min(distance):>10.1f}"
