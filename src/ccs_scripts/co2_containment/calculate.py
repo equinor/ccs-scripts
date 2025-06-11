@@ -148,7 +148,7 @@ def calculate_co2_containment(
                         containment += [
                             ContainedCo2(
                                 co2_at_timestep.date,
-                                amount,
+                                np.float64(amount),
                                 phase,
                                 location,
                                 zone,
