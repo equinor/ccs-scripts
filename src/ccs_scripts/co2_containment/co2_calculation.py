@@ -728,7 +728,6 @@ def _pflotran_co2mass(
     if swat is None and scenario != Scenario.DEPLETED_OIL_GAS_FIELD:
         swat = {key: 1 - sgas[key] for key in sgas}
     if xmfw is None and scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
-        print("Right?")
         xmfw = {key: 1 - xmfg[key] - xmfs[key] - xmfo[key] for key in xmfg}
     sgstrand = source_data.SGSTRAND
     eff_vols = source_data.PORV

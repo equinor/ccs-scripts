@@ -746,7 +746,7 @@ def log_summary_of_results(
     total = extract_amount(df_subset, "total", "total", cell_volume)
     n = len(f"{total:.1f}")
 
-    col1 = 24
+    col1 = 30
     logging.info("\nSummary of results:")
     logging.info("===================")
     logging.info(f"{'Number of dates':<{col1}} : {len(dfs['date'].unique())}")
