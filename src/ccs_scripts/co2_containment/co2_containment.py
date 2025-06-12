@@ -1164,7 +1164,7 @@ def _init_timer():
         "plume_tracking_logging": "Various logging",
         "conversion_active_to_gasless_cells": "Convert active to gasless cells",
         "calculate_co2_containment": "Calculate CO2 containment",
-        "make_location_filters": "Make location filters for containment polygons",
+        "make_location_filters": "Make location filters for polygons",
         "plume_group_mapping": "Map plume groups",
         "sum_and_store": "Sum and store amount of CO2",
         "export_results": "Export results",
