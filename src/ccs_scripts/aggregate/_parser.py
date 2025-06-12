@@ -156,7 +156,7 @@ def parse_yaml(
     details.
     """
     config = load_yaml(yaml_file, map_folder, plot_folder, grid_folder, replacements)
-    if "co2_mass_settings" in config:
+    if "co2_mass_settings" in config and "gas_molar_mass" not in config["co2_mass_settings"]:
         config["co2_mass_settings"]["gas_molar_mass"] = gas_molar_mass
     co2_mass_settings = (
         None
