@@ -84,7 +84,6 @@ class PlumeGroups:
                             ijk, grid, tol=tolerance
                         )
                         if len(groups_nearby) >= 1:
-                            # self.cells[ind].set_cell_groups(groups_nearby[0])
                             self.set_cell_groups(ind, groups_nearby[0])
                             updated = True
                             break

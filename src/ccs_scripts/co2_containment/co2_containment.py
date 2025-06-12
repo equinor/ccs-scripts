@@ -1162,7 +1162,7 @@ def _init_timer():
         "plume_tracking_resolve_undetermined": "Resolve undetermined cells",
         "plume_tracking_find_unique_groups": "Find unique groups",
         "plume_tracking_logging": "Various logging",
-        "conversion_active_to_gasless_cells": "Convert active to gasless cells after plume tracking",
+        "conversion_active_to_gasless_cells": "Convert active to gasless cells",
         "calculate_co2_containment": "Calculate CO2 containment",
         "make_location_filters": "Make location filters for containment polygons",
         "plume_group_mapping": "Map plume groups",

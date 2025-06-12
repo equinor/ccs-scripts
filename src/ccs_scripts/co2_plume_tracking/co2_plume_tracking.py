@@ -386,10 +386,7 @@ def calculate_plume_groups(
     timer.stop("plume_tracking_represent_as_property")
     prev_groups = PlumeGroups(n_cells)
     for i in range(n_time_steps):
-        timer.start("E")
         groups = PlumeGroups(n_cells)
-        timer.stop("E")
-        # timer.start("plume_tracking_at_time_step")
         _plume_groups_at_time_step(
             unrst,
             grid,
@@ -403,12 +400,9 @@ def calculate_plume_groups(
             groups,
             n_grid_cells_for_logging,
         )
-        # timer.stop("plume_tracking_at_time_step")
 
         timer.start("plume_tracking_represent_as_property", "plume_tracking")
-        # for j, cell in enumerate(groups.cells):
         for j, all_groups in enumerate(groups.all_groups):
-            # all_groups = cell.all_groups
             if all_groups:
                 group_string = "+".join(
                     [

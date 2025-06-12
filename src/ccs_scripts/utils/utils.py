@@ -56,12 +56,21 @@ class Timer:
                 if timing2["parent"] == name:
                     childs_found = True
                     desc = self.code_parts[name2] if name2 in self.code_parts else name2
-                    logging.info(f"  - {desc:<{max_len_category - 3}}: {timing2['elapsed']:>10.2f}")
+                    logging.info(
+                        f"  - {desc:<{max_len_category - 3}}: "
+                        f"{timing2['elapsed']:>10.2f}"
+                    )
             if childs_found:
-                misc = timing['elapsed'] - sum(
-                    [y["elapsed"] for x, y in self._timings.items() if y["parent"] == name]
+                misc = timing["elapsed"] - sum(
+                    [
+                        y["elapsed"]
+                        for x, y in self._timings.items()
+                        if y["parent"] == name
+                    ]
                 )
-                logging.info(f"{'  - Miscellaneous':<{max_len_category + 1}}: {misc:>10.2f}")
+                logging.info(
+                    f"{'  - Miscellaneous':<{max_len_category + 1}}: {misc:>10.2f}"
+                )
         if "logging" in self._timings:
             timing = self._timings["logging"]
             logging.info(
@@ -70,7 +79,11 @@ class Timer:
             )
         if "total" in self._timings:
             misc = self._timings["total"]["elapsed"] - sum(
-                [y["elapsed"] for x, y in self._timings.items() if x != "total" and y["parent"] is None]
+                [
+                    y["elapsed"]
+                    for x, y in self._timings.items()
+                    if x != "total" and y["parent"] is None
+                ]
             )
             logging.info(f"{'Miscellaneous':<{max_len_category + 1}}: {misc:>10.2f}")
             logging.info("-" * (max_len_category + 13))
