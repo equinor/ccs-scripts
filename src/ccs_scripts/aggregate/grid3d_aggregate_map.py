@@ -32,6 +32,7 @@ from . import _config, _grid_aggregation
 
 _XTG = XTGeoDialog()
 
+
 def write_plot_using_plotly(surf: xtgeo.RegularSurface, filename: pathlib.Path):
     """
     Writes a 2D map to an html using the plotly library
