@@ -168,7 +168,7 @@ class PlumeGroups:
 
     def debug_print(self):
         timer = Timer()
-        timer.start("logging")
+        timer.start("logging", "plume_tracking")
         logger = logging.getLogger(__name__)
         if logger.isEnabledFor(logging.DEBUG):
             unique_groups = self.find_unique_groups()
