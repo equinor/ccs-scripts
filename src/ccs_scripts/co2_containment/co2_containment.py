@@ -159,8 +159,13 @@ def _find_plume_groups(
         #          gasless active cells. We do the conversion here, but could do a
         #          conversion earlier (in plume tracking)
         properties_to_extract = ["SGAS", dissolved_prop]
+        timer.start("plume_groups_fetch_properties")
         properties, _ = _fetch_properties(unrst, properties_to_extract)
+        timer.stop("plume_groups_fetch_properties")
+
+        timer.start("plume_groups_find_active_and_gasless_cells")
         active, gasless = find_active_and_gasless_cells(grid, properties, False)
+        timer.stop("plume_groups_find_active_and_gasless_cells")
         global_active_idx = active[~gasless]
         non_gasless = np.where(np.isin(active, global_active_idx))[0]
         timer.start("plume_groups_list")
@@ -1158,9 +1163,14 @@ def _init_timer():
     timer.code_parts = {
         "extract_source_data": "Extract source data",
         "calculate_co2": "Calculate CO2 per grid cell from source data",
-        "find_plume_groups": "Find plume groups (plume tracking)",
+        # "find_plume_groups": "Find plume groups (plume tracking)",
+        "plume_tracking_represent_as_property": "Plume tracking: Represent as property",
+        "plume_tracking_init_groups": "Plume tracking: Initialize groups from previous step",
+        "plume_tracking_resolve_undetermined": "Plume tracking: Resolve undetermined cells",
+        "plume_tracking_find_unique_groups": "Plume tracking: Find unique groups",
         "calculate_co2_containment": "Calculate CO2 containment",
         "export_results": "Export results",
+        "logging": "Various logging",
     }
 
 

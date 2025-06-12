@@ -6,6 +6,8 @@ from typing import Dict, List, Optional
 
 from resdata.grid import Grid
 
+from ccs_scripts.utils.utils import Timer
+
 MAX_STEPS_RESOLVE_CELLS = 20
 MAX_NEAREST_GROUPS_SEARCH_DISTANCE = 3
 
@@ -165,6 +167,8 @@ class PlumeGroups:
         return None
 
     def debug_print(self):
+        timer = Timer()
+        timer.start("logging")
         logger = logging.getLogger(__name__)
         if logger.isEnabledFor(logging.DEBUG):
             unique_groups = self.find_unique_groups()
@@ -187,6 +191,7 @@ class PlumeGroups:
                 )
                 spaces = 10 - len(str(unique_group))
                 logging.debug(f"Count '{unique_group}' {' ' * spaces}    : {n}")
+        timer.stop("logging")
 
 
 def assemble_plume_groups_into_dict(plume_groups: List[str]) -> Dict[str, List[int]]:

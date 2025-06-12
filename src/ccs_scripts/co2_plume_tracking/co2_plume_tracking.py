@@ -372,18 +372,24 @@ def calculate_plume_groups(
     n_cells = len(unrst[attribute_key][0])
 
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]] = {}
+    timer.start("A")
     _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells)
+    timer.stop("A")
 
     logging.info(f"\nStart calculating plume tracking for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
     logging.info(f"{0:>6.1f} %")
 
     # Plume group property
+    timer.start("plume_tracking_represent_as_property")
     pg_prop = [["" for _ in range(n_cells)] for _ in range(n_time_steps)]
+    timer.stop("plume_tracking_represent_as_property")
     prev_groups = PlumeGroups(n_cells)
     for i in range(n_time_steps):
+        timer.start("E")
         groups = PlumeGroups(n_cells)
-        timer.start("plume_groups_at_time_step")
+        timer.stop("E")
+        # timer.start("plume_tracking_at_time_step")
         _plume_groups_at_time_step(
             unrst,
             grid,
@@ -397,8 +403,9 @@ def calculate_plume_groups(
             groups,
             n_grid_cells_for_logging,
         )
-        timer.stop("plume_groups_at_time_step")
+        # timer.stop("plume_tracking_at_time_step")
 
+        timer.start("plume_tracking_represent_as_property")
         # for j, cell in enumerate(groups.cells):
         for j, all_groups in enumerate(groups.all_groups):
             # all_groups = cell.all_groups
@@ -414,15 +421,20 @@ def calculate_plume_groups(
                     ]
                 )
                 pg_prop[i][j] = group_string
+        timer.stop("plume_tracking_represent_as_property")
 
+        timer.start("G")
         prev_groups = groups.copy()
+        timer.stop("G")
         percent = (i + 1) / n_time_steps
         logging.info(f"{percent * 100:>6.1f} %")
     logging.info("")
 
+    timer.start("logging")
     _log_number_of_grid_cells(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key, inj_wells
     )
+    timer.stop("logging")
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
     logging.info(
         f"Execution time {attribute_key}: {(time.time() - time_start):.1f} s\n"
@@ -447,12 +459,15 @@ def _plume_groups_at_time_step(
 ):
     # NBNB-AS: Here we are working on active grid cells,
     #          instead of 'non-gasless' cells, like in containment-script
+    timer = Timer()
+
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
 
     logging.debug("\nPrevious group:")
     prev_groups.debug_print()
 
+    timer.start("plume_tracking_init_groups")
     _initialize_groups_from_prev_step_and_inj_wells(
         cells_with_co2,
         prev_groups,
@@ -461,11 +476,14 @@ def _plume_groups_at_time_step(
         inj_wells_grid_indices,
         groups,
     )
+    timer.stop("plume_tracking_init_groups")
 
     logging.debug("\nCurrent group after first intialization:")
     groups.debug_print()
 
+    timer.start("plume_tracking_resolve_undetermined")
     groups_to_merge = groups.resolve_undetermined_cells(grid)
+    timer.stop("plume_tracking_resolve_undetermined")
     for full_group in groups_to_merge:
         new_group = [x for y in full_group for x in y]
         new_group.sort()
@@ -478,7 +496,9 @@ def _plume_groups_at_time_step(
     logging.debug("\nCurrent group after resolving undetermined cells:")
     groups.debug_print()
 
+    timer.start("plume_tracking_find_unique_groups")
     unique_groups = groups.find_unique_groups()
+    timer.stop("plume_tracking_find_unique_groups")
     for g in unique_groups:
         if g == [-1]:
             if "undetermined" not in n_grid_cells_for_logging:
