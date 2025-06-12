@@ -41,9 +41,6 @@ class Timer:
             self._timings[name]["start"] = None
 
     def report(self):
-        for k, v in self._timings.items():
-            print(k)
-            print(v)
         max_len_category = max([len(x) for x in self.code_parts.values()])
         logging.info("\nPerformance Timing Report:")
         logging.info(f"\n{'Category':<{max_len_category + 1}}  {'Time (s)':>10}")

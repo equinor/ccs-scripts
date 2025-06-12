@@ -89,7 +89,6 @@ def calculate_out_of_bounds_co2(
     Returns:
         pd.DataFrame
     """
-    timer = Timer()
     co2_data = calculate_co2(
         grid_file,
         unrst_file,
@@ -113,9 +112,7 @@ def calculate_out_of_bounds_co2(
     if len(injection_wells) == 0:
         plume_groups = None
     else:
-        # timer.start("find_plume_groups")
         plume_groups = _find_plume_groups(grid_file, unrst_file, injection_wells)
-        # timer.stop("find_plume_groups")
 
     return calculate_from_co2_data(
         co2_data,
@@ -1164,8 +1161,12 @@ def _init_timer():
         "plume_tracking_init_groups": "Initialize groups from previous step",
         "plume_tracking_resolve_undetermined": "Resolve undetermined cells",
         "plume_tracking_find_unique_groups": "Find unique groups",
+        "plume_tracking_logging": "Various logging",
         "conversion_active_to_gasless_cells": "Convert active to gasless cells after plume tracking",
         "calculate_co2_containment": "Calculate CO2 containment",
+        "make_location_filters": "Make location filters for containment polygons",
+        "plume_group_mapping": "Map plume groups",
+        "sum_and_store": "Sum and store amount of CO2",
         "export_results": "Export results",
         "logging": "Various logging",
     }

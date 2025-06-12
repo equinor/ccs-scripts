@@ -14,6 +14,8 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Scenario,
 )
 
+from ccs_scripts.utils.utils import Timer
+
 
 @dataclass
 class ContainedCo2:
@@ -86,16 +88,19 @@ def calculate_co2_containment(
     Returns:
         List[ContainedCo2]
     """
+    timer = Timer()
     logging.info(
         f"Calculate contained CO2 {calc_type.name.lower()} using input polygons"
     )
 
+    timer.start("make_location_filters", "calculate_co2_containment")
     # Dict with boolean arrays indicating location
     locations = _make_location_filters(
         co2_data,
         containment_polygon,
         hazardous_polygon,
     )
+    timer.stop("make_location_filters")
     _log_summary_of_grid_node_location(locations)
     phases = _lists_of_phases(calc_type, residual_trapping, co2_data.scenario)
 
@@ -121,9 +126,11 @@ def calculate_co2_containment(
                 )
 
                 if plume_groups is not None:
+                    timer.start("plume_group_mapping", "calculate_co2_containment")
                     plume_group_info = _plume_group_mapping(
                         plume_names, plume_groups[i]
                     )
+                    timer.stop("plume_group_mapping")
                 else:
                     plume_group_info = {
                         "all": np.ones(len(co2_data.x_coord), dtype=bool)
@@ -135,6 +142,7 @@ def calculate_co2_containment(
                             if calc_type == CalculationType.CELL_VOLUME
                             else np.float64
                         )
+                        timer.start("sum_and_store", "calculate_co2_containment")
                         amount = np.sum(
                             co2_amount[is_in_section & is_in_location & is_in_plume],
                             dtype=dtype,
@@ -150,6 +158,7 @@ def calculate_co2_containment(
                                 plume_name,
                             )
                         ]
+                        timer.stop("sum_and_store")
     logging.info(f"Done calculating contained CO2 {calc_type.name.lower()}")
     return containment
 

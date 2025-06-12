@@ -428,9 +428,11 @@ def calculate_plume_groups(
         logging.info(f"{percent * 100:>6.1f} %")
     logging.info("")
 
+    timer.start("plume_tracking_logging", "plume_tracking")
     _log_number_of_grid_cells(
         n_grid_cells_for_logging, unrst.report_dates, attribute_key, inj_wells
     )
+    timer.stop("plume_tracking_logging")
     logging.info(f"Done calculating plume tracking for {attribute_key}.")
     logging.info(
         f"Execution time {attribute_key}: {(time.time() - time_start):.1f} s\n"
