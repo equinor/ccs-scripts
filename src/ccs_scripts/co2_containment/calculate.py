@@ -13,7 +13,6 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Co2DataAtTimeStep,
     Scenario,
 )
-
 from ccs_scripts.utils.utils import Timer
 
 
