@@ -153,31 +153,32 @@ def _find_plume_groups(
             use_nongasless_cells=True,
         )
 
-        # NBNB-AS: Plume tracking works on active grid cells, containment script on
-        #          gasless active cells. We do the conversion here, but could do a
-        #          conversion earlier (in plume tracking)
-        timer.start("conversion_active_to_gasless_cells")
-        properties_to_extract = ["SGAS", dissolved_prop]
-        properties, _ = _fetch_properties(unrst, properties_to_extract)
-        # for k, v in properties.items():
-        #     print(k)
-        #     print(v)
-        # exit()
+        if False:
+            # NBNB-AS: Plume tracking works on active grid cells, containment script on
+            #          gasless active cells. We do the conversion here, but could do a
+            #          conversion earlier (in plume tracking)
+            timer.start("conversion_active_to_gasless_cells")
+            properties_to_extract = ["SGAS", dissolved_prop]
+            properties, _ = _fetch_properties(unrst, properties_to_extract)
+            # for k, v in properties.items():
+            #     print(k)
+            #     print(v)
+            # exit()
 
-        active, gasless = find_active_and_gasless_cells(grid, properties, False)
-        print("\n\n\nDDDDDDDDDDDDDDDDDDDDDDD")
-        print(len(active))
-        print(len(gasless))
-        global_active_idx = active[~gasless]
-        print(len(global_active_idx))
-        non_gasless = np.where(np.isin(active, global_active_idx))[0]
-        print(len(non_gasless))
-        print(len(plume_groups))
-        print(len(plume_groups[-1]))
-        plume_groups = [list(np.array(x)[non_gasless]) for x in plume_groups]
-        print(len(plume_groups))
-        print(len(plume_groups[-1]))
-        timer.stop("conversion_active_to_gasless_cells")
+            active, gasless = find_active_and_gasless_cells(grid, properties, False)
+            print("\n\n\nDDDDDDDDDDDDDDDDDDDDDDD")
+            print(len(active))
+            print(len(gasless))
+            global_active_idx = active[~gasless]
+            print(len(global_active_idx))
+            non_gasless = np.where(np.isin(active, global_active_idx))[0]
+            print(len(non_gasless))
+            print(len(plume_groups))
+            print(len(plume_groups[-1]))
+            plume_groups = [list(np.array(x)[non_gasless]) for x in plume_groups]
+            print(len(plume_groups))
+            print(len(plume_groups[-1]))
+            timer.stop("conversion_active_to_gasless_cells")
     return plume_groups
 
 

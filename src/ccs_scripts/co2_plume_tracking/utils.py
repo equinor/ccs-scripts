@@ -44,10 +44,6 @@ class PlumeGroups:
         return out
 
     def set_cell_groups(self, ind: int, new_groups: List[int]):
-        # print("set_cell_groups")
-        # print(ind)
-        # print(new_groups)
-        # exit()
         self.status[ind] = Status.HAS_CO2
         self.all_groups[ind] = new_groups.copy()
 
@@ -62,8 +58,6 @@ class PlumeGroups:
             for ind, status in enumerate(self.status)
             if status == Status.UNDETERMINED
         ]
-        print("\n\nind_to_resolve:")
-        print(ind_to_resolve)
         counter = 1
         groups_to_merge = []  # A list of list of groups to merge
         while len(ind_to_resolve) > 0 and counter <= MAX_STEPS_RESOLVE_CELLS:
@@ -113,8 +107,6 @@ class PlumeGroups:
             counter += 1
 
         # Any unresolved grid cells?
-        print("\n\nJJJJJJJJJJJ")
-        print(len(ind_to_resolve))
         for ind in ind_to_resolve:
             self.set_cell_groups(
                 ind, [-1]
@@ -151,26 +143,15 @@ class PlumeGroups:
                 range(max((k1 - tol), 0), min((k1 + tol), grid.get_nz() - 1) + 1),
             )
         )
-        # neigs = [(i1, j1, k1)]
 
         for ijk in neigs:
-            # print(ijk)
             active_ind = grid.get_active_index(ijk=ijk)
-            # print(f"active_ind: {active_ind}")
             if active_ind in cell_map_active_to_gasless:
                 ind = cell_map_active_to_gasless[active_ind]
-                # print(f"ind: {ind}")
                 if ind != -1 and self.status[ind] == Status.HAS_CO2:
-                    # print("BINGO")
-                    # exit()
                     all_groups = self.all_groups[ind]
                     if all_groups not in out:
-                        # print("NEW!!!")
-                        # print(all_groups)
-                        # exit()
                         out.append(all_groups.copy())
-        # print(out)
-        # exit()
         return out
 
     def find_unique_groups(self):

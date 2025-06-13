@@ -397,12 +397,6 @@ def calculate_plume_groups(
         active, gasless = find_active_and_gasless_cells(grid, properties, False)
         global_active_idx = active[~gasless]
         non_gasless = np.where(np.isin(active, global_active_idx))[0]
-        print(active)
-        print(global_active_idx)
-        print(non_gasless)
-        print(len(active))
-        print(len(global_active_idx))
-        print(len(non_gasless))
         n_cells = len(non_gasless)
 
         properties = _reduce_properties(properties, ~gasless)
@@ -410,18 +404,11 @@ def calculate_plume_groups(
 
         cell_map_gasless_to_active = {i: non_gasless[i] for i in range(0, n_cells)}  # <---
         cell_map_active_to_gasless = {v: k for k, v in cell_map_gasless_to_active.items()}
-        # print(cell_map_gasless_to_active[0])
-        # print(cell_map_active_to_gasless[873])
-        # exit()
     else:
         n_cells = len(unrst[attribute_key][0])
         data = properties[attribute_key]  # [date]
         cell_map_gasless_to_active = {i: i for i in range(0, n_cells)}
         cell_map_active_to_gasless = {i: i for i in range(0, n_cells)}
-
-    # print(data)
-    # exit()
-    print(f"\n\nn_cells  = {n_cells}")
 
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]] = {}
     _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells)
@@ -437,8 +424,6 @@ def calculate_plume_groups(
     prev_groups = PlumeGroups(n_cells)
     # for i in range(n_time_steps):
     for i, date in enumerate(dates):
-        print(data[date])
-        print(len(data[date]))
         groups = PlumeGroups(n_cells)
         _plume_groups_at_time_step(
             data[date],
@@ -518,11 +503,7 @@ def _plume_groups_at_time_step(
     timer = Timer()
 
     # data = unrst[attribute_key][i].numpy_view()
-    print(type(data))
-    print(data.shape)
     cells_with_co2 = np.where(data > threshold)[0]
-    print(type(cells_with_co2))
-    print(cells_with_co2.shape)
 
     logging.debug("\nPrevious group:")
     prev_groups.debug_print()
@@ -591,7 +572,6 @@ def _initialize_groups_from_prev_step_and_inj_wells(
 ):
     new_z_coords: Dict[str, List[float]] = {}
     for index in cells_with_co2:
-        # print(f"index: {index}")
         if prev_groups.status[index] == Status.HAS_CO2:
             groups.status[index] = prev_groups.status[index]
             groups.all_groups[index] = prev_groups.all_groups[index]
