@@ -159,13 +159,13 @@ def _find_plume_groups(
         timer.start("conversion_active_to_gasless_cells")
         properties_to_extract = ["SGAS", dissolved_prop]
         properties, _ = _fetch_properties(unrst, properties_to_extract)
-        for k, v in properties.items():
-            print(k)
-            print(v)
-        exit()
+        # for k, v in properties.items():
+        #     print(k)
+        #     print(v)
+        # exit()
 
         active, gasless = find_active_and_gasless_cells(grid, properties, False)
-        print("\n\n\n")
+        print("\n\n\nDDDDDDDDDDDDDDDDDDDDDDD")
         print(len(active))
         print(len(gasless))
         global_active_idx = active[~gasless]

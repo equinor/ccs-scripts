@@ -44,21 +44,32 @@ class PlumeGroups:
         return out
 
     def set_cell_groups(self, ind: int, new_groups: List[int]):
+        # print("set_cell_groups")
+        # print(ind)
+        # print(new_groups)
+        # exit()
         self.status[ind] = Status.HAS_CO2
         self.all_groups[ind] = new_groups.copy()
 
-    def resolve_undetermined_cells(self, grid: Grid) -> List:
+    def resolve_undetermined_cells(
+        self,
+        grid: Grid,
+        cell_map_gasless_to_active: dict[int, int],
+        cell_map_active_to_gasless: dict[int, int],
+    ) -> List:
         ind_to_resolve = [
             ind
             for ind, status in enumerate(self.status)
             if status == Status.UNDETERMINED
         ]
+        print("\n\nind_to_resolve:")
+        print(ind_to_resolve)
         counter = 1
         groups_to_merge = []  # A list of list of groups to merge
         while len(ind_to_resolve) > 0 and counter <= MAX_STEPS_RESOLVE_CELLS:
             for ind in ind_to_resolve:
-                ijk = grid.get_ijk(active_index=ind)
-                groups_nearby = self._find_nearest_groups(ijk, grid)
+                ijk = grid.get_ijk(active_index=cell_map_gasless_to_active[ind])
+                groups_nearby = self._find_nearest_groups(ijk, grid, cell_map_active_to_gasless)
                 if [-1] in groups_nearby:
                     groups_nearby = [x for x in groups_nearby if x != [-1]]
                 if len(groups_nearby) == 1:
@@ -77,11 +88,11 @@ class PlumeGroups:
             if len(updated_ind_to_resolve) == len(ind_to_resolve):
                 updated = False
                 for ind in ind_to_resolve:
-                    ijk = grid.get_ijk(active_index=ind)
+                    ijk = grid.get_ijk(active_index=cell_map_gasless_to_active[ind])
                     # Wider search radius when looking for nearby groups
                     for tolerance in range(2, MAX_NEAREST_GROUPS_SEARCH_DISTANCE + 1):
                         groups_nearby = self._find_nearest_groups(
-                            ijk, grid, tol=tolerance
+                            ijk, grid, cell_map_active_to_gasless, tol=tolerance
                         )
                         if len(groups_nearby) >= 1:
                             self.set_cell_groups(ind, groups_nearby[0])
@@ -102,6 +113,8 @@ class PlumeGroups:
             counter += 1
 
         # Any unresolved grid cells?
+        print("\n\nJJJJJJJJJJJ")
+        print(len(ind_to_resolve))
         for ind in ind_to_resolve:
             self.set_cell_groups(
                 ind, [-1]
@@ -128,7 +141,7 @@ class PlumeGroups:
 
         return new_groups_to_merge
 
-    def _find_nearest_groups(self, ijk, grid, tol: int = 1) -> List[List[int]]:
+    def _find_nearest_groups(self, ijk, grid, cell_map_active_to_gasless: Dict[int, int], tol: int = 1) -> List[List[int]]:
         out = []
         (i1, j1, k1) = ijk
         neigs = list(
@@ -138,13 +151,26 @@ class PlumeGroups:
                 range(max((k1 - tol), 0), min((k1 + tol), grid.get_nz() - 1) + 1),
             )
         )
+        # neigs = [(i1, j1, k1)]
 
         for ijk in neigs:
-            ind = grid.get_active_index(ijk=ijk)
-            if ind != -1 and self.status[ind] == Status.HAS_CO2:
-                all_groups = self.all_groups[ind]
-                if all_groups not in out:
-                    out.append(all_groups.copy())
+            # print(ijk)
+            active_ind = grid.get_active_index(ijk=ijk)
+            # print(f"active_ind: {active_ind}")
+            if active_ind in cell_map_active_to_gasless:
+                ind = cell_map_active_to_gasless[active_ind]
+                # print(f"ind: {ind}")
+                if ind != -1 and self.status[ind] == Status.HAS_CO2:
+                    # print("BINGO")
+                    # exit()
+                    all_groups = self.all_groups[ind]
+                    if all_groups not in out:
+                        # print("NEW!!!")
+                        # print(all_groups)
+                        # exit()
+                        out.append(all_groups.copy())
+        # print(out)
+        # exit()
         return out
 
     def find_unique_groups(self):
