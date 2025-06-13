@@ -357,7 +357,7 @@ def _is_subset(first: List[str], second: List[str]) -> bool:
     return all(x in second for x in first)
 
 
-# NBNB-AS: Move this ?
+# NBNB-AS: Move this ??
 def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = False):
     act_num = grid.export_actnum().numpy_copy()
     active = np.where(act_num > 0)[0]

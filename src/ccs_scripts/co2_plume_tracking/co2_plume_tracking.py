@@ -24,6 +24,16 @@ import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
+from ccs_scripts.co2_containment.co2_calculation import (
+    # CalculationType,
+    # Co2Data,
+    # RegionInfo,
+    # ZoneInfo,
+    _fetch_properties,
+    # _set_calc_type_from_input_string,
+    # calculate_co2,
+    # find_active_and_gasless_cells,
+)
 from ccs_scripts.co2_plume_tracking.utils import (
     InjectionWellData,
     PlumeGroups,
@@ -357,6 +367,7 @@ def calculate_plume_groups(
     unrst: ResdataFile,
     grid: Grid,
     inj_wells: List[InjectionWellData],
+    use_nongasless_cells: bool = False,
 ) -> List[List[str]]:
     """
     Calculates/tracks the plume groups for a single property.
@@ -372,7 +383,28 @@ def calculate_plume_groups(
     n_time_steps = len(unrst.report_steps)
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
     n_cells = len(unrst[attribute_key][0])
-    print(f"\n\nn_cells = {n_cells}")
+    print(f"\n\nn_cells  = {n_cells}")
+
+    properties, dates = _fetch_properties(unrst, [attribute_key])
+    # for k, v in properties.items():
+    #     print(k)
+    #     print(v)
+    # print("A")
+    # print(properties.values())
+    # print("A")
+    # print(list(properties.values()))
+    # print("A")
+    # print(list(properties.values())[0])
+    # print("A")
+    # print(list(properties.values())[0].values())
+    n_cells2 = len(list(list(properties.values())[0].values())[0])
+    print(f"n_cells2 = {n_cells2}")
+    print(len(dates))
+    print(n_time_steps)
+    print(properties[attribute_key][dates[0]])
+    print(properties[attribute_key][dates[-1]])
+
+    exit()
 
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]] = {}
     _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells)
@@ -383,11 +415,11 @@ def calculate_plume_groups(
 
     # Plume group property
     timer.start("plume_tracking_represent_as_property", "plume_tracking")
-    pg_prop = [["" for _ in range(n_cells)] for _ in range(n_time_steps)]
+    pg_prop = [["" for _ in range(n_cells2)] for _ in range(n_time_steps)]
     timer.stop("plume_tracking_represent_as_property")
-    prev_groups = PlumeGroups(n_cells)
+    prev_groups = PlumeGroups(n_cells2)
     for i in range(n_time_steps):
-        groups = PlumeGroups(n_cells)
+        groups = PlumeGroups(n_cells2)
         _plume_groups_at_time_step(
             unrst,
             grid,
@@ -398,6 +430,7 @@ def calculate_plume_groups(
             inj_wells,
             inj_wells_grid_indices,
             n_time_steps,
+            use_nongasless_cells,
             groups,
             n_grid_cells_for_logging,
         )
@@ -447,6 +480,7 @@ def _plume_groups_at_time_step(
     inj_wells: List[InjectionWellData],
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     n_time_steps: int,
+    use_nongasless_cells: bool,
     # These arguments will be updated:
     groups: PlumeGroups,
     n_grid_cells_for_logging: Dict[str, List[int]],
@@ -457,6 +491,29 @@ def _plume_groups_at_time_step(
 
     data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
+
+    # print("\n\ncells_with_co2:")
+    # print(data)
+    # print(cells_with_co2)
+    # print(len(data))
+    # exit()
+
+    # properties_to_extract = ["SGAS", dissolved_prop]
+    # properties, _ = _fetch_properties(unrst, properties_to_extract)
+# 
+    # active, gasless = find_active_and_gasless_cells(grid, properties, False)
+    # print("\n\n\n")
+    # print(len(active))
+    # print(len(gasless))
+    # global_active_idx = active[~gasless]
+    # print(len(global_active_idx))
+    # non_gasless = np.where(np.isin(active, global_active_idx))[0]
+    # print(len(non_gasless))
+    # print(len(plume_groups))
+    # print(len(plume_groups[-1]))
+    # plume_groups = [list(np.array(x)[non_gasless]) for x in plume_groups]
+    # print(len(plume_groups))
+    # print(len(plume_groups[-1]))
 
     logging.debug("\nPrevious group:")
     prev_groups.debug_print()

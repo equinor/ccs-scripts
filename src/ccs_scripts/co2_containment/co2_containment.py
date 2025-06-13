@@ -150,6 +150,7 @@ def _find_plume_groups(
             unrst=unrst,
             grid=grid,
             inj_wells=injection_wells,
+            use_nongasless_cells=True,
         )
 
         # NBNB-AS: Plume tracking works on active grid cells, containment script on
@@ -158,6 +159,10 @@ def _find_plume_groups(
         timer.start("conversion_active_to_gasless_cells")
         properties_to_extract = ["SGAS", dissolved_prop]
         properties, _ = _fetch_properties(unrst, properties_to_extract)
+        for k, v in properties.items():
+            print(k)
+            print(v)
+        exit()
 
         active, gasless = find_active_and_gasless_cells(grid, properties, False)
         print("\n\n\n")
