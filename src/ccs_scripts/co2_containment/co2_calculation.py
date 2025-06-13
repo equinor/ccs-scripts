@@ -361,12 +361,17 @@ def _is_subset(first: List[str], second: List[str]) -> bool:
 def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = False):
     act_num = grid.export_actnum().numpy_copy()
     active = np.where(act_num > 0)[0]
+
+    dissolved_prop = None
     if _is_subset(["SGAS", "AMFS"], list(properties.keys())):
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFS"])
+        dissolved_prop = "AMFS"
     elif _is_subset(["SGAS", "AMFG"], list(properties.keys())):
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
+        dissolved_prop = "AMFG"
     elif _is_subset(["SGAS", "XMF2"], list(properties.keys())):
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties["XMF2"])
+        dissolved_prop = "XMF2"
+
+    if dissolved_prop is not None:        
+        gasless = _identify_gas_less_cells(properties["SGAS"], properties[dissolved_prop])
     else:
         error_text = (
             "CO2 containment calculation failed. Cannot find required properties "

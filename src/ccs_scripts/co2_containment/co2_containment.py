@@ -160,9 +160,18 @@ def _find_plume_groups(
         properties, _ = _fetch_properties(unrst, properties_to_extract)
 
         active, gasless = find_active_and_gasless_cells(grid, properties, False)
+        print("\n\n\n")
+        print(len(active))
+        print(len(gasless))
         global_active_idx = active[~gasless]
+        print(len(global_active_idx))
         non_gasless = np.where(np.isin(active, global_active_idx))[0]
+        print(len(non_gasless))
+        print(len(plume_groups))
+        print(len(plume_groups[-1]))
         plume_groups = [list(np.array(x)[non_gasless]) for x in plume_groups]
+        print(len(plume_groups))
+        print(len(plume_groups[-1]))
         timer.stop("conversion_active_to_gasless_cells")
     return plume_groups
 

@@ -372,6 +372,7 @@ def calculate_plume_groups(
     n_time_steps = len(unrst.report_steps)
     n_grid_cells_for_logging: Dict[str, List[int]] = {}
     n_cells = len(unrst[attribute_key][0])
+    print(f"\n\nn_cells = {n_cells}")
 
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]] = {}
     _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells)
