@@ -115,25 +115,20 @@ def calculate_co2_containment(
         plume_names = set()
 
     containment = []
-    for zone, region, is_in_section in zone_region_info:
-        for location, is_in_location in locations.items():
-            for i, co2_at_timestep in enumerate(co2_data.data_list):
-                co2_amounts_for_each_phase = _lists_of_co2_for_each_phase(
-                    co2_at_timestep,
-                    calc_type,
-                    residual_trapping,
-                )
-
-                if plume_groups is not None:
-                    timer.start("plume_group_mapping", "calculate_co2_containment")
-                    plume_group_info = _plume_group_mapping(
-                        plume_names, plume_groups[i]
-                    )
-                    timer.stop("plume_group_mapping")
-                else:
-                    plume_group_info = {
-                        "all": np.ones(len(co2_data.x_coord), dtype=bool)
-                    }
+    for i, co2_at_timestep in enumerate(co2_data.data_list):
+        co2_amounts_for_each_phase = _lists_of_co2_for_each_phase(
+            co2_at_timestep,
+            calc_type,
+            residual_trapping,
+        )
+        if plume_groups is not None:
+            timer.start("plume_group_mapping", "calculate_co2_containment")
+            plume_group_info = _plume_group_mapping(plume_names, plume_groups[i])
+            timer.stop("plume_group_mapping")
+        else:
+            plume_group_info = {"all": np.ones(len(co2_data.x_coord), dtype=bool)}
+        for zone, region, is_in_section in zone_region_info:
+            for location, is_in_location in locations.items():
                 for plume_name, is_in_plume in plume_group_info.items():
                     for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
                         dtype = (
