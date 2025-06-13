@@ -691,6 +691,7 @@ def calculate_single_distances(
     inj_wells: Optional[List[InjectionWellData]],
     plume_groups_gas: Optional[List[List[str]]],
     plume_groups_dissolved: Optional[List[List[str]]],
+    cell_map_gasless_to_active: Optional[Dict[int, int]],
 ):
     calculation_type = config.type
 
@@ -707,6 +708,7 @@ def calculate_single_distances(
         dist,
         inj_wells,
         plume_groups_gas,
+        cell_map_gasless_to_active,
     )
 
     if "AMFG" in unrst:
@@ -718,6 +720,7 @@ def calculate_single_distances(
             dist,
             inj_wells,
             plume_groups_dissolved,
+            cell_map_gasless_to_active,
         )
         dissolved_prop_key = "AMFG"
     elif "XMF2" in unrst:
@@ -729,6 +732,7 @@ def calculate_single_distances(
             dist,
             inj_wells,
             plume_groups_dissolved,
+            cell_map_gasless_to_active,
         )
         dissolved_prop_key = "XMF2"
     else:
@@ -756,12 +760,13 @@ def calculate_distances(
     unrst = ResdataFile(f"{case}.UNRST")
 
     if do_plume_tracking and injection_wells is not None:
-        plume_groups_gas = calculate_plume_groups(
+        plume_groups_gas, cell_map_gasless_to_active = calculate_plume_groups(
             "SGAS",
             threshold_gas,
             unrst,
             grid,
             injection_wells,
+            True,
         )
 
         if "AMFG" in unrst:
@@ -771,18 +776,20 @@ def calculate_distances(
         else:
             dissolved_prop_key = None
         if dissolved_prop_key is not None:
-            plume_groups_dissolved = calculate_plume_groups(
+            plume_groups_dissolved, _ = calculate_plume_groups(
                 dissolved_prop_key,
                 threshold_dissolved,
                 unrst,
                 grid,
                 injection_wells,
+                True,
             )
         else:
             plume_groups_dissolved = None
     else:
         plume_groups_gas = None
         plume_groups_dissolved = None
+        cell_map_gasless_to_active = None
 
     nactive = grid.get_num_active()
     logging.info(f"Number of active grid cells: {nactive}")
@@ -800,6 +807,7 @@ def calculate_distances(
             injection_wells,
             plume_groups_gas,
             plume_groups_dissolved,
+            cell_map_gasless_to_active,
         )
         all_results.append((a, b, c))
         logging.info(f"Done calculating distances for configuration number: {i}\n")
@@ -814,6 +822,7 @@ def _find_distances_per_time_step(
     dist: Dict[str, np.ndarray],
     inj_wells: Optional[List[InjectionWellData]],
     plume_groups: Optional[List[List[str]]],
+    cell_map_gasless_to_active: Optional[Dict[int, int]],
 ) -> dict:
     """
     Find value of distance metric for each step
@@ -836,6 +845,7 @@ def _find_distances_per_time_step(
             calculation_type,
             dist,
             plume_groups[i] if plume_groups is not None else None,
+            cell_map_gasless_to_active,
             dist_per_group,
         )
         percent = (i + 1) / n_time_steps
@@ -875,6 +885,7 @@ def _find_distances_at_time_step(
     calculation_type: CalculationType,
     dist: Dict[str, np.ndarray],
     plume_groups: Optional[List[str]],
+    cell_map_gasless_to_active: Optional[Dict[int, int]],
     # This argument will be updated:
     dist_per_group: Dict[str, Dict[str, np.ndarray]],
 ):
@@ -884,7 +895,7 @@ def _find_distances_at_time_step(
     cells_with_co2 = np.where(data > threshold)[0]
 
     if calculation_type == CalculationType.PLUME_EXTENT:
-        if do_plume_tracking and plume_groups is not None:
+        if do_plume_tracking and plume_groups is not None and cell_map_gasless_to_active is not None:
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that
@@ -898,9 +909,10 @@ def _find_distances_at_time_step(
                         for s in group_name.split("+")
                     }
                 # Calculate max distance from each injection well in this group
+                act_indices = [cell_map_gasless_to_active[ind] for ind in indices_this_group]
                 for well_name in group_name.split("+"):
                     dist_per_group[group_name][well_name][i] = dist[well_name][
-                        indices_this_group
+                        act_indices
                     ].max()
         else:
             if i == 0:
@@ -918,7 +930,7 @@ def _find_distances_at_time_step(
         CalculationType.POINT,
         CalculationType.LINE,
     ):
-        if do_plume_tracking and plume_groups is not None:
+        if do_plume_tracking and plume_groups is not None and cell_map_gasless_to_active is not None:
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that
@@ -929,8 +941,9 @@ def _find_distances_at_time_step(
                 if group_name not in dist_per_group:
                     dist_per_group[group_name] = {"ALL": np.full(n_time_steps, np.nan)}
                 # Calculate min distance in this group
+                act_indices = [cell_map_gasless_to_active[ind] for ind in indices_this_group]
                 dist_per_group[group_name]["ALL"][i] = dist["ALL"][
-                    indices_this_group
+                    act_indices
                 ].min()
         else:
             if i == 0:

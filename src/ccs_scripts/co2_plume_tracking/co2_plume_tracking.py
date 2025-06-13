@@ -240,7 +240,7 @@ def calculate_all_plume_groups(
     threshold_dissolved: float,
     inj_wells: List[InjectionWellData],
 ) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str]]:
-    pg_prop_gas = calculate_plume_groups(
+    pg_prop_gas, _ = calculate_plume_groups(
         "SGAS",
         threshold_gas,
         unrst,
@@ -248,7 +248,7 @@ def calculate_all_plume_groups(
         inj_wells,
     )
     if "AMFG" in unrst:
-        pg_prop_dissolved = calculate_plume_groups(
+        pg_prop_dissolved, _ = calculate_plume_groups(
             "AMFG",
             threshold_dissolved,
             unrst,
@@ -257,7 +257,7 @@ def calculate_all_plume_groups(
         )
         dissolved_prop_key = "AMFG"
     elif "XMF2" in unrst:
-        pg_prop_dissolved = calculate_plume_groups(
+        pg_prop_dissolved, _ = calculate_plume_groups(
             "XMF2",
             threshold_dissolved,
             unrst,
@@ -369,7 +369,7 @@ def calculate_plume_groups(
     grid: Grid,
     inj_wells: List[InjectionWellData],
     use_nongasless_cells: bool = False,
-) -> List[List[str]]:
+) -> Tuple[List[List[str]], Dict[int, int]]:
     """
     Calculates/tracks the plume groups for a single property.
     The result is a list over the number of time steps, where
@@ -402,11 +402,12 @@ def calculate_plume_groups(
         properties = _reduce_properties(properties, ~gasless)
         data = properties[attribute_key]
 
-        cell_map_gasless_to_active = {i: non_gasless[i] for i in range(0, n_cells)}  # <---
+        cell_map_gasless_to_active = {i: non_gasless[i] for i in range(0, n_cells)}
         cell_map_active_to_gasless = {v: k for k, v in cell_map_gasless_to_active.items()}
     else:
         n_cells = len(unrst[attribute_key][0])
-        data = properties[attribute_key]  # [date]
+        data = properties[attribute_key]
+
         cell_map_gasless_to_active = {i: i for i in range(0, n_cells)}
         cell_map_active_to_gasless = {i: i for i in range(0, n_cells)}
 
@@ -422,14 +423,11 @@ def calculate_plume_groups(
     pg_prop = [["" for _ in range(n_cells)] for _ in range(n_time_steps)]
     timer.stop("plume_tracking_represent_as_property")
     prev_groups = PlumeGroups(n_cells)
-    # for i in range(n_time_steps):
     for i, date in enumerate(dates):
         groups = PlumeGroups(n_cells)
         _plume_groups_at_time_step(
             data[date],
-            # unrst,
             grid,
-            # attribute_key,
             i,
             threshold,
             prev_groups,
@@ -438,11 +436,9 @@ def calculate_plume_groups(
             n_time_steps,
             cell_map_gasless_to_active,
             cell_map_active_to_gasless,
-            # use_nongasless_cells,
             groups,
             n_grid_cells_for_logging,
         )
-        # exit()
 
         timer.start("plume_tracking_represent_as_property", "plume_tracking")
         for j, all_groups in enumerate(groups.all_groups):
@@ -476,14 +472,12 @@ def calculate_plume_groups(
     )
 
     timer.stop("plume_tracking")
-    return pg_prop
+    return pg_prop, cell_map_gasless_to_active
 
 
 def _plume_groups_at_time_step(
     data: np.ndarray,
-    # unrst: ResdataFile,
     grid: Grid,
-    # attribute_key: str,
     i: int,
     threshold: float,
     prev_groups: PlumeGroups,
@@ -492,17 +486,12 @@ def _plume_groups_at_time_step(
     n_time_steps: int,
     cell_map_gasless_to_active: dict[int, int],
     cell_map_active_to_gasless: dict[int, int],
-    # use_nongasless_cells: bool,
     # These arguments will be updated:
     groups: PlumeGroups,
     n_grid_cells_for_logging: Dict[str, List[int]],
 ):
-    # NBNB-AS: Here we are working on active grid cells,
-    #          instead of 'non-gasless' cells, like in containment-script
-    # NBNB-AS: Remove/change this comment
     timer = Timer()
 
-    # data = unrst[attribute_key][i].numpy_view()
     cells_with_co2 = np.where(data > threshold)[0]
 
     logging.debug("\nPrevious group:")

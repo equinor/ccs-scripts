@@ -144,7 +144,7 @@ def _find_plume_groups(
     if dissolved_prop is None:
         plume_groups = None
     else:
-        plume_groups = calculate_plume_groups(
+        plume_groups, _ = calculate_plume_groups(
             attribute_key=dissolved_prop,
             threshold=0.1 * DEFAULT_THRESHOLD_DISSOLVED,
             unrst=unrst,
