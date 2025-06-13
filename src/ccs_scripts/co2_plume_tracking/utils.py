@@ -190,7 +190,7 @@ class PlumeGroups:
                 )
                 spaces = 10 - len(str(unique_group))
                 logging.debug(f"Count '{unique_group}' {' ' * spaces}    : {n}")
-        timer.stop("logging")
+        timer.stop("plume_tracking_logging")
 
 
 def assemble_plume_groups_into_dict(plume_groups: List[str]) -> Dict[str, List[int]]:
