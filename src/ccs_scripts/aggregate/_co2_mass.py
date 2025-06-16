@@ -9,16 +9,9 @@ from resfo._unformatted.write import unformatted_write
 from xtgeo.io._file import FileWrapper
 
 from ccs_scripts.aggregate._config import CO2MassSettings
-from ccs_scripts.co2_containment.co2_calculation import (
-    Co2Data,
-    Co2DataAtTimeStep,
-)
+from ccs_scripts.co2_containment.co2_calculation import Co2Data, Co2DataAtTimeStep
 from ccs_scripts.utils.timer import Timer
-from ccs_scripts.utils.utils import (
-    fetch_properties,
-    identify_gas_less_cells,
-    is_subset,
-)
+from ccs_scripts.utils.utils import fetch_properties, identify_gas_less_cells, is_subset
 
 CO2_MASS_PNAME = "CO2Mass"
 

@@ -43,9 +43,6 @@ from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
 )
 from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
 from ccs_scripts.utils.timer import Timer
-from ccs_scripts.utils.utils import (
-    fetch_properties,
-)
 
 
 # pylint: disable=too-many-arguments

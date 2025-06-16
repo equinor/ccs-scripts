@@ -63,7 +63,9 @@ class PlumeGroups:
         while len(ind_to_resolve) > 0 and counter <= MAX_STEPS_RESOLVE_CELLS:
             for ind in ind_to_resolve:
                 ijk = grid.get_ijk(active_index=cell_map_gasless_to_active[ind])
-                groups_nearby = self._find_nearest_groups(ijk, grid, cell_map_active_to_gasless)
+                groups_nearby = self._find_nearest_groups(
+                    ijk, grid, cell_map_active_to_gasless
+                )
                 if [-1] in groups_nearby:
                     groups_nearby = [x for x in groups_nearby if x != [-1]]
                 if len(groups_nearby) == 1:
@@ -133,7 +135,9 @@ class PlumeGroups:
 
         return new_groups_to_merge
 
-    def _find_nearest_groups(self, ijk, grid, cell_map_active_to_gasless: Dict[int, int], tol: int = 1) -> List[List[int]]:
+    def _find_nearest_groups(
+        self, ijk, grid, cell_map_active_to_gasless: Dict[int, int], tol: int = 1
+    ) -> List[List[int]]:
         out = []
         (i1, j1, k1) = ijk
         neigs = list(

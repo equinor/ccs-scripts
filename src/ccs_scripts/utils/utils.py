@@ -140,7 +140,9 @@ def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = Fal
         dissolved_prop = "XMF2"
 
     if dissolved_prop is not None:
-        gasless = identify_gas_less_cells(properties["SGAS"], properties[dissolved_prop])
+        gasless = identify_gas_less_cells(
+            properties["SGAS"], properties[dissolved_prop]
+        )
     else:
         error_text = (
             "CO2 containment calculation failed. Cannot find required properties "

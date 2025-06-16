@@ -499,7 +499,9 @@ def _plume_groups_at_time_step(
     groups.debug_print()
 
     timer.start("plume_tracking_resolve_undetermined", "plume_tracking")
-    groups_to_merge = groups.resolve_undetermined_cells(grid, cell_map_gasless_to_active, cell_map_active_to_gasless)
+    groups_to_merge = groups.resolve_undetermined_cells(
+        grid, cell_map_gasless_to_active, cell_map_active_to_gasless
+    )
     timer.stop("plume_tracking_resolve_undetermined")
     for full_group in groups_to_merge:
         new_group = [x for y in full_group for x in y]

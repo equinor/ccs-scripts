@@ -893,7 +893,11 @@ def _find_distances_at_time_step(
     cells_with_co2 = np.where(data > threshold)[0]
 
     if calculation_type == CalculationType.PLUME_EXTENT:
-        if do_plume_tracking and plume_groups is not None and cell_map_gasless_to_active is not None:
+        if (
+            do_plume_tracking
+            and plume_groups is not None
+            and cell_map_gasless_to_active is not None
+        ):
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that
@@ -907,7 +911,9 @@ def _find_distances_at_time_step(
                         for s in group_name.split("+")
                     }
                 # Calculate max distance from each injection well in this group
-                act_indices = [cell_map_gasless_to_active[ind] for ind in indices_this_group]
+                act_indices = [
+                    cell_map_gasless_to_active[ind] for ind in indices_this_group
+                ]
                 for well_name in group_name.split("+"):
                     dist_per_group[group_name][well_name][i] = dist[well_name][
                         act_indices
@@ -928,7 +934,11 @@ def _find_distances_at_time_step(
         CalculationType.POINT,
         CalculationType.LINE,
     ):
-        if do_plume_tracking and plume_groups is not None and cell_map_gasless_to_active is not None:
+        if (
+            do_plume_tracking
+            and plume_groups is not None
+            and cell_map_gasless_to_active is not None
+        ):
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that
@@ -939,10 +949,10 @@ def _find_distances_at_time_step(
                 if group_name not in dist_per_group:
                     dist_per_group[group_name] = {"ALL": np.full(n_time_steps, np.nan)}
                 # Calculate min distance in this group
-                act_indices = [cell_map_gasless_to_active[ind] for ind in indices_this_group]
-                dist_per_group[group_name]["ALL"][i] = dist["ALL"][
-                    act_indices
-                ].min()
+                act_indices = [
+                    cell_map_gasless_to_active[ind] for ind in indices_this_group
+                ]
+                dist_per_group[group_name]["ALL"][i] = dist["ALL"][act_indices].min()
         else:
             if i == 0:
                 dist_per_group["ALL"] = {}
