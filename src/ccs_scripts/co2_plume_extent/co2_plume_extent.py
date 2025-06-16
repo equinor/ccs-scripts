@@ -606,8 +606,8 @@ def _calculate_grid_cell_distances(
     calculation_type: CalculationType,
     grid: Grid,
     config: Calculation,
-    active_indices: Optional[List[int]],
-) -> Dict[str, List[float]]:
+    active_indices: List[int],
+) -> Dict[str, np.ndarray]:
     timer = Timer()
     timer.start("calculate_grid_cell_distances")
     dist = {}
@@ -714,7 +714,7 @@ def calculate_single_distances(
         global_active_idx = active[~gasless]
         non_gasless = np.where(np.isin(active, global_active_idx))[0]
 
-        active_indices = non_gasless
+        active_indices = list(non_gasless)
         n_co2 = len(non_gasless)
         cell_map_active_to_co2 = {non_gasless[i]: i for i in range(0, n_co2)}
     else:
@@ -845,7 +845,7 @@ def _find_distances_per_time_step(
     dist: Dict[str, np.ndarray],
     inj_wells: Optional[List[InjectionWellData]],
     plume_groups: Optional[List[List[str]]],
-    cell_map_active_to_co2: Optional[Dict[int, int]],
+    cell_map_active_to_co2: Dict[int, int],
 ) -> dict:
     """
     Find value of distance metric for each step
@@ -912,7 +912,7 @@ def _find_distances_at_time_step(
     calculation_type: CalculationType,
     dist: Dict[str, np.ndarray],
     plume_groups: Optional[List[str]],
-    cell_map_active_to_co2: Optional[Dict[int, int]],
+    cell_map_active_to_co2: Dict[int, int],
     # This argument will be updated:
     dist_per_group: Dict[str, Dict[str, np.ndarray]],
 ):

@@ -400,7 +400,7 @@ def calculate_plume_groups(
     for i, date in enumerate(dates):
         groups = PlumeGroups(n_cells)
         _plume_groups_at_time_step(
-            data[date],
+            data[date],  # type: ignore[arg-type]
             grid,
             i,
             threshold,
