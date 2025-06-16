@@ -246,6 +246,7 @@ def calculate_all_plume_groups(
         unrst,
         grid,
         inj_wells,
+        True,
     )
     if "AMFG" in unrst:
         pg_prop_dissolved, _ = calculate_plume_groups(
@@ -254,6 +255,7 @@ def calculate_all_plume_groups(
             unrst,
             grid,
             inj_wells,
+            True,
         )
         dissolved_prop_key = "AMFG"
     elif "XMF2" in unrst:
@@ -263,6 +265,7 @@ def calculate_all_plume_groups(
             unrst,
             grid,
             inj_wells,
+            True,
         )
         dissolved_prop_key = "XMF2"
     else:
