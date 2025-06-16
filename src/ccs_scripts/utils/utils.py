@@ -3,9 +3,9 @@ import sys
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
-import yaml
 
 TRESHOLD_GAS = 1e-16
 TRESHOLD_DISSOLVED = 1e-16

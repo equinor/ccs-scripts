@@ -20,7 +20,6 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
