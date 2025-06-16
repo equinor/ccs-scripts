@@ -28,9 +28,9 @@ from ccs_scripts.co2_plume_tracking.co2_plume_tracking import calculate_plume_gr
 from ccs_scripts.co2_plume_tracking.utils import (
     InjectionWellData,
     assemble_plume_groups_into_dict,
-    read_yaml_file,
     sort_well_names,
 )
+from ccs_scripts.utils.utils import read_yaml_file
 
 DEFAULT_THRESHOLD_GAS = 0.2
 DEFAULT_THRESHOLD_DISSOLVED = 0.0005

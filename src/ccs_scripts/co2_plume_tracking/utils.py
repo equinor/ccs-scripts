@@ -110,9 +110,7 @@ class PlumeGroups:
 
         # Any unresolved grid cells?
         for ind in ind_to_resolve:
-            self.set_cell_groups(
-                ind, [-1]
-            )
+            self.set_cell_groups(ind, [-1])
 
         # Resolve groups to merge:
         new_groups_to_merge: List = []
