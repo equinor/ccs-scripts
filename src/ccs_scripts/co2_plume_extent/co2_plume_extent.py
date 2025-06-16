@@ -20,7 +20,6 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
@@ -29,6 +28,7 @@ from ccs_scripts.co2_plume_tracking.co2_plume_tracking import calculate_plume_gr
 from ccs_scripts.co2_plume_tracking.utils import (
     InjectionWellData,
     assemble_plume_groups_into_dict,
+    read_yaml_file,
     sort_well_names,
 )
 
@@ -112,7 +112,7 @@ class Configuration:
         self.do_plume_tracking: bool = False  # Only available when using a config file
 
         if config_file != "":
-            input_dict = self.read_config_file(config_file)
+            input_dict = read_yaml_file(config_file)
             self.make_config_from_input_dict(input_dict, case)
         if injection_point_info != "":
             self.make_config_from_input_args(
@@ -125,16 +125,6 @@ class Configuration:
                 " specified in the input. Terminating script"
             )
             sys.exit(1)
-
-    @staticmethod
-    def read_config_file(config_file: str) -> Dict:
-        with open(config_file, "r", encoding="utf8") as stream:
-            try:
-                config = yaml.safe_load(stream)
-                return config
-            except yaml.YAMLError as exc:
-                logging.error(exc)
-                sys.exit(1)
 
     def make_config_from_input_dict(self, input_dict: Dict, case: str):
         if "do_plume_tracking" in input_dict:

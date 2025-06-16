@@ -1,9 +1,11 @@
 import logging
+import sys
 from typing import Dict, List, Tuple
 
 import numpy as np
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
+import yaml
 
 TRESHOLD_GAS = 1e-16
 TRESHOLD_DISSOLVED = 1e-16
@@ -158,3 +160,15 @@ def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = Fal
         )
 
     return active, gasless
+
+
+def read_yaml_file(
+    file_name: str,
+) -> Dict:
+    with open(file_name, "r", encoding="utf8") as stream:
+        try:
+            config = yaml.safe_load(stream)
+            return config
+        except yaml.YAMLError as exc:
+            logging.error(exc)
+            sys.exit(1)

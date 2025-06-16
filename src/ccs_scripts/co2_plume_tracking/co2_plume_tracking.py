@@ -35,6 +35,7 @@ from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     fetch_properties,
     find_active_and_gasless_cells,
+    read_yaml_file,
     reduce_properties,
 )
 
@@ -68,20 +69,8 @@ class Configuration:
     ):
         self.injection_wells: List[InjectionWellData] = []
 
-        input_dict = self.read_config_file(config_file)
+        input_dict = read_yaml_file(config_file)
         self.make_config_from_input_dict(input_dict)
-
-    @staticmethod
-    def read_config_file(
-        config_file: str,
-    ) -> Dict:  # NBNB-AS: Move to common utils-file?
-        with open(config_file, "r", encoding="utf8") as stream:
-            try:
-                config = yaml.safe_load(stream)
-                return config
-            except yaml.YAMLError as exc:
-                logging.error(exc)
-                sys.exit(1)
 
     def make_config_from_input_dict(self, input_dict: Dict):
         if "injection_wells" not in input_dict:
