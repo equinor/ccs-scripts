@@ -30,6 +30,7 @@ from ccs_scripts.co2_plume_tracking.utils import (
     assemble_plume_groups_into_dict,
     sort_well_names,
 )
+from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import read_yaml_file
 
 DEFAULT_THRESHOLD_GAS = 0.2
@@ -602,6 +603,8 @@ def _calculate_grid_cell_distances(
     grid: Grid,
     config: Calculation,
 ):
+    timer = Timer()
+    timer.start("calculate_grid_cell_distances")
     dist = {}
     if calculation_type == CalculationType.PLUME_EXTENT:
         if inj_wells is None or len(inj_wells) == 0:
@@ -668,6 +671,7 @@ def _calculate_grid_cell_distances(
         )
     logging.info("")
 
+    timer.stop("calculate_grid_cell_distances")
     return dist
 
 
@@ -815,6 +819,9 @@ def _find_distances_per_time_step(
     """
     Find value of distance metric for each step
     """
+    timer = Timer()
+    timer.start("find_distances")
+
     do_plume_tracking = plume_groups is not None
     n_time_steps = len(unrst.report_steps)
     dist_per_group: Dict[str, Dict[str, np.ndarray]] = {}
@@ -860,6 +867,7 @@ def _find_distances_per_time_step(
     )
 
     logging.info(f"Done calculating plume extent for {attribute_key}.")
+    timer.stop("find_distances")
     return outputs
 
 
@@ -1250,12 +1258,33 @@ def _find_input_line(injection_point_info: str) -> Tuple[str, float]:
     sys.exit(1)
 
 
+def _init_timer():
+    timer = Timer()
+    timer.reset_timings()
+    timer.code_parts = {
+        "plume_tracking": "Plume tracking",
+        "plume_tracking_represent_as_property": "Represent as property",
+        "plume_tracking_init_groups": "Initialize groups from previous step",
+        "plume_tracking_resolve_undetermined": "Resolve undetermined cells",
+        "plume_tracking_find_unique_groups": "Find unique groups",
+        "plume_tracking_logging": "Various logging",
+        "calculate_grid_cell_distances": "Precompute grid cells distances",
+        "find_distances": "Find distances",
+        "export_results": "Export results",
+        "logging": "Various logging",
+    }
+
+
 def main():
     """
     Calculate plume extent or distance to point/line using EGRID and
     UNRST-files. Calculated for SGAS and AMFG/XMF2. Output is distance per
     date written to a CSV file.
     """
+    _init_timer()
+    timer = Timer()
+    timer.start("total")
+
     args = _make_parser().parse_args()
     _replace_default_dummies_from_ert(args)
     args.column_name = (
@@ -1290,12 +1319,17 @@ def main():
     _log_results(df)
     _log_results_detailed(df)
 
+    timer.start("export_results")
     output_file = _find_output_file(args.output_csv, args.case)
     logging.info("\nExport results to CSV file")
     logging.info(f"    - File path: {output_file}")
     if os.path.isfile(output_file):
         logging.info("Output CSV file already exists => Will overwrite existing file")
     df.to_csv(output_file, index=False, na_rep="0.0")
+    timer.stop("export_results")
+
+    timer.stop("total")
+    timer.report()
 
     return 0
 

@@ -129,7 +129,6 @@ def _find_plume_groups(
     unrst_file: str,
     injection_wells: List[InjectionWellData],
 ) -> Optional[List[List[str]]]:
-    timer = Timer()
     grid = Grid(grid_file)
     unrst = ResdataFile(unrst_file)
     if "AMFG" in unrst:
