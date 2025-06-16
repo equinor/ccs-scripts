@@ -447,7 +447,7 @@ def calculate_plume_groups(
     )
 
     timer.stop("plume_tracking")
-    return pg_prop, cell_map_gasless_to_active
+    return pg_prop, cell_map_active_to_gasless
 
 
 def _plume_groups_at_time_step(
