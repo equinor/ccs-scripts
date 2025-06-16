@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from resdata.grid import Grid
@@ -74,7 +74,7 @@ def fetch_properties(
     return properties, dates
 
 
-def identify_gas_less_cells(sgas: dict, dissolved_prop: dict) -> np.ndarray:
+def identify_gas_less_cells(sgas: dict, dissolved_prop: Optional[dict] = None) -> np.ndarray:
     """
     Identifies those cells that do not have gas. This is done based on thresholds for
     SGAS and AMFG/XMF2 (dissolved property).
@@ -88,9 +88,10 @@ def identify_gas_less_cells(sgas: dict, dissolved_prop: dict) -> np.ndarray:
 
     """
     gas_less = np.logical_and.reduce([np.abs(sgas[s]) < TRESHOLD_GAS for s in sgas])
-    gas_less &= np.logical_and.reduce(
-        [np.abs(dissolved_prop[a]) < TRESHOLD_DISSOLVED for a in dissolved_prop]
-    )
+    if dissolved_prop is not None:
+        gas_less &= np.logical_and.reduce(
+            [np.abs(dissolved_prop[a]) < TRESHOLD_DISSOLVED for a in dissolved_prop]
+        )
     return gas_less
 
 
@@ -129,28 +130,33 @@ def is_subset(first: List[str], second: List[str]) -> bool:
     return all(x in second for x in first)
 
 
-def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = False):
+def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = False, ignore_dissolved: bool = False):
     act_num = grid.export_actnum().numpy_copy()
     active = np.where(act_num > 0)[0]
 
-    dissolved_prop = None
-    if is_subset(["SGAS", "AMFS"], list(properties.keys())):
-        dissolved_prop = "AMFS"
-    elif is_subset(["SGAS", "AMFG"], list(properties.keys())):
-        dissolved_prop = "AMFG"
-    elif is_subset(["SGAS", "XMF2"], list(properties.keys())):
-        dissolved_prop = "XMF2"
-
-    if dissolved_prop is not None:
+    if ignore_dissolved:
         gasless = identify_gas_less_cells(
-            properties["SGAS"], properties[dissolved_prop]
+            properties["SGAS"]
         )
     else:
-        error_text = (
-            "CO2 containment calculation failed. Cannot find required properties "
-        )
-        error_text += "SGAS+AMFG, SGAS+XMF2 or SGAS+AMFS"
-        raise RuntimeError(error_text)
+        dissolved_prop = None
+        if is_subset(["SGAS", "AMFS"], list(properties.keys())):
+            dissolved_prop = "AMFS"
+        elif is_subset(["SGAS", "AMFG"], list(properties.keys())):
+            dissolved_prop = "AMFG"
+        elif is_subset(["SGAS", "XMF2"], list(properties.keys())):
+            dissolved_prop = "XMF2"
+
+        if dissolved_prop is not None:
+            gasless = identify_gas_less_cells(
+                properties["SGAS"], properties[dissolved_prop]
+            )
+        else:
+            error_text = (
+                "CO2 containment calculation failed. Cannot find required properties "
+            )
+            error_text += "SGAS+AMFG, SGAS+XMF2 or SGAS+AMFS"
+            raise RuntimeError(error_text)
 
     if do_logging:
         logging.info(f"Number of grid cells                    : {len(act_num):>10}")

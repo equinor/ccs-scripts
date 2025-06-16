@@ -620,7 +620,7 @@ def _calculate_grid_cell_distances(
             # NBNB-AS: Change this also:
             dist["WELL"] = np.zeros(shape=(n_co2,))
             for i in range(n_co2):
-                center = grid.get_xyz(active_index=i)
+                center = grid.get_xyz(active_index=active_indices[i])
                 dist["WELL"][i] = np.sqrt((center[0] - x0) ** 2 + (center[1] - y0) ** 2)
         else:
             for well in inj_wells:
@@ -655,7 +655,7 @@ def _calculate_grid_cell_distances(
         x0 = config.x
         y0 = config.y
         for i in range(n_co2):
-            center = grid.get_xyz(active_index=i)
+            center = grid.get_xyz(active_index=active_indices[i])
             dist["ALL"][i] = np.sqrt((center[0] - x0) ** 2 + (center[1] - y0) ** 2)
     elif calculation_type == CalculationType.LINE:
         # NBNB-AS: Change this also:
@@ -671,7 +671,7 @@ def _calculate_grid_cell_distances(
             factor = -1
 
         for i in range(n_co2):
-            center = grid.get_xyz(active_index=i)
+            center = grid.get_xyz(active_index=active_indices[i])
             dist["ALL"][i] = factor * (line_value - center[ind])
         dist["ALL"][dist["ALL"] < 0] = 0.0
 
@@ -715,23 +715,32 @@ def calculate_single_distances(
     calculation_type = config.type
 
     if cell_map_gasless_to_active is None:
+        dissolved_prop = None
         if "AMFG" in unrst:
             dissolved_prop = "AMFG"
         elif "XMF2" in unrst:
             dissolved_prop = "XMF2"
-        properties, _ = fetch_properties(unrst, ["SGAS", dissolved_prop])
 
-        active, gasless = find_active_and_gasless_cells(grid, properties, False)
+        props_to_extract = ["SGAS"]
+        if dissolved_prop is not None:
+            props_to_extract.append(dissolved_prop)
+        properties, _ = fetch_properties(unrst, props_to_extract)
+
+        active, gasless = find_active_and_gasless_cells(grid, properties, False, dissolved_prop is None)
         global_active_idx = active[~gasless]
         non_gasless = np.where(np.isin(active, global_active_idx))[0]
 
-        co2_indices = non_gasless
-        active_indices = None
+        co2_indices = non_gasless  # NBNB-AS: Correct? Nope...
+        active_indices = non_gasless
         n_cells = len(non_gasless)
         cell_map_gasless_to_active = {i: non_gasless[i] for i in range(0, n_cells)}
+        print(non_gasless)
+        print(nactive)
+        print(n_cells)
+        # exit()
     else:
-        co2_indices = cell_map_gasless_to_active.keys()
-        active_indices = cell_map_gasless_to_active.values()
+        co2_indices = list(cell_map_gasless_to_active.keys())
+        active_indices = list(cell_map_gasless_to_active.values())
     n_co2 = len(co2_indices)
 
     # Calculate distance from point/line to center of all cells
@@ -739,7 +748,6 @@ def calculate_single_distances(
         inj_wells, n_co2, calculation_type, grid, config, co2_indices, active_indices
     )
     print(dist)
-    print(len(dist["WELL"]))
 
     gas_results = _find_distances_per_time_step(
         "SGAS",
@@ -973,6 +981,7 @@ def _find_distances_at_time_step(
         else:
             data = unrst[attribute_key][i].numpy_view()
             active_cells_with_co2 = np.where(data > threshold)[0]
+            print("\n\n--")
             print(len(active_cells_with_co2))
             co2_above_threshold_indices = [cell_map_active_to_gasless[i] for i in active_cells_with_co2]
             print(len(co2_above_threshold_indices))
