@@ -718,7 +718,7 @@ def calculate_single_distances(
         n_co2 = len(non_gasless)
         cell_map_active_to_co2 = {non_gasless[i]: i for i in range(0, n_co2)}
     else:
-        active_indices = list(cell_map_active_to_co2.keys())
+        active_indices = [int(ind) for ind in cell_map_active_to_co2.keys()]
     n_co2 = len(active_indices)
 
     # Calculate distance from point/line to center of all cells
