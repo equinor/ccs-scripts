@@ -24,17 +24,6 @@ import yaml
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
-from ccs_scripts.co2_containment.co2_calculation import (
-    # CalculationType,
-    # Co2Data,
-    # RegionInfo,
-    # ZoneInfo,
-    _fetch_properties,
-    _reduce_properties,
-    # _set_calc_type_from_input_string,
-    # calculate_co2,
-    find_active_and_gasless_cells,
-)
 from ccs_scripts.co2_plume_tracking.utils import (
     InjectionWellData,
     PlumeGroups,
@@ -42,7 +31,12 @@ from ccs_scripts.co2_plume_tracking.utils import (
     assemble_plume_groups_into_dict,
     sort_well_names,
 )
-from ccs_scripts.utils.utils import Timer
+from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import (
+    fetch_properties,
+    find_active_and_gasless_cells,
+    reduce_properties,
+)
 
 DEFAULT_THRESHOLD_GAS = 0.2
 DEFAULT_THRESHOLD_DISSOLVED = 0.0005
@@ -246,7 +240,6 @@ def calculate_all_plume_groups(
         unrst,
         grid,
         inj_wells,
-        True,
     )
     if "AMFG" in unrst:
         pg_prop_dissolved, _ = calculate_plume_groups(
@@ -255,7 +248,6 @@ def calculate_all_plume_groups(
             unrst,
             grid,
             inj_wells,
-            True,
         )
         dissolved_prop_key = "AMFG"
     elif "XMF2" in unrst:
@@ -265,7 +257,6 @@ def calculate_all_plume_groups(
             unrst,
             grid,
             inj_wells,
-            True,
         )
         dissolved_prop_key = "XMF2"
     else:
@@ -371,7 +362,6 @@ def calculate_plume_groups(
     unrst: ResdataFile,
     grid: Grid,
     inj_wells: List[InjectionWellData],
-    use_nongasless_cells: bool = False,
 ) -> Tuple[List[List[str]], Dict[int, int]]:
     """
     Calculates/tracks the plume groups for a single property.
@@ -394,25 +384,18 @@ def calculate_plume_groups(
     props_to_extract = ["SGAS", dissolved_prop]
     if attribute_key not in props_to_extract:
         props_to_extract.append(attribute_key)
-    properties, dates = _fetch_properties(unrst, props_to_extract)
+    properties, dates = fetch_properties(unrst, props_to_extract)
 
-    if use_nongasless_cells:
-        active, gasless = find_active_and_gasless_cells(grid, properties, False)
-        global_active_idx = active[~gasless]
-        non_gasless = np.where(np.isin(active, global_active_idx))[0]
-        n_cells = len(non_gasless)
+    active, gasless = find_active_and_gasless_cells(grid, properties, False)
+    global_active_idx = active[~gasless]
+    non_gasless = np.where(np.isin(active, global_active_idx))[0]
+    n_cells = len(non_gasless)
 
-        properties = _reduce_properties(properties, ~gasless)
-        data = properties[attribute_key]
+    properties = reduce_properties(properties, ~gasless)
+    data = properties[attribute_key]
 
-        cell_map_gasless_to_active = {i: non_gasless[i] for i in range(0, n_cells)}
-        cell_map_active_to_gasless = {v: k for k, v in cell_map_gasless_to_active.items()}
-    else:
-        n_cells = len(unrst[attribute_key][0])
-        data = properties[attribute_key]
-
-        cell_map_gasless_to_active = {i: i for i in range(0, n_cells)}
-        cell_map_active_to_gasless = {i: i for i in range(0, n_cells)}
+    cell_map_gasless_to_active = {i: non_gasless[i] for i in range(0, n_cells)}
+    cell_map_active_to_gasless = {v: k for k, v in cell_map_gasless_to_active.items()}
 
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]] = {}
     _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells)

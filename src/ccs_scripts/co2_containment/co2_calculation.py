@@ -11,12 +11,18 @@ import xtgeo
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
 
-from ccs_scripts.utils.utils import Timer
+from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import (
+    fetch_properties,
+    find_active_and_gasless_cells,
+    identify_gas_less_cells,
+    is_subset,
+    reduce_properties,
+    try_prop,
+)
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
-TRESHOLD_GAS = 1e-16
-TRESHOLD_DISSOLVED = 1e-16
 PROPERTIES_NEEDED_PFLOTRAN = ["DGAS", "DWAT", "AMFG", "YMFG"]
 PROPERTIES_NEEDED_ECLIPSE = ["BGAS", "BWAT", "XMF2", "YMF2"]
 
@@ -190,8 +196,8 @@ def _detect_eclipse_mole_fraction_props(
     unrst = ResdataFile(unrst_file)
     suffix_count = 1
     while True and suffix_count < 50:
-        tmp_x = _try_prop(unrst, "XMF" + str(suffix_count))
-        tmp_y = _try_prop(unrst, "YMF" + str(suffix_count))
+        tmp_x = try_prop(unrst, "XMF" + str(suffix_count))
+        tmp_y = try_prop(unrst, "YMF" + str(suffix_count))
         if tmp_x is None and tmp_y is None:
             break
         elif (tmp_x is None) != (tmp_y is None):
@@ -239,156 +245,6 @@ def _n_components(active_props: List):
     return max_xmf_suffix
 
 
-def _try_prop(unrst: ResdataFile, prop_name: str):
-    """
-    Function to determine if a property (prop_name) is part of a ResdataFile (unrst)
-
-    Args:
-      unrst (ResdataFile): ResdataFile to fetch property names from
-      prop_name (str): The property name to be searched in unrst
-
-    Returns:
-      str if prop_names exists in unrst, None otherwise
-
-    """
-    try:
-        prop = unrst[prop_name]
-    except KeyError:
-        prop = None
-    return prop
-
-
-def _read_props(
-    unrst: ResdataFile,
-    prop_names: List,
-) -> dict:
-    """
-    Reads the properties in prop_names from a ResdataFile named unrst
-
-    Args:
-      unrst (ResdataFile): ResdataFile to read prop_names from
-      prop_names (List): List with property names to be read
-
-    Returns:
-      dict
-    """
-    props_att = {p: _try_prop(unrst, p) for p in prop_names}
-    act_prop_names = [k for k in prop_names if props_att[k] is not None]
-    act_props = {k: props_att[k] for k in act_prop_names}
-    return act_props
-
-
-def _fetch_properties(
-    unrst: ResdataFile, properties_to_extract: List
-) -> Tuple[Dict[str, Dict[str, List[np.ndarray]]], List[str]]:
-    """
-    Fetches the properties in properties_to_extract from a ResdataFile
-    named unrst
-
-    Args:
-      unrst (ResdataFile): ResdataFile to fetch properties_to_extract from
-      properties_to_extract: List with property names to be fetched
-
-    Returns:
-      Tuple
-
-    """
-    dates = [d.strftime("%Y%m%d") for d in unrst.report_dates]
-    properties = _read_props(unrst, properties_to_extract)
-    properties = {
-        p: {d[1]: properties[p][d[0]].numpy_copy() for d in enumerate(dates)}
-        for p in properties
-    }
-    return properties, dates
-
-
-def _identify_gas_less_cells(sgas: dict, dissolved_prop: dict) -> np.ndarray:
-    """
-    Identifies those cells that do not have gas. This is done based on thresholds for
-    SGAS and AMFG/XMF2 (dissolved property).
-
-    Args:
-      sgas (dict): The values of SGAS for each grid cell
-      dissolved_prop (dict): The values of AMFG or XMF2 for each grid cell
-
-    Returns:
-      np.ndarray
-
-    """
-    gas_less = np.logical_and.reduce([np.abs(sgas[s]) < TRESHOLD_GAS for s in sgas])
-    gas_less &= np.logical_and.reduce(
-        [np.abs(dissolved_prop[a]) < TRESHOLD_DISSOLVED for a in dissolved_prop]
-    )
-    return gas_less
-
-
-def _reduce_properties(
-    properties: Dict[str, Dict[str, List[np.ndarray]]], keep_idx: np.ndarray
-) -> Dict:
-    """
-    Reduces the data of given properties by indices in keep_idx
-
-    Args:
-      properties (Dict): Data with values of properties
-      keep_idx (np.ndarray): Which indices are retained
-
-    Returns:
-      Dict
-
-    """
-    return {
-        p: {d: properties[p][d][keep_idx] for d in properties[p]} for p in properties
-    }
-
-
-def _is_subset(first: List[str], second: List[str]) -> bool:
-    """
-    Determines if the elements of a list (first) are part of
-    another list (second)
-
-    Args:
-      first (List): The list whose elements are searched in second
-      second (List): The list where elements of first are searched
-
-    Returns:
-      bool
-
-    """
-    return all(x in second for x in first)
-
-
-# NBNB-AS: Move this ??
-def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = False):
-    act_num = grid.export_actnum().numpy_copy()
-    active = np.where(act_num > 0)[0]
-
-    dissolved_prop = None
-    if _is_subset(["SGAS", "AMFS"], list(properties.keys())):
-        dissolved_prop = "AMFS"
-    elif _is_subset(["SGAS", "AMFG"], list(properties.keys())):
-        dissolved_prop = "AMFG"
-    elif _is_subset(["SGAS", "XMF2"], list(properties.keys())):
-        dissolved_prop = "XMF2"
-
-    if dissolved_prop is not None:        
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties[dissolved_prop])
-    else:
-        error_text = (
-            "CO2 containment calculation failed. Cannot find required properties "
-        )
-        error_text += "SGAS+AMFG, SGAS+XMF2 or SGAS+AMFS"
-        raise RuntimeError(error_text)
-
-    if do_logging:
-        logging.info(f"Number of grid cells                    : {len(act_num):>10}")
-        logging.info(f"Number of active grid cells             : {len(active):>10}")
-        logging.info(
-            f"Number of active non-gasless grid cells : {len(active[~gasless]):>10}"
-        )
-
-    return active, gasless
-
-
 # pylint: disable=too-many-arguments
 def _extract_source_data(
     grid_file: str,
@@ -422,13 +278,13 @@ def _extract_source_data(
     except Exception:
         init = None
         logging.info("No INIT-file loaded")
-    properties, dates = _fetch_properties(unrst, properties_to_extract)
+    properties, dates = fetch_properties(unrst, properties_to_extract)
     logging.info("Done fetching properties")
 
     active, gasless = find_active_and_gasless_cells(grid, properties, True)
     global_active_idx = active[~gasless]
 
-    properties_reduced = _reduce_properties(properties, ~gasless)
+    properties_reduced = reduce_properties(properties, ~gasless)
     # Tuple with (x,y,z) for each cell:
     xyz = [grid.get_xyz(global_index=a) for a in global_active_idx]
     cells_x = np.array([coord[0] for coord in xyz])
@@ -1262,17 +1118,17 @@ def _calculate_co2_data_from_source_data(
     active_props = [props_check[i] for i in active_props_idx]
     scenario = Scenario.AQUIFER
     porv_prop = None
-    if _is_subset(["SGAS"], active_props):
-        if _is_subset(["PORV", "RPORV"], active_props):
+    if is_subset(["SGAS"], active_props):
+        if is_subset(["PORV", "RPORV"], active_props):
             porv_prop = "RPORV"
             active_props.remove("PORV")
             active_props.remove("RPORV")
             logging.info("Using attribute RPORV instead of PORV")
-        elif _is_subset(["PORV"], active_props):
+        elif is_subset(["PORV"], active_props):
             active_props.remove("PORV")
             porv_prop = "PORV"
             logging.info("Using attribute PORV")
-        elif _is_subset(["RPORV"], active_props):
+        elif is_subset(["RPORV"], active_props):
             active_props.remove("RPORV")
             porv_prop = "RPORV"
             logging.info("Using attribute RPORV")
@@ -1280,15 +1136,15 @@ def _calculate_co2_data_from_source_data(
             error_text = "No pore volume provided"
             error_text += "\nNeed either PORV or RPORV"
             raise ValueError(error_text)
-        if _is_subset(properties_needed_pflotran, active_props):
+        if is_subset(properties_needed_pflotran, active_props):
             source = "PFlotran"
-            if _is_subset(["AMFS", "SOIL"], active_props):
+            if is_subset(["AMFS", "SOIL"], active_props):
                 scenario = Scenario.DEPLETED_OIL_GAS_FIELD
-            elif _is_subset(["AMFS"], active_props):
+            elif is_subset(["AMFS"], active_props):
                 scenario = Scenario.DEPLETED_GAS_FIELD
-        elif _is_subset(properties_needed_eclipse, active_props):
+        elif is_subset(properties_needed_eclipse, active_props):
             source = "Eclipse"
-            if _is_subset(["XMF2", "SOIL"], active_props):
+            if is_subset(["XMF2", "SOIL"], active_props):
                 scenario = Scenario.DEPLETED_OIL_GAS_FIELD
             # NBNB: X/YMF properties ending in 2 are assumed to correspond to CO2
             elif _n_components(active_props) > 3:
@@ -1537,7 +1393,7 @@ def _calculate_co2_data_from_source_data(
             plume_props_names[plume_props_names.index("AMFG")] = "AMFS"
         properties = {x: getattr(source_data, x) for x in plume_props_names}
         inactive_gas_cells = {
-            x: _identify_gas_less_cells(
+            x: identify_gas_less_cells(
                 {x: properties[plume_props_names[0]][x]},
                 {x: properties[plume_props_names[1]][x]},
             )

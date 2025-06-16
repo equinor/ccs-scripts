@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 
 from resdata.grid import Grid
 
-from ccs_scripts.utils.utils import Timer
+from ccs_scripts.utils.timer import Timer
 
 MAX_STEPS_RESOLVE_CELLS = 20
 MAX_NEAREST_GROUPS_SEARCH_DISTANCE = 3

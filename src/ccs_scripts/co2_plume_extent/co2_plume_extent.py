@@ -766,7 +766,6 @@ def calculate_distances(
             unrst,
             grid,
             injection_wells,
-            True,
         )
 
         if "AMFG" in unrst:
@@ -782,7 +781,6 @@ def calculate_distances(
                 unrst,
                 grid,
                 injection_wells,
-                True,
             )
         else:
             plume_groups_dissolved = None

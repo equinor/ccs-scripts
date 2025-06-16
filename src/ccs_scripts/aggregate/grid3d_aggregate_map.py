@@ -26,7 +26,7 @@ from ccs_scripts.aggregate._parser import (
     process_arguments,
 )
 from ccs_scripts.aggregate._utils import log_input_configuration
-from ccs_scripts.utils.utils import Timer
+from ccs_scripts.utils.timer import Timer
 
 from . import _config, _grid_aggregation
 

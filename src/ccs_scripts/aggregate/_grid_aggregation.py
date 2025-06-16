@@ -9,7 +9,7 @@ import scipy.sparse
 import xtgeo
 
 from ccs_scripts.aggregate._config import AggregationMethod
-from ccs_scripts.utils.utils import Timer
+from ccs_scripts.utils.timer import Timer
 
 
 def aggregate_maps(

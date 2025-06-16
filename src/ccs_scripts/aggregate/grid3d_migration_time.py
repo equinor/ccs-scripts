@@ -18,7 +18,7 @@ from ccs_scripts.aggregate import (
 from ccs_scripts.aggregate._config import DEFAULT_LOWER_THRESHOLD, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.aggregate.grid3d_aggregate_map import _distribute_config_property
-from ccs_scripts.utils.utils import Timer
+from ccs_scripts.utils.timer import Timer
 
 _XTG = XTGeoDialog()
 

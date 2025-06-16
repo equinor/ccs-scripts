@@ -21,7 +21,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     calculate_co2,
     source_data_,
 )
-from ccs_scripts.utils.utils import Timer
+from ccs_scripts.utils.timer import Timer
 
 
 def generate_co2_mass_maps(config_: RootConfig):

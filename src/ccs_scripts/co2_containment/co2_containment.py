@@ -33,10 +33,8 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
     RegionInfo,
     ZoneInfo,
-    _fetch_properties,
     _set_calc_type_from_input_string,
     calculate_co2,
-    find_active_and_gasless_cells,
 )
 from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
     DEFAULT_THRESHOLD_DISSOLVED,
@@ -44,7 +42,10 @@ from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
     calculate_plume_groups,
 )
 from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
-from ccs_scripts.utils.utils import Timer
+from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import (
+    fetch_properties,
+)
 
 
 # pylint: disable=too-many-arguments
@@ -150,35 +151,7 @@ def _find_plume_groups(
             unrst=unrst,
             grid=grid,
             inj_wells=injection_wells,
-            use_nongasless_cells=True,
         )
-
-        if False:
-            # NBNB-AS: Plume tracking works on active grid cells, containment script on
-            #          gasless active cells. We do the conversion here, but could do a
-            #          conversion earlier (in plume tracking)
-            timer.start("conversion_active_to_gasless_cells")
-            properties_to_extract = ["SGAS", dissolved_prop]
-            properties, _ = _fetch_properties(unrst, properties_to_extract)
-            # for k, v in properties.items():
-            #     print(k)
-            #     print(v)
-            # exit()
-
-            active, gasless = find_active_and_gasless_cells(grid, properties, False)
-            print("\n\n\nDDDDDDDDDDDDDDDDDDDDDDD")
-            print(len(active))
-            print(len(gasless))
-            global_active_idx = active[~gasless]
-            print(len(global_active_idx))
-            non_gasless = np.where(np.isin(active, global_active_idx))[0]
-            print(len(non_gasless))
-            print(len(plume_groups))
-            print(len(plume_groups[-1]))
-            plume_groups = [list(np.array(x)[non_gasless]) for x in plume_groups]
-            print(len(plume_groups))
-            print(len(plume_groups[-1]))
-            timer.stop("conversion_active_to_gasless_cells")
     return plume_groups
 
 

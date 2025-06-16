@@ -1,94 +1,158 @@
 import logging
-import time
-from typing import Optional
+from typing import Dict, List, Tuple
+
+import numpy as np
+from resdata.grid import Grid
+from resdata.resfile import ResdataFile
+
+TRESHOLD_GAS = 1e-16
+TRESHOLD_DISSOLVED = 1e-16
 
 
-class Timer:
-    _instance = None
+def try_prop(unrst: ResdataFile, prop_name: str):
+    """
+    Function to determine if a property (prop_name) is part of a ResdataFile (unrst)
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(Timer, cls).__new__(cls)
-            cls._timings = {}
-            cls.code_parts = {"total": "Total"}
-        return cls._instance
+    Args:
+      unrst (ResdataFile): ResdataFile to fetch property names from
+      prop_name (str): The property name to be searched in unrst
 
-    def reset_timings(self):
-        self._timings = {}
+    Returns:
+      str if prop_names exists in unrst, None otherwise
 
-    def start(self, name: str, parent: Optional[str] = None):
-        active = [
-            x
-            for x, y in self._timings.items()
-            if y["start"] is not None and x not in ["total", parent]
-        ]
-        if len(active) > 0:
-            # For debugging:
-            # print(
-            #     f"\nTrying to start timings on {name}, "
-            #     f"but some timings are already active: {active}"
-            # )
-            # exit()
-            return
-        if name not in self._timings:
-            self._timings[name] = {"start": None, "elapsed": 0, "parent": parent}
-        self._timings[name]["start"] = time.time()
+    """
+    try:
+        prop = unrst[prop_name]
+    except KeyError:
+        prop = None
+    return prop
 
-    def stop(self, name: str):
-        if name in self._timings and self._timings[name]["start"] is not None:
-            elapsed_time = time.time() - self._timings[name]["start"]
-            self._timings[name]["elapsed"] += elapsed_time
-            self._timings[name]["start"] = None
 
-    def report(self):
-        max_len_category = max([len(x) for x in self.code_parts.values()])
-        logging.info("\nPerformance Timing Report:")
-        logging.info(f"\n{'Category':<{max_len_category + 1}}  {'Time (s)':>10}")
-        logging.info("=" * (max_len_category + 13))
-        for name, timing in self._timings.items():
-            if name in ["total", "logging"] or timing["parent"] is not None:
-                continue
-            desc = self.code_parts[name] if name in self.code_parts else name
-            logging.info(f"{desc:<{max_len_category + 1}}: {timing['elapsed']:>10.2f}")
-            # Find childs:
-            childs_found = False
-            for name2, timing2 in self._timings.items():
-                if timing2["parent"] == name:
-                    childs_found = True
-                    desc = self.code_parts[name2] if name2 in self.code_parts else name2
-                    logging.info(
-                        f"  - {desc:<{max_len_category - 3}}: "
-                        f"{timing2['elapsed']:>10.2f}"
-                    )
-            if childs_found:
-                misc = timing["elapsed"] - sum(
-                    [
-                        y["elapsed"]
-                        for x, y in self._timings.items()
-                        if y["parent"] == name
-                    ]
-                )
-                logging.info(
-                    f"{'  - Miscellaneous':<{max_len_category + 1}}: {misc:>10.2f}"
-                )
-        if "logging" in self._timings:
-            timing = self._timings["logging"]
-            logging.info(
-                f"{'Various logging':<{max_len_category + 1}}: "
-                f"{timing['elapsed']:>10.2f}"
-            )
-        if "total" in self._timings:
-            misc = self._timings["total"]["elapsed"] - sum(
-                [
-                    y["elapsed"]
-                    for x, y in self._timings.items()
-                    if x != "total" and y["parent"] is None
-                ]
-            )
-            logging.info(f"{'Miscellaneous':<{max_len_category + 1}}: {misc:>10.2f}")
-            logging.info("-" * (max_len_category + 13))
-            logging.info(
-                f"{'Total':<{max_len_category + 1}}: "
-                f"{self._timings['total']['elapsed']:>10.2f}"
-            )
-        logging.info("")
+def _read_props(
+    unrst: ResdataFile,
+    prop_names: List,
+) -> dict:
+    """
+    Reads the properties in prop_names from a ResdataFile named unrst
+
+    Args:
+      unrst (ResdataFile): ResdataFile to read prop_names from
+      prop_names (List): List with property names to be read
+
+    Returns:
+      dict
+    """
+    props_att = {p: try_prop(unrst, p) for p in prop_names}
+    act_prop_names = [k for k in prop_names if props_att[k] is not None]
+    act_props = {k: props_att[k] for k in act_prop_names}
+    return act_props
+
+
+def fetch_properties(
+    unrst: ResdataFile, properties_to_extract: List
+) -> Tuple[Dict[str, Dict[str, List[np.ndarray]]], List[str]]:
+    """
+    Fetches the properties in properties_to_extract from a ResdataFile
+    named unrst
+
+    Args:
+      unrst (ResdataFile): ResdataFile to fetch properties_to_extract from
+      properties_to_extract: List with property names to be fetched
+
+    Returns:
+      Tuple
+
+    """
+    dates = [d.strftime("%Y%m%d") for d in unrst.report_dates]
+    properties = _read_props(unrst, properties_to_extract)
+    properties = {
+        p: {d[1]: properties[p][d[0]].numpy_copy() for d in enumerate(dates)}
+        for p in properties
+    }
+    return properties, dates
+
+
+def identify_gas_less_cells(sgas: dict, dissolved_prop: dict) -> np.ndarray:
+    """
+    Identifies those cells that do not have gas. This is done based on thresholds for
+    SGAS and AMFG/XMF2 (dissolved property).
+
+    Args:
+      sgas (dict): The values of SGAS for each grid cell
+      dissolved_prop (dict): The values of AMFG or XMF2 for each grid cell
+
+    Returns:
+      np.ndarray
+
+    """
+    gas_less = np.logical_and.reduce([np.abs(sgas[s]) < TRESHOLD_GAS for s in sgas])
+    gas_less &= np.logical_and.reduce(
+        [np.abs(dissolved_prop[a]) < TRESHOLD_DISSOLVED for a in dissolved_prop]
+    )
+    return gas_less
+
+
+def reduce_properties(
+    properties: Dict[str, Dict[str, List[np.ndarray]]], keep_idx: np.ndarray
+) -> Dict:
+    """
+    Reduces the data of given properties by indices in keep_idx
+
+    Args:
+      properties (Dict): Data with values of properties
+      keep_idx (np.ndarray): Which indices are retained
+
+    Returns:
+      Dict
+
+    """
+    return {
+        p: {d: properties[p][d][keep_idx] for d in properties[p]} for p in properties
+    }
+
+
+def is_subset(first: List[str], second: List[str]) -> bool:
+    """
+    Determines if the elements of a list (first) are part of
+    another list (second)
+
+    Args:
+      first (List): The list whose elements are searched in second
+      second (List): The list where elements of first are searched
+
+    Returns:
+      bool
+
+    """
+    return all(x in second for x in first)
+
+
+def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = False):
+    act_num = grid.export_actnum().numpy_copy()
+    active = np.where(act_num > 0)[0]
+
+    dissolved_prop = None
+    if is_subset(["SGAS", "AMFS"], list(properties.keys())):
+        dissolved_prop = "AMFS"
+    elif is_subset(["SGAS", "AMFG"], list(properties.keys())):
+        dissolved_prop = "AMFG"
+    elif is_subset(["SGAS", "XMF2"], list(properties.keys())):
+        dissolved_prop = "XMF2"
+
+    if dissolved_prop is not None:
+        gasless = identify_gas_less_cells(properties["SGAS"], properties[dissolved_prop])
+    else:
+        error_text = (
+            "CO2 containment calculation failed. Cannot find required properties "
+        )
+        error_text += "SGAS+AMFG, SGAS+XMF2 or SGAS+AMFS"
+        raise RuntimeError(error_text)
+
+    if do_logging:
+        logging.info(f"Number of grid cells                    : {len(act_num):>10}")
+        logging.info(f"Number of active grid cells             : {len(active):>10}")
+        logging.info(
+            f"Number of active non-gasless grid cells : {len(active[~gasless]):>10}"
+        )
+
+    return active, gasless
