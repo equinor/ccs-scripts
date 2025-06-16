@@ -606,7 +606,6 @@ def _calculate_grid_cell_distances(
     calculation_type: CalculationType,
     grid: Grid,
     config: Calculation,
-    co2_indices: List[int],
     active_indices: Optional[List[int]],
 ) -> Dict[str, List[float]]:
     timer = Timer()
@@ -617,7 +616,6 @@ def _calculate_grid_cell_distances(
             # Also needed when no config file is used
             x0 = config.x
             y0 = config.y
-            # NBNB-AS: Change this also:
             dist["WELL"] = np.zeros(shape=(n_co2,))
             for i in range(n_co2):
                 center = grid.get_xyz(active_index=active_indices[i])
@@ -628,29 +626,13 @@ def _calculate_grid_cell_distances(
                 x0 = well.x
                 y0 = well.y
 
-                # n_co2 = len(co2_indices)
-                # dist[name] = np.zeros(shape=(nactive,))
-                # print("\nC")
-                # for i in range(nactive):
-                #     center = grid.get_xyz(active_index=i)
-                #     dist[well.name][i] = np.sqrt(
-                #         (center[0] - x0) ** 2 + (center[1] - y0) ** 2
-                #     )
-                print("D")
                 dist[name] = np.zeros(shape=(n_co2,))
                 centers = [grid.get_xyz(active_index=act_ind) for act_ind in active_indices]
                 for i in range(n_co2):
                     dist[well.name][i] = np.sqrt(
                         (centers[i][0] - x0) ** 2 + (centers[i][1] - y0) ** 2
                     )
-                print("E")
-                # for i in range(nactive):
-                #     center = grid.get_xyz(active_index=i)
-                # print("E")
-                # centers = [grid.get_xyz(active_index=i) for i in range(nactive)]
-                # print("F")
     elif calculation_type == CalculationType.POINT:
-        # NBNB-AS: Change this also:
         dist["ALL"] = np.zeros(shape=(n_co2,))
         x0 = config.x
         y0 = config.y
@@ -658,7 +640,6 @@ def _calculate_grid_cell_distances(
             center = grid.get_xyz(active_index=active_indices[i])
             dist["ALL"][i] = np.sqrt((center[0] - x0) ** 2 + (center[1] - y0) ** 2)
     elif calculation_type == CalculationType.LINE:
-        # NBNB-AS: Change this also:
         dist["ALL"] = np.zeros(shape=(n_co2,))
         line_value = config.x
         ind = 0  # Use x-coordinate
@@ -730,24 +711,17 @@ def calculate_single_distances(
         global_active_idx = active[~gasless]
         non_gasless = np.where(np.isin(active, global_active_idx))[0]
 
-        co2_indices = non_gasless  # NBNB-AS: Correct? Nope...
         active_indices = non_gasless
         n_cells = len(non_gasless)
         cell_map_gasless_to_active = {i: non_gasless[i] for i in range(0, n_cells)}
-        print(non_gasless)
-        print(nactive)
-        print(n_cells)
-        # exit()
     else:
-        co2_indices = list(cell_map_gasless_to_active.keys())
         active_indices = list(cell_map_gasless_to_active.values())
-    n_co2 = len(co2_indices)
+    n_co2 = len(active_indices)
 
     # Calculate distance from point/line to center of all cells
     dist = _calculate_grid_cell_distances(
-        inj_wells, n_co2, calculation_type, grid, config, co2_indices, active_indices
+        inj_wells, n_co2, calculation_type, grid, config, active_indices
     )
-    print(dist)
 
     gas_results = _find_distances_per_time_step(
         "SGAS",
@@ -945,11 +919,6 @@ def _find_distances_at_time_step(
     if cell_map_gasless_to_active is not None:
         for k, v in cell_map_gasless_to_active.items():
             cell_map_active_to_gasless[v] = k
-    else:
-        pass
-
-    # NBNB-AS: Only needed if plume tracking is deactivated?
-    #          If not, we have already done this
 
     if calculation_type == CalculationType.PLUME_EXTENT:
         if (
@@ -959,10 +928,6 @@ def _find_distances_at_time_step(
         ):
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
-                # print(len(indices_this_group))
-                # ind_above_threshold_this_group = list(set(indices_this_group) & set(co2_above_threshold_indices))
-                # print(len(ind_above_threshold_this_group))
-                # exit()
                 # Skip calculating distances for cells that
                 # have an undecided plume group
                 if group_name == "undetermined":
@@ -981,11 +946,7 @@ def _find_distances_at_time_step(
         else:
             data = unrst[attribute_key][i].numpy_view()
             active_cells_with_co2 = np.where(data > threshold)[0]
-            print("\n\n--")
-            print(len(active_cells_with_co2))
             co2_above_threshold_indices = [cell_map_active_to_gasless[i] for i in active_cells_with_co2]
-            print(len(co2_above_threshold_indices))
-            print(len(cell_map_active_to_gasless))
             if i == 0:
                 dist_per_group["ALL"] = {}
                 for well_name in dist.keys():
@@ -1008,9 +969,6 @@ def _find_distances_at_time_step(
         ):
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
-                # print(len(indices_this_group))
-                # ind_above_threshold_this_group = list(set(indices_this_group) & set(co2_above_threshold_indices))
-                # print(len(ind_above_threshold_this_group))
                 # Skip calculating distances for cells that
                 # have an undecided plume group
                 if group_name == "undetermined":
@@ -1023,10 +981,7 @@ def _find_distances_at_time_step(
         else:
             data = unrst[attribute_key][i].numpy_view()
             active_cells_with_co2 = np.where(data > threshold)[0]
-            print(len(active_cells_with_co2))
             co2_above_threshold_indices = [cell_map_active_to_gasless[i] for i in active_cells_with_co2]
-            print(len(co2_above_threshold_indices))
-            print(len(cell_map_active_to_gasless))
             if i == 0:
                 dist_per_group["ALL"] = {}
                 for well_name in dist.keys():
