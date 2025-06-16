@@ -112,7 +112,7 @@ class PlumeGroups:
         for ind in ind_to_resolve:
             self.set_cell_groups(
                 ind, [-1]
-            )  # NBNB-AS: Can probably do this with list comprehension or something
+            )
 
         # Resolve groups to merge:
         new_groups_to_merge: List = []
