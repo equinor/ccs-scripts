@@ -31,7 +31,11 @@ from ccs_scripts.co2_plume_tracking.utils import (
     sort_well_names,
 )
 from ccs_scripts.utils.timer import Timer
-from ccs_scripts.utils.utils import read_yaml_file
+from ccs_scripts.utils.utils import (
+    fetch_properties,
+    find_active_and_gasless_cells,
+    read_yaml_file,
+)
 
 DEFAULT_THRESHOLD_GAS = 0.2
 DEFAULT_THRESHOLD_DISSOLVED = 0.0005
@@ -598,7 +602,7 @@ def _log_distance_calculation_configurations(config: Configuration) -> None:
 
 def _calculate_grid_cell_distances(
     inj_wells: Optional[List[InjectionWellData]],
-    nactive: int,
+    n_co2: int,
     calculation_type: CalculationType,
     grid: Grid,
     config: Calculation,
@@ -614,8 +618,8 @@ def _calculate_grid_cell_distances(
             x0 = config.x
             y0 = config.y
             # NBNB-AS: Change this also:
-            dist["WELL"] = np.zeros(shape=(nactive,))
-            for i in range(nactive):
+            dist["WELL"] = np.zeros(shape=(n_co2,))
+            for i in range(n_co2):
                 center = grid.get_xyz(active_index=i)
                 dist["WELL"][i] = np.sqrt((center[0] - x0) ** 2 + (center[1] - y0) ** 2)
         else:
@@ -624,7 +628,7 @@ def _calculate_grid_cell_distances(
                 x0 = well.x
                 y0 = well.y
 
-                n_co2 = len(co2_indices)
+                # n_co2 = len(co2_indices)
                 # dist[name] = np.zeros(shape=(nactive,))
                 # print("\nC")
                 # for i in range(nactive):
@@ -647,15 +651,15 @@ def _calculate_grid_cell_distances(
                 # print("F")
     elif calculation_type == CalculationType.POINT:
         # NBNB-AS: Change this also:
-        dist["ALL"] = np.zeros(shape=(nactive,))
+        dist["ALL"] = np.zeros(shape=(n_co2,))
         x0 = config.x
         y0 = config.y
-        for i in range(nactive):
+        for i in range(n_co2):
             center = grid.get_xyz(active_index=i)
             dist["ALL"][i] = np.sqrt((center[0] - x0) ** 2 + (center[1] - y0) ** 2)
     elif calculation_type == CalculationType.LINE:
         # NBNB-AS: Change this also:
-        dist["ALL"] = np.zeros(shape=(nactive,))
+        dist["ALL"] = np.zeros(shape=(n_co2,))
         line_value = config.x
         ind = 0  # Use x-coordinate
         if config.direction in (LineDirection.NORTH, LineDirection.SOUTH):
@@ -666,7 +670,7 @@ def _calculate_grid_cell_distances(
         if config.direction in (LineDirection.WEST, LineDirection.SOUTH):
             factor = -1
 
-        for i in range(nactive):
+        for i in range(n_co2):
             center = grid.get_xyz(active_index=i)
             dist["ALL"][i] = factor * (line_value - center[ind])
         dist["ALL"][dist["ALL"] < 0] = 0.0
@@ -711,10 +715,6 @@ def calculate_single_distances(
     calculation_type = config.type
 
     if cell_map_gasless_to_active is None:
-        from ccs_scripts.utils.utils import (
-            fetch_properties,
-            find_active_and_gasless_cells,
-        )
         if "AMFG" in unrst:
             dissolved_prop = "AMFG"
         elif "XMF2" in unrst:
@@ -727,16 +727,19 @@ def calculate_single_distances(
 
         co2_indices = non_gasless
         active_indices = None
+        n_cells = len(non_gasless)
+        cell_map_gasless_to_active = {i: non_gasless[i] for i in range(0, n_cells)}
     else:
         co2_indices = cell_map_gasless_to_active.keys()
         active_indices = cell_map_gasless_to_active.values()
+    n_co2 = len(co2_indices)
 
-    print(len(cell_map_gasless_to_active))
     # Calculate distance from point/line to center of all cells
     dist = _calculate_grid_cell_distances(
-        inj_wells, nactive, calculation_type, grid, config, co2_indices, active_indices
+        inj_wells, n_co2, calculation_type, grid, config, co2_indices, active_indices
     )
-    print(len(dist["SJ"]))
+    print(dist)
+    print(len(dist["WELL"]))
 
     gas_results = _find_distances_per_time_step(
         "SGAS",
@@ -931,8 +934,11 @@ def _find_distances_at_time_step(
 ):
     # NBNB-AS: Temp, need the other dict:
     cell_map_active_to_gasless = {}
-    for k, v in cell_map_gasless_to_active.items():
-        cell_map_active_to_gasless[v] = k
+    if cell_map_gasless_to_active is not None:
+        for k, v in cell_map_gasless_to_active.items():
+            cell_map_active_to_gasless[v] = k
+    else:
+        pass
 
     # NBNB-AS: Only needed if plume tracking is deactivated?
     #          If not, we have already done this
