@@ -714,7 +714,7 @@ def calculate_single_distances(
         global_active_idx = active[~gasless]
         non_gasless = np.where(np.isin(active, global_active_idx))[0]
 
-        active_indices = list(non_gasless)
+        active_indices = [int(ind) for ind in non_gasless]
         n_co2 = len(non_gasless)
         cell_map_active_to_co2 = {non_gasless[i]: i for i in range(0, n_co2)}
     else:
@@ -939,7 +939,7 @@ def _find_distances_at_time_step(
             data = unrst[attribute_key][i].numpy_view()
             active_cells_with_co2 = np.where(data > threshold)[0]
             co2_above_threshold_indices = [
-                cell_map_active_to_co2[i] for i in active_cells_with_co2
+                cell_map_active_to_co2[int(i)] for i in active_cells_with_co2
             ]
             if i == 0:
                 dist_per_group["ALL"] = {}
@@ -974,7 +974,7 @@ def _find_distances_at_time_step(
             data = unrst[attribute_key][i].numpy_view()
             active_cells_with_co2 = np.where(data > threshold)[0]
             co2_above_threshold_indices = [
-                cell_map_active_to_co2[i] for i in active_cells_with_co2
+                cell_map_active_to_co2[int(i)] for i in active_cells_with_co2
             ]
             if i == 0:
                 dist_per_group["ALL"] = {}
