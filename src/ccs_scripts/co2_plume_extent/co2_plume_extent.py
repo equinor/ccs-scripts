@@ -627,7 +627,9 @@ def _calculate_grid_cell_distances(
                 y0 = well.y
 
                 dist[name] = np.zeros(shape=(n_co2,))
-                centers = [grid.get_xyz(active_index=act_ind) for act_ind in active_indices]
+                centers = [
+                    grid.get_xyz(active_index=act_ind) for act_ind in active_indices
+                ]
                 for i in range(n_co2):
                     dist[well.name][i] = np.sqrt(
                         (centers[i][0] - x0) ** 2 + (centers[i][1] - y0) ** 2
@@ -706,7 +708,9 @@ def calculate_single_distances(
             props_to_extract.append(dissolved_prop)
         properties, _ = fetch_properties(unrst, props_to_extract)
 
-        active, gasless = find_active_and_gasless_cells(grid, properties, False, dissolved_prop is None)
+        active, gasless = find_active_and_gasless_cells(
+            grid, properties, False, dissolved_prop is None
+        )
         global_active_idx = active[~gasless]
         non_gasless = np.where(np.isin(active, global_active_idx))[0]
 
@@ -913,10 +917,7 @@ def _find_distances_at_time_step(
     dist_per_group: Dict[str, Dict[str, np.ndarray]],
 ):
     if calculation_type == CalculationType.PLUME_EXTENT:
-        if (
-            do_plume_tracking
-            and plume_groups is not None
-        ):
+        if do_plume_tracking and plume_groups is not None:
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that
@@ -937,7 +938,9 @@ def _find_distances_at_time_step(
         else:
             data = unrst[attribute_key][i].numpy_view()
             active_cells_with_co2 = np.where(data > threshold)[0]
-            co2_above_threshold_indices = [cell_map_active_to_co2[i] for i in active_cells_with_co2]
+            co2_above_threshold_indices = [
+                cell_map_active_to_co2[i] for i in active_cells_with_co2
+            ]
             if i == 0:
                 dist_per_group["ALL"] = {}
                 for well_name in dist.keys():
@@ -953,10 +956,7 @@ def _find_distances_at_time_step(
         CalculationType.POINT,
         CalculationType.LINE,
     ):
-        if (
-            do_plume_tracking
-            and plume_groups is not None
-        ):
+        if do_plume_tracking and plume_groups is not None:
             pg_dict = assemble_plume_groups_into_dict(plume_groups)
             for group_name, indices_this_group in pg_dict.items():
                 # Skip calculating distances for cells that
@@ -967,17 +967,23 @@ def _find_distances_at_time_step(
                 if group_name not in dist_per_group:
                     dist_per_group[group_name] = {"ALL": np.full(n_time_steps, np.nan)}
                 # Calculate min distance in this group
-                dist_per_group[group_name]["ALL"][i] = dist["ALL"][indices_this_group].min()
+                dist_per_group[group_name]["ALL"][i] = dist["ALL"][
+                    indices_this_group
+                ].min()
         else:
             data = unrst[attribute_key][i].numpy_view()
             active_cells_with_co2 = np.where(data > threshold)[0]
-            co2_above_threshold_indices = [cell_map_active_to_co2[i] for i in active_cells_with_co2]
+            co2_above_threshold_indices = [
+                cell_map_active_to_co2[i] for i in active_cells_with_co2
+            ]
             if i == 0:
                 dist_per_group["ALL"] = {}
                 for well_name in dist.keys():
                     dist_per_group["ALL"][well_name] = np.full(n_time_steps, np.nan)
             if len(co2_above_threshold_indices) > 0:
-                dist_per_group["ALL"]["ALL"][i] = dist["ALL"][co2_above_threshold_indices].min()
+                dist_per_group["ALL"]["ALL"][i] = dist["ALL"][
+                    co2_above_threshold_indices
+                ].min()
             else:
                 dist_per_group["ALL"]["ALL"][i] = np.nan
 

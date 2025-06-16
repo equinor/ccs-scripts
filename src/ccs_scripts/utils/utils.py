@@ -74,7 +74,9 @@ def fetch_properties(
     return properties, dates
 
 
-def identify_gas_less_cells(sgas: dict, dissolved_prop: Optional[dict] = None) -> np.ndarray:
+def identify_gas_less_cells(
+    sgas: dict, dissolved_prop: Optional[dict] = None
+) -> np.ndarray:
     """
     Identifies those cells that do not have gas. This is done based on thresholds for
     SGAS and AMFG/XMF2 (dissolved property).
@@ -130,14 +132,14 @@ def is_subset(first: List[str], second: List[str]) -> bool:
     return all(x in second for x in first)
 
 
-def find_active_and_gasless_cells(grid: Grid, properties, do_logging: bool = False, ignore_dissolved: bool = False):
+def find_active_and_gasless_cells(
+    grid: Grid, properties, do_logging: bool = False, ignore_dissolved: bool = False
+):
     act_num = grid.export_actnum().numpy_copy()
     active = np.where(act_num > 0)[0]
 
     if ignore_dissolved:
-        gasless = identify_gas_less_cells(
-            properties["SGAS"]
-        )
+        gasless = identify_gas_less_cells(properties["SGAS"])
     else:
         dissolved_prop = None
         if is_subset(["SGAS", "AMFS"], list(properties.keys())):
