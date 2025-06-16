@@ -5,7 +5,7 @@
 import datetime
 from enum import Enum
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import pandas as pd
 import pyarrow as pa
@@ -85,20 +85,21 @@ def try_convert_containment_csv_to_arrow(
 
 def apply_to_realizations(
     root_dir: Path,
-    realization_pattern: str,
+    realization_pattern: Optional[str],
     kept_columns: List[str],
     overwrite_arrow: bool = False,
     overwrite_csv: bool = False,
 ) -> None:
     """
-    Apply the conversion functions to all realizations matching the
-    realization_pattern. The pattern should be a glob pattern relative to
-    the current directory. The function will create missing Arrow files
-    for CSV files and vice versa. The overwrite_arrow and overwrite_csv
-    flags control whether existing files should be overwritten.
+    The function will create missing Arrow files for CSV files and vice versa.
+    The overwrite_arrow and overwrite_csv flags control whether existing files
+    should be overwritten. realization_pattern can be provided to specify
+    a glob pattern for the realization directories. If "falsy", it defaults to
+    processing only the root_dir.
     """
     assert not overwrite_csv or not overwrite_arrow
-    for realization_dir in root_dir.glob(realization_pattern):
+    dirs = root_dir.glob(realization_pattern) if realization_pattern else [root_dir]
+    for realization_dir in dirs:
         # Extract paths for CSV and Arrow files
         csv_path_1 = _get_csv_path(realization_dir, _FileType.PLUME_EXTENT)
         csv_path_2 = _get_csv_path(realization_dir, _FileType.PLUME_AREA)
@@ -124,7 +125,7 @@ def apply_to_realizations(
         conversions += try_convert_arrow_to_csv(csv_path_2, arrow_path_2, overwrite_csv)
         # No conversion for containment data from Arrow to CSV yet
 
-        print(f"Processed {realization_dir}: {conversions} conversions made.")
+        print(f"Processed {realization_dir.resolve()}: {conversions} conversions made.")
 
 
 class _FileType(Enum):
@@ -202,9 +203,8 @@ def main():
     )
     parser.add_argument(
         "--realization_pattern",
-        type=str,
         help="Glob pattern (relative to root_dir) for an FMU realization directory",
-        default="realization-*/iter-*",
+        default=None,
     )
     parser.add_argument(
         "--kept_columns",
