@@ -9,7 +9,11 @@ from resfo._unformatted.write import unformatted_write
 from xtgeo.io._file import FileWrapper
 
 from ccs_scripts.aggregate._config import CO2MassSettings
-from ccs_scripts.co2_containment.co2_calculation import Co2Data, Co2DataAtTimeStep, Scenario
+from ccs_scripts.co2_containment.co2_calculation import (
+    Co2Data,
+    Co2DataAtTimeStep,
+    Scenario,
+)
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import fetch_properties, identify_gas_less_cells, is_subset
 
@@ -45,11 +49,11 @@ def _get_gasless(properties: Dict[str, Dict[str, List[np.ndarray]]]) -> np.ndarr
         np.ndarray
     """
     if is_subset(["SGAS", "AMFS"], list(properties.keys())):
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFS"])
+        gasless = identify_gas_less_cells(properties["SGAS"], properties["AMFS"])
     elif is_subset(["SGAS", "AMFG"], list(properties.keys())):
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
+        gasless = identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
     elif is_subset(["SGAS", "XMF2"], list(properties.keys())):
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties["XMF2"])
+        gasless = identify_gas_less_cells(properties["SGAS"], properties["XMF2"])
     else:
         error_text = (
             "CO2 containment calculation failed. "
