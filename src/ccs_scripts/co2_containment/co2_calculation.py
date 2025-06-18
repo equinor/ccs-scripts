@@ -32,8 +32,11 @@ RELEVANT_PROPERTIES = [
     "SGAS",
     "DGAS",
     "BGAS",
+    "SWAT",
     "DWAT",
     "BWAT",
+    "SOIL",
+    "DOIL",
     "AMFG",
     "YMFG",
     "XMFG",
@@ -43,6 +46,8 @@ RELEVANT_PROPERTIES = [
     "AMFW",
     "YMFW",
     "XMFW",
+    "XMFO",
+    "YMFO",
 ]
 
 source_data_: List[Tuple[str, Any, None]] = [
@@ -50,6 +55,7 @@ source_data_: List[Tuple[str, Any, None]] = [
     ("y_coord", np.ndarray, None),
     ("DATES", List[str], None),
     ("VOL", Optional[Dict[str, np.ndarray]], None),
+    ("SOIL", Optional[Dict[str, np.ndarray]], None),
     ("SWAT", Optional[Dict[str, np.ndarray]], None),
     ("SGAS", Optional[Dict[str, np.ndarray]], None),
     ("SGSTRAND", Optional[Dict[str, np.ndarray]], None),
@@ -70,6 +76,8 @@ source_data_: List[Tuple[str, Any, None]] = [
     ("AMFW", Optional[Dict[str, np.ndarray]], None),
     ("YMFW", Optional[Dict[str, np.ndarray]], None),
     ("XMFW", Optional[Dict[str, np.ndarray]], None),
+    ("XMFO", Optional[Dict[str, np.ndarray]], None),
+    ("YMFO", Optional[Dict[str, np.ndarray]], None),
     ("zone", Optional[np.ndarray], None),
     ("region", Optional[np.ndarray], None),
 ]
@@ -577,8 +585,11 @@ def _pflotran_co2mass(
     xmfs = source_data.XMFS
     sgas = source_data.SGAS
     swat = source_data.SWAT
+    xmfo = source_data.XMFO
     if swat is None and scenario != Scenario.DEPLETED_OIL_GAS_FIELD:
         swat = {key: 1 - sgas[key] for key in sgas}
+    if xmfw is None and scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
+        xmfw = {key: 1 - xmfg[key] - xmfs[key] - xmfo[key] for key in xmfg}
     sgstrand = source_data.SGSTRAND
     eff_vols = source_data.PORV
     mole_fraction_dic = {
@@ -1138,7 +1149,7 @@ def _calculate_co2_data_from_source_data(
             raise ValueError(error_text)
         if is_subset(properties_needed_pflotran, active_props):
             source = "PFlotran"
-            if is_subset(["AMFS", "SOIL"], active_props):
+            if is_subset(["AMFS", "YMFO"], active_props):
                 scenario = Scenario.DEPLETED_OIL_GAS_FIELD
             elif is_subset(["AMFS"], active_props):
                 scenario = Scenario.DEPLETED_GAS_FIELD

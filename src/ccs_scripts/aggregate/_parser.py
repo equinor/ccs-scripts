@@ -80,6 +80,14 @@ def parse_arguments(arguments):
         nargs="?",
         const=True,
     )
+    parser.add_argument(
+        "--gas_molar_mass",
+        help="Predifinied gas molar mass (g/m3) for residual gas component",
+        type=float,
+        nargs="?",
+        default=None,
+    )
+
     return parser.parse_args(arguments)
 
 
@@ -98,6 +106,8 @@ def _replace_default_dummies_from_ert(args):
         args.no_logging = False
     if args.debug == "-1":
         args.debug = False
+    if args.gas_molar_mass == "-1":
+        args.gas_molar_mass = None
 
 
 def process_arguments(arguments) -> RootConfig:
@@ -125,6 +135,7 @@ def process_arguments(arguments) -> RootConfig:
         parsed_args.mapfolder,
         parsed_args.plotfolder,
         parsed_args.gridfolder,
+        parsed_args.gas_molar_mass,
         replacements,
     )
     _check_directories(config.output.mapfolder)
@@ -137,6 +148,7 @@ def parse_yaml(
     map_folder: Optional[str],
     plot_folder: Optional[str],
     grid_folder: Optional[str],
+    gas_molar_mass: Optional[str],
     replacements: Dict[str, str],
 ) -> RootConfig:
     """
@@ -144,6 +156,11 @@ def parse_yaml(
     details.
     """
     config = load_yaml(yaml_file, map_folder, plot_folder, grid_folder, replacements)
+    if (
+        "co2_mass_settings" in config
+        and "gas_molar_mass" not in config["co2_mass_settings"]
+    ):
+        config["co2_mass_settings"]["gas_molar_mass"] = gas_molar_mass
     co2_mass_settings = (
         None
         if "co2_mass_settings" not in config
