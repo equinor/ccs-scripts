@@ -31,6 +31,8 @@ MIGRATION_TIME_PROPERTIES = [
     "YMFS",
     "XMF1",
     "XMF2",
+    "XMFS",
+    "ZMFS",  ##NBNB: Not clear what it is
     "YMF1",
     "YMF2",
     "SGAS",
