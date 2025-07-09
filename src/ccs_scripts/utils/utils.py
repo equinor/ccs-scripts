@@ -44,34 +44,37 @@ def _read_props(
     Returns:
       dict
     """
-    props_att = {p: try_prop(unrst, p) for p in prop_names}
-    act_prop_names = [k for k in prop_names if props_att[k] is not None]
-    act_props = {k: props_att[k] for k in act_prop_names}
-    return act_props
+    active_props = {}
+    for p in prop_names:
+        result = try_prop(unrst, p)
+        if result is not None:
+            active_props.update({p: result})
+    return active_props
 
 
 def fetch_properties(
-    unrst: ResdataFile, properties_to_extract: List
+    unrst: ResdataFile, props_to_extract: List
 ) -> Tuple[Dict[str, Dict[str, List[np.ndarray]]], List[str]]:
     """
-    Fetches the properties in properties_to_extract from a ResdataFile
+    Fetches the properties in props_to_extract from a ResdataFile
     named unrst
 
     Args:
-      unrst (ResdataFile): ResdataFile to fetch properties_to_extract from
-      properties_to_extract: List with property names to be fetched
+      unrst (ResdataFile): ResdataFile to fetch props_to_extract from
+      props_to_extract: List with property names to be fetched
 
     Returns:
       Tuple
 
     """
     dates = [d.strftime("%Y%m%d") for d in unrst.report_dates]
-    properties = _read_props(unrst, properties_to_extract)
-    properties = {
-        p: {d[1]: properties[p][d[0]].numpy_copy() for d in enumerate(dates)}
-        for p in properties
+    props = _read_props(unrst, props_to_extract)
+    props = {
+        p: {d[1]: props[p][d[0]].numpy_copy() for d in enumerate(dates)}
+        for p in props
     }
-    return properties, dates
+    logging.info(f"Relevant properties extracted from file: {', '.join(list(props.keys()))}")
+    return props, dates
 
 
 def identify_gas_less_cells(

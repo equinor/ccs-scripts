@@ -54,9 +54,9 @@ def calculate_out_of_bounds_co2(
     zone_info: ZoneInfo,
     region_info: RegionInfo,
     residual_trapping: bool,
-    injection_wells: List[InjectionWellData],
-    file_containment_polygon: Optional[str] = None,
-    file_hazardous_polygon: Optional[str] = None,
+    inj_wells: List[InjectionWellData],
+    file_cont_polygon: Optional[str] = None,
+    file_haz_polygon: Optional[str] = None,
     gas_molar_mass: Optional[float] = None,
 ) -> pd.DataFrame:
     """
@@ -69,9 +69,9 @@ def calculate_out_of_bounds_co2(
         unrst_file (str): Path to UNRST-file
         init_file (str): Path to INIT-file
         calc_type_input (str): Choose mass / cell_volume / actual_volume
-        file_containment_polygon (str): Path to polygon defining the
+        file_cont_polygon (str): Path to polygon defining the
             containment area
-        file_hazardous_polygon (str): Path to polygon defining the
+        file_haz_polygon (str): Path to polygon defining the
             hazardous area
         zone_info (ZoneInfo): Containing path to zone-file,
             or zranges (if the zone-file is provided as a YAML-file
@@ -80,7 +80,7 @@ def calculate_out_of_bounds_co2(
         region_info (RegionInfo): Containing path to potential region-file,
             and list connecting region-numbers to names, if available
         residual_trapping (bool): Indicate if residual trapping should be calculated
-        injection_wells (List): Injection wells used for plume tracking
+        inj_wells (List): Injection wells used for plume tracking
         gas_molar_mass (float): Hydrocarbon gas molar mass. (Applies for cases with more
             than two components)
 
@@ -98,24 +98,18 @@ def calculate_out_of_bounds_co2(
         gas_molar_mass,
     )
 
-    if file_containment_polygon is not None:
-        containment_polygon = _read_polygon(file_containment_polygon)
-    else:
-        containment_polygon = None
-    if file_hazardous_polygon is not None:
-        hazardous_polygon = _read_polygon(file_hazardous_polygon)
-    else:
-        hazardous_polygon = None
+    cont_polygon = _read_polygon(file_cont_polygon) if file_cont_polygon else None
+    haz_polygon = _read_polygon(file_haz_polygon) if file_haz_polygon else None
 
-    if len(injection_wells) == 0:
+    if len(inj_wells) == 0:
         plume_groups = None
     else:
-        plume_groups = _find_plume_groups(grid_file, unrst_file, injection_wells)
+        plume_groups = _find_plume_groups(grid_file, unrst_file, inj_wells)
 
     return calculate_from_co2_data(
         co2_data,
-        containment_polygon,
-        hazardous_polygon,
+        cont_polygon,
+        haz_polygon,
         calc_type_input,
         zone_info.int_to_zone,
         region_info.int_to_region,
@@ -153,8 +147,8 @@ def _find_plume_groups(
 
 def calculate_from_co2_data(
     co2_data: Co2Data,
-    containment_polygon: shapely.geometry.Polygon,
-    hazardous_polygon: Union[shapely.geometry.Polygon, None],
+    cont_polygon: shapely.geometry.Polygon,
+    haz_polygon: Union[shapely.geometry.Polygon, None],
     calc_type_input: str,
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
@@ -162,14 +156,15 @@ def calculate_from_co2_data(
     plume_groups: Optional[List[List[str]]] = None,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
-    Use polygons to divide co2 mass or volume into different categories
-    (inside / outside / hazardous). Result is a data frame.
+    Use polygons (inside / outside / hazardous) and/or regions and/or zones
+    and/or plume groups to divide co2 mass or volume into different categories.
+    Result is a data frame.
 
     Args:
         co2_data (Co2Data): Mass/volume of CO2 at each time step
-        containment_polygon (shapely.geometry.Polygon): Polygon defining the
+        cont_polygon (shapely.geometry.Polygon): Polygon defining the
             containment area
-        hazardous_polygon (shapely.geometry.Polygon): Polygon defining the
+        haz_polygon (shapely.geometry.Polygon): Polygon defining the
             hazardous area
         calc_type_input (str): Choose mass / cell_volume / actual_volume
         int_to_zone (List): List of zone names
@@ -185,8 +180,8 @@ def calculate_from_co2_data(
     timer.start("calculate_co2_containment")
     contained_co2 = calculate_co2_containment(
         co2_data,
-        containment_polygon,
-        hazardous_polygon,
+        cont_polygon,
+        haz_polygon,
         int_to_zone,
         int_to_region,
         calc_type,

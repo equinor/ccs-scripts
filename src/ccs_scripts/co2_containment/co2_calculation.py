@@ -190,7 +190,7 @@ class RegionInfo:
 
 def _detect_eclipse_mole_fraction_props(
     unrst_file: str,
-    properties_to_extract: List,
+    props_to_extract: List,
     current_source_data: List[Tuple[str, Any, None]],
 ):
     """
@@ -198,7 +198,7 @@ def _detect_eclipse_mole_fraction_props(
 
     Args:
         unrst_file (str): Path to UNSRT file
-        properties_to_extract (List): List of current properties to extract
+        props_to_extract (List): List of current properties to extract
         current_source_data (List): List with properties to edit
     """
     unrst = ResdataFile(unrst_file)
@@ -220,11 +220,11 @@ def _detect_eclipse_mole_fraction_props(
                     for name in ["XMF", "YMF"]
                 ]
             )
-            properties_to_extract.extend(
+            props_to_extract.extend(
                 [name + str(suffix_count) for name in ["XMF", "YMF"]]
             )
         suffix_count += 1
-    return current_source_data, properties_to_extract
+    return current_source_data, props_to_extract
 
 
 def _n_components(active_props: List):
@@ -253,23 +253,35 @@ def _n_components(active_props: List):
     return max_xmf_suffix
 
 
+def _find_props_to_extract(unrst_file: str, residual_trapping: bool):
+    props_to_extract = copy.deepcopy(RELEVANT_PROPERTIES)
+    current_source_data = copy.deepcopy(source_data_)
+    source_data_updated, props_to_extract = _detect_eclipse_mole_fraction_props(
+        unrst_file, props_to_extract, current_source_data
+    )
+    if residual_trapping:
+        props_to_extract.extend(["SGSTRAND", "SGTRH"])
+
+    return source_data_updated, props_to_extract
+
+
 # pylint: disable=too-many-arguments
 def _extract_source_data(
     grid_file: str,
     unrst_file: str,
-    source_data_: List[Tuple[str, Any, None]],
-    properties_to_extract: List[str],
+    source_data_updated: List[Tuple[str, Any, None]],
+    props_to_extract: List[str],
     zone_info: ZoneInfo,
     region_info: RegionInfo,
     init_file: Optional[str] = None,
 ):
     # pylint: disable=too-many-locals, too-many-statements
-    """Extracts the properties in properties_to_extract from Grid files
+    """Extracts the properties in props_to_extract from Grid files
 
     Args:
       grid_file (str): Path to EGRID-file
       unrst_file (str): Path to UNRST-file
-      properties_to_extract (List): Names of the properties to be extracted
+      props_to_extract (List): Names of the properties to be extracted
       init_file (str): Path to INIT-file
       zone_info (ZoneInfo): Zone information
       region_info (Dict): Region information
@@ -278,7 +290,7 @@ def _extract_source_data(
       SourceData
 
     """
-    logging.info("Start extracting source data")
+    logging.info("Start extracting source data\n")
     grid = Grid(grid_file)
     unrst = ResdataFile(unrst_file)
     try:
@@ -286,8 +298,8 @@ def _extract_source_data(
     except Exception:
         init = None
         logging.info("No INIT-file loaded")
-    properties, dates = fetch_properties(unrst, properties_to_extract)
-    logging.info("Done fetching properties")
+    properties, dates = fetch_properties(unrst, props_to_extract)
+    logging.info("Done fetching properties\n")
 
     active, gasless = find_active_and_gasless_cells(grid, properties, True)
     global_active_idx = active[~gasless]
@@ -310,7 +322,7 @@ def _extract_source_data(
             }
         except KeyError:
             pass
-    SourceData = make_dataclass("SourceData", source_data_)
+    SourceData = make_dataclass("SourceData", source_data_updated)
     source_data = SourceData(
         cells_x,
         cells_y,
@@ -319,7 +331,7 @@ def _extract_source_data(
         zone=zone,
         region=region,
     )
-    logging.info("Done extracting source data\n")
+    logging.info("\nDone extracting source data\n")
     return source_data
 
 
@@ -1482,7 +1494,7 @@ def calculate_co2(
       calc_type_input (str): Input string with calculation type to perform
       init_file (str): Path to INIT-file
       zone_info (ZoneInfo): Zone information
-      region_info (Dict): Region information
+      region_info (RegionInfo): Region information
       residual_trapping (bool): Calculate residual trapping or not
       gas_molar_mass (float): Hydrocarbon gas molar mass (Applies for cases with more
             than two components)
@@ -1494,19 +1506,13 @@ def calculate_co2(
 
     """
     timer = Timer()
-    properties_to_extract = copy.deepcopy(RELEVANT_PROPERTIES)
-    current_source_data = copy.deepcopy(source_data_)
-    properties_to_add, properties_to_extract = _detect_eclipse_mole_fraction_props(
-        unrst_file, properties_to_extract, current_source_data
-    )
-    if residual_trapping:
-        properties_to_extract.extend(["SGSTRAND", "SGTRH"])
+    source_data_updated, props_to_extract = _find_props_to_extract(unrst_file, residual_trapping)
     timer.start("extract_source_data")
     source_data = _extract_source_data(
         grid_file,
         unrst_file,
-        properties_to_add,
-        properties_to_extract,
+        source_data_updated,
+        props_to_extract,
         zone_info,
         region_info,
         init_file,
