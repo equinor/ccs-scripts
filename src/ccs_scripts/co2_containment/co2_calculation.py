@@ -299,12 +299,11 @@ def _extract_source_data(
         init = None
         logging.info("No INIT-file loaded")
     properties, dates = fetch_properties(unrst, props_to_extract)
-    logging.info("Done fetching properties\n")
 
     active, gasless = find_active_and_gasless_cells(grid, properties, True)
     global_active_idx = active[~gasless]
 
-    properties_reduced = reduce_properties(properties, ~gasless)
+    props_reduced = reduce_properties(properties, ~gasless)
     # Tuple with (x,y,z) for each cell:
     xyz = [grid.get_xyz(global_index=a) for a in global_active_idx]
     cells_x = np.array([coord[0] for coord in xyz])
@@ -313,11 +312,11 @@ def _extract_source_data(
     zone = _process_zones(zone_info, grid, grid_file, global_active_idx)
     region = _process_regions(region_info, grid, grid_file, init, active, gasless)
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
-    properties_reduced["VOL"] = {d: vol0 for d in dates}
+    props_reduced["VOL"] = {d: vol0 for d in dates}
     if init is not None:
         try:
             porv = init["PORV"]
-            properties_reduced["PORV"] = {
+            props_reduced["PORV"] = {
                 d: porv[0].numpy_copy()[global_active_idx] for d in dates
             }
         except KeyError:
@@ -327,7 +326,7 @@ def _extract_source_data(
         cells_x,
         cells_y,
         dates,
-        **dict(properties_reduced.items()),
+        **dict(props_reduced.items()),
         zone=zone,
         region=region,
     )
@@ -1125,15 +1124,15 @@ def _calculate_co2_data_from_source_data(
     # pylint: disable-msg=too-many-branches
     # pylint: disable-msg=too-many-statements
     logging.info(f"Start calculating CO2 {calc_type.name.lower()} from source data")
-    properties_needed_pflotran = PROPERTIES_NEEDED_PFLOTRAN.copy()
-    properties_needed_eclipse = PROPERTIES_NEEDED_ECLIPSE.copy()
+    props_needed_pflotran = PROPERTIES_NEEDED_PFLOTRAN.copy()
+    props_needed_eclipse = PROPERTIES_NEEDED_ECLIPSE.copy()
     if residual_trapping:
-        properties_needed_pflotran.append("SGSTRAND")
-        properties_needed_eclipse.append("SGTRH")
+        props_needed_pflotran.append("SGSTRAND")
+        props_needed_eclipse.append("SGTRH")
     props_check = [
         x.name
         for x in fields(source_data)
-        if x.name not in ["x_coord", "y_coord", "DATES", "zone", "VOL"]
+        if x.name not in ["x_coord", "y_coord", "DATES", "zone", "region", "VOL"]
     ]
     active_props_idx = np.where(
         [getattr(source_data, x) is not None for x in props_check]
@@ -1141,72 +1140,52 @@ def _calculate_co2_data_from_source_data(
     active_props = [props_check[i] for i in active_props_idx]
     scenario = Scenario.AQUIFER
     porv_prop = None
-    if is_subset(["SGAS"], active_props):
-        if is_subset(["PORV", "RPORV"], active_props):
-            porv_prop = "RPORV"
-            active_props.remove("PORV")
-            active_props.remove("RPORV")
-            logging.info("Using attribute RPORV instead of PORV")
-        elif is_subset(["PORV"], active_props):
-            active_props.remove("PORV")
-            porv_prop = "PORV"
-            logging.info("Using attribute PORV")
-        elif is_subset(["RPORV"], active_props):
-            active_props.remove("RPORV")
-            porv_prop = "RPORV"
-            logging.info("Using attribute RPORV")
-        else:
-            error_text = "No pore volume provided"
-            error_text += "\nNeed either PORV or RPORV"
-            raise ValueError(error_text)
-        if is_subset(properties_needed_pflotran, active_props):
-            source = "PFlotran"
-            if is_subset(["AMFS", "YMFO"], active_props):
-                scenario = Scenario.DEPLETED_OIL_GAS_FIELD
-            elif is_subset(["AMFS"], active_props):
-                scenario = Scenario.DEPLETED_GAS_FIELD
-        elif is_subset(properties_needed_eclipse, active_props):
-            source = "Eclipse"
-            if is_subset(["XMF2", "SOIL"], active_props):
-                scenario = Scenario.DEPLETED_OIL_GAS_FIELD
-            # NBNB: X/YMF properties ending in 2 are assumed to correspond to CO2
-            elif _n_components(active_props) > 3:
-                scenario = Scenario.DEPLETED_GAS_FIELD
-                active_props = [
-                    prop
-                    for prop in active_props
-                    if not (prop.startswith("XMF") or prop.startswith("YMF"))
-                    or prop.endswith("2")
-                ]
-        elif any(prop in properties_needed_pflotran for prop in active_props):
-            missing_props = [
-                x for x in properties_needed_pflotran if x not in active_props
-            ]
-            error_text = "Lacking some required properties to compute CO2 mass/volume."
-            error_text += "\nAssumed source: PFlotran"
-            error_text += "\nMissing properties: "
-            error_text += ", ".join(missing_props)
-            raise ValueError(error_text)
-        elif any(prop in properties_needed_eclipse for prop in active_props):
-            missing_props = [
-                x for x in properties_needed_eclipse if x not in active_props
-            ]
-            error_text = "Lacking some required properties to compute CO2 mass/volume."
-            error_text += "\nAssumed source: Eclipse"
-            error_text += "\nMissing properties: "
-            error_text += ", ".join(missing_props)
-            raise ValueError(error_text)
-        else:
-            error_text = "Lacking all required properties to compute CO2 mass/volume."
-            error_text += "\nNeed either:"
-            error_text += f"\n  PFlotran: \
-                {', '.join(properties_needed_pflotran)}"
-            error_text += f"\n  Eclipse : \
-                {', '.join(properties_needed_eclipse)}"
-            raise ValueError(error_text)
-    else:
+
+    if not is_subset(["SGAS"], active_props):
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."
         raise ValueError(error_text)
+
+    if is_subset(["PORV", "RPORV"], active_props):
+        porv_prop = "RPORV"
+        active_props.remove("PORV")
+        active_props.remove("RPORV")
+        logging.info("Using attribute RPORV instead of PORV")
+    elif is_subset(["PORV"], active_props):
+        active_props.remove("PORV")
+        porv_prop = "PORV"
+        logging.info("Using attribute PORV")
+    elif is_subset(["RPORV"], active_props):
+        active_props.remove("RPORV")
+        porv_prop = "RPORV"
+        logging.info("Using attribute RPORV")
+    else:
+        error_text = "No pore volume provided"
+        error_text += "\nNeed either PORV or RPORV"
+        raise ValueError(error_text)
+
+    if is_subset(props_needed_pflotran, active_props):
+        source = "PFlotran"
+        if is_subset(["AMFS", "YMFO"], active_props):
+            scenario = Scenario.DEPLETED_OIL_GAS_FIELD
+        elif is_subset(["AMFS"], active_props):
+            scenario = Scenario.DEPLETED_GAS_FIELD
+    elif is_subset(props_needed_eclipse, active_props):
+        source = "Eclipse"
+        if is_subset(["XMF2", "SOIL"], active_props):
+            scenario = Scenario.DEPLETED_OIL_GAS_FIELD
+        # NBNB: X/YMF properties ending in 2 are assumed to correspond to CO2
+        elif _n_components(active_props) > 3:
+            scenario = Scenario.DEPLETED_GAS_FIELD
+            active_props = [
+                prop
+                for prop in active_props
+                if not (prop.startswith("XMF") or prop.startswith("YMF"))
+                or prop.endswith("2")
+            ]
+    else:
+        _raise_missing_props_error(
+            active_props, props_needed_pflotran, props_needed_eclipse
+        )
 
     active_props.extend([porv_prop])
     if scenario != Scenario.AQUIFER and gas_molar_mass is None:
@@ -1459,6 +1438,35 @@ def _calculate_co2_data_from_source_data(
 
     logging.info(f"Done calculating CO2 {calc_type.name.lower()} from source data\n")
     return co2_amount
+
+
+def _raise_missing_props_error(
+    active_props: List[str],
+    props_needed_pflotran: List[str],
+    props_needed_eclipse: List[str],
+):
+    if any(prop in props_needed_pflotran for prop in active_props):
+        missing_props = [x for x in props_needed_pflotran if x not in active_props]
+        error_text = "Lacking some required properties to compute CO2 mass/volume."
+        error_text += "\nAssumed source: PFlotran"
+        error_text += "\nMissing properties: "
+        error_text += ", ".join(missing_props)
+        raise ValueError(error_text)
+    elif any(prop in props_needed_eclipse for prop in active_props):
+        missing_props = [x for x in props_needed_eclipse if x not in active_props]
+        error_text = "Lacking some required properties to compute CO2 mass/volume."
+        error_text += "\nAssumed source: Eclipse"
+        error_text += "\nMissing properties: "
+        error_text += ", ".join(missing_props)
+        raise ValueError(error_text)
+    else:
+        error_text = "Lacking all required properties to compute CO2 mass/volume."
+        error_text += "\nNeed either:"
+        error_text += f"\n  PFlotran: \
+            {', '.join(props_needed_pflotran)}"
+        error_text += f"\n  Eclipse : \
+            {', '.join(props_needed_eclipse)}"
+        raise ValueError(error_text)
 
 
 def _convert_from_kg_to_tons(co2_mass_output: Co2Data):

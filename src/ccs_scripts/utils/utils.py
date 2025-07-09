@@ -73,7 +73,9 @@ def fetch_properties(
         p: {d[1]: props[p][d[0]].numpy_copy() for d in enumerate(dates)} for p in props
     }
     logging.info(
-        f"Relevant properties extracted from file: {', '.join(list(props.keys()))}"
+        "Done reading properties from file"
+        "\nRelevant properties extracted:"
+        f"\n    {', '.join(list(props.keys()))}\n"
     )
     return props, dates
 
