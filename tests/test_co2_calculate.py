@@ -95,8 +95,8 @@ def _calc_and_compare(poly, masses, poly_hazardous=None):
     totals = {m.date: np.sum(m.total_mass()) for m in masses.data_list}
     contained = calculate_from_co2_data(
         co2_data=masses,
-        containment_polygon=poly,
-        hazardous_polygon=poly_hazardous,
+        cont_polygon=poly,
+        haz_polygon=poly_hazardous,
         calc_type_input="mass",
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
@@ -287,8 +287,8 @@ def test_reek_grid():
     masses = _calculate_co2_data_from_source_data(source_data, CalculationType.MASS)
     table = calculate_from_co2_data(
         co2_data=masses,
-        containment_polygon=reek_poly,
-        hazardous_polygon=reek_poly_hazardous,
+        cont_polygon=reek_poly,
+        haz_polygon=reek_poly_hazardous,
         calc_type_input="mass",
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
@@ -313,8 +313,8 @@ def test_reek_grid():
     )
     table2 = calculate_from_co2_data(
         co2_data=volumes,
-        containment_polygon=reek_poly,
-        hazardous_polygon=reek_poly_hazardous,
+        cont_polygon=reek_poly,
+        haz_polygon=reek_poly_hazardous,
         calc_type_input="actual_volume",
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
@@ -353,8 +353,8 @@ def test_reek_grid():
     )
     table3 = calculate_from_co2_data(
         co2_data=masses_with_trapping,
-        containment_polygon=reek_poly,
-        hazardous_polygon=reek_poly_hazardous,
+        cont_polygon=reek_poly,
+        haz_polygon=reek_poly_hazardous,
         calc_type_input="mass",
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
@@ -383,8 +383,8 @@ def test_reek_grid():
     )
     table4 = calculate_from_co2_data(
         co2_data=volumes_with_trapping,
-        containment_polygon=reek_poly,
-        hazardous_polygon=reek_poly_hazardous,
+        cont_polygon=reek_poly,
+        haz_polygon=reek_poly_hazardous,
         calc_type_input="actual_volume",
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,

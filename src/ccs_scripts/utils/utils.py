@@ -70,10 +70,11 @@ def fetch_properties(
     dates = [d.strftime("%Y%m%d") for d in unrst.report_dates]
     props = _read_props(unrst, props_to_extract)
     props = {
-        p: {d[1]: props[p][d[0]].numpy_copy() for d in enumerate(dates)}
-        for p in props
+        p: {d[1]: props[p][d[0]].numpy_copy() for d in enumerate(dates)} for p in props
     }
-    logging.info(f"Relevant properties extracted from file: {', '.join(list(props.keys()))}")
+    logging.info(
+        f"Relevant properties extracted from file: {', '.join(list(props.keys()))}"
+    )
     return props, dates
 
 

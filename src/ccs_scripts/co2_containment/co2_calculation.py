@@ -1506,7 +1506,9 @@ def calculate_co2(
 
     """
     timer = Timer()
-    source_data_updated, props_to_extract = _find_props_to_extract(unrst_file, residual_trapping)
+    source_data_updated, props_to_extract = _find_props_to_extract(
+        unrst_file, residual_trapping
+    )
     timer.start("extract_source_data")
     source_data = _extract_source_data(
         grid_file,
