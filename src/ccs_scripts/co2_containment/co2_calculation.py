@@ -1132,11 +1132,6 @@ def _calculate_co2_data_from_source_data(
     # pylint: disable-msg=too-many-branches
     # pylint: disable-msg=too-many-statements
     logging.info(f"Start calculating CO2 {calc_type.name.lower()} from source data")
-    props_needed_pflotran = PROPERTIES_NEEDED_PFLOTRAN.copy()
-    props_needed_eclipse = PROPERTIES_NEEDED_ECLIPSE.copy()
-    if residual_trapping:
-        props_needed_pflotran.append("SGSTRAND")
-        props_needed_eclipse.append("SGTRH")
     props_check = [
         x.name
         for x in fields(source_data)
@@ -1164,30 +1159,7 @@ def _calculate_co2_data_from_source_data(
         error_text += "\nNeed either PORV or RPORV"
         raise ValueError(error_text)
 
-    scenario = Scenario.AQUIFER
-    if is_subset(props_needed_pflotran, active_props):
-        source = "PFlotran"
-        if is_subset(["AMFS", "YMFO"], active_props):
-            scenario = Scenario.DEPLETED_OIL_GAS_FIELD
-        elif is_subset(["AMFS"], active_props):
-            scenario = Scenario.DEPLETED_GAS_FIELD
-    elif is_subset(props_needed_eclipse, active_props):
-        source = "Eclipse"
-        if is_subset(["XMF2", "SOIL"], active_props):
-            scenario = Scenario.DEPLETED_OIL_GAS_FIELD
-        # NBNB: X/YMF properties ending in 2 are assumed to correspond to CO2
-        elif _n_components(active_props) > 3:
-            scenario = Scenario.DEPLETED_GAS_FIELD
-            active_props = [
-                prop
-                for prop in active_props
-                if not (prop.startswith("XMF") or prop.startswith("YMF"))
-                or prop.endswith("2")
-            ]
-    else:
-        _raise_missing_props_error(
-            active_props, props_needed_pflotran, props_needed_eclipse
-        )
+    source, scenario = _find_source_and_scenario(residual_trapping, active_props)
 
     logging.info("Found valid properties")
     logging.info(f"Data source : {source}")
@@ -1230,6 +1202,43 @@ def _calculate_co2_data_from_source_data(
 
     logging.info(f"Done calculating CO2 {calc_type.name.lower()} from source data\n")
     return co2_amount
+
+
+def _find_source_and_scenario(
+    residual_trapping: bool, active_props: List[str]
+) -> Tuple[str, Scenario]:
+    props_needed_pflotran = PROPERTIES_NEEDED_PFLOTRAN.copy()
+    props_needed_eclipse = PROPERTIES_NEEDED_ECLIPSE.copy()
+    if residual_trapping:
+        props_needed_pflotran.append("SGSTRAND")
+        props_needed_eclipse.append("SGTRH")
+
+    scenario = Scenario.AQUIFER
+    if is_subset(props_needed_pflotran, active_props):
+        source = "PFlotran"
+        if is_subset(["AMFS", "YMFO"], active_props):
+            scenario = Scenario.DEPLETED_OIL_GAS_FIELD
+        elif is_subset(["AMFS"], active_props):
+            scenario = Scenario.DEPLETED_GAS_FIELD
+    elif is_subset(props_needed_eclipse, active_props):
+        source = "Eclipse"
+        if is_subset(["XMF2", "SOIL"], active_props):
+            scenario = Scenario.DEPLETED_OIL_GAS_FIELD
+        # NBNB: X/YMF properties ending in 2 are assumed to correspond to CO2
+        elif _n_components(active_props) > 3:
+            scenario = Scenario.DEPLETED_GAS_FIELD
+            active_props = [
+                prop
+                for prop in active_props
+                if not (prop.startswith("XMF") or prop.startswith("YMF"))
+                or prop.endswith("2")
+            ]
+    else:
+        _raise_missing_props_error(
+            active_props, props_needed_pflotran, props_needed_eclipse
+        )
+
+    return source, scenario
 
 
 def _calc_co2_amount(
