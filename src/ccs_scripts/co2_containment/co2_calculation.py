@@ -1134,11 +1134,7 @@ def _calculate_co2_data_from_source_data(
         for x in fields(source_data)
         if x.name not in ["x_coord", "y_coord", "DATES", "zone", "region", "VOL"]
     ]
-    active_props_idx = np.where(
-        [getattr(source_data, x) is not None for x in props_check]
-    )[0]
-    active_props = [props_check[i] for i in active_props_idx]
-    scenario = Scenario.AQUIFER
+    active_props = [p for p in props_check if getattr(source_data, p) is not None]
 
     if not is_subset(["SGAS"], active_props):
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."
@@ -1156,6 +1152,7 @@ def _calculate_co2_data_from_source_data(
         error_text += "\nNeed either PORV or RPORV"
         raise ValueError(error_text)
 
+    scenario = Scenario.AQUIFER
     if is_subset(props_needed_pflotran, active_props):
         source = "PFlotran"
         if is_subset(["AMFS", "YMFO"], active_props):
@@ -1190,6 +1187,7 @@ def _calculate_co2_data_from_source_data(
     elif scenario == Scenario.AQUIFER:
         gas_molar_mass = None
         oil_molar_mass = None
+
     logging.info("Found valid properties")
     logging.info(f"Data source : {source}")
     logging.info(f"Scenario    : {scenario.name}")
@@ -1197,230 +1195,18 @@ def _calculate_co2_data_from_source_data(
     logging.info(f"    {', '.join(active_props)}")
 
     if calc_type in (CalculationType.ACTUAL_VOLUME, CalculationType.MASS):
-        if source == "PFlotran":
-            co2_mass_cell = _pflotran_co2mass(
-                source_data,
-                scenario,
-                co2_molar_mass,
-                water_molar_mass,
-                gas_molar_mass,
-                oil_molar_mass,
-            )
-        else:
-            co2_mass_cell = _eclipse_co2mass(source_data, scenario, co2_molar_mass)
-        co2_mass_output = Co2Data(
-            source_data.x_coord,
-            source_data.y_coord,
-            [
-                Co2DataAtTimeStep(
-                    key,
-                    value[0],
-                    value[1],
-                    value[2],
-                    np.zeros_like(value[0]),
-                    (
-                        np.zeros_like(value[0])
-                        if source_data.SGSTRAND is None and source_data.SGTRH is None
-                        else value[3]
-                    ),
-                    (
-                        np.zeros_like(value[0])
-                        if source_data.SGSTRAND is None and source_data.SGTRH is None
-                        else value[4]
-                    ),
-                )
-                for key, value in co2_mass_cell.items()
-            ],
-            "kg",
+        co2_amount = _calc_co2_amount(
+            source,
             scenario,
-            source_data.zone,
-            source_data.region,
+            calc_type,
+            source_data,
+            co2_molar_mass,
+            water_molar_mass,
+            gas_molar_mass,
+            oil_molar_mass,
         )
-        if calc_type == CalculationType.MASS:
-            _convert_from_kg_to_tons(co2_mass_output)
-            co2_amount = co2_mass_output
-        else:
-            if source == "PFlotran":
-                y_prop = (
-                    source_data.AMFG
-                    if scenario == Scenario.AQUIFER
-                    else source_data.AMFS
-                )
-                y = y_prop[source_data.DATES[0]]
-                min_y = np.min(y)
-                where_min_amf_co2 = np.where(np.isclose(y, min_y))[0]
-                # Where amfg is 0, or the closest approximation available
-                dwat = source_data.DWAT[source_data.DATES[0]]
-                water_density = np.array(
-                    [
-                        (
-                            x[1]
-                            if np.isclose((y[x[0]]), 0)
-                            else np.mean(dwat[where_min_amf_co2])
-                        )
-                        for x in enumerate(dwat)
-                    ]
-                )
-                y = source_data.YMFG[source_data.DATES[0]]
-                max_y = np.max(y)
-                where_max_ymfg = np.where(np.isclose(y, max_y))[0]
-                dgas = source_data.DGAS[source_data.DATES[0]]
-                gas_density = np.array(
-                    [
-                        (
-                            x[1]
-                            if np.isclose((y[x[0]]), 1)
-                            else np.mean(dgas[where_max_ymfg])
-                        )
-                        for x in enumerate(dgas)
-                    ]
-                )
-                oil_density = np.ones_like(water_density)
-                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
-                    y = source_data.YMFO[source_data.DATES[0]]
-                    max_y = np.max(y)
-                    where_max_xmfo = np.where(np.isclose(y, max_y))[0]
-                    doil = source_data.DOIL[source_data.DATES[0]]
-                    oil_density = np.array(
-                        [
-                            (
-                                x[1]
-                                if np.isclose((y[x[0]]), 1)
-                                else np.mean(doil[where_max_xmfo])
-                            )
-                            for x in enumerate(doil)
-                        ]
-                    )
-                molar_vols_co2 = _pflotran_co2_molar_volume(
-                    source_data,
-                    scenario,
-                    water_density,
-                    gas_density,
-                    oil_density,
-                    co2_molar_mass,
-                    water_molar_mass,
-                    gas_molar_mass,
-                    oil_molar_mass,
-                )
-            else:
-                y = source_data.XMF2[source_data.DATES[0]]
-                min_y = np.min(y)
-                where_min_xmf2 = np.where(np.isclose(y, min_y))[0]
-                # Where xmf2 is 0, or the closest approximation available
-                bwat = source_data.BWAT[source_data.DATES[0]]
-                water_density = np.array(
-                    [
-                        (
-                            water_molar_mass * x[1]
-                            if np.isclose((y[x[0]]), 0)
-                            else water_molar_mass * np.mean(bwat[where_min_xmf2])
-                        )
-                        for x in enumerate(bwat)
-                    ]
-                )
-                molar_vols_co2 = _eclipse_co2_molar_volume(
-                    source_data,
-                    water_density,
-                    water_molar_mass,
-                )
-            co2_mass = {
-                co2_mass_output.data_list[t].date: (
-                    [
-                        co2_mass_output.data_list[t].dis_water_phase,
-                        co2_mass_output.data_list[t].gas_phase,
-                        co2_mass_output.data_list[t].dis_oil_phase,
-                    ]
-                    if (source_data.SGSTRAND is None and source_data.SGTRH is None)
-                    else [
-                        co2_mass_output.data_list[t].dis_water_phase,
-                        co2_mass_output.data_list[t].gas_phase,
-                        co2_mass_output.data_list[t].dis_oil_phase,
-                        co2_mass_output.data_list[t].trapped_gas_phase,
-                        co2_mass_output.data_list[t].free_gas_phase,
-                    ]
-                )
-                for t in range(0, len(co2_mass_output.data_list))
-            }
-            vols_co2 = {
-                t: [
-                    a * b / (co2_molar_mass / 1000)
-                    for a, b in zip(molar_vols_co2[t], co2_mass[t])
-                ]
-                for t in co2_mass
-            }
-            co2_amount = Co2Data(
-                source_data.x_coord,
-                source_data.y_coord,
-                [
-                    Co2DataAtTimeStep(
-                        t,
-                        np.array(vols_co2[t][0]),
-                        np.array(vols_co2[t][1]),
-                        np.array(vols_co2[t][2]),
-                        np.zeros_like(np.array(vols_co2[t][0])),
-                        (
-                            np.zeros_like(np.array(vols_co2[t][0]))
-                            if source_data.SGSTRAND is None
-                            and source_data.SGTRH is None
-                            else np.array(vols_co2[t][3])
-                        ),
-                        (
-                            np.zeros_like(np.array(vols_co2[t][0]))
-                            if source_data.SGSTRAND is None
-                            and source_data.SGTRH is None
-                            else np.array(vols_co2[t][4])
-                        ),
-                    )
-                    for t in vols_co2
-                ],
-                "m3",
-                scenario,
-                source_data.zone,
-                source_data.region,
-            )
     elif calc_type == CalculationType.CELL_VOLUME:
-        props_idx = np.where(
-            [getattr(source_data, x) is not None for x in props_check]
-        )[0]
-        props_names = [props_check[i] for i in props_idx]
-        plume_props_names = [x for x in props_names if x in ["SGAS", "AMFG", "XMF2"]]
-        if scenario != Scenario.AQUIFER:
-            plume_props_names[plume_props_names.index("AMFG")] = "AMFS"
-        properties = {x: getattr(source_data, x) for x in plume_props_names}
-        inactive_gas_cells = {
-            x: identify_gas_less_cells(
-                {x: properties[plume_props_names[0]][x]},
-                {x: properties[plume_props_names[1]][x]},
-            )
-            for x in source_data.DATES
-        }
-        vols_ext = {
-            t: np.array([0] * len(source_data.VOL[t])) for t in source_data.DATES
-        }
-        for date in source_data.DATES:
-            vols_ext[date][~inactive_gas_cells[date]] = np.array(source_data.VOL[date])[
-                ~inactive_gas_cells[date]
-            ]
-        co2_amount = Co2Data(
-            source_data.x_coord,
-            source_data.y_coord,
-            [
-                Co2DataAtTimeStep(
-                    t,
-                    np.zeros_like(np.array(vols_ext[t])),
-                    np.zeros_like(np.array(vols_ext[t])),
-                    np.zeros_like(np.array(vols_ext[t])),
-                    np.array(vols_ext[t]),
-                    np.zeros_like(np.array(vols_ext[t])),
-                    np.zeros_like(np.array(vols_ext[t])),
-                )
-                for t in vols_ext
-            ],
-            "m3",
-            scenario,
-            source_data.zone,
-            source_data.region,
-        )
+        co2_amount = _calc_co2_amount_cell_volume(scenario, source_data, props_check)
     else:
         error_text = "Illegal calculation type: " + calc_type.name
         error_text += "\nValid options:"
@@ -1430,6 +1216,242 @@ def _calculate_co2_data_from_source_data(
         raise ValueError(error_text)
 
     logging.info(f"Done calculating CO2 {calc_type.name.lower()} from source data\n")
+    return co2_amount
+
+
+def _calc_co2_amount(
+    source: str,
+    scenario: Scenario,
+    calc_type: CalculationType,
+    source_data,
+    co2_molar_mass: float,
+    water_molar_mass: float,
+    gas_molar_mass: Optional[float],
+    oil_molar_mass: Optional[float],
+) -> Co2Data:
+    if source == "PFlotran":
+        co2_mass_cell = _pflotran_co2mass(
+            source_data,
+            scenario,
+            co2_molar_mass,
+            water_molar_mass,
+            gas_molar_mass,
+            oil_molar_mass,
+        )
+    else:
+        co2_mass_cell = _eclipse_co2mass(source_data, scenario, co2_molar_mass)
+    co2_mass_output = Co2Data(
+        source_data.x_coord,
+        source_data.y_coord,
+        [
+            Co2DataAtTimeStep(
+                key,
+                value[0],
+                value[1],
+                value[2],
+                np.zeros_like(value[0]),
+                (
+                    np.zeros_like(value[0])
+                    if source_data.SGSTRAND is None and source_data.SGTRH is None
+                    else value[3]
+                ),
+                (
+                    np.zeros_like(value[0])
+                    if source_data.SGSTRAND is None and source_data.SGTRH is None
+                    else value[4]
+                ),
+            )
+            for key, value in co2_mass_cell.items()
+        ],
+        "kg",
+        scenario,
+        source_data.zone,
+        source_data.region,
+    )
+    if calc_type == CalculationType.MASS:
+        _convert_from_kg_to_tons(co2_mass_output)
+        co2_amount = co2_mass_output
+    else:
+        if source == "PFlotran":
+            y_prop = (
+                source_data.AMFG if scenario == Scenario.AQUIFER else source_data.AMFS
+            )
+            y = y_prop[source_data.DATES[0]]
+            min_y = np.min(y)
+            where_min_amf_co2 = np.where(np.isclose(y, min_y))[0]
+            # Where amfg is 0, or the closest approximation available
+            dwat = source_data.DWAT[source_data.DATES[0]]
+            water_density = np.array(
+                [
+                    (
+                        x[1]
+                        if np.isclose((y[x[0]]), 0)
+                        else np.mean(dwat[where_min_amf_co2])
+                    )
+                    for x in enumerate(dwat)
+                ]
+            )
+            y = source_data.YMFG[source_data.DATES[0]]
+            max_y = np.max(y)
+            where_max_ymfg = np.where(np.isclose(y, max_y))[0]
+            dgas = source_data.DGAS[source_data.DATES[0]]
+            gas_density = np.array(
+                [
+                    (
+                        x[1]
+                        if np.isclose((y[x[0]]), 1)
+                        else np.mean(dgas[where_max_ymfg])
+                    )
+                    for x in enumerate(dgas)
+                ]
+            )
+            oil_density = np.ones_like(water_density)
+            if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
+                y = source_data.YMFO[source_data.DATES[0]]
+                max_y = np.max(y)
+                where_max_xmfo = np.where(np.isclose(y, max_y))[0]
+                doil = source_data.DOIL[source_data.DATES[0]]
+                oil_density = np.array(
+                    [
+                        (
+                            x[1]
+                            if np.isclose((y[x[0]]), 1)
+                            else np.mean(doil[where_max_xmfo])
+                        )
+                        for x in enumerate(doil)
+                    ]
+                )
+            molar_vols_co2 = _pflotran_co2_molar_volume(
+                source_data,
+                scenario,
+                water_density,
+                gas_density,
+                oil_density,
+                co2_molar_mass,
+                water_molar_mass,
+                gas_molar_mass,
+                oil_molar_mass,
+            )
+        else:
+            y = source_data.XMF2[source_data.DATES[0]]
+            min_y = np.min(y)
+            where_min_xmf2 = np.where(np.isclose(y, min_y))[0]
+            # Where xmf2 is 0, or the closest approximation available
+            bwat = source_data.BWAT[source_data.DATES[0]]
+            water_density = np.array(
+                [
+                    (
+                        water_molar_mass * x[1]
+                        if np.isclose((y[x[0]]), 0)
+                        else water_molar_mass * np.mean(bwat[where_min_xmf2])
+                    )
+                    for x in enumerate(bwat)
+                ]
+            )
+            molar_vols_co2 = _eclipse_co2_molar_volume(
+                source_data,
+                water_density,
+                water_molar_mass,
+            )
+        co2_mass = {
+            co2_mass_output.data_list[t].date: (
+                [
+                    co2_mass_output.data_list[t].dis_water_phase,
+                    co2_mass_output.data_list[t].gas_phase,
+                    co2_mass_output.data_list[t].dis_oil_phase,
+                ]
+                if (source_data.SGSTRAND is None and source_data.SGTRH is None)
+                else [
+                    co2_mass_output.data_list[t].dis_water_phase,
+                    co2_mass_output.data_list[t].gas_phase,
+                    co2_mass_output.data_list[t].dis_oil_phase,
+                    co2_mass_output.data_list[t].trapped_gas_phase,
+                    co2_mass_output.data_list[t].free_gas_phase,
+                ]
+            )
+            for t in range(0, len(co2_mass_output.data_list))
+        }
+        vols_co2 = {
+            t: [
+                a * b / (co2_molar_mass / 1000)
+                for a, b in zip(molar_vols_co2[t], co2_mass[t])
+            ]
+            for t in co2_mass
+        }
+        co2_amount = Co2Data(
+            source_data.x_coord,
+            source_data.y_coord,
+            [
+                Co2DataAtTimeStep(
+                    t,
+                    np.array(vols_co2[t][0]),
+                    np.array(vols_co2[t][1]),
+                    np.array(vols_co2[t][2]),
+                    np.zeros_like(np.array(vols_co2[t][0])),
+                    (
+                        np.zeros_like(np.array(vols_co2[t][0]))
+                        if source_data.SGSTRAND is None and source_data.SGTRH is None
+                        else np.array(vols_co2[t][3])
+                    ),
+                    (
+                        np.zeros_like(np.array(vols_co2[t][0]))
+                        if source_data.SGSTRAND is None and source_data.SGTRH is None
+                        else np.array(vols_co2[t][4])
+                    ),
+                )
+                for t in vols_co2
+            ],
+            "m3",
+            scenario,
+            source_data.zone,
+            source_data.region,
+        )
+    return co2_amount
+
+
+def _calc_co2_amount_cell_volume(
+    scenario: Scenario,
+    source_data,
+    props_check: List[str],
+) -> Co2Data:
+    props_idx = np.where([getattr(source_data, x) is not None for x in props_check])[0]
+    props_names = [props_check[i] for i in props_idx]
+    plume_props_names = [x for x in props_names if x in ["SGAS", "AMFG", "XMF2"]]
+    if scenario != Scenario.AQUIFER:
+        plume_props_names[plume_props_names.index("AMFG")] = "AMFS"
+    properties = {x: getattr(source_data, x) for x in plume_props_names}
+    inactive_gas_cells = {
+        x: identify_gas_less_cells(
+            {x: properties[plume_props_names[0]][x]},
+            {x: properties[plume_props_names[1]][x]},
+        )
+        for x in source_data.DATES
+    }
+    vols_ext = {t: np.array([0] * len(source_data.VOL[t])) for t in source_data.DATES}
+    for date in source_data.DATES:
+        vols_ext[date][~inactive_gas_cells[date]] = np.array(source_data.VOL[date])[
+            ~inactive_gas_cells[date]
+        ]
+    co2_amount = Co2Data(
+        source_data.x_coord,
+        source_data.y_coord,
+        [
+            Co2DataAtTimeStep(
+                t,
+                np.zeros_like(np.array(vols_ext[t])),
+                np.zeros_like(np.array(vols_ext[t])),
+                np.zeros_like(np.array(vols_ext[t])),
+                np.array(vols_ext[t]),
+                np.zeros_like(np.array(vols_ext[t])),
+                np.zeros_like(np.array(vols_ext[t])),
+            )
+            for t in vols_ext
+        ],
+        "m3",
+        scenario,
+        source_data.zone,
+        source_data.region,
+    )
     return co2_amount
 
 
