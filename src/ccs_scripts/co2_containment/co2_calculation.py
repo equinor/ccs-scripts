@@ -1254,7 +1254,9 @@ def _calc_co2_amount(
             oil_molar_mass,
         )
     else:
-        co2_mass_cell = _eclipse_co2mass(source_data, scenario, pore_volume_prop, co2_molar_mass)
+        co2_mass_cell = _eclipse_co2mass(
+            source_data, scenario, pore_volume_prop, co2_molar_mass
+        )
     co2_mass_output = Co2Data(
         source_data.x_coord,
         source_data.y_coord,
