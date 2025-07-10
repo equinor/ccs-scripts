@@ -571,6 +571,7 @@ def _pflotran_co2mass(
       source_data (SourceData): Data with the information of the necessary properties
                                 for the calculation of CO2 mass
       scenario (Scenario): Which scenario co2 mass is computed for
+      pore_volume_prop (str): Which pore volume property to use (RPORV vs PORV)
       co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
       water_molar_mass (float): Water molar mass - Default is 18 g/mol
       gas_molar_mass (float): Gas molar mass - Default is 0 g/mol,
@@ -705,6 +706,7 @@ def _eclipse_co2mass(
       source_data (SourceData): Data with the information of the necessary properties
                                 for the calculation of CO2 mass
       scenario (Scenario): Which scenario co2 mass is computed for
+      pore_volume_prop (str): Which pore volume property to use (RPORV vs PORV)
       co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
 
     Returns:
