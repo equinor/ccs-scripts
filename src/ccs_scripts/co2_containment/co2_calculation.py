@@ -1128,9 +1128,6 @@ def _calculate_co2_data_from_source_data(
     Returns:
       Co2Data
     """
-    # pylint: disable-msg=too-many-locals
-    # pylint: disable-msg=too-many-branches
-    # pylint: disable-msg=too-many-statements
     logging.info(f"Start calculating CO2 {calc_type.name.lower()} from source data")
     props_check = [
         x.name
