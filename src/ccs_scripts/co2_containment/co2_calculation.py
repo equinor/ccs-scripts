@@ -1134,8 +1134,8 @@ def _calculate_co2_data_from_source_data(
         for x in fields(source_data)
         if x.name not in ["x_coord", "y_coord", "DATES", "zone", "region", "VOL"]
     ]
-    active_props = [p for p in props_check if getattr(source_data, p) is not None]
 
+    active_props = [p for p in props_check if getattr(source_data, p) is not None]
     if not is_subset(["SGAS"], active_props):
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."
         raise ValueError(error_text)
@@ -1177,17 +1177,6 @@ def _calculate_co2_data_from_source_data(
             active_props, props_needed_pflotran, props_needed_eclipse
         )
 
-    if scenario != Scenario.AQUIFER and gas_molar_mass is None:
-        error_text = f"\nScenario: {scenario.name}."
-        error_text += (
-            "\nTo compute mass or actual volume in this scenario "
-            "hydrocarbon gas molar mass must be provided"
-        )
-        raise ValueError(error_text)
-    elif scenario == Scenario.AQUIFER:
-        gas_molar_mass = None
-        oil_molar_mass = None
-
     logging.info("Found valid properties")
     logging.info(f"Data source : {source}")
     logging.info(f"Scenario    : {scenario.name}")
@@ -1195,6 +1184,17 @@ def _calculate_co2_data_from_source_data(
     logging.info(f"    {', '.join(active_props)}")
 
     if calc_type in (CalculationType.ACTUAL_VOLUME, CalculationType.MASS):
+        if scenario != Scenario.AQUIFER and gas_molar_mass is None:
+            error_text = f"\nScenario: {scenario.name}."
+            error_text += (
+                "\nTo compute mass or actual volume in this scenario "
+                "hydrocarbon gas molar mass must be provided"
+            )
+            raise ValueError(error_text)
+        elif scenario == Scenario.AQUIFER:
+            gas_molar_mass = None
+            oil_molar_mass = None
+
         co2_amount = _calc_co2_amount(
             source,
             scenario,
