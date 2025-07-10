@@ -1139,24 +1139,17 @@ def _calculate_co2_data_from_source_data(
     )[0]
     active_props = [props_check[i] for i in active_props_idx]
     scenario = Scenario.AQUIFER
-    porv_prop = None
 
     if not is_subset(["SGAS"], active_props):
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."
         raise ValueError(error_text)
 
     if is_subset(["PORV", "RPORV"], active_props):
-        porv_prop = "RPORV"
-        active_props.remove("PORV")
         active_props.remove("RPORV")
         logging.info("Using attribute RPORV instead of PORV")
     elif is_subset(["PORV"], active_props):
-        active_props.remove("PORV")
-        porv_prop = "PORV"
         logging.info("Using attribute PORV")
     elif is_subset(["RPORV"], active_props):
-        active_props.remove("RPORV")
-        porv_prop = "RPORV"
         logging.info("Using attribute RPORV")
     else:
         error_text = "No pore volume provided"
@@ -1187,7 +1180,6 @@ def _calculate_co2_data_from_source_data(
             active_props, props_needed_pflotran, props_needed_eclipse
         )
 
-    active_props.extend([porv_prop])
     if scenario != Scenario.AQUIFER and gas_molar_mass is None:
         error_text = f"\nScenario: {scenario.name}."
         error_text += (
