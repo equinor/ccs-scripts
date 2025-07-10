@@ -32,7 +32,7 @@ MIGRATION_TIME_PROPERTIES = [
     "XMF1",
     "XMF2",
     "XMFS",
-    "ZMFS",  ##NBNB: Not clear what it is
+    "ZMFS",  # NBNB: Not clear what it is
     "YMF1",
     "YMF2",
     "SGAS",
