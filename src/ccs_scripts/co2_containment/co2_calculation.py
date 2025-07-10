@@ -1165,6 +1165,7 @@ def _calculate_co2_data_from_source_data(
             source,
             scenario,
             calc_type,
+            residual_trapping,
             source_data,
             pore_volume_prop,
             co2_molar_mass,
@@ -1247,6 +1248,7 @@ def _calc_co2_amount(
     source: str,
     scenario: Scenario,
     calc_type: CalculationType,
+    residual_trapping: bool,
     source_data,
     pore_volume_prop: str,
     co2_molar_mass: float,
@@ -1278,16 +1280,8 @@ def _calc_co2_amount(
                 value[1],
                 value[2],
                 np.zeros_like(value[0]),
-                (
-                    np.zeros_like(value[0])
-                    if source_data.SGSTRAND is None and source_data.SGTRH is None
-                    else value[3]
-                ),
-                (
-                    np.zeros_like(value[0])
-                    if source_data.SGSTRAND is None and source_data.SGTRH is None
-                    else value[4]
-                ),
+                (value[3] if residual_trapping else np.zeros_like(value[0])),
+                (value[4] if residual_trapping else np.zeros_like(value[0])),
             )
             for key, value in co2_mass_cell.items()
         ],
@@ -1316,7 +1310,7 @@ def _calc_co2_amount(
                     co2_mass_output.data_list[t].gas_phase,
                     co2_mass_output.data_list[t].dis_oil_phase,
                 ]
-                if (source_data.SGSTRAND is None and source_data.SGTRH is None)
+                if not residual_trapping
                 else [
                     co2_mass_output.data_list[t].dis_water_phase,
                     co2_mass_output.data_list[t].gas_phase,
@@ -1345,14 +1339,14 @@ def _calc_co2_amount(
                     np.array(vols_co2[t][2]),
                     np.zeros_like(np.array(vols_co2[t][0])),
                     (
-                        np.zeros_like(np.array(vols_co2[t][0]))
-                        if source_data.SGSTRAND is None and source_data.SGTRH is None
-                        else np.array(vols_co2[t][3])
+                        np.array(vols_co2[t][3])
+                        if residual_trapping
+                        else np.zeros_like(np.array(vols_co2[t][0]))
                     ),
                     (
-                        np.zeros_like(np.array(vols_co2[t][0]))
-                        if source_data.SGSTRAND is None and source_data.SGTRH is None
-                        else np.array(vols_co2[t][4])
+                        np.array(vols_co2[t][4])
+                        if residual_trapping
+                        else np.zeros_like(np.array(vols_co2[t][0]))
                     ),
                 )
                 for t in vols_co2
