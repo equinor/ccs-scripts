@@ -1303,87 +1303,15 @@ def _calc_co2_amount(
         _convert_from_kg_to_tons(co2_mass_output)
         co2_amount = co2_mass_output
     else:
-        if source == "PFlotran":
-            y_prop = (
-                source_data.AMFG if scenario == Scenario.AQUIFER else source_data.AMFS
-            )
-            y = y_prop[source_data.DATES[0]]
-            min_y = np.min(y)
-            where_min_amf_co2 = np.where(np.isclose(y, min_y))[0]
-            # Where amfg is 0, or the closest approximation available
-            dwat = source_data.DWAT[source_data.DATES[0]]
-            water_density = np.array(
-                [
-                    (
-                        x[1]
-                        if np.isclose((y[x[0]]), 0)
-                        else np.mean(dwat[where_min_amf_co2])
-                    )
-                    for x in enumerate(dwat)
-                ]
-            )
-            y = source_data.YMFG[source_data.DATES[0]]
-            max_y = np.max(y)
-            where_max_ymfg = np.where(np.isclose(y, max_y))[0]
-            dgas = source_data.DGAS[source_data.DATES[0]]
-            gas_density = np.array(
-                [
-                    (
-                        x[1]
-                        if np.isclose((y[x[0]]), 1)
-                        else np.mean(dgas[where_max_ymfg])
-                    )
-                    for x in enumerate(dgas)
-                ]
-            )
-            oil_density = np.ones_like(water_density)
-            if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
-                y = source_data.YMFO[source_data.DATES[0]]
-                max_y = np.max(y)
-                where_max_xmfo = np.where(np.isclose(y, max_y))[0]
-                doil = source_data.DOIL[source_data.DATES[0]]
-                oil_density = np.array(
-                    [
-                        (
-                            x[1]
-                            if np.isclose((y[x[0]]), 1)
-                            else np.mean(doil[where_max_xmfo])
-                        )
-                        for x in enumerate(doil)
-                    ]
-                )
-            molar_vols_co2 = _pflotran_co2_molar_volume(
-                source_data,
-                scenario,
-                water_density,
-                gas_density,
-                oil_density,
-                co2_molar_mass,
-                water_molar_mass,
-                gas_molar_mass,
-                oil_molar_mass,
-            )
-        else:
-            y = source_data.XMF2[source_data.DATES[0]]
-            min_y = np.min(y)
-            where_min_xmf2 = np.where(np.isclose(y, min_y))[0]
-            # Where xmf2 is 0, or the closest approximation available
-            bwat = source_data.BWAT[source_data.DATES[0]]
-            water_density = np.array(
-                [
-                    (
-                        water_molar_mass * x[1]
-                        if np.isclose((y[x[0]]), 0)
-                        else water_molar_mass * np.mean(bwat[where_min_xmf2])
-                    )
-                    for x in enumerate(bwat)
-                ]
-            )
-            molar_vols_co2 = _eclipse_co2_molar_volume(
-                source_data,
-                water_density,
-                water_molar_mass,
-            )
+        molar_vols_co2 = _calculate_molar_vols_co2(
+            source,
+            scenario,
+            source_data,
+            co2_molar_mass,
+            water_molar_mass,
+            gas_molar_mass,
+            oil_molar_mass,
+        )
         co2_mass = {
             co2_mass_output.data_list[t].date: (
                 [
@@ -1438,6 +1366,89 @@ def _calc_co2_amount(
             source_data.region,
         )
     return co2_amount
+
+
+def _calculate_molar_vols_co2(
+    source: str,
+    scenario: Scenario,
+    source_data,
+    co2_molar_mass: float,
+    water_molar_mass: float,
+    gas_molar_mass: Optional[float],
+    oil_molar_mass: Optional[float],
+):
+    if source == "PFlotran":
+        y_prop = source_data.AMFG if scenario == Scenario.AQUIFER else source_data.AMFS
+        y = y_prop[source_data.DATES[0]]
+        min_y = np.min(y)
+        where_min_amf_co2 = np.where(np.isclose(y, min_y))[0]
+        # Where amfg is 0, or the closest approximation available
+        dwat = source_data.DWAT[source_data.DATES[0]]
+        water_density = np.array(
+            [
+                (x[1] if np.isclose((y[x[0]]), 0) else np.mean(dwat[where_min_amf_co2]))
+                for x in enumerate(dwat)
+            ]
+        )
+        y = source_data.YMFG[source_data.DATES[0]]
+        max_y = np.max(y)
+        where_max_ymfg = np.where(np.isclose(y, max_y))[0]
+        dgas = source_data.DGAS[source_data.DATES[0]]
+        gas_density = np.array(
+            [
+                (x[1] if np.isclose((y[x[0]]), 1) else np.mean(dgas[where_max_ymfg]))
+                for x in enumerate(dgas)
+            ]
+        )
+        oil_density = np.ones_like(water_density)
+        if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
+            y = source_data.YMFO[source_data.DATES[0]]
+            max_y = np.max(y)
+            where_max_xmfo = np.where(np.isclose(y, max_y))[0]
+            doil = source_data.DOIL[source_data.DATES[0]]
+            oil_density = np.array(
+                [
+                    (
+                        x[1]
+                        if np.isclose((y[x[0]]), 1)
+                        else np.mean(doil[where_max_xmfo])
+                    )
+                    for x in enumerate(doil)
+                ]
+            )
+        molar_vols_co2 = _pflotran_co2_molar_volume(
+            source_data,
+            scenario,
+            water_density,
+            gas_density,
+            oil_density,
+            co2_molar_mass,
+            water_molar_mass,
+            gas_molar_mass,
+            oil_molar_mass,
+        )
+    else:
+        y = source_data.XMF2[source_data.DATES[0]]
+        min_y = np.min(y)
+        where_min_xmf2 = np.where(np.isclose(y, min_y))[0]
+        # Where xmf2 is 0, or the closest approximation available
+        bwat = source_data.BWAT[source_data.DATES[0]]
+        water_density = np.array(
+            [
+                (
+                    water_molar_mass * x[1]
+                    if np.isclose((y[x[0]]), 0)
+                    else water_molar_mass * np.mean(bwat[where_min_xmf2])
+                )
+                for x in enumerate(bwat)
+            ]
+        )
+        molar_vols_co2 = _eclipse_co2_molar_volume(
+            source_data,
+            water_density,
+            water_molar_mass,
+        )
+    return molar_vols_co2
 
 
 def _calc_co2_amount_cell_volume(
