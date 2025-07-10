@@ -1143,22 +1143,7 @@ def _calculate_co2_data_from_source_data(
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."
         raise ValueError(error_text)
 
-    pore_volume_prop = None
-    if is_subset(["PORV", "RPORV"], active_props):
-        pore_volume_prop = "RPORV"
-        active_props.remove("PORV")
-        logging.info("Using attribute RPORV instead of PORV")
-    elif is_subset(["PORV"], active_props):
-        pore_volume_prop = "PORV"
-        logging.info("Using attribute PORV")
-    elif is_subset(["RPORV"], active_props):
-        pore_volume_prop = "RPORV"
-        logging.info("Using attribute RPORV")
-    else:
-        error_text = "No pore volume provided"
-        error_text += "\nNeed either PORV or RPORV"
-        raise ValueError(error_text)
-
+    pore_volume_prop = _find_pore_volume_prop(active_props)
     source, scenario = _find_source_and_scenario(residual_trapping, active_props)
 
     logging.info("Found valid properties")
@@ -1202,6 +1187,26 @@ def _calculate_co2_data_from_source_data(
 
     logging.info(f"Done calculating CO2 {calc_type.name.lower()} from source data\n")
     return co2_amount
+
+
+def _find_pore_volume_prop(active_props: List[str]) -> str:
+    pore_volume_prop = None
+    if is_subset(["PORV", "RPORV"], active_props):
+        pore_volume_prop = "RPORV"
+        active_props.remove("PORV")
+        logging.info("Using attribute RPORV instead of PORV")
+    elif is_subset(["PORV"], active_props):
+        pore_volume_prop = "PORV"
+        logging.info("Using attribute PORV")
+    elif is_subset(["RPORV"], active_props):
+        pore_volume_prop = "RPORV"
+        logging.info("Using attribute RPORV")
+    else:
+        error_text = "No pore volume provided"
+        error_text += "\nNeed either PORV or RPORV"
+        raise ValueError(error_text)
+
+    return pore_volume_prop
 
 
 def _find_source_and_scenario(
