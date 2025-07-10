@@ -1199,9 +1199,10 @@ def _calculate_co2_data_from_source_data(
         gas_molar_mass = None
         oil_molar_mass = None
     logging.info("Found valid properties")
-    logging.info(f"Data source: {source}")
-    logging.info(f"Scenario: {scenario.name}")
-    logging.info(f"Properties used in the calculations: {', '.join(active_props)}")
+    logging.info(f"Data source : {source}")
+    logging.info(f"Scenario    : {scenario.name}")
+    logging.info("Properties used in the calculations:")
+    logging.info(f"    {', '.join(active_props)}")
 
     if calc_type in (CalculationType.ACTUAL_VOLUME, CalculationType.MASS):
         if source == "PFlotran":
@@ -1243,7 +1244,10 @@ def _calculate_co2_data_from_source_data(
             source_data.zone,
             source_data.region,
         )
-        if calc_type != CalculationType.MASS:
+        if calc_type == CalculationType.MASS:
+            _convert_from_kg_to_tons(co2_mass_output)
+            co2_amount = co2_mass_output
+        else:
             if source == "PFlotran":
                 y_prop = (
                     source_data.AMFG
@@ -1382,9 +1386,6 @@ def _calculate_co2_data_from_source_data(
                 source_data.zone,
                 source_data.region,
             )
-        else:
-            _convert_from_kg_to_tons(co2_mass_output)
-            co2_amount = co2_mass_output
     elif calc_type == CalculationType.CELL_VOLUME:
         props_idx = np.where(
             [getattr(source_data, x) is not None for x in props_check]
