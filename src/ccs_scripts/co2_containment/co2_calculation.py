@@ -558,6 +558,7 @@ def _set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
 def _pflotran_co2mass(
     source_data,
     scenario: Scenario,
+    pore_volume_prop: str,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
     gas_molar_mass: Optional[float] = None,
@@ -602,7 +603,10 @@ def _pflotran_co2mass(
     if xmfw is None and scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
         xmfw = {key: 1 - xmfg[key] - xmfs[key] - xmfo[key] for key in xmfg}
     sgstrand = source_data.SGSTRAND
-    eff_vols = source_data.PORV
+    if pore_volume_prop == "RPORV":
+        eff_vols = source_data.RPORV
+    else:  # PORV
+        eff_vols = source_data.PORV
     mole_fraction_dic = {
         "Aqueous": {
             "CO2": amfg if scenario == Scenario.AQUIFER else amfs,
@@ -739,6 +743,7 @@ def _pflotran_co2mass(
 def _eclipse_co2mass(
     source_data,
     scenario: Scenario,
+    pore_volume_prop: str,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
 ) -> Dict[str, List[np.ndarray]]:
     """
@@ -762,7 +767,10 @@ def _eclipse_co2mass(
     sgas = source_data.SGAS
     swat = source_data.SWAT
     sgtrh = source_data.SGTRH
-    eff_vols = source_data.RPORV
+    if pore_volume_prop == "RPORV":
+        eff_vols = source_data.RPORV
+    else:  # PORV
+        eff_vols = source_data.PORV
     conv_fact = co2_molar_mass
     co2_mass = {}
     for date in dates:
@@ -1140,12 +1148,16 @@ def _calculate_co2_data_from_source_data(
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."
         raise ValueError(error_text)
 
+    pore_volume_prop = None
     if is_subset(["PORV", "RPORV"], active_props):
-        active_props.remove("RPORV")
+        pore_volume_prop = "RPORV"
+        active_props.remove("PORV")
         logging.info("Using attribute RPORV instead of PORV")
     elif is_subset(["PORV"], active_props):
+        pore_volume_prop = "PORV"
         logging.info("Using attribute PORV")
     elif is_subset(["RPORV"], active_props):
+        pore_volume_prop = "RPORV"
         logging.info("Using attribute RPORV")
     else:
         error_text = "No pore volume provided"
@@ -1200,6 +1212,7 @@ def _calculate_co2_data_from_source_data(
             scenario,
             calc_type,
             source_data,
+            pore_volume_prop,
             co2_molar_mass,
             water_molar_mass,
             gas_molar_mass,
@@ -1224,6 +1237,7 @@ def _calc_co2_amount(
     scenario: Scenario,
     calc_type: CalculationType,
     source_data,
+    pore_volume_prop: str,
     co2_molar_mass: float,
     water_molar_mass: float,
     gas_molar_mass: Optional[float],
@@ -1233,13 +1247,14 @@ def _calc_co2_amount(
         co2_mass_cell = _pflotran_co2mass(
             source_data,
             scenario,
+            pore_volume_prop,
             co2_molar_mass,
             water_molar_mass,
             gas_molar_mass,
             oil_molar_mass,
         )
     else:
-        co2_mass_cell = _eclipse_co2mass(source_data, scenario, co2_molar_mass)
+        co2_mass_cell = _eclipse_co2mass(source_data, scenario, pore_volume_prop, co2_molar_mass)
     co2_mass_output = Co2Data(
         source_data.x_coord,
         source_data.y_coord,
