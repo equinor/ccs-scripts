@@ -197,13 +197,13 @@ def main(arguments=None):
         )
         if len(removed_props) > 0:
             logging.warning(
-                "\nWARNING: Time migration maps are "
+                "\nWARNING: Migration time maps are "
                 "not supported for these properties: ",
                 ", ".join(str(x) for x in removed_props),
             )
     else:
         error_text = (
-            "Time migration maps are not supported for "
+            "Migration time maps are not supported for "
             "any of the properties provided: "
         )
         error_text += f"{', '.join(p_spec.name)}"
