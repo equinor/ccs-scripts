@@ -26,7 +26,7 @@ def test_aggregated_map1():
         ]
     )
     swat = xtgeo.surface_from_file(result / "all--max_swat--20030101.gri")
-    assert swat.values.min() == pytest.approx(0.14292679727077484, abs=1e-8)
+    assert swat.values.min() == pytest.approx(0.14292679727077484+100, abs=1e-8)
     shutil.rmtree(str(Path(result)))
 
 
@@ -48,7 +48,7 @@ def test_aggregated_map2():
         ]
     )
     swat = xtgeo.surface_from_file(result / "all--min_swat--20030101.gri")
-    assert swat.values.mean() == pytest.approx(0.7908786104444353, abs=1e-8)
+    assert swat.values.mean() == pytest.approx(0.7908786104444353+100, abs=1e-8)
     shutil.rmtree(str(Path(result)))
 
 
@@ -70,7 +70,7 @@ def test_aggregated_map3():
         ]
     )
     poro = xtgeo.surface_from_file(result / "all--mean_poro.gri")
-    assert poro.values.mean() == pytest.approx(0.1677586422488292, abs=1e-8)
+    assert poro.values.mean() == pytest.approx(0.1677586422488292+100, abs=1e-8)
     shutil.rmtree(str(Path(result)))
 
 
@@ -92,7 +92,7 @@ def test_aggregated_map4():
         ]
     )
     swat = xtgeo.surface_from_file(result / "zone1--max_swat--20030101.gri")
-    assert swat.values.max() == pytest.approx(1.0000962018966675, abs=1e-8)
+    assert swat.values.max() == pytest.approx(1.0000962018966675+100, abs=1e-8)
     assert (result / "all--max_swat--20030101.gri").is_file()
     assert (result / "zone2--max_swat--20030101.gri").is_file()
     assert (result / "zone3--max_swat--20030101.gri").is_file()
@@ -117,7 +117,7 @@ def test_aggregated_map5():
         ]
     )
     poro = xtgeo.surface_from_file(result / "all--mean_poro.gri")
-    assert poro.values.mean() == pytest.approx(0.1648792893163274, abs=1e-8)
+    assert poro.values.mean() == pytest.approx(0.1648792893163274+100, abs=1e-8)
     shutil.rmtree(str(Path(result)))
 
 
