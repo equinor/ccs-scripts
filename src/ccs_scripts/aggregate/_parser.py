@@ -174,7 +174,12 @@ def parse_yaml(
             if (
                 "lower_threshold" not in p
                 and "name" in p
-                and p["name"] in ["AMFG", "XMF2"]
+                and p["name"]
+                in [
+                    "AMFG",
+                    "XMF2",
+                    "AMFS",
+                ]  # NBNB-AS: AMFS for depleted fields, is this correct?
             ):
                 p["lower_threshold"] = str(DEFAULT_LOWER_THRESHOLD_DISSOLVED)
     return RootConfig(
