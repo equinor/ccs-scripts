@@ -117,7 +117,7 @@ def test_aggregated_map5():
         ]
     )
     poro = xtgeo.surface_from_file(result / "all--mean_poro.gri")
-    assert poro.values.mean() == pytest.approx(0.1648792893163274, abs=1e-5)
+    assert poro.values.mean() == pytest.approx(0.1648792893163274, abs=1e-8)
     shutil.rmtree(str(Path(result)))
 
 
