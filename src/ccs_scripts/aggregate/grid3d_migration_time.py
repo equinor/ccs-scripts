@@ -45,7 +45,7 @@ def _check_config(config_: RootConfig) -> None:
     config_.input.properties = _distribute_config_property(config_.input.properties)
     if config_.computesettings.indicator_map:
         logging.warning(
-            "\nWARNING: Indicator maps cannot be calculated for CO2 mass maps. "
+            "\nWARNING: Indicator maps cannot be calculated for migration time maps. "
             "Changing 'indicator_map' to 'no'."
         )
         config_.computesettings.indicator_map = False
@@ -182,9 +182,9 @@ def main(arguments=None):
     timer = Timer()
     timer.start("total")
 
-    config_ = _parser.process_arguments(arguments)
+    config_ = _parser.process_arguments(arguments, calc_type="migration_time")
     _check_config(config_)
-    log_input_configuration(config_, calc_type="time_migration")
+    log_input_configuration(config_, calc_type="migration_time")
     p_spec = []
     if any(x.name in MIGRATION_TIME_PROPERTIES for x in config_.input.properties):
         removed_props = [

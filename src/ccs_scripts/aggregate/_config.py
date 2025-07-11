@@ -9,6 +9,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
 DEFAULT_LOWER_THRESHOLD = 1e-10
+DEFAULT_LOWER_THRESHOLD_DISSOLVED = 0.0005
 
 
 class AggregationMethod(Enum):

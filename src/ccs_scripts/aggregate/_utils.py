@@ -37,7 +37,7 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     if calc_type == "aggregate":
         logging.info("CCS-scripts - Aggregate maps")
         logging.info("============================")
-    elif calc_type == "time_migration":
+    elif calc_type == "migration_time":
         logging.info("CCS-scripts - Time migration maps")
         logging.info("=================================")
     elif calc_type == "co2_mass":

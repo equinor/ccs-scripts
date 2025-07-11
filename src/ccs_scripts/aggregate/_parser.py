@@ -12,6 +12,7 @@ import yaml
 
 from ccs_scripts.aggregate._config import (
     DEFAULT_LOWER_THRESHOLD,
+    DEFAULT_LOWER_THRESHOLD_DISSOLVED,
     AggregationMethod,
     CO2MassSettings,
     ComputeSettings,
@@ -110,7 +111,7 @@ def _replace_default_dummies_from_ert(args):
         args.gas_molar_mass = None
 
 
-def process_arguments(arguments) -> RootConfig:
+def process_arguments(arguments, calc_type: Optional[str] = None) -> RootConfig:
     """
     Interprets and parses the provided arguments to an internal representation of input
     in the `RootConfig` class
@@ -137,6 +138,7 @@ def process_arguments(arguments) -> RootConfig:
         parsed_args.gridfolder,
         parsed_args.gas_molar_mass,
         replacements,
+        calc_type,
     )
     _check_directories(config.output.mapfolder)
     _check_thresholds(config)
@@ -150,6 +152,7 @@ def parse_yaml(
     grid_folder: Optional[str],
     gas_molar_mass: Optional[str],
     replacements: Dict[str, str],
+    calc_type: Optional[str] = None,
 ) -> RootConfig:
     """
     Parses a yaml file to a corresponding `RootConfig` object. See `load_yaml` for
@@ -166,6 +169,14 @@ def parse_yaml(
         if "co2_mass_settings" not in config
         else CO2MassSettings(**config.get("co2_mass_settings", {}))
     )
+    if calc_type == "migration_time":
+        for p in config["input"]["properties"]:
+            if (
+                "lower_threshold" not in p
+                and "name" in p
+                and p["name"] in ["AMFG", "XMF2"]
+            ):
+                p["lower_threshold"] = str(DEFAULT_LOWER_THRESHOLD_DISSOLVED)
     return RootConfig(
         input=Input(**config["input"]),
         output=Output(**config["output"]),
