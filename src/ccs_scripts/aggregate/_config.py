@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
+from ccs_scripts.utils.utils import format_error
+
 DEFAULT_LOWER_THRESHOLD = 1e-10
 DEFAULT_LOWER_THRESHOLD_DISSOLVED = 0.0005
 
@@ -83,9 +85,10 @@ class ComputeSettings:
             # pylint: disable=no-member
             self.aggregation = AggregationMethod(self.aggregation.lower())
         if self.all is False and self.zone is False:
-            raise ValueError(
+            error_text = (
                 "Both 'all' and 'zone' is turned off, meaning no maps will be computed"
             )
+            raise ValueError(format_error(error_text))
 
 
 @dataclass
@@ -126,9 +129,8 @@ class Output:
 
     def __post_init__(self):
         if self.mapfolder == "fmu-dataio":
-            raise NotImplementedError(
-                "Export via fmu-dataio is not implemented for this action"
-            )
+            error_text = "Export via fmu-dataio is not implemented for this action"
+            raise NotImplementedError(format_error(error_text))
 
 
 @dataclass

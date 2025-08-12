@@ -50,8 +50,8 @@ class PlumeGroups:
     def resolve_undetermined_cells(
         self,
         grid: Grid,
-        cell_map_gasless_to_active: dict[int, int],
-        cell_map_active_to_gasless: dict[int, int],
+        cell_map_gasless_to_active: Dict[int, int],
+        cell_map_active_to_gasless: Dict[int, int],
     ) -> List:
         ind_to_resolve = [
             ind

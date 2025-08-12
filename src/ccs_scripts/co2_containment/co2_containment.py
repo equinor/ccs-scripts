@@ -43,6 +43,7 @@ from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
 )
 from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
 from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import format_error, format_warning
 
 
 # pylint: disable=too-many-arguments
@@ -312,7 +313,7 @@ def str_to_bool(value):
         return True
     elif value == "-1":
         return "-1"
-    raise ValueError(f"{value} is not a valid boolean value")
+    raise ValueError(format_error(f"{value} is not a valid boolean value"))
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -486,7 +487,8 @@ def process_args() -> argparse.Namespace:
         try:
             args.gas_molar_mass = float(args.gas_molar_mass)
         except ValueError:
-            raise ValueError("Invalid input: gas_molar_mass must be numeric")
+            error_text = "Invalid input: gas_molar_mass must be numeric"
+            raise ValueError(format_error(error_text))
     # NBNB: Remove this when residual trapping is added for cell_volume
     if args.residual_trapping and args.calc_type_input == "cell_volume":
         args.residual_trapping = False
@@ -498,7 +500,7 @@ def process_args() -> argparse.Namespace:
         if len(p) < 3:
             error_text = "Invalid input, <case> must have at least two parent levels \
             if <root_dir> is not provided."
-            raise InputError(error_text)
+            raise InputError(format_error(error_text))
         args.root_dir = p[2]
     adict = vars(args)
     paths = [
@@ -579,16 +581,18 @@ def check_input(arguments: argparse.Namespace):
         error_text = "The following file(s) were not found:"
         for file in files_not_found:
             error_text += "\n  * " + file
-        raise FileNotFoundError(error_text)
+        raise FileNotFoundError(format_error(error_text))
 
     if arguments.regionfile is not None and arguments.region_property is not None:
-        raise InputError(
+        error_text = (
             "Both 'regionfile' and 'region_property' have been provided. "
             "Please provide only one of the two options."
         )
+        raise InputError(format_error(error_text))
 
     if not os.path.isdir(arguments.out_dir):
-        logging.warning("Output directory doesn't exist. Creating a new folder.")
+        warning_text = "Output directory doesn't exist. Creating a new folder."
+        logging.warning(format_warning(warning_text))
         os.mkdir(arguments.out_dir)
 
     if not os.path.isfile(arguments.init):
@@ -616,12 +620,12 @@ def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
             try:
                 zfile = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                logging.error(exc)
+                logging.error(format_error(exc))
                 sys.exit(1)
         if "zranges" not in zfile:
             error_text = "The yaml zone file must be in the format:\nzranges:\
             \n    - Zone1: [1, 5]\n    - Zone2: [6, 10]\n    - Zone3: [11, 14])"
-            raise InputError(error_text)
+            raise InputError(format_error(error_text))
         zranges = zfile["zranges"]
         if len(zranges) > 1:
             zranges_ = zranges[0]
@@ -1100,27 +1104,30 @@ def write_lines(
         over_header = "\n          ," + " " * details["width"]
     elif region != "all":
         if len(region) > max_name_length:
-            logging.warning(
+            warning_text = (
                 "Region name is long and will be cut off in the summary format!"
             )
+            logging.warning(format_warning(warning_text))
             region = region[:max_name_length]
         over_header = f"\n{region:>10}," + " " * (
             details["width"] + min((0, 10 - len(region)))
         )
     elif zone != "all":
         if len(zone) > max_name_length:
-            logging.warning(
+            warning_text = (
                 "Zone name is long and will be cut off in the summary format!"
             )
+            logging.warning(format_warning(warning_text))
             zone = zone[:max_name_length]
         over_header = f"\n{zone:>10}," + " " * (
             details["width"] + min((0, 10 - len(zone)))
         )
     else:  # plume_group != "all"
         if len(plume_group) > max_name_length:
-            logging.warning(
+            warning_text = (
                 "Plume group name is long and will be cut off in the summary format!"
             )
+            logging.warning(format_warning(warning_text))
             plume_group = plume_group[:max_name_length]
         over_header = f"\n{plume_group:>10}," + " " * (
             details["width"] + min((0, 10 - len(plume_group)))

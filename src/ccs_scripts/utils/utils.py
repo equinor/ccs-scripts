@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import yaml
@@ -9,6 +9,14 @@ from resdata.resfile import ResdataFile
 
 TRESHOLD_GAS = 1e-16
 TRESHOLD_DISSOLVED = 1e-16
+
+
+def format_warning(txt: Union[str, Exception]) -> str:
+    return f"\x1b[37;45m\x1b[1m{txt}\x1b[0m"
+
+
+def format_error(txt: Union[str, Exception]) -> str:
+    return f"\x1b[37;41m\x1b[1m{txt}\x1b[0m"
 
 
 def try_prop(unrst: ResdataFile, prop_name: str):
@@ -164,7 +172,7 @@ def find_active_and_gasless_cells(
                 "CO2 containment calculation failed. Cannot find required properties "
             )
             error_text += "SGAS+AMFG, SGAS+XMF2 or SGAS+AMFS"
-            raise RuntimeError(error_text)
+            raise RuntimeError(format_error(error_text))
 
     if do_logging:
         logging.info(f"Number of grid cells                    : {len(act_num):>10}")
@@ -184,5 +192,5 @@ def read_yaml_file(
             config = yaml.safe_load(stream)
             return config
         except yaml.YAMLError as exc:
-            logging.error(exc)
+            logging.error(format_error(exc))
             sys.exit(1)

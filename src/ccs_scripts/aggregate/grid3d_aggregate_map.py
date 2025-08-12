@@ -27,6 +27,7 @@ from ccs_scripts.aggregate._parser import (
 )
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import format_error, format_warning
 
 from . import _config, _grid_aggregation
 
@@ -64,7 +65,7 @@ def _check_input(computesettings: ComputeSettings) -> None:
             "As neither indicator_map nor aggregate_map were requested,"
             " no map is produced"
         )
-        raise Exception(error_text)
+        raise Exception(format_error(error_text))
 
 
 def modify_mass_property_names(properties: List[xtgeo.GridProperty]):
@@ -313,7 +314,8 @@ def _write_surfaces(
         if not os.path.isabs(plot_folder):
             logging.info(f"     Absolute path: {os.path.abspath(plot_folder)}")
         if not os.path.exists(plot_folder):
-            logging.warning("WARNING: Specified plot folder does not exist")
+            warning_text = "WARNING: Specified plot folder does not exist"
+            logging.warning(format_warning(warning_text))
 
     for surface in surfaces:
         if replace_masked_with_zero:
@@ -384,7 +386,7 @@ def _distribute_config_property(
                     f" file input. Fix the amount of values in co2_threshold or "
                     f"the amount of properties in config file"
                 )
-                raise Exception(error_text)
+                raise Exception(format_error(error_text))
         elif isinstance(prop.lower_threshold, (float, int)):
             logging.info(
                 f"Only one value of threshold for {str(len(prop.name))} "
@@ -398,7 +400,7 @@ def _distribute_config_property(
                 ]
             )
         else:
-            raise Exception("Unsupported type for lower_threshold")
+            raise Exception(format_error("Unsupported type for lower_threshold"))
 
     return distributed_props
 

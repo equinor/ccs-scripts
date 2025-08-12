@@ -28,6 +28,7 @@ import pandas as pd
 import xtgeo
 
 from ccs_scripts.co2_containment.co2_containment import str_to_bool
+from ccs_scripts.utils.utils import format_error
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
@@ -182,7 +183,7 @@ def _read_args() -> Tuple[str, str]:
 
     if not os.path.isdir(input_path):
         text = f"Input surface directory not found: {input_path}"
-        raise FileNotFoundError(text)
+        raise FileNotFoundError(format_error(text))
 
     return input_path, output_path
 

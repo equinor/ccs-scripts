@@ -34,6 +34,8 @@ from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     fetch_properties,
     find_active_and_gasless_cells,
+    format_error,
+    format_warning,
     read_yaml_file,
     reduce_properties,
 )
@@ -76,19 +78,21 @@ class Configuration:
             logging.error("\nERROR: No injection wells specified.")
         else:
             if not isinstance(input_dict["injection_wells"], list):
-                logging.error(
+                error_text = (
                     '\nERROR: Specification under "injection_wells" in '
                     "input YAML file is not a list."
                 )
+                logging.error(format_error(error_text))
                 sys.exit(1)
             for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
                 args_required = ["name", "x", "y"]
                 for arg in args_required:
                     if arg not in injection_well_info:
-                        logging.error(
+                        error_text = (
                             f'\nERROR: Missing "{arg}" under "injection_wells" '
                             f"for injection well number {i}."
                         )
+                        logging.error(format_error(error_text))
                         sys.exit(1)
 
                 self.injection_wells.append(
@@ -250,7 +254,8 @@ def calculate_all_plume_groups(
     else:
         pg_prop_dissolved = None
         dissolved_prop_key = None
-        logging.warning("WARNING: Neither AMFG nor XMF2 exists as properties.")
+        warning_text = "WARNING: Neither AMFG nor XMF2 exists as properties."
+        logging.warning(format_warning(warning_text))
 
     return pg_prop_gas, pg_prop_dissolved, dissolved_prop_key
 
@@ -312,10 +317,11 @@ def _log_number_of_grid_cells(
     logging.info("")
     if "undetermined" in n_cells_sorted:
         no_groups = len(n_cells_sorted) == 1
-        logging.warning(
+        warning_text = (
             f"WARNING: Plume group not found for "
             f"{'any' if no_groups else 'some'} grid cells with CO2."
         )
+        logging.warning(format_warning(warning_text))
         logging.warning("         See table above, under column '?'.")
         if no_groups:
             logging.warning(
@@ -458,8 +464,8 @@ def _plume_groups_at_time_step(
     inj_wells: List[InjectionWellData],
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     n_time_steps: int,
-    cell_map_gasless_to_active: dict[int, int],
-    cell_map_active_to_gasless: dict[int, int],
+    cell_map_gasless_to_active: Dict[int, int],
+    cell_map_active_to_gasless: Dict[int, int],
     # These arguments will be updated:
     groups: PlumeGroups,
     n_grid_cells_for_logging: Dict[str, List[int]],
@@ -533,7 +539,7 @@ def _initialize_groups_from_prev_step_and_inj_wells(
     inj_wells: List[InjectionWellData],
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     groups: PlumeGroups,
-    cell_map_gasless_to_active: dict[int, int],
+    cell_map_gasless_to_active: Dict[int, int],
 ):
     new_z_coords: Dict[str, List[float]] = {}
     for index in cells_with_co2:
@@ -697,13 +703,16 @@ def main():
     )
     _log_configuration(config)
 
-    (pg_prop_gas, pg_prop_dissolved, dissolved_prop_key, dates) = (
-        load_data_and_calculate_plume_groups(
-            args.case,
-            config.injection_wells,
-            args.threshold_gas,
-            args.threshold_dissolved,
-        )
+    (
+        pg_prop_gas,
+        pg_prop_dissolved,
+        dissolved_prop_key,
+        dates,
+    ) = load_data_and_calculate_plume_groups(
+        args.case,
+        config.injection_wells,
+        args.threshold_gas,
+        args.threshold_dissolved,
     )
 
     output_file = _find_output_file(args.output_csv, args.case)

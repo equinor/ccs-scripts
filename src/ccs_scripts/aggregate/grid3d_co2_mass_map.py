@@ -22,6 +22,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     source_data_,
 )
 from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import format_error, format_warning
 
 
 def generate_co2_mass_maps(config_: RootConfig):
@@ -96,21 +97,20 @@ def _process_grid_dir(grid_folder: Optional[str]) -> Tuple[str, bool]:
                 os.mkdir(grid_folder)
                 logging.info(f"\nCreated new grid folder: {grid_folder}")
             else:
-                error_txt = (
+                error_text = (
                     "\nERROR: Specified grid folder is invalid (no parent folder):"
                 )
-                error_txt += f"\n    Path            : {grid_folder}"
+                error_text += f"\n    Path            : {grid_folder}"
                 if not os.path.isabs(grid_folder):
-                    error_txt += (
+                    error_text += (
                         f"\n    -> Absolute path: {os.path.abspath(grid_folder)}"
                     )
-                error_txt += f"\n    Parent folder   : {parent_dir}"
+                error_text += f"\n    Parent folder   : {parent_dir}"
                 if not os.path.isabs(parent_dir):
-                    error_txt += (
+                    error_text += (
                         f"\n    -> Absolute path: {os.path.abspath(parent_dir)}"
                     )
-                logging.error(error_txt)
-                raise FileNotFoundError(error_txt)
+                raise FileNotFoundError(format_error(error_text))
         return grid_folder, False
     else:
         grid_folder = tempfile.mkdtemp()
@@ -176,15 +176,17 @@ def read_yml_file(file_path: str) -> Dict[str, List]:
     if "zranges" not in zfile:
         error_text = "The yaml zone file must be in the format:\nzranges:\
         \n    - Zone1: [1, 5]\n    - Zone2: [6, 10]\n    - Zone3: [11, 14])"
-        raise Exception(error_text)
+        raise Exception(format_error(error_text))
     return zfile
 
 
 def _check_config(config_: RootConfig) -> None:
     if config_.input.properties:
-        raise ValueError("CO2 mass computation does not take a property as input")
+        error_text = "CO2 mass computation does not take a property as input"
+        raise ValueError(format_error(error_text))
     if config_.co2_mass_settings is None:
-        raise ValueError("CO2 mass computation needs co2_mass_settings as input")
+        error_text = "CO2 mass computation needs co2_mass_settings as input"
+        raise ValueError(format_error(error_text))
     if (
         not config_.computesettings.aggregate_map
         and not config_.computesettings.indicator_map
@@ -193,12 +195,13 @@ def _check_config(config_: RootConfig) -> None:
             "As neither indicator_map nor aggregate_map were requested,"
             " no map is produced"
         )
-        raise ValueError(error_text)
+        raise ValueError(format_error(error_text))
     if config_.computesettings.indicator_map:
-        logging.warning(
+        warning_text = (
             "\nWARNING: Indicator maps cannot be calculated for CO2 mass maps. "
             "Changing 'indicator_map' to 'no'."
         )
+        logging.warning(format_warning(warning_text))
         config_.computesettings.indicator_map = False
 
 

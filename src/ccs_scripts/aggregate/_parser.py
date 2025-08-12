@@ -25,6 +25,7 @@ from ccs_scripts.aggregate._config import (
     ZProperty,
 )
 from ccs_scripts.co2_containment.co2_containment import str_to_bool
+from ccs_scripts.utils.utils import format_error, format_warning
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
@@ -229,18 +230,19 @@ def load_yaml(
         {"properties", "grid", "dates"}
     )
     if redundant_keywords:
-        raise ValueError(
+        error_text = (
             "The 'input' section only allows keywords 'properties' and 'grid'."
             " Keywords 'dates' and 'diffdates' are not implemented for this action."
             " Keywords representing properties must be defined under 'properties' for"
             f" this action. Redundant keywords: {', '.join(redundant_keywords)}"
         )
+        raise ValueError(format_error(error_text))
     if "filters" in config:
-        raise NotImplementedError("Keyword 'filters' is not supported by this action")
+        error_text = "Keyword 'filters' is not supported by this action"
+        raise NotImplementedError(format_error(error_text))
     if "superranges" in config.get("zonation", {}):
-        raise NotImplementedError(
-            "Keyword 'superranges' is not supported by this action"
-        )
+        error_text = "Keyword 'superranges' is not supported by this action"
+        raise NotImplementedError(format_error(error_text))
     return config
 
 
@@ -251,15 +253,14 @@ def _check_directories(map_folder: str):
             os.mkdir(map_folder)
             logging.info(f"\nCreated new map folder: {map_folder}")
         else:
-            error_txt = "\nERROR: Specified map folder is invalid (no parent folder):"
-            error_txt += f"\n    Path            : {map_folder}"
+            error_text = "\nERROR: Specified map folder is invalid (no parent folder):"
+            error_text += f"\n    Path            : {map_folder}"
             if not os.path.isabs(map_folder):
-                error_txt += f"\n    -> Absolute path: {os.path.abspath(map_folder)}"
-            error_txt += f"\n    Parent folder   : {parent_dir}"
+                error_text += f"\n    -> Absolute path: {os.path.abspath(map_folder)}"
+            error_text += f"\n    Parent folder   : {parent_dir}"
             if not os.path.isabs(parent_dir):
-                error_txt += f"\n    -> Absolute path: {os.path.abspath(parent_dir)}"
-            logging.error(error_txt)
-            raise FileNotFoundError(error_txt)
+                error_text += f"\n    -> Absolute path: {os.path.abspath(parent_dir)}"
+            raise FileNotFoundError(format_error(error_text))
 
 
 def _check_thresholds(config):
@@ -278,7 +279,7 @@ def _check_thresholds(config):
             warning_str += f'aggregation method "{agg_name}".'
             warning_str += "\n         => Removing the lower threshold, "
             warning_str += "using all grid cells in the calculations."
-            logging.warning(warning_str)
+            logging.warning(format_warning(warning_str))
 
 
 def extract_properties(
@@ -298,7 +299,9 @@ def extract_properties(
             names = (
                 "all"
                 if spec.name is None
-                else [spec.name] if isinstance(spec.name, str) else spec.name
+                else [spec.name]
+                if isinstance(spec.name, str)
+                else spec.name
             )
             props = xtgeo.gridproperties_from_file(
                 spec.source,
@@ -375,7 +378,7 @@ def _zonation_from_zproperty(
         if "zranges" not in zfile:
             error_text = "The yaml zone file must be in the format:\nzranges:\
             \n    - Zone1: [1, 5]\n    - Zone2: [6, 10]\n    - Zone3: [11, 14])"
-            raise Exception(error_text)
+            raise Exception(format_error(error_text))
         zranges = zfile["zranges"]
         return _zonation_from_zranges(grid, zranges)
     actnum = grid.actnum_indices

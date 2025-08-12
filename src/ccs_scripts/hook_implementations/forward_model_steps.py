@@ -1,5 +1,5 @@
 import shutil
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from ert import (
     ForwardModelStepDocumentation,
@@ -453,7 +453,7 @@ _EXAMPLES_GRID3D_MIGRATION_TIME = """
 
 
 @ert_plugin(name="CCS_SCRIPTS")
-def installable_forward_model_steps() -> list[ForwardModelStepPlugin]:
+def installable_forward_model_steps() -> List[ForwardModelStepPlugin]:
     return [
         Co2ContainmentStep,
         Co2PlumeAreaStep,

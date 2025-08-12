@@ -19,6 +19,7 @@ from ccs_scripts.aggregate._config import DEFAULT_LOWER_THRESHOLD, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.aggregate.grid3d_aggregate_map import _distribute_config_property
 from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import format_error, format_warning
 
 _XTG = XTGeoDialog()
 
@@ -44,10 +45,11 @@ MIGRATION_TIME_PROPERTIES = [
 def _check_config(config_: RootConfig) -> None:
     config_.input.properties = _distribute_config_property(config_.input.properties)
     if config_.computesettings.indicator_map:
-        logging.warning(
+        warning_str = (
             "\nWARNING: Indicator maps cannot be calculated for migration time maps. "
             "Changing 'indicator_map' to 'no'."
         )
+        logging.warning(format_warning(warning_str))
         config_.computesettings.indicator_map = False
     config_.computesettings.aggregation = _config.AggregationMethod.MIN
     config_.output.aggregation_tag = False
@@ -69,7 +71,7 @@ def _check_threshold(
             warning_str += f"\n            - Specified value: {lower_threshold:>8}"
             lower_threshold = DEFAULT_LOWER_THRESHOLD
             warning_str += f"\n            - Changed to     : {lower_threshold:>8}"
-            logging.warning(warning_str)
+            logging.warning(format_warning(warning_str))
     else:
         if lower_threshold > max_value_props:
             warning_str = "\nWARNING: Specified lower threshold is "
@@ -78,11 +80,11 @@ def _check_threshold(
             warning_str += (
                 f"\n         - Maximum property value: {max_value_props:>8.4f}"
             )
-            logging.warning(warning_str)
+            logging.warning(format_warning(warning_str))
     return lower_threshold
 
 
-def _log_t_prop(t_prop: dict[str, xtgeo.GridProperty]):
+def _log_t_prop(t_prop: Dict[str, xtgeo.GridProperty]):
     col1 = 20
     col2 = 8
     for k, v in t_prop.items():
@@ -103,7 +105,7 @@ def calculate_migration_time_property(
     lower_threshold: float,
     grid_file: Optional[str],
     dates: List[str],
-) -> dict[str, xtgeo.GridProperty]:
+) -> Dict[str, xtgeo.GridProperty]:
     """
     Calculates a 3D migration time property from the provided grid and grid property
     files
@@ -196,18 +198,19 @@ def main(arguments=None):
             [x for x in config_.input.properties if x.name in MIGRATION_TIME_PROPERTIES]
         )
         if len(removed_props) > 0:
-            logging.warning(
+            warning_str = (
                 "\nWARNING: Migration time maps are "
                 "not supported for these properties: ",
                 ", ".join(str(x) for x in removed_props),
             )
+            logging.warning(format_warning(warning_str))
     else:
         error_text = (
             "Migration time maps are not supported for "
             "any of the properties provided: "
         )
         error_text += f"{', '.join(p_spec.name)}"
-        raise ValueError(error_text)
+        raise ValueError(format_error(error_text))
     config_.input.properties = p_spec
     for prop in config_.input.properties:
         t_prop = calculate_migration_time_property(

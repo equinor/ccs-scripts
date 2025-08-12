@@ -4,7 +4,7 @@ import copy
 import logging
 from dataclasses import dataclass, fields, make_dataclass
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import xtgeo
@@ -15,6 +15,8 @@ from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     fetch_properties,
     find_active_and_gasless_cells,
+    format_error,
+    format_warning,
     identify_gas_less_cells,
     is_subset,
     reduce_properties,
@@ -103,7 +105,7 @@ class CalculationType(Enum):
             for calc_type in CalculationType:
                 error_text += "\n  * " + calc_type.name.lower()
             error_text += "\nExiting"
-            raise ValueError(error_text)
+            raise ValueError(format_error(error_text))
 
 
 class Scenario(Enum):
@@ -209,10 +211,11 @@ def _detect_eclipse_mole_fraction_props(
         if tmp_x is None and tmp_y is None:
             break
         elif (tmp_x is None) != (tmp_y is None):
-            raise ValueError(
+            error_text = (
                 "Error: Number of components with XMF property differ from "
                 "the number of components with YMF"
             )
+            raise ValueError(format_error(error_text))
         else:
             current_source_data.extend(
                 [
@@ -269,7 +272,7 @@ def _find_props_to_extract(unrst_file: str, residual_trapping: bool):
 def _extract_source_data(
     grid_file: str,
     unrst_file: str,
-    source_data_updated: List[Tuple[str, Any, None]],
+    source_data_updated: Iterable[Union[str, Tuple[str, type], Tuple[str, type, Any]]],
     props_to_extract: List[str],
     zone_info: ZoneInfo,
     region_info: RegionInfo,
@@ -347,7 +350,7 @@ def _check_grid_dimensions(
     if roff_shape != grid_shape:
         err = f"Inconsistent grid dimensions {roff_shape} from file {roff_file}"
         err += f" and {grid_shape} from file {grid_file}."
-        raise ValueError(err)
+        raise ValueError(format_error(err))
 
 
 def _process_zones(
@@ -395,11 +398,12 @@ def _process_zones(
             zonevals = list(np.unique(zone))
             intvals = np.array(zonevals, dtype=int)
             if np.sum(intvals == zonevals) != len(zonevals):
-                logging.info(
+                warning_text = (
                     "Warning: Grid provided in zone file contains non-integer values. "
                     "This might cause problems with the calculations for "
                     "containment in different zones."
                 )
+                logging.info(format_warning(warning_text))
             zone_info.int_to_zone = [None] * (np.max(intvals) + 1)
             for zv in intvals:
                 if zv >= 0:
@@ -447,11 +451,12 @@ def _process_regions(
         regvals = np.unique(region)
         intvals = np.array(regvals, dtype=int)
         if np.sum(intvals == regvals) != len(regvals):
-            logging.info(
+            warning_text = (
                 "Warning: Grid provided in region file contains non-integer values. "
                 "This might cause problems with the calculations for "
                 "containment in different regions."
             )
+            logging.info(warning_text)
         region_info.int_to_region = [None] * (np.max(intvals) + 1)
         for rv in intvals:
             if rv >= 0:
@@ -1102,7 +1107,7 @@ def _calculate_co2_data_from_source_data(
     active_props = [p for p in props_check if getattr(source_data, p) is not None]
     if not is_subset(["SGAS"], active_props):
         error_text = "Lacking required property SGAS to compute CO2 mass/volume."
-        raise ValueError(error_text)
+        raise ValueError(format_error(error_text))
 
     pore_volume_prop = _find_pore_volume_prop(active_props)
     source, scenario = _find_source_and_scenario(residual_trapping, active_props)
@@ -1120,7 +1125,7 @@ def _calculate_co2_data_from_source_data(
                 "\nTo compute mass or actual volume in this scenario "
                 "hydrocarbon gas molar mass must be provided"
             )
-            raise ValueError(error_text)
+            raise ValueError(format_error(error_text))
         elif scenario == Scenario.AQUIFER:
             gas_molar_mass = None
             oil_molar_mass = None
@@ -1145,7 +1150,7 @@ def _calculate_co2_data_from_source_data(
         for calculation_type in CalculationType:
             error_text += "\n  * " + calculation_type.name
         error_text += "\nExiting"
-        raise ValueError(error_text)
+        raise ValueError(format_error(error_text))
 
     logging.info(f"Done calculating CO2 {calc_type.name.lower()} from source data\n")
     return co2_amount
@@ -1166,7 +1171,7 @@ def _find_pore_volume_prop(active_props: List[str]) -> str:
     else:
         error_text = "No pore volume provided"
         error_text += "\nNeed either PORV or RPORV"
-        raise ValueError(error_text)
+        raise ValueError(format_error(error_text))
 
     return pore_volume_prop
 
@@ -1463,14 +1468,14 @@ def _raise_missing_props_error(
         error_text += "\nAssumed source: PFlotran"
         error_text += "\nMissing properties: "
         error_text += ", ".join(missing_props)
-        raise ValueError(error_text)
+        raise ValueError(format_error(error_text))
     elif any(prop in props_needed_eclipse for prop in active_props):
         missing_props = [x for x in props_needed_eclipse if x not in active_props]
         error_text = "Lacking some required properties to compute CO2 mass/volume."
         error_text += "\nAssumed source: Eclipse"
         error_text += "\nMissing properties: "
         error_text += ", ".join(missing_props)
-        raise ValueError(error_text)
+        raise ValueError(format_error(error_text))
     else:
         error_text = "Lacking all required properties to compute CO2 mass/volume."
         error_text += "\nNeed either:"
@@ -1478,7 +1483,7 @@ def _raise_missing_props_error(
             {', '.join(props_needed_pflotran)}"
         error_text += f"\n  Eclipse : \
             {', '.join(props_needed_eclipse)}"
-        raise ValueError(error_text)
+        raise ValueError(format_error(error_text))
 
 
 def _convert_from_kg_to_tons(co2_mass_output: Co2Data):

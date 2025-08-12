@@ -34,6 +34,8 @@ from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     fetch_properties,
     find_active_and_gasless_cells,
+    format_error,
+    format_warning,
     read_yaml_file,
 )
 
@@ -62,7 +64,7 @@ class CalculationType(Enum):
             for calc_type in CalculationType:
                 error_text += "\n  * " + calc_type.name.lower()
             error_text += "\nExiting"
-            raise ValueError(error_text)
+            raise ValueError(format_error(error_text))
 
 
 class LineDirection(Enum):
@@ -87,7 +89,7 @@ class LineDirection(Enum):
             for line in LineDirection:
                 error_text += "\n  * " + line.name.lower()
             error_text += "\nExiting"
-            raise ValueError(error_text)
+            raise ValueError(format_error(error_text))
 
 
 @dataclass
@@ -125,10 +127,11 @@ class Configuration:
             )
 
         if len(self.distance_calculations) == 0:
-            logging.warning(
+            warning_text = (
                 "WARNING: No CO2 plume distance/extent calculations"
                 " specified in the input. Terminating script"
             )
+            logging.warning(format_warning(warning_text))
             sys.exit(1)
 
     def make_config_from_input_dict(self, input_dict: Dict, case: str):
@@ -144,20 +147,22 @@ class Configuration:
                 )
                 sys.exit(1)
         elif self.do_plume_tracking:
-            logging.warning(
+            warning_text = (
                 "\nWARNING: Plume tracking activated, but no injection_wells specified."
                 "\n         Plume tracking will therefore be switched off."
             )
+            logging.warning(format_warning(warning_text))
             self.do_plume_tracking = False
         if "injection_wells" in input_dict:
             for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
                 args_required = ["name", "x", "y"]
                 for arg in args_required:
                     if arg not in injection_well_info:
-                        logging.error(
+                        error_text = (
                             f'\nERROR: Missing "{arg}" under "injection_wells" '
                             f"for injection well number {i}."
                         )
+                        logging.error(format_error(error_text))
                         sys.exit(1)
 
                 self.injection_wells.append(
@@ -175,21 +180,24 @@ class Configuration:
                 )
 
         if "distance_calculations" not in input_dict:
-            logging.error(
+            error_text = (
                 '\nERROR: No instance of "distance_calculations" in input YAML file.'
             )
+            logging.error(format_error(error_text))
             sys.exit(1)
         if not isinstance(input_dict["distance_calculations"], list):
-            logging.error(
+            error_text = (
                 '\nERROR: Specification under "distance_calculations" in '
                 "input YAML file is not a list."
             )
+            logging.error(format_error(error_text))
             sys.exit(1)
         for i, single_calculation in enumerate(input_dict["distance_calculations"], 1):
             if "type" not in single_calculation:
-                logging.error(
+                error_text = (
                     f'\nERROR: Missing "type" for distance calculation number {i}.'
                 )
+                logging.error(format_error(error_text))
                 sys.exit(1)
             type_str = single_calculation["type"].upper()
             CalculationType.check_for_key(type_str)
@@ -204,10 +212,11 @@ class Configuration:
             direction = None
             if calculation_type == CalculationType.LINE:
                 if "direction" not in single_calculation:
-                    logging.error(
+                    error_text = (
                         f'\nERROR: Missing "direction" for distance '
                         f'calculation number {i}. Needed when "type" = "line".'
                     )
+                    logging.error(format_error(error_text))
                     sys.exit(1)
                 else:
                     direction_str = single_calculation["direction"].upper()
@@ -215,11 +224,11 @@ class Configuration:
                     direction = LineDirection[direction_str]
             else:
                 if "direction" in single_calculation:
-                    logging.warning(
-                        f'\nWARNING: No need to specify "direction" when '
-                        f'"type" is not "line" (distance calculation number '
-                        f"{i})."
+                    warning_text = (
+                        '\nWARNING: No need to specify "direction" when "type" is not'
+                        f' "line" (distance calculation number {i}).'
                     )
+                    logging.warning(format_warning(warning_text))
 
             x = single_calculation["x"] if "x" in single_calculation else None
             y = single_calculation["y"] if "y" in single_calculation else None
@@ -235,27 +244,31 @@ class Configuration:
                 and len(self.injection_wells) == 0
             ):
                 if x is None:
-                    logging.error(
+                    error_text = (
                         f'\nERROR: Missing "x" for distance calculation number {i}.'
                     )
+                    logging.error(format_error(error_text))
                     sys.exit(1)
                 if y is None:
-                    logging.error(
+                    error_text = (
                         f'\nERROR: Missing "y" for distance calculation number {i}.'
                     )
+                    logging.error(format_error(error_text))
                     sys.exit(1)
             elif calculation_type == CalculationType.LINE:
                 if direction in (LineDirection.EAST, LineDirection.WEST):
                     if x is None:
-                        logging.error(
+                        error_text = (
                             f'\nERROR: Missing "x" for distance calculation number {i}.'
                         )
+                        logging.error(format_error(error_text))
                         sys.exit(1)
                     if y is not None:
-                        logging.warning(
-                            f'\nWARNING: No need to specify "y" for distance '
+                        warning_text = (
+                            '\nWARNING: No need to specify "y" for distance '
                             f"calculation number {i}."
                         )
+                        logging.warning(format_warning(warning_text))
                 elif direction in (LineDirection.NORTH, LineDirection.SOUTH):
                     if y is None:
                         logging.error(
@@ -263,10 +276,11 @@ class Configuration:
                         )
                         sys.exit(1)
                     if x is not None:
-                        logging.warning(
-                            f'\nWARNING: No need to specify "x" for distance '
+                        warning_text = (
+                            '\nWARNING: No need to specify "x" for distance '
                             f"calculation number {i}."
                         )
+                        logging.warning(format_warning(warning_text))
 
             if well_name is not None:
                 (x, y) = self.calculate_well_coordinates(case, well_name)
@@ -303,23 +317,26 @@ class Configuration:
             values = injection_point_info[1:-1].split(",")
             if len(values) != 2:
                 if calculation_type == CalculationType.PLUME_EXTENT:
-                    logging.error(
+                    error_text = (
                         "ERROR: Invalid input. inj_point must be on"
                         ' the format "[x,y]" or "well_name" when '
                         "calc_type is 'plume_extent'."
                     )
+                    logging.error(format_error(error_text))
                 elif calculation_type == CalculationType.POINT:
-                    logging.error(
+                    error_text = (
                         "ERROR: Invalid input. inj_point must be on"
                         ' the format "[x,y]" when calc_type is '
                         "'point'."
                     )
+                    logging.error(format_error(error_text))
                 elif calculation_type == CalculationType.LINE:
-                    logging.error(
+                    error_text = (
                         "Invalid input: inj_point must be on the "
                         'format "[direction, x or y]" when '
                         "calc_type is 'line'."
                     )
+                    logging.error(format_error(error_text))
                 sys.exit(1)
 
             if calculation_type in (
@@ -330,23 +347,25 @@ class Configuration:
                     (x, y) = (float(values[0]), float(values[1]))
                     logging.info(f"Using injection coordinates: [{x}, {y}]")
                 except ValueError:
-                    logging.error(
+                    error_text = (
                         "ERROR: Invalid input. When providing two arguments "
                         "(x and y coordinates) for injection point info they "
                         "need to be floats."
                     )
+                    logging.error(format_error(error_text))
                     sys.exit(1)
             elif calculation_type == CalculationType.LINE:
                 try:
                     (direction_str, coord) = (str(values[0]), float(values[1]))
                     logging.info(f"Using injection info: [{direction_str}, {coord}]")
                 except ValueError:
-                    logging.error(
+                    error_text = (
                         "ERROR: Invalid input. When providing two arguments "
                         "(direction and x or y) for injection point, the "
                         "direction needs to be a string and the coordinate "
                         "needs to be a float."
                     )
+                    logging.error(format_error(error_text))
                     sys.exit(1)
 
                 direction_str = direction_str.upper()
@@ -360,12 +379,13 @@ class Configuration:
         else:
             # Specification is now either a well name (for plume extent) or incorrect
             if calculation_type != CalculationType.PLUME_EXTENT:
-                logging.error(
+                error_text = (
                     "ERROR: Invalid input. For plume_extent, the injection "
                     f'point info specified ("{injection_point_info}") is '
                     'incorrect. It should be on the format "[x,y]" or '
                     '"well_name".'
                 )
+                logging.error(format_error(error_text))
                 sys.exit(1)
 
             (x, y) = self.calculate_well_coordinates(case, injection_point_info)
@@ -397,10 +417,11 @@ class Configuration:
         logging.debug(df)
 
         if well_name not in list(df["WELL"]):
-            logging.error(
+            error_text = (
                 f"No matches for well name {well_name}, input is either mistyped "
                 "or well does not exist."
             )
+            logging.error(format_error(error_text))
             sys.exit(1)
 
         df = df[df["WELL"] == well_name]
@@ -764,7 +785,8 @@ def calculate_single_distances(
     else:
         dissolved_results = None
         dissolved_prop_key = None
-        logging.warning("WARNING: Neither AMFG nor XMF2 exists as properties.")
+        warning_text = "WARNING: Neither AMFG nor XMF2 exists as properties."
+        logging.warning(format_warning(warning_text))
 
     return gas_results, dissolved_results, dissolved_prop_key
 
@@ -1176,10 +1198,9 @@ def _calculate_well_coordinates(
                 )
                 return coordinates
             except ValueError:
-                logging.error(
-                    "Invalid input: When providing two arguments (x and y coordinates)\
+                error_text = "Invalid input: When providing two arguments (x and y coordinates)\
                     for injection point info they need to be floats."
-                )
+                logging.error(format_error(error_text))
                 sys.exit(1)
     well_name = injection_point_info
     logging.info(f"Using well to find coordinates: {well_name}")
@@ -1197,10 +1218,11 @@ def _calculate_well_coordinates(
     logging.debug(df)
 
     if well_name not in list(df["WELL"]):
-        logging.error(
+        error_text = (
             f"No matches for well name {well_name}, input is either mistyped "
             "or well does not exist."
         )
+        logging.error(format_error(error_text))
         sys.exit(1)
 
     df = df[df["WELL"] == well_name]
@@ -1238,15 +1260,17 @@ def _find_input_point(injection_point_info: str) -> Tuple[float, float]:
                 )
                 return coordinates
             except ValueError:
-                logging.error(
+                error_text = (
                     "Invalid input: When providing two arguments (x and y coordinates) "
                     "for point they need to be floats."
                 )
+                logging.error(format_error(error_text))
                 sys.exit(1)
-    logging.error(
+    error_text = (
         "Invalid input: inj_point must be on the format [x,y]"
         "when calc_type is 'point'"
     )
+    logging.error(format_error(error_text))
     sys.exit(1)
 
 
@@ -1262,25 +1286,28 @@ def _find_input_line(injection_point_info: str) -> Tuple[str, float]:
                 direction = coords[0]
                 direction = direction.lower()
                 if direction not in ["east", "west", "north", "south"]:
-                    raise ValueError(
+                    error_text = (
                         "Invalid line direction. Choose from "
                         "'east'/'west'/'north'/'south'"
                     )
+                    raise ValueError(format_error(error_text))
                 value = float(coords[1])
                 coordinates = (direction, value)
                 logging.info(f"Using line data: [{direction}, {value}]")
                 return coordinates
             except ValueError as error:
-                logging.error(
+                error_text = (
                     "Invalid input: inj_point must be on the format "
                     "[direction, value] when calc_type is 'line'."
                 )
-                logging.error(error)
+                logging.error(format_error(error_text))
+                logging.error(format_error(error))
                 sys.exit(1)
-    logging.error(
+    error_text = (
         "Invalid input: inj_point must be on the format "
         "[direction, value] when calc_type is 'line'"
     )
+    logging.error(format_error(error_text))
     sys.exit(1)
 
 

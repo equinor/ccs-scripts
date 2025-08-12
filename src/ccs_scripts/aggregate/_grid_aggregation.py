@@ -10,6 +10,7 @@ import xtgeo
 
 from ccs_scripts.aggregate._config import AggregationMethod
 from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import format_error
 
 
 def aggregate_maps(
@@ -83,10 +84,11 @@ def _read_properties_and_find_active_cells(
         all_masked |= ~np.any(inclusion_filters_copy, axis=0)
     active[active] = ~all_masked
     if not any(active):
-        logging.error(
+        error_text = (
             "\nERROR: All grid cells are inactive. "
             "This can be due to a high input threshold."
         )
+        logging.error(format_error(error_text))
         sys.exit(1)
     props = [p[~all_masked] for p in props]
     inclusion_filters = [

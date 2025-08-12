@@ -10,6 +10,8 @@ from typing import List
 import pandas as pd
 import pyarrow as pa
 
+from ccs_scripts.utils.utils import format_error
+
 
 def try_convert_csv_to_arrow(
     csv_path: Path,
@@ -168,7 +170,7 @@ def _get_csv_path(realization_dir: Path, file_type: _FileType) -> Path:
     elif file_type == _FileType.CONTAINMENT:
         full_path = full_path / "plume_mass.csv"
     else:
-        raise ValueError(f"Unknown file type: {file_type}")
+        raise ValueError(format_error(f"Unknown file type: {file_type}"))
     return full_path
 
 
