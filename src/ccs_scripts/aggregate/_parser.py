@@ -179,7 +179,7 @@ def parse_yaml(
                     "AMFG",
                     "XMF2",
                     "AMFS",
-                ]  # NBNB-AS: AMFS for depleted fields, is this correct?
+                ]
             ):
                 p["lower_threshold"] = str(DEFAULT_LOWER_THRESHOLD_DISSOLVED)
     return RootConfig(
