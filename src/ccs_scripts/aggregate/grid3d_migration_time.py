@@ -149,8 +149,8 @@ def migration_time_property_to_map(
         temp_file, temp_path = tempfile.mkstemp()
         os.close(temp_file)
         config_.input.properties = [
-            _config.Property(temp_path, None)
-        ]  # NBNB-AS: Input threshold?
+            _config.Property(temp_path, None, 0)
+        ]
         prop.to_file(temp_path)
     grid3d_aggregate_map.generate_from_config(config_)
     os.unlink(temp_path)
