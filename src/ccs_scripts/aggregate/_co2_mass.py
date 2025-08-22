@@ -47,9 +47,9 @@ def _get_gasless(properties: Dict[str, Dict[str, List[np.ndarray]]]) -> np.ndarr
         np.ndarray
     """
     if is_subset(["SGAS", "AMFG"], list(properties.keys())):
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
+        gasless = identify_gas_less_cells(properties["SGAS"], properties["AMFG"])
     elif is_subset(["SGAS", "XMF2"], list(properties.keys())):
-        gasless = _identify_gas_less_cells(properties["SGAS"], properties["XMF2"])
+        gasless = identify_gas_less_cells(properties["SGAS"], properties["XMF2"])
     else:
         error_text = (
             "CO2 containment calculation failed. "
