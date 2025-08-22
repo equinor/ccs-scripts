@@ -25,10 +25,8 @@ _XTG = XTGeoDialog()
 MIGRATION_TIME_PROPERTIES = [
     "AMFG",
     "AMFW",
-    "AMFS",
     "YMFG",
     "YMFW",
-    "YMFS",
     "XMF1",
     "XMF2",
     "XMFS",
@@ -37,7 +35,6 @@ MIGRATION_TIME_PROPERTIES = [
     "YMF2",
     "SGAS",
     "SWAT",
-    "SOIL",
 ]
 
 

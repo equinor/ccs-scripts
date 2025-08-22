@@ -53,7 +53,6 @@ def generate_co2_mass_maps(config_: RootConfig):
         zone_info=zone_info,
         region_info=region_info,
         residual_trapping=co2_mass_settings.residual_trapping,
-        gas_molar_mass=co2_mass_settings.gas_molar_mass,
     )
 
     dates = config_.input.dates
