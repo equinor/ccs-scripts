@@ -91,7 +91,7 @@ def test_co2_mass_map_reek_grid():
         Path(__file__).absolute().parent
         / "answers"
         / "mass_map"
-        / "all--co2_mass_dissolved_phase--20010801.gri"
+        / "all--co2_mass_dissolved_water_phase--20010801.gri"
     )
     free_co2_file = (
         Path(__file__).absolute().parent
