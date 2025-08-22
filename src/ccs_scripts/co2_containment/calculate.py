@@ -235,11 +235,9 @@ def _lists_of_phases(
     if calc_type == CalculationType.CELL_VOLUME:
         phases = ["undefined"]
     else:
-        phases = ["total", "dissolved_water"]
+        phases = ["total", "dissolved"]
         phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
-        phases += (
-            ["dissolved_oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
-        )
+        phases += ["oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
     return phases
 
 
