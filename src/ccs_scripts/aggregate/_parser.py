@@ -172,25 +172,27 @@ def parse_yaml(
     )
     if calc_type == "migration_time":
         for p in config["input"]["properties"]:
-            if (
-                "lower_threshold" not in p
-                and "name" in p):
+            if "lower_threshold" not in p and "name" in p:
                 if isinstance(p["name"], str):
                     if p["name"] in [
-                            "AMFG",
-                            "XMF2",
-                            "AMFS",
-                        ]:
+                        "AMFG",
+                        "XMF2",
+                        "AMFS",
+                    ]:
                         p["lower_threshold"] = str(DEFAULT_LOWER_THRESHOLD_DISSOLVED)
                 elif isinstance(p["name"], list):
-                    p["lower_threshold"] = [str(DEFAULT_LOWER_THRESHOLD)] * len(p["name"])
+                    p["lower_threshold"] = [str(DEFAULT_LOWER_THRESHOLD)] * len(
+                        p["name"]
+                    )
                     for i in range(len(p["name"])):
-                        if p["name"][i] in  [
+                        if p["name"][i] in [
                             "AMFG",
                             "XMF2",
                             "AMFS",
                         ]:
-                            p["lower_threshold"][i] = str(DEFAULT_LOWER_THRESHOLD_DISSOLVED)
+                            p["lower_threshold"][i] = str(
+                                DEFAULT_LOWER_THRESHOLD_DISSOLVED
+                            )
                         else:
                             p["lower_threshold"][i] = str(DEFAULT_LOWER_THRESHOLD)
     return RootConfig(
@@ -309,7 +311,9 @@ def extract_properties(
             names = (
                 "all"
                 if spec.name is None
-                else [spec.name] if isinstance(spec.name, str) else spec.name
+                else [spec.name]
+                if isinstance(spec.name, str)
+                else spec.name
             )
             props = xtgeo.gridproperties_from_file(
                 spec.source,
