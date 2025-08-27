@@ -174,15 +174,25 @@ def parse_yaml(
         for p in config["input"]["properties"]:
             if (
                 "lower_threshold" not in p
-                and "name" in p
-                and p["name"]
-                in [
-                    "AMFG",
-                    "XMF2",
-                    "AMFS",
-                ]
-            ):
-                p["lower_threshold"] = str(DEFAULT_LOWER_THRESHOLD_DISSOLVED)
+                and "name" in p):
+                if isinstance(p["name"], str):
+                    if p["name"] in [
+                            "AMFG",
+                            "XMF2",
+                            "AMFS",
+                        ]:
+                        p["lower_threshold"] = str(DEFAULT_LOWER_THRESHOLD_DISSOLVED)
+                elif isinstance(p["name"], list):
+                    p["lower_threshold"] = [str(DEFAULT_LOWER_THRESHOLD)] * len(p["name"])
+                    for i in range(len(p["name"])):
+                        if p["name"][i] in  [
+                            "AMFG",
+                            "XMF2",
+                            "AMFS",
+                        ]:
+                            p["lower_threshold"][i] = str(DEFAULT_LOWER_THRESHOLD_DISSOLVED)
+                        else:
+                            p["lower_threshold"][i] = str(DEFAULT_LOWER_THRESHOLD)
     return RootConfig(
         input=Input(**config["input"]),
         output=Output(**config["output"]),
