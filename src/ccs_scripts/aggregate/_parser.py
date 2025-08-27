@@ -311,9 +311,7 @@ def extract_properties(
             names = (
                 "all"
                 if spec.name is None
-                else [spec.name]
-                if isinstance(spec.name, str)
-                else spec.name
+                else [spec.name] if isinstance(spec.name, str) else spec.name
             )
             props = xtgeo.gridproperties_from_file(
                 spec.source,
