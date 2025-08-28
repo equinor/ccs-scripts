@@ -125,6 +125,7 @@ def translate_co2data_to_property(
     custom_egrid = _create_custom_egrid_kw(grid_data)
 
     for date_idx, co2_at_date in zip(dates_idx, co2_data.data_list):
+        date_idx = np.int32(date_idx)
         mass_as_grid = _convert_to_grid(
             co2_at_date, gas_idxs, n_act_cells, grid_out_dir
         )
