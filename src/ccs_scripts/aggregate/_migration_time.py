@@ -23,14 +23,26 @@ def generate_migration_time_property(
     prop_name = co2_props[0].name.split("--")[0]
     t_prop = co2_props[0].copy(newname=MIGRATION_TIME_PNAME + "_" + prop_name)
     t_prop.values[~t_prop.values.mask] = np.inf
+    t_prop_alt = co2_props[0].copy(newname=MIGRATION_TIME_PNAME + "_" + prop_name + "_alt")
+    t_prop_alt.values[~t_prop_alt.values.mask] = np.inf
     for co2, dt in zip(
         co2_props,
         time_since_start,
     ):
         above_threshold = co2.values > co2_threshold
         t_prop.values[above_threshold] = np.minimum(t_prop.values[above_threshold], dt)
+    for co2, dt in zip(
+        co2_props[1:],
+        time_since_start[1:],
+    ):
+        diff_prop = co2.values - co2_props[0].values
+        above_threshold_alt = diff_prop > co2_threshold
+        t_prop_alt.values[above_threshold_alt] = np.minimum(t_prop_alt.values[above_threshold_alt], dt)
     # Mask inf values
     if not isinstance(t_prop.values.mask, np.ndarray):
         t_prop.values.mask = np.asarray(t_prop.values.mask)
     t_prop.values.mask[np.isinf(t_prop.values)] = 1
-    return t_prop
+    if not isinstance(t_prop_alt.values.mask, np.ndarray):
+        t_prop_alt.values.mask = np.asarray(t_prop_alt.values.mask)
+    t_prop_alt.values.mask[np.isinf(t_prop_alt.values)] = 1
+    return t_prop, t_prop_alt
