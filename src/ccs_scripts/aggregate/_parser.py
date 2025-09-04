@@ -27,6 +27,12 @@ from ccs_scripts.aggregate._config import (
 from ccs_scripts.co2_containment.co2_containment import str_to_bool
 from ccs_scripts.utils.utils import format_error, format_warning
 
+import warnings
+
+# Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
+warnings.filterwarnings("ignore", "EGrid file given with numres < 1", UserWarning)
+warnings.filterwarnings("ignore", "Unknown simulator code -1", UserWarning)
+
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
 
