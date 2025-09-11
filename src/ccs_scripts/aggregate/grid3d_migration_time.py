@@ -126,13 +126,13 @@ def calculate_migration_time_property(
     grid3d_aggregate_map._log_properties_info(properties)
 
     timer.start("generate_migration_time_property")
-    t_prop, t_prop_alt = _migration_time.generate_migration_time_property(
+    t_prop = _migration_time.generate_migration_time_property(
         properties, lower_threshold
     )
     timer.stop("generate_migration_time_property")
     _log_t_prop(t_prop, property_name)
 
-    return t_prop, t_prop_alt
+    return t_prop
 
 
 def migration_time_property_to_map(
@@ -212,7 +212,7 @@ def main(arguments=None):
     logging.info(f"\nMaking temporary directory for 3D grids: {temp_dir}")
     try:
         for prop in config_.input.properties:
-            t_prop, t_prop_alt = calculate_migration_time_property(
+            t_prop = calculate_migration_time_property(
                 prop.source,
                 prop.name,
                 prop.lower_threshold,
@@ -221,7 +221,6 @@ def main(arguments=None):
             )
             temp_path = os.path.join(temp_dir, prop.name)
             migration_time_property_to_map(config_, t_prop, temp_path)
-            migration_time_property_to_map(config_, t_prop_alt, temp_path)
     finally:
         logging.info(f"\nDeleting temporary directory for 3D grids: {temp_dir}")
         shutil.rmtree(temp_dir)
