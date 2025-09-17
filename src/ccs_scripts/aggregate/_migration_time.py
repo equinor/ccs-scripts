@@ -28,7 +28,7 @@ def generate_migration_time_property(
         time_since_start[1:],
     ):
         diff_prop = co2.values - co2_props[0].values
-        above_threshold = np.abs(diff_prop - co2_threshold) > 0
+        above_threshold = np.abs(diff_prop) > co2_threshold
         t_prop.values[above_threshold] = np.minimum(t_prop.values[above_threshold], dt)
     # Mask inf values
     if not isinstance(t_prop.values.mask, np.ndarray):
