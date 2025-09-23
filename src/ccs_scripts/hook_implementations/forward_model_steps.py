@@ -287,6 +287,8 @@ class Grid3dCo2MassMapStep(ForwardModelStepPlugin):
                 "<NO_LOGGING>",
                 "--debug",
                 "<DEBUG>",
+                "--gas_molar_mass",
+                "<GAS_MOLAR_MASS>",
             ],
             default_mapping={
                 "<ECLROOT>": "-1",

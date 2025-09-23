@@ -93,9 +93,11 @@ class CO2MassSettings:
     init_source: str
     maps: Optional[List[str]] = None
     residual_trapping: bool = False
+    gas_molar_mass: Optional[float] = None
 
     def __post_init__(self):
-        pass
+        if self.gas_molar_mass is not None:
+            self.gas_molar_mass = float(self.gas_molar_mass)
 
 
 @dataclass
