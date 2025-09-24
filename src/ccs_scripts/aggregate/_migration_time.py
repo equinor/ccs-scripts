@@ -13,8 +13,8 @@ def generate_migration_time_property(
 ) -> xtgeo.GridProperty:
     """
     Calculates a 3D grid property reflecting the migration time. Migration time is
-    defined as the first time step at which the property value exceeds the provided
-    `lower_threshold`.
+    defined as the first time step at which the property value exceeds its initial
+    condition
     """
     # Calculate time since simulation start
     times = [datetime.datetime.strptime(_prop.date, "%Y%m%d") for _prop in co2_props]
