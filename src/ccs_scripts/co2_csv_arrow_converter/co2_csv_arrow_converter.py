@@ -247,7 +247,12 @@ def _read_data_frame_from_arrow(arrow_path: Path) -> pd.DataFrame:
     return table.to_pandas()
 
 
-def main():
+def main(argv=None):
+    """Main entry point for CLI.
+    
+    Args:
+        argv: List of command-line arguments (for testing). If None, uses sys.argv.
+    """
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -334,7 +339,7 @@ def main():
         help="Show what would be converted without performing actual conversions",
     )
     
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     
     # Validate arguments
     if args.src and not args.root_dir:
