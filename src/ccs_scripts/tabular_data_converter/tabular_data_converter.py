@@ -10,11 +10,10 @@ from typing import List, Optional, Union
 import pandas as pd
 import pyarrow as pa
 
-from ccs_scripts.utils.utils import format_error
-
 
 class DataFormat(Enum):
     """Supported data formats."""
+
     CSV = "csv"
     ARROW = "arrow"
 
@@ -48,18 +47,18 @@ def convert_tabular_data(
 ) -> bool:
     """
     Convert tabular data between different formats.
-    
+
     Args:
         src_path: Path to source file
         dst_path: Path to destination file
         src_format: Source format (auto-detected from extension if None)
         dst_format: Destination format (auto-detected from extension if None)
         date_column: Name of the date column for aggregation
-        aggregation_columns: Columns to group by for aggregation (enables aggregation if provided)
+        aggregation_columns: Columns to group by for aggregation (enables aggregation)
         amount_column: Column to sum when aggregating
         overwrite: Whether to overwrite existing destination file
         skip_if_missing: Whether to silently skip if source file doesn't exist
-        
+
     Returns:
         True if conversion was performed, False otherwise
     """
@@ -69,20 +68,20 @@ def convert_tabular_data(
             return False
         else:
             raise FileNotFoundError(f"Source file not found: {src_path}")
-    
+
     # Check if destination exists and overwrite policy
     if dst_path.exists() and not overwrite:
         return False
-    
+
     # Auto-detect formats if not specified
     if src_format is None:
         src_format = DataFormat.from_path(src_path)
     if dst_format is None:
         dst_format = DataFormat.from_path(dst_path)
-    
+
     # Ensure destination directory exists
     dst_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Load data based on source format
     if src_format == DataFormat.CSV:
         df = pd.read_csv(src_path)
@@ -90,15 +89,15 @@ def convert_tabular_data(
         df = _read_data_frame_from_arrow(src_path)
     else:
         raise ValueError(f"Unsupported source format: {src_format}")
-    
+
     # Apply aggregation if requested
     if aggregation_columns is not None:
         df = _aggregate_by_date(df, date_column, aggregation_columns, amount_column)
-    
+
     # Normalize date column name for Arrow format
     if dst_format == DataFormat.ARROW and date_column in df.columns:
         df = df.rename(columns={date_column: "DATE"})
-    
+
     # Save data based on destination format
     if dst_format == DataFormat.CSV:
         df.to_csv(dst_path, index=False)
@@ -106,7 +105,7 @@ def convert_tabular_data(
         _write_data_frame_to_arrow(df, dst_path)
     else:
         raise ValueError(f"Unsupported destination format: {dst_format}")
-    
+
     return True
 
 
@@ -118,23 +117,23 @@ def _aggregate_by_date(
 ) -> pd.DataFrame:
     """
     Aggregate data by date and specified columns.
-    
+
     Groups data by date and aggregation columns, summing the amount column
     for each combination. Creates new columns with names like 'amount--key1--key2'.
-    
+
     Args:
         df: Source DataFrame
         date_column: Name of the date column
         aggregation_columns: Columns to group by
         amount_column: Column to sum
-        
+
     Returns:
         Aggregated DataFrame
     """
     entries = []
     for date, date_group in df.groupby(date_column):
         data = {date_column: date}
-        
+
         for keys, group in date_group.groupby(aggregation_columns):
             # Create column name from grouping keys
             if isinstance(keys, tuple):
@@ -142,9 +141,9 @@ def _aggregate_by_date(
             else:
                 column_name = f"{amount_column}--{keys}"
             data[column_name] = group[amount_column].sum()
-        
+
         entries.append(data)
-    
+
     return pd.DataFrame(entries)
 
 
@@ -161,7 +160,7 @@ def batch_convert_in_directory(
 ) -> int:
     """
     Batch convert files matching a pattern in a directory.
-    
+
     Args:
         root_dir: Root directory to search for files
         src_pattern: Glob pattern for source files (e.g., "**/*.csv")
@@ -172,16 +171,16 @@ def batch_convert_in_directory(
         amount_column: Column to sum when aggregating
         overwrite: Whether to overwrite existing files
         skip_if_missing: Whether to skip missing files
-        
+
     Returns:
         Number of files converted
     """
     if isinstance(dst_format, str):
         dst_format = DataFormat(dst_format.lower())
-    
+
     dst_ext = "." + dst_format.value
     conversions = 0
-    
+
     for src_path in root_dir.glob(src_pattern):
         if src_path.is_file():
             # Generate destination path
@@ -190,7 +189,7 @@ def batch_convert_in_directory(
             else:
                 dst_name = src_path.stem + dst_ext
             dst_path = src_path.parent / dst_name
-            
+
             if convert_tabular_data(
                 src_path=src_path,
                 dst_path=dst_path,
@@ -202,11 +201,8 @@ def batch_convert_in_directory(
             ):
                 conversions += 1
                 print(f"Converted: {src_path} -> {dst_path}")
-    
+
     return conversions
-
-
-
 
 
 def _write_data_frame_to_arrow(df: pd.DataFrame, arrow_path: Path) -> None:
@@ -249,22 +245,25 @@ def _read_data_frame_from_arrow(arrow_path: Path) -> pd.DataFrame:
 
 def main(argv=None):
     """Main entry point for CLI.
-    
+
     Args:
         argv: List of command-line arguments (for testing). If None, uses sys.argv.
     """
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Convert tabular data between CSV and Arrow formats with optional aggregation.",
-        epilog="Examples:\n"
-               "  tabular_data_converter realization-dir/share/results/tables/data.csv --dst realization-dir/share/results/tables/data.arrow\n"
-               "  tabular_data_converter realization-dir/share/results/tables/data.csv --format arrow\n"
-               "  tabular_data_converter realization-dir/share/results/tables/data.csv --format arrow --aggregate-columns phase,zone\n"
-               "  tabular_data_converter --root-dir realization-dir --src-pattern '**/*.csv' --format arrow",
+        description=(
+            "Convert tabular data between CSV and Arrow formats with optional "
+            "aggregation."
+        ),
+        epilog="Examples:\n"  # noqa: E501
+        "  tabular_data_converter realization-dir/share/results/tables/data.csv --dst realization-dir/share/results/tables/data.arrow\n"  # noqa: E501
+        "  tabular_data_converter realization-dir/share/results/tables/data.csv --format arrow\n"  # noqa: E501
+        "  tabular_data_converter realization-dir/share/results/tables/data.csv --format arrow --aggregate-columns phase,zone\n"  # noqa: E501
+        "  tabular_data_converter --root-dir realization-dir --src-pattern '**/*.csv' --format arrow",  # noqa: E501
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    
+
     # Main input/output arguments
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
@@ -278,7 +277,7 @@ def main(argv=None):
         type=Path,
         help="Root directory for batch processing",
     )
-    
+
     parser.add_argument(
         "--dst",
         type=Path,
@@ -294,7 +293,7 @@ def main(argv=None):
         choices=["csv", "arrow"],
         help="Source format (auto-detected if not specified)",
     )
-    
+
     # Batch processing options
     parser.add_argument(
         "--src-pattern",
@@ -305,7 +304,7 @@ def main(argv=None):
         "--dst-suffix",
         help="Suffix to add to destination filenames in batch mode",
     )
-    
+
     # Data processing options
     parser.add_argument(
         "--date-column",
@@ -314,14 +313,20 @@ def main(argv=None):
     )
     parser.add_argument(
         "--aggregate-columns",
-        help="Comma-separated list of columns to group by for aggregation (enables aggregation)",
+        help=(
+            "Comma-separated list of columns to group by for aggregation (enables "
+            "aggregation)"
+        ),
     )
     parser.add_argument(
         "--amount-column",
         default="amount",
-        help="Name of the amount/value column to sum during aggregation (default: amount)",
+        help=(
+            "Name of the amount/value column to sum during aggregation (default: "
+            "amount)"
+        ),
     )
-    
+
     # Control options
     parser.add_argument(
         "--overwrite",
@@ -338,38 +343,42 @@ def main(argv=None):
         action="store_true",
         help="Show what would be converted without performing actual conversions",
     )
-    
+
     args = parser.parse_args(argv)
-    
+
     # Validate arguments
     if args.src and not args.root_dir:
         # Single file mode
         if not args.dst and not args.format:
             parser.error("Either --dst or --format must be provided")
-        
+
         # Generate destination path if only format provided
         if not args.dst:
             args.dst = args.src.with_suffix(f".{args.format}")
-        
+
         if not args.src.exists() and not args.no_skip_missing:
             print(f"Source file not found: {args.src}")
             return
-    
+
     elif args.root_dir:
         # Batch mode
         if not args.format:
             parser.error("--format is required in batch mode")
-        
+
         if not args.root_dir.exists():
             parser.error(f"Root directory does not exist: {args.root_dir}")
-    
+
     # Parse aggregation columns
     aggregation_columns = None
     if args.aggregate_columns:
-        aggregation_columns = [col.strip() for col in args.aggregate_columns.split(",") if col.strip()]
+        aggregation_columns = [
+            col.strip() for col in args.aggregate_columns.split(",") if col.strip()
+        ]
         if not aggregation_columns:
-            parser.error("At least one column must be specified for --aggregate-columns")
-    
+            parser.error(
+                "At least one column must be specified for --aggregate-columns"
+            )
+
     # Dry run output
     if args.dry_run:
         if args.src:
@@ -383,13 +392,13 @@ def main(argv=None):
             if aggregation_columns:
                 print(f"DRY RUN: Would aggregate by columns: {aggregation_columns}")
         return
-    
+
     try:
         if args.src:
             # Single file conversion
             src_format = DataFormat(args.src_format) if args.src_format else None
             dst_format = DataFormat(args.format) if args.format else None
-            
+
             success = convert_tabular_data(
                 src_path=args.src,
                 dst_path=args.dst,
@@ -401,12 +410,12 @@ def main(argv=None):
                 overwrite=args.overwrite,
                 skip_if_missing=not args.no_skip_missing,
             )
-            
+
             if success:
                 print(f"Converted: {args.src} -> {args.dst}")
             else:
                 print(f"No conversion needed or file already exists: {args.src}")
-        
+
         else:
             # Batch conversion
             conversions = batch_convert_in_directory(
@@ -420,9 +429,9 @@ def main(argv=None):
                 overwrite=args.overwrite,
                 skip_if_missing=not args.no_skip_missing,
             )
-            
+
             print(f"Batch processing completed: {conversions} files converted")
-    
+
     except Exception as e:
         parser.error(f"Conversion failed: {e}")
 
