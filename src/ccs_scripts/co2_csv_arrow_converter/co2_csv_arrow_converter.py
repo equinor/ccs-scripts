@@ -1,11 +1,11 @@
-# This scripts checks all FMU realizations for missing arrow or csv files
-# representing plume extent, area or containment data. If one exists, but
-# not the other, it will create the missing file.
+# General-purpose tabular data format converter
+# Converts between CSV and Arrow formats with optional date-based aggregation.
+# Supports flexible input/output specification and batch processing.
 
 import datetime
 from enum import Enum
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Union
 
 import pandas as pd
 import pyarrow as pa
@@ -13,120 +13,200 @@ import pyarrow as pa
 from ccs_scripts.utils.utils import format_error
 
 
-def try_convert_csv_to_arrow(
-    csv_path: Path,
-    arrow_path: Path,
-    force_overwrite: bool = False,
+class DataFormat(Enum):
+    """Supported data formats."""
+    CSV = "csv"
+    ARROW = "arrow"
+
+    @classmethod
+    def from_extension(cls, ext: str) -> "DataFormat":
+        """Get format from file extension."""
+        ext = ext.lower().lstrip(".")
+        if ext == "csv":
+            return cls.CSV
+        elif ext in ("arrow", "ipc"):
+            return cls.ARROW
+        else:
+            raise ValueError(f"Unsupported file extension: {ext}")
+
+    @classmethod
+    def from_path(cls, path: Path) -> "DataFormat":
+        """Get format from file path extension."""
+        return cls.from_extension(path.suffix)
+
+
+def convert_tabular_data(
+    src_path: Path,
+    dst_path: Path,
+    src_format: Optional[DataFormat] = None,
+    dst_format: Optional[DataFormat] = None,
+    date_column: str = "date",
+    aggregation_columns: Optional[List[str]] = None,
+    amount_column: str = "amount",
+    overwrite: bool = False,
+    skip_if_missing: bool = True,
 ) -> bool:
     """
-    Convert a CSV file to an Arrow file if the Arrow file does not exist or
-    if the force_overwrite flag is set to True.
+    Convert tabular data between different formats.
+    
+    Args:
+        src_path: Path to source file
+        dst_path: Path to destination file
+        src_format: Source format (auto-detected from extension if None)
+        dst_format: Destination format (auto-detected from extension if None)
+        date_column: Name of the date column for aggregation
+        aggregation_columns: Columns to group by for aggregation (enables aggregation if provided)
+        amount_column: Column to sum when aggregating
+        overwrite: Whether to overwrite existing destination file
+        skip_if_missing: Whether to silently skip if source file doesn't exist
+        
+    Returns:
+        True if conversion was performed, False otherwise
     """
-    if not csv_path.exists():
+    # Check if source exists
+    if not src_path.exists():
+        if skip_if_missing:
+            return False
+        else:
+            raise FileNotFoundError(f"Source file not found: {src_path}")
+    
+    # Check if destination exists and overwrite policy
+    if dst_path.exists() and not overwrite:
         return False
-    if arrow_path.exists() and not force_overwrite:
-        return False
-
-    df = pd.read_csv(csv_path).rename(columns={"date": "DATE"})
-    _write_data_frame_to_arrow(df, arrow_path)
+    
+    # Auto-detect formats if not specified
+    if src_format is None:
+        src_format = DataFormat.from_path(src_path)
+    if dst_format is None:
+        dst_format = DataFormat.from_path(dst_path)
+    
+    # Ensure destination directory exists
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Load data based on source format
+    if src_format == DataFormat.CSV:
+        df = pd.read_csv(src_path)
+    elif src_format == DataFormat.ARROW:
+        df = _read_data_frame_from_arrow(src_path)
+    else:
+        raise ValueError(f"Unsupported source format: {src_format}")
+    
+    # Apply aggregation if requested
+    if aggregation_columns is not None:
+        df = _aggregate_by_date(df, date_column, aggregation_columns, amount_column)
+    
+    # Normalize date column name for Arrow format
+    if dst_format == DataFormat.ARROW and date_column in df.columns:
+        df = df.rename(columns={date_column: "DATE"})
+    
+    # Save data based on destination format
+    if dst_format == DataFormat.CSV:
+        df.to_csv(dst_path, index=False)
+    elif dst_format == DataFormat.ARROW:
+        _write_data_frame_to_arrow(df, dst_path)
+    else:
+        raise ValueError(f"Unsupported destination format: {dst_format}")
+    
     return True
 
 
-def try_convert_arrow_to_csv(
-    csv_path: Path,
-    arrow_path: Path,
-    force_overwrite: bool = False,
-) -> bool:
+def _aggregate_by_date(
+    df: pd.DataFrame,
+    date_column: str,
+    aggregation_columns: List[str],
+    amount_column: str,
+) -> pd.DataFrame:
     """
-    Convert an Arrow file to a CSV file if the CSV file does not exist or
-    if the force_overwrite flag is set to True.
+    Aggregate data by date and specified columns.
+    
+    Groups data by date and aggregation columns, summing the amount column
+    for each combination. Creates new columns with names like 'amount--key1--key2'.
+    
+    Args:
+        df: Source DataFrame
+        date_column: Name of the date column
+        aggregation_columns: Columns to group by
+        amount_column: Column to sum
+        
+    Returns:
+        Aggregated DataFrame
     """
-    if not arrow_path.exists():
-        return False
-    if csv_path.exists() and not force_overwrite:
-        return False
-
-    df = _read_data_frame_from_arrow(arrow_path)
-    df.to_csv(csv_path, index=False)
-    return True
-
-
-def try_convert_containment_csv_to_arrow(
-    csv_path: Path,
-    arrow_path: Path,
-    kept_columns: List[str],
-    force_overwrite: bool = False,
-) -> bool:
-    """
-    Convert a CSV file to an Arrow file for containment data if the Arrow
-    file does not exist or if the force_overwrite flag is set to True.
-    The CSV file is expected to have a "date" column and an "amount" column.
-    The Arrow file will have a "DATE" column and one column for each unique
-    combination of the kept columns, with the sum of the "amount" column
-    for each combination.
-    """
-    if not csv_path.exists():
-        return False
-    if arrow_path.exists() and not force_overwrite:
-        return False
-
-    raw_df = pd.read_csv(csv_path)
     entries = []
-    for date, gf0 in raw_df.groupby("date"):
-        data = {
-            "DATE": date,
-        }
-        for keys, gf1 in gf0.groupby(kept_columns):
-            data["amount--" + "--".join(keys)] = gf1["amount"].sum()
+    for date, date_group in df.groupby(date_column):
+        data = {date_column: date}
+        
+        for keys, group in date_group.groupby(aggregation_columns):
+            # Create column name from grouping keys
+            if isinstance(keys, tuple):
+                column_name = f"{amount_column}--" + "--".join(str(k) for k in keys)
+            else:
+                column_name = f"{amount_column}--{keys}"
+            data[column_name] = group[amount_column].sum()
+        
         entries.append(data)
-
-    df = pd.DataFrame(entries)
-    _write_data_frame_to_arrow(df, arrow_path)
-    return True
+    
+    return pd.DataFrame(entries)
 
 
-def apply_to_realizations(
+def batch_convert_in_directory(
     root_dir: Path,
-    kept_columns: List[str],
-    overwrite_arrow: bool = False,
-    overwrite_csv: bool = False,
-) -> None:
+    src_pattern: str,
+    dst_format: Union[str, DataFormat],
+    dst_suffix: Optional[str] = None,
+    date_column: str = "date",
+    aggregation_columns: Optional[List[str]] = None,
+    amount_column: str = "amount",
+    overwrite: bool = False,
+    skip_if_missing: bool = True,
+) -> int:
     """
-    The function will create missing Arrow files for CSV files and vice versa.
-    The overwrite_arrow and overwrite_csv flags control whether existing files
-    should be overwritten. realization_pattern can be provided to specify
-    a glob pattern for the realization directories. If "falsy", it defaults to
-    processing only the root_dir.
+    Batch convert files matching a pattern in a directory.
+    
+    Args:
+        root_dir: Root directory to search for files
+        src_pattern: Glob pattern for source files (e.g., "**/*.csv")
+        dst_format: Destination format ("csv" or "arrow")
+        dst_suffix: Optional suffix to add to destination filename
+        date_column: Name of date column for aggregation
+        aggregation_columns: Columns to group by (enables aggregation if provided)
+        amount_column: Column to sum when aggregating
+        overwrite: Whether to overwrite existing files
+        skip_if_missing: Whether to skip missing files
+        
+    Returns:
+        Number of files converted
     """
-    assert not overwrite_csv or not overwrite_arrow
-    # Extract paths for CSV and Arrow files
-    csv_path_1 = _get_csv_path(root_dir, _FileType.PLUME_EXTENT)
-    csv_path_2 = _get_csv_path(root_dir, _FileType.PLUME_AREA)
-    csv_path_3 = _get_csv_path(root_dir, _FileType.CONTAINMENT)
-    arrow_path_1 = _get_arrow_path(root_dir, _FileType.PLUME_EXTENT)
-    arrow_path_2 = _get_arrow_path(root_dir, _FileType.PLUME_AREA)
-    arrow_path_3 = _get_arrow_path(root_dir, _FileType.CONTAINMENT)
-
+    if isinstance(dst_format, str):
+        dst_format = DataFormat(dst_format.lower())
+    
+    dst_ext = "." + dst_format.value
     conversions = 0
-    # Try creating missing Arrow files for all realizations
-    conversions += try_convert_csv_to_arrow(csv_path_1, arrow_path_1, overwrite_arrow)
-    conversions += try_convert_csv_to_arrow(csv_path_2, arrow_path_2, overwrite_arrow)
-    conversions += try_convert_containment_csv_to_arrow(
-        csv_path_3, arrow_path_3, kept_columns, overwrite_arrow
-    )
+    
+    for src_path in root_dir.glob(src_pattern):
+        if src_path.is_file():
+            # Generate destination path
+            if dst_suffix:
+                dst_name = src_path.stem + dst_suffix + dst_ext
+            else:
+                dst_name = src_path.stem + dst_ext
+            dst_path = src_path.parent / dst_name
+            
+            if convert_tabular_data(
+                src_path=src_path,
+                dst_path=dst_path,
+                date_column=date_column,
+                aggregation_columns=aggregation_columns,
+                amount_column=amount_column,
+                overwrite=overwrite,
+                skip_if_missing=skip_if_missing,
+            ):
+                conversions += 1
+                print(f"Converted: {src_path} -> {dst_path}")
+    
+    return conversions
 
-    # Try creating missing CSV files for all realizations
-    conversions += try_convert_arrow_to_csv(csv_path_1, arrow_path_1, overwrite_csv)
-    conversions += try_convert_arrow_to_csv(csv_path_2, arrow_path_2, overwrite_csv)
-    # No conversion for containment data from Arrow to CSV yet
-
-    print(f"Processed {root_dir}: {conversions} conversions made.")
 
 
-class _FileType(Enum):
-    PLUME_EXTENT = "plume_extent"
-    PLUME_AREA = "plume_area"
-    CONTAINMENT = "containment"
 
 
 def _write_data_frame_to_arrow(df: pd.DataFrame, arrow_path: Path) -> None:
@@ -161,23 +241,6 @@ def _write_data_frame_to_arrow(df: pd.DataFrame, arrow_path: Path) -> None:
         writer.write_table(table)
 
 
-def _get_csv_path(realization_dir: Path, file_type: _FileType) -> Path:
-    full_path = realization_dir / "share" / "results" / "tables"
-    if file_type == _FileType.PLUME_EXTENT:
-        full_path = full_path / "plume_extent.csv"
-    elif file_type == _FileType.PLUME_AREA:
-        full_path = full_path / "plume_area.csv"
-    elif file_type == _FileType.CONTAINMENT:
-        full_path = full_path / "plume_mass.csv"
-    else:
-        raise ValueError(format_error(f"Unknown file type: {file_type}"))
-    return full_path
-
-
-def _get_arrow_path(realization_dir: Path, file_type: _FileType) -> Path:
-    return _get_csv_path(realization_dir, file_type).with_suffix(".arrow")
-
-
 def _read_data_frame_from_arrow(arrow_path: Path) -> pd.DataFrame:
     with pa.ipc.open_file(arrow_path) as f:
         table = f.read_all()
@@ -188,39 +251,175 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Create missing Arrow/CSV files for FMU realizations"
+        description="Convert tabular data between CSV and Arrow formats with optional aggregation.",
+        epilog="Examples:\n"
+               "  tabular_data_converter realization-dir/share/results/tables/data.csv --dst realization-dir/share/results/tables/data.arrow\n"
+               "  tabular_data_converter realization-dir/share/results/tables/data.csv --format arrow\n"
+               "  tabular_data_converter realization-dir/share/results/tables/data.csv --format arrow --aggregate-columns phase,zone\n"
+               "  tabular_data_converter --root-dir realization-dir --src-pattern '**/*.csv' --format arrow",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument(
-        "--root_dir",
+    
+    # Main input/output arguments
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "src",
+        nargs="?",
         type=Path,
-        help="Root directory for the conversions",
-        default=Path(".").resolve(),
+        help="Source file to convert",
+    )
+    group.add_argument(
+        "--root-dir",
+        type=Path,
+        help="Root directory for batch processing",
+    )
+    
+    parser.add_argument(
+        "--dst",
+        type=Path,
+        help="Destination file (format inferred from extension)",
     )
     parser.add_argument(
-        "--kept_columns",
-        type=str,
-        help="Comma-separated list of columns to keep when converting containment data",
-        default="phase,containment",
+        "--format",
+        choices=["csv", "arrow"],
+        help="Output format (required if --dst not provided)",
     )
     parser.add_argument(
-        "--force_arrow_overwrite",
-        type=bool,
-        default=False,
-        help="Overwrite existing Arrow files even if they already exist",
+        "--src-format",
+        choices=["csv", "arrow"],
+        help="Source format (auto-detected if not specified)",
+    )
+    
+    # Batch processing options
+    parser.add_argument(
+        "--src-pattern",
+        default="**/*.csv",
+        help="Glob pattern for source files in batch mode (default: **/*.csv)",
     )
     parser.add_argument(
-        "--force_csv_overwrite",
-        type=bool,
-        default=False,
-        help="Overwrite existing CSV files even if they already exist",
+        "--dst-suffix",
+        help="Suffix to add to destination filenames in batch mode",
     )
+    
+    # Data processing options
+    parser.add_argument(
+        "--date-column",
+        default="date",
+        help="Name of the date column (default: date)",
+    )
+    parser.add_argument(
+        "--aggregate-columns",
+        help="Comma-separated list of columns to group by for aggregation (enables aggregation)",
+    )
+    parser.add_argument(
+        "--amount-column",
+        default="amount",
+        help="Name of the amount/value column to sum during aggregation (default: amount)",
+    )
+    
+    # Control options
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing destination files",
+    )
+    parser.add_argument(
+        "--no-skip-missing",
+        action="store_true",
+        help="Fail if source files are missing (default: skip missing files)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be converted without performing actual conversions",
+    )
+    
     args = parser.parse_args()
-    apply_to_realizations(
-        args.root_dir,
-        args.kept_columns.split(","),
-        args.force_arrow_overwrite,
-        args.force_csv_overwrite,
-    )
+    
+    # Validate arguments
+    if args.src and not args.root_dir:
+        # Single file mode
+        if not args.dst and not args.format:
+            parser.error("Either --dst or --format must be provided")
+        
+        # Generate destination path if only format provided
+        if not args.dst:
+            args.dst = args.src.with_suffix(f".{args.format}")
+        
+        if not args.src.exists() and not args.no_skip_missing:
+            print(f"Source file not found: {args.src}")
+            return
+    
+    elif args.root_dir:
+        # Batch mode
+        if not args.format:
+            parser.error("--format is required in batch mode")
+        
+        if not args.root_dir.exists():
+            parser.error(f"Root directory does not exist: {args.root_dir}")
+    
+    # Parse aggregation columns
+    aggregation_columns = None
+    if args.aggregate_columns:
+        aggregation_columns = [col.strip() for col in args.aggregate_columns.split(",") if col.strip()]
+        if not aggregation_columns:
+            parser.error("At least one column must be specified for --aggregate-columns")
+    
+    # Dry run output
+    if args.dry_run:
+        if args.src:
+            print(f"DRY RUN: Would convert {args.src} -> {args.dst}")
+            if aggregation_columns:
+                print(f"DRY RUN: Would aggregate by columns: {aggregation_columns}")
+        else:
+            print(f"DRY RUN: Would batch convert in {args.root_dir}")
+            print(f"DRY RUN: Pattern: {args.src_pattern}")
+            print(f"DRY RUN: Output format: {args.format}")
+            if aggregation_columns:
+                print(f"DRY RUN: Would aggregate by columns: {aggregation_columns}")
+        return
+    
+    try:
+        if args.src:
+            # Single file conversion
+            src_format = DataFormat(args.src_format) if args.src_format else None
+            dst_format = DataFormat(args.format) if args.format else None
+            
+            success = convert_tabular_data(
+                src_path=args.src,
+                dst_path=args.dst,
+                src_format=src_format,
+                dst_format=dst_format,
+                date_column=args.date_column,
+                aggregation_columns=aggregation_columns,
+                amount_column=args.amount_column,
+                overwrite=args.overwrite,
+                skip_if_missing=not args.no_skip_missing,
+            )
+            
+            if success:
+                print(f"Converted: {args.src} -> {args.dst}")
+            else:
+                print(f"No conversion needed or file already exists: {args.src}")
+        
+        else:
+            # Batch conversion
+            conversions = batch_convert_in_directory(
+                root_dir=args.root_dir,
+                src_pattern=args.src_pattern,
+                dst_format=args.format,
+                dst_suffix=args.dst_suffix,
+                date_column=args.date_column,
+                aggregation_columns=aggregation_columns,
+                amount_column=args.amount_column,
+                overwrite=args.overwrite,
+                skip_if_missing=not args.no_skip_missing,
+            )
+            
+            print(f"Batch processing completed: {conversions} files converted")
+    
+    except Exception as e:
+        parser.error(f"Conversion failed: {e}")
 
 
 if __name__ == "__main__":
