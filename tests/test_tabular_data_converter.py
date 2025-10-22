@@ -6,7 +6,7 @@ import pandas as pd
 import pyarrow as pa
 from pytest import fixture
 
-from ccs_scripts.co2_csv_arrow_converter.co2_csv_arrow_converter import (
+from ccs_scripts.tabular_data_converter.tabular_data_converter import (
     DataFormat,
     convert_tabular_data,
     batch_convert_in_directory,
@@ -366,7 +366,6 @@ def test_cli_batch_processing(mock_data_frame):
 
 def test_cli_dry_run(mock_data_frame, capsys):
     """Test CLI: tabular_data_converter data.csv --format arrow --dry-run"""
-    from ccs_scripts.co2_csv_arrow_converter.co2_csv_arrow_converter import main
     
     with tempfile.TemporaryDirectory() as temp_dir:
         tables_dir = Path(temp_dir) / "realization-dir" / "share" / "results" / "tables"
