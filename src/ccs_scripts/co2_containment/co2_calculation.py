@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
+import pandas as pd
 import xtgeo
 from resdata.grid import Grid
 from resdata.resfile import ResdataFile
@@ -190,6 +191,29 @@ class RegionInfo:
     int_to_region: Optional[List[Optional[str]]]
     property_name: Optional[str]
 
+def _extract_molar_masses(
+        cirrus_info_file: str
+):
+    """
+
+    Args:
+        cirrus_input_file (str):
+
+    Returns: (float, float)
+
+    """
+    info_data = pd.read_csv(cirrus_info_file)
+    gas_molar_mass = info_data.loc[info_data["Mnemonic"] == "MWG", "Value"].iloc[0]
+    gas_molar_mass_units = info_data.loc[info_data["Mnemonic"] == "MWG", "Units"].iloc[0]
+    oil_molar_mass = info_data.loc[info_data["Mnemonic"] == "MWO", "Value"].iloc[0]
+    oil_molar_mass_units = info_data.loc[info_data["Mnemonic"] == "MWO", "Units"].iloc[0]
+
+    ##NBNB: Work on units stuff
+
+    gas_molar_mass_dict = {"mass": gas_molar_mass, "units": gas_molar_mass_units}
+
+    return gas_molar_mass, oil_molar_mass
+
 
 def _detect_eclipse_mole_fraction_props(
     unrst_file: str,
@@ -290,6 +314,7 @@ def _extract_source_data(
       init_file (str): Path to INIT-file
       zone_info (ZoneInfo): Zone information
       region_info (Dict): Region information
+      cirrus_info_file: Path to Cirrus input file
 
     Returns:
       SourceData
@@ -1533,8 +1558,7 @@ def calculate_co2(
     residual_trapping: bool = False,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
-    gas_molar_mass: Optional[float] = None,
-    oil_molar_mass: Optional[float] = None,
+    cirrus_info_file: Optional[str] = None,
 ) -> Co2Data:
     """
     Calculates the desired amount (calc_type_input) of CO2
@@ -1547,10 +1571,7 @@ def calculate_co2(
       zone_info (ZoneInfo): Zone information
       region_info (RegionInfo): Region information
       residual_trapping (bool): Calculate residual trapping or not
-      gas_molar_mass (float): Hydrocarbon gas molar mass (Applies for cases with more
-            than two components)
-      oil_molar_mass (float): Oil molar mass (Applies for cases with more than two
-            components)
+      cirrus_info_file (str):
 
     Returns:
       CO2Data
@@ -1574,6 +1595,9 @@ def calculate_co2(
     calc_type = _set_calc_type_from_input_string(calc_type_input)
 
     timer.start("calculate_co2")
+
+    gas_molar_mass, oil_molar_mass = _extract_molar_masses(cirrus_info_file)
+
     co2_data = _calculate_co2_data_from_source_data(
         source_data,
         calc_type=calc_type,
