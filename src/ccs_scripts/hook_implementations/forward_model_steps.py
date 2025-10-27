@@ -166,7 +166,7 @@ class Co2PlumeExtentStep(ForwardModelStepPlugin):
         )
 
 
-class Co2CsvArrowConverterStep(ForwardModelStepPlugin):
+class TabularDataConverterStep(ForwardModelStepPlugin):
     def __init__(self):
         # This FORWARD_MODEL is slightly different from the others, as it
         # does not provide individual keywords for every possible argument.
@@ -190,9 +190,9 @@ class Co2CsvArrowConverterStep(ForwardModelStepPlugin):
         # from the others, which may be confusing to users.
 
         super().__init__(
-            name="CO2_CSV_ARROW_CONVERTER",
+            name="TABULAR_DATA_CONVERTER",
             command=[
-                shutil.which("co2_csv_arrow_converter"),
+                shutil.which("tabular_data_converter"),
                 "--root_dir",
                 "<ROOT_DIR>",
                 "<OPTIONS>",
@@ -217,9 +217,9 @@ class Co2CsvArrowConverterStep(ForwardModelStepPlugin):
     @staticmethod
     def documentation() -> ForwardModelStepDocumentation:
         return ForwardModelStepDocumentation(
-            description=_DESC_CO2_CSV_ARROW_CONVERTER,
+            description=_DESC_TABULAR_DATA_CONVERTER,
             category=_CATEGORY,
-            examples=_EXAMPLES_CO2_CSV_ARROW_CONVERTER,
+            examples=_EXAMPLES_TABULAR_DATA_CONVERTER,
         )
 
 
@@ -391,10 +391,11 @@ YAML-file will be combined to a single CSV-file with many columns.
 """
 
 
-_DESC_CO2_CSV_ARROW_CONVERTER = """
-This scripts checks all FMU realizations for missing arrow or
-csv files representing plume extent, area or containment data. If one exists,
-but not the other, it will create the missing file.
+_DESC_TABULAR_DATA_CONVERTER = """
+General-purpose tabular data format converter for bidirectional conversion
+between CSV and Arrow formats. Handles plume extent, area, and containment
+data with optional date-based aggregation. Both file formats are useful as
+they serve different purposes in data workflows.
 """
 
 
@@ -415,20 +416,20 @@ produced. See tests/yaml for examples of yaml files.
 _DESC_GRID3D_MIGRATION_TIME = "Generate migration time property maps."
 
 
-_EXAMPLES_CO2_CSV_ARROW_CONVERTER = """
+_EXAMPLES_TABULAR_DATA_CONVERTER = """
 If running from the root directory of the project, the default parameters
 is probably what you want:
 
 .. code-block:: console
 
-  FORWARD_MODEL CO2_CSV_ARROW_CONVERTER()
+  FORWARD_MODEL TABULAR_DATA_CONVERTER()
 
 The root directory can be specified with the <ROOT_DIR> parameter, and more
 advanced options can be specified with the <OPTIONS> parameter. For example:
 
 .. code-block:: console
 
-  FORWARD_MODEL CO2_CSV_ARROW_CONVERTER(<ROOT_DIR>=/path/to/root, <OPTIONS>="--force_arrow_overwrite --realization_pattern=realization-*/iter-* --kept_columns=zone,plume_group")
+  FORWARD_MODEL TABULAR_DATA_CONVERTER(<ROOT_DIR>=/path/to/root, <OPTIONS>="--src-pattern '**/*.csv' --format arrow --aggregate-columns phase,zone")
 """  # noqa: E501
 
 
@@ -459,7 +460,7 @@ def installable_forward_model_steps() -> List[ForwardModelStepPlugin]:
         Co2ContainmentStep,
         Co2PlumeAreaStep,
         Co2PlumeExtentStep,
-        Co2CsvArrowConverterStep,
+        TabularDataConverterStep,
         Grid3dAggregateMapStep,
         Grid3dCo2MassMapStep,
         Grid3dMigrationTimeStep,
