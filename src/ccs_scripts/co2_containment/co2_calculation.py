@@ -191,29 +191,30 @@ class RegionInfo:
     int_to_region: Optional[List[Optional[str]]]
     property_name: Optional[str]
 
-def _extract_molar_masses(
-        cirrus_info_file: str
-):
+
+def _extract_molar_masses(cirrus_info_file: str):
     """
+    Extract gas and oil molar masses from a CSV file.
 
     Args:
-        cirrus_input_file (str):
+        cirrus_info_file (str): Path to the Cirrus info CSV file.
 
-    Returns: (float, float)
-
+    Returns:
+        tuple[float | None, float | None]: (gas_molar_mass, oil_molar_mass)
     """
     info_data = pd.read_csv(cirrus_info_file)
-    gas_molar_mass = info_data.loc[info_data["Mnemonic"] == "MWG", "Value"].iloc[0]
-    gas_molar_mass_units = info_data.loc[info_data["Mnemonic"] == "MWG", "Units"].iloc[0]
-    oil_molar_mass = info_data.loc[info_data["Mnemonic"] == "MWO", "Value"].iloc[0]
-    oil_molar_mass_units = info_data.loc[info_data["Mnemonic"] == "MWO", "Units"].iloc[0]
-
-    ##NBNB: Work on units stuff
-
-    gas_molar_mass_dict = {"mass": gas_molar_mass, "units": gas_molar_mass_units}
+    gas_molar_mass = None
+    oil_molar_mass = None
+    if "MWG" in info_data["Mnemonic"].values:
+        gas_molar_mass = info_data.loc[
+            info_data["Mnemonic"] == "MWG", "Value"
+        ].iloc[0]
+    if "MWO" in info_data["Mnemonic"].values:
+        oil_molar_mass = info_data.loc[
+            info_data["Mnemonic"] == "MWO", "Value"
+        ].iloc[0]
 
     return gas_molar_mass, oil_molar_mass
-
 
 def _detect_eclipse_mole_fraction_props(
     unrst_file: str,
