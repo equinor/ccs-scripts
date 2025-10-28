@@ -427,8 +427,8 @@ def get_parser() -> argparse.ArgumentParser:
         default="",
     )
     parser.add_argument(
-        "--gas_molar_mass",
-        help="Gas molar mass if working in COMP3/COMP4",
+        "--cirrus_info_file",
+        help="Path to Cirrus info file. Relevant for COMP3/4",
         default=None,
     )
 
