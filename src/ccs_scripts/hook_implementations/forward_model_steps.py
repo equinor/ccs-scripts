@@ -298,6 +298,7 @@ class Grid3dCo2MassMapStep(ForwardModelStepPlugin):
                 "<FOLDERROOT>": "-1",
                 "<NO_LOGGING>": "-1",
                 "<DEBUG>": "-1",
+                "<GAS_MOLAR_MASS>": "-1",
             },
             stderr_file="GRID3D_CO2_MASS_MAP.stderr",
             stdout_file="GRID3D_CO2_MASS_MAP.stdout",
