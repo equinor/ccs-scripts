@@ -94,8 +94,6 @@ def parse_arguments(arguments):
     parser.add_argument(
         "--cirrus_info_file",
         help="Path to Cirrus info file. Relevant for COMP3/4",
-        type=float,
-        nargs="?",
         default=None,
     )
 
