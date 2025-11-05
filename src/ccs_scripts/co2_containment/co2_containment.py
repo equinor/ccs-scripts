@@ -1045,7 +1045,9 @@ def prepare_writing_details(
     width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     phase_names = ["Free gas", "Trapped gas"] if residual_trapping else ["Gas"]
     phase_names += ["Dissolved water"]
-    phase_names += ["Dissolved oil"] if any("dissolved_oil" in col for col in df.columns) else []
+    phase_names += (
+        ["Dissolved oil"] if any("dissolved_oil" in col for col in df.columns) else []
+    )
     phase = "," + ",".join(f"{name:>{width}}" for name in phase_names)
     n_phase = 0 if calc_type == "cell_volume" else len(phase_names)
     details["num_phase"] = n_phase
