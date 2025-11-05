@@ -266,7 +266,7 @@ def _merge_date_rows(
             .rename(columns={"amount": "total"})
         )
         phases = ["free_gas", "trapped_gas"] if residual_trapping else ["gas"]
-        phases += ["dissolved"]
+        phases += ["dissolved_water"]
         # Total by phase
         for phase in phases:
             _df = (
