@@ -92,8 +92,8 @@ def parse_arguments(arguments):
         const=True,
     )
     parser.add_argument(
-        "--gas_molar_mass",
-        help="Predifinied gas molar mass (g/m3) for residual gas component",
+        "--cirrus_info_file",
+        help="Path to Cirrus info file. Relevant for COMP3/4",
         type=float,
         nargs="?",
         default=None,
@@ -117,8 +117,8 @@ def _replace_default_dummies_from_ert(args):
         args.no_logging = False
     if args.debug == "-1":
         args.debug = False
-    if args.gas_molar_mass == "-1":
-        args.gas_molar_mass = None
+    if args.cirrus_info_file == "-1":
+        args.cirrus_info_file = None
 
 
 def process_arguments(arguments, calc_type: Optional[str] = None) -> RootConfig:
@@ -146,7 +146,7 @@ def process_arguments(arguments, calc_type: Optional[str] = None) -> RootConfig:
         parsed_args.mapfolder,
         parsed_args.plotfolder,
         parsed_args.gridfolder,
-        parsed_args.gas_molar_mass,
+        parsed_args.cirrus_info_file,
         replacements,
         calc_type,
     )
@@ -160,7 +160,7 @@ def parse_yaml(
     map_folder: Optional[str],
     plot_folder: Optional[str],
     grid_folder: Optional[str],
-    gas_molar_mass: Optional[str],
+    cirrus_info_file: Optional[str],
     replacements: Dict[str, str],
     calc_type: Optional[str] = None,
 ) -> RootConfig:
@@ -171,9 +171,9 @@ def parse_yaml(
     config = load_yaml(yaml_file, map_folder, plot_folder, grid_folder, replacements)
     if (
         "co2_mass_settings" in config
-        and "gas_molar_mass" not in config["co2_mass_settings"]
+        and "cirrus_info_file" not in config["co2_mass_settings"]
     ):
-        config["co2_mass_settings"]["gas_molar_mass"] = gas_molar_mass
+        config["co2_mass_settings"]["cirrus_info_file"] = cirrus_info_file
     co2_mass_settings = (
         None
         if "co2_mass_settings" not in config

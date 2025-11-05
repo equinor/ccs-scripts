@@ -1146,7 +1146,6 @@ def _calculate_co2_data_from_source_data(
     logging.info(f"Scenario    : {scenario.name}")
     logging.info("Properties used in the calculations:")
     logging.info(f"    {', '.join(active_props)}")
-
     if calc_type in (CalculationType.ACTUAL_VOLUME, CalculationType.MASS):
         if scenario != Scenario.AQUIFER and gas_molar_mass is None:
             error_text = f"\nScenario: {scenario.name}."
@@ -1571,7 +1570,7 @@ def calculate_co2(
       zone_info (ZoneInfo): Zone information
       region_info (RegionInfo): Region information
       residual_trapping (bool): Calculate residual trapping or not
-      cirrus_info_file (str):
+      cirrus_info_file (str): Path to cirrus info file
 
     Returns:
       CO2Data
