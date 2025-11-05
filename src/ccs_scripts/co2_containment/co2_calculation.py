@@ -209,11 +209,10 @@ def _extract_molar_masses(cirrus_info_file: str):
         gas_molar_mass = info_data.loc[
             info_data["Mnemonic"] == "MWG", "Value"
         ].iloc[0]
-    if "MWO" in info_data["Mnemonic"].values:
+    if "MWO" in info_data["Mnemonic"].values: #NB: Does it exist?
         oil_molar_mass = info_data.loc[
             info_data["Mnemonic"] == "MWO", "Value"
         ].iloc[0]
-
     return gas_molar_mass, oil_molar_mass
 
 def _detect_eclipse_mole_fraction_props(
@@ -1156,10 +1155,10 @@ def _calculate_co2_data_from_source_data(
                 "hydrocarbon gas molar mass must be provided"
             )
             raise ValueError(format_error(error_text))
-        if scenario == Scenario.AQUIFER:
-            gas_molar_mass = None
-            oil_molar_mass = None
-
+        #NB: Ask if other units are expected
+        for name, value in [("gas", gas_molar_mass), ("oil", oil_molar_mass)]:
+            if value is not None:
+                logging.info(f"Found {name} molar mass: {value} g/mol")
         co2_amount = _calc_co2_amount(
             source,
             scenario,
