@@ -193,9 +193,9 @@ class RegionInfo:
 
 
 def _extract_molar_masses(
-    cirrus_info_file: str,
     source: str,
     scenario: Scenario,
+    cirrus_info_file: Optional[str] = None,
 ):
     """
     Extract gas and oil molar masses from a CSV file.
@@ -1149,7 +1149,7 @@ def _calculate_co2_data_from_source_data(
     pore_volume_prop = _find_pore_volume_prop(active_props)
     source, scenario = _find_source_and_scenario(residual_trapping, active_props)
     gas_molar_mass, oil_molar_mass = _extract_molar_masses(
-        cirrus_info_file, source, scenario
+        source, scenario, cirrus_info_file
     )
     logging.info("Found valid properties")
     logging.info(f"Data source : {source}")

@@ -82,8 +82,8 @@ def calculate_out_of_bounds_co2(
             and list connecting region-numbers to names, if available
         residual_trapping (bool): Indicate if residual trapping should be calculated
         inj_wells (List): Injection wells used for plume tracking
-        cirrus_info_file (str): Path to file with gas molar mass. (Applies for cases with more
-            than two components)
+        cirrus_info_file (str): Path to file with gas molar mass. (Applies for cases
+            with more than two components)
 
     Returns:
         pd.DataFrame

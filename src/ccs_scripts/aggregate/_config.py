@@ -97,7 +97,7 @@ class CO2MassSettings:
     init_source: str
     maps: Optional[List[str]] = None
     residual_trapping: bool = False
-    cirrus_info_file: Optional[float] = None
+    cirrus_info_file: Optional[str] = None
 
 
 @dataclass
