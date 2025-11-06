@@ -576,10 +576,6 @@ def check_input(arguments: argparse.Namespace):
         arguments.hazardous_polygon
     ):
         files_not_found.append(arguments.hazardous_polygon)
-    if arguments.cirrus_info_file is not None and not os.path.isfile(
-            arguments.cirrus_info_file
-    ):
-        files_not_found.append(arguments.cirrus_info_file)
     if files_not_found:
         error_text = "The following file(s) were not found:"
         for file in files_not_found:

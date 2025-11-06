@@ -192,27 +192,34 @@ class RegionInfo:
     property_name: Optional[str]
 
 
-def _extract_molar_masses(cirrus_info_file: str):
+def _extract_molar_masses(cirrus_info_file: str,
+                          source: str,
+                          scenario: Scenario,
+                          ):
     """
     Extract gas and oil molar masses from a CSV file.
 
     Args:
         cirrus_info_file (str): Path to the Cirrus info CSV file.
+        source: (str): Data source
+        scenario (Scenario): Which scenario co2 mass is computed for
+
 
     Returns:
         tuple[float | None, float | None]: (gas_molar_mass, oil_molar_mass)
     """
-    info_data = pd.read_csv(cirrus_info_file)
     gas_molar_mass = None
     oil_molar_mass = None
-    if "MWG" in info_data["Mnemonic"].values:
-        gas_molar_mass = info_data.loc[
-            info_data["Mnemonic"] == "MWG", "Value"
-        ].iloc[0]
-    if "MWO" in info_data["Mnemonic"].values: #NB: Does it exist?
-        oil_molar_mass = info_data.loc[
-            info_data["Mnemonic"] == "MWO", "Value"
-        ].iloc[0]
+    if source == "PFlotran" and scenario != Scenario.AQUIFER:
+        info_data = pd.read_csv(cirrus_info_file)
+        if "MWG" in info_data["Mnemonic"].values:
+            gas_molar_mass = info_data.loc[
+                info_data["Mnemonic"] == "MWG", "Value"
+            ].iloc[0]
+        if "MWO" in info_data["Mnemonic"].values: #NB: Does it exist?
+            oil_molar_mass = info_data.loc[
+                info_data["Mnemonic"] == "MWO", "Value"
+            ].iloc[0]
     return gas_molar_mass, oil_molar_mass
 
 def _detect_eclipse_mole_fraction_props(
@@ -1140,7 +1147,7 @@ def _calculate_co2_data_from_source_data(
 
     pore_volume_prop = _find_pore_volume_prop(active_props)
     source, scenario = _find_source_and_scenario(residual_trapping, active_props)
-
+    gas_molar_mass, oil_molar_mass = _extract_molar_masses(cirrus_info_file, source, scenario)
     logging.info("Found valid properties")
     logging.info(f"Data source : {source}")
     logging.info(f"Scenario    : {scenario.name}")
@@ -1595,14 +1602,12 @@ def calculate_co2(
 
     timer.start("calculate_co2")
 
-    gas_molar_mass, oil_molar_mass = _extract_molar_masses(cirrus_info_file)
 
     co2_data = _calculate_co2_data_from_source_data(
         source_data,
         calc_type=calc_type,
         residual_trapping=residual_trapping,
-        gas_molar_mass=gas_molar_mass,
-        oil_molar_mass=oil_molar_mass,
+        cirrus_info_file = cirrus_info_file,
     )
     timer.stop("calculate_co2")
     return co2_data
