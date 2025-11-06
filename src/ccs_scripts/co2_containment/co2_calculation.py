@@ -1111,8 +1111,7 @@ def _calculate_co2_data_from_source_data(
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
     residual_trapping: bool = False,
-    gas_molar_mass: Optional[float] = None,
-    oil_molar_mass: Optional[float] = None,
+    cirrus_info_file: Optional[str] = None,
 ) -> Co2Data:
     """
     Calculates a given calc_type (mass/cell_volume/actual_volume)
