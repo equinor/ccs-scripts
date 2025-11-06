@@ -100,7 +100,6 @@ class CO2MassSettings:
     cirrus_info_file: Optional[float] = None
 
 
-
 @dataclass
 class MapSettings:
     # pylint: disable=too-many-instance-attributes

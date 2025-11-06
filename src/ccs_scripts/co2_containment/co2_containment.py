@@ -506,7 +506,7 @@ def process_args() -> argparse.Namespace:
         "regionfile",
         "containment_polygon",
         "hazardous_polygon",
-        "cirrus_info_file"
+        "cirrus_info_file",
     ]
     for key in paths:
         if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
