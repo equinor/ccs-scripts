@@ -265,8 +265,11 @@ def _merge_date_rows(
             .drop(["phase", "containment"], axis=1)
             .rename(columns={"amount": "total"})
         )
+        df_phases = list(pd.unique(data_frame["phase"]))
+        df_phases = [name for name in df_phases if name not in ["all"]]
         phases = ["free_gas", "trapped_gas"] if residual_trapping else ["gas"]
-        phases += ["dissolved"]
+        phases += ["dissolved_water"]
+        phases += ["dissolved_oil"] if "dissolved_oil" in df_phases else []
         # Total by phase
         for phase in phases:
             _df = (
@@ -1040,13 +1043,13 @@ def prepare_writing_details(
     for column in details["numeric"]:
         df[column] /= 1e6
     width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
-    phase = (
-        f",{'Free gas':>{width}},{'Trapped gas':>{width}},{'Dissolved':>{width}}"
-        if residual_trapping
-        else f",{'Gas':>{width}},{'Dissolved':>{width}}"
+    phase_names = ["Free gas", "Trapped gas"] if residual_trapping else ["Gas"]
+    phase_names += ["Dissolved water"]
+    phase_names += (
+        ["Dissolved oil"] if any("dissolved_oil" in col for col in df.columns) else []
     )
-    n_phase = 0 if calc_type == "cell_volume" else 3 if residual_trapping else 2
-
+    phase = "," + ",".join(f"{name:>{width}}" for name in phase_names)
+    n_phase = 0 if calc_type == "cell_volume" else len(phase_names)
     details["num_phase"] = n_phase
     details["num_cols"] = 5 + 4 * n_phase
     details["blank"] = "," + " " * width
