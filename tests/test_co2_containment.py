@@ -194,8 +194,8 @@ def _get_synthetic_case_paths(case: str):
     containment_polygon = str(
         main_path / "share" / "results" / "polygons" / "containment--boundary.csv"
     )
-    hazardous_polygon = str(
-        main_path / "share" / "results" / "polygons" / "hazardous--boundary.csv"
+    nogo_polygon = str(
+        main_path / "share" / "results" / "polygons" / "nogo--boundary.csv"
     )
     output_dir = str(main_path / "share" / "results" / "tables")
     zone_file_path = str(main_path / "rms" / "zone" / "zonation_ecl_map.yml")
@@ -204,7 +204,7 @@ def _get_synthetic_case_paths(case: str):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         zone_file_path,
     )
@@ -228,7 +228,7 @@ def test_synthetic_case_eclipse_mass(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         zone_file_path,
     ) = _get_synthetic_case_paths("eclipse")
@@ -242,8 +242,8 @@ def test_synthetic_case_eclipse_mass(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
         "--zonefile",
         zone_file_path,
         "--region_property",
@@ -275,7 +275,7 @@ def test_synthetic_case_eclipse_actual_volume(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         zone_file_path,
     ) = _get_synthetic_case_paths("eclipse")
@@ -290,8 +290,8 @@ def test_synthetic_case_eclipse_actual_volume(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
         "--zonefile",
         zone_file_path,
         "--region_property",
@@ -328,7 +328,7 @@ def test_synthetic_case_eclipse_cell_volume(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         zone_file_path,
     ) = _get_synthetic_case_paths("eclipse")
@@ -343,8 +343,8 @@ def test_synthetic_case_eclipse_cell_volume(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
         "--zonefile",
         zone_file_path,
         "--region_property",
@@ -381,7 +381,7 @@ def test_synthetic_case_eclipse_mass_no_zones(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         dummy,
     ) = _get_synthetic_case_paths("eclipse")
@@ -395,8 +395,8 @@ def test_synthetic_case_eclipse_mass_no_zones(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
         "--region_property",
         REGION_PROPERTY,
     ]
@@ -429,7 +429,7 @@ def test_synthetic_case_eclipse_mass_no_regions(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         zone_file_path,
     ) = _get_synthetic_case_paths("eclipse")
@@ -443,8 +443,8 @@ def test_synthetic_case_eclipse_mass_no_regions(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
         "--zonefile",
         zone_file_path,
     ]
@@ -477,7 +477,7 @@ def test_synthetic_case_eclipse_mass_no_zones_no_regions(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         dummy,
     ) = _get_synthetic_case_paths("eclipse")
@@ -491,8 +491,8 @@ def test_synthetic_case_eclipse_mass_no_zones_no_regions(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
     ]
     mocker.patch(
         "sys.argv",
@@ -523,7 +523,7 @@ def test_synthetic_case_pflotran_mass(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         zone_file_path,
     ) = _get_synthetic_case_paths("pflotran")
@@ -537,8 +537,8 @@ def test_synthetic_case_pflotran_mass(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
         "--zonefile",
         zone_file_path,
         "--region_property",
@@ -573,7 +573,7 @@ def test_synthetic_case_pflotran_actual_volume(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         zone_file_path,
     ) = _get_synthetic_case_paths("pflotran")
@@ -587,8 +587,8 @@ def test_synthetic_case_pflotran_actual_volume(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
         "--zonefile",
         zone_file_path,
         "--region_property",
@@ -627,7 +627,7 @@ def test_synthetic_case_pflotran_cell_volume(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         zone_file_path,
     ) = _get_synthetic_case_paths("pflotran")
@@ -641,8 +641,8 @@ def test_synthetic_case_pflotran_cell_volume(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
         "--zonefile",
         zone_file_path,
         "--region_property",
@@ -679,7 +679,7 @@ def test_synthetic_case_pflotran_mass_residual_trapping(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         zone_file_path,
     ) = _get_synthetic_case_paths("pflotran")
@@ -693,8 +693,8 @@ def test_synthetic_case_pflotran_mass_residual_trapping(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
         "--zonefile",
         zone_file_path,
         "--region_property",
@@ -730,7 +730,7 @@ def test_synthetic_case_pflotran_actual_volume_residual_trapping(mocker):
         case_path,
         root_dir,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
         output_dir,
         zone_file_path,
     ) = _get_synthetic_case_paths("pflotran")
@@ -744,8 +744,8 @@ def test_synthetic_case_pflotran_actual_volume_residual_trapping(mocker):
         output_dir,
         "--containment_polygon",
         containment_polygon,
-        "--hazardous_polygon",
-        hazardous_polygon,
+        "--nogo_polygon",
+        nogo_polygon,
         "--zonefile",
         zone_file_path,
         "--region_property",

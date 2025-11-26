@@ -62,7 +62,7 @@ def calculate_out_of_bounds_co2(
 ) -> pd.DataFrame:
     """
     Calculates sum of co2 mass or volume at each time step. Use polygons
-    to divide into different categories (inside / outside / hazardous). Result
+    to divide into different categories (inside / outside / nogo). Result
     is a data frame.
 
     Args:
@@ -73,7 +73,7 @@ def calculate_out_of_bounds_co2(
         file_cont_polygon (str): Path to polygon defining the
             containment area
         file_haz_polygon (str): Path to polygon defining the
-            hazardous area
+            nogo area
         zone_info (ZoneInfo): Containing path to zone-file,
             or zranges (if the zone-file is provided as a YAML-file
             with zones defined through intervals in depth)
@@ -100,7 +100,7 @@ def calculate_out_of_bounds_co2(
     )
 
     cont_polygon = _read_polygon(file_cont_polygon) if file_cont_polygon else None
-    haz_polygon = _read_polygon(file_haz_polygon) if file_haz_polygon else None
+    nogo_polygon = _read_polygon(file_haz_polygon) if file_haz_polygon else None
 
     if len(inj_wells) == 0:
         plume_groups = None
@@ -110,7 +110,7 @@ def calculate_out_of_bounds_co2(
     return calculate_from_co2_data(
         co2_data,
         cont_polygon,
-        haz_polygon,
+        nogo_polygon,
         calc_type_input,
         zone_info.int_to_zone,
         region_info.int_to_region,
@@ -149,7 +149,7 @@ def _find_plume_groups(
 def calculate_from_co2_data(
     co2_data: Co2Data,
     cont_polygon: shapely.geometry.Polygon,
-    haz_polygon: Union[shapely.geometry.Polygon, None],
+    nogo_polygon: Union[shapely.geometry.Polygon, None],
     calc_type_input: str,
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
@@ -157,7 +157,7 @@ def calculate_from_co2_data(
     plume_groups: Optional[List[List[str]]] = None,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
-    Use polygons (inside / outside / hazardous) and/or regions and/or zones
+    Use polygons (inside / outside / nogo) and/or regions and/or zones
     and/or plume groups to divide co2 mass or volume into different categories.
     Result is a data frame.
 
@@ -165,8 +165,8 @@ def calculate_from_co2_data(
         co2_data (Co2Data): Mass/volume of CO2 at each time step
         cont_polygon (shapely.geometry.Polygon): Polygon defining the
             containment area
-        haz_polygon (shapely.geometry.Polygon): Polygon defining the
-            hazardous area
+        nogo_polygon (shapely.geometry.Polygon): Polygon defining the
+            nogo area
         calc_type_input (str): Choose mass / cell_volume / actual_volume
         int_to_zone (List): List of zone names
         int_to_region (List): List of region names
@@ -182,7 +182,7 @@ def calculate_from_co2_data(
     contained_co2 = calculate_co2_containment(
         co2_data,
         cont_polygon,
-        haz_polygon,
+        nogo_polygon,
         int_to_zone,
         int_to_region,
         calc_type,
@@ -242,7 +242,7 @@ def _merge_date_rows(
     data_frame = data_frame.drop(
         columns=["zone", "region", "plume_group"], axis=1, errors="ignore"
     )
-    locations = ["contained", "outside", "hazardous"]
+    locations = ["contained", "outside", "nogo"]
     if calc_type == CalculationType.CELL_VOLUME:
         total_df = (
             data_frame[data_frame["containment"] == "total"]
@@ -358,8 +358,8 @@ def get_parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument(
-        "--hazardous_polygon",
-        help="Path to polygon that determines the bounds of the hazardous area.",
+        "--nogo_polygon",
+        help="Path to polygon that determines the bounds of the no-go area.",
         default=None,
     )
     parser.add_argument(
@@ -457,8 +457,8 @@ def _replace_default_dummies_from_ert(args):
         args.region_property = None
     if args.containment_polygon == "-1":
         args.containment_polygon = None
-    if args.hazardous_polygon == "-1":
-        args.hazardous_polygon = None
+    if args.nogo_polygon == "-1":
+        args.nogo_polygon = None
     if args.no_logging == "-1":
         args.no_logging = False
     if args.debug == "-1":
@@ -515,7 +515,7 @@ def process_args() -> argparse.Namespace:
         "zonefile",
         "regionfile",
         "containment_polygon",
-        "hazardous_polygon",
+        "nogo_polygon",
     ]
     for key in paths:
         if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
@@ -576,10 +576,10 @@ def check_input(arguments: argparse.Namespace):
         arguments.containment_polygon
     ):
         files_not_found.append(arguments.containment_polygon)
-    if arguments.hazardous_polygon is not None and not os.path.isfile(
-        arguments.hazardous_polygon
+    if arguments.nogo_polygon is not None and not os.path.isfile(
+        arguments.nogo_polygon
     ):
-        files_not_found.append(arguments.hazardous_polygon)
+        files_not_found.append(arguments.nogo_polygon)
     if files_not_found:
         error_text = "The following file(s) were not found:"
         for file in files_not_found:
@@ -686,7 +686,7 @@ def log_input_configuration(args: argparse.Namespace) -> None:
     logging.info(f"{'Root directory':<{col1}} : {args.root_dir}")
     logging.info(f"{'Output directory':<{col1}} : {args.out_dir}")
     logging.info(f"{'Containment polygon':<{col1}} : {args.containment_polygon}")
-    logging.info(f"{'Hazardous polygon':<{col1}} : {args.hazardous_polygon}")
+    logging.info(f"{'No-go polygon':<{col1}} : {args.nogo_polygon}")
     logging.info(f"{'EGRID file':<{col1}} : {args.egrid}")
     logging.info(f"{'UNRST file':<{col1}} : {args.unrst}")
     logging.info(f"{'INIT file':<{col1}} : {args.init}")
@@ -782,10 +782,10 @@ def log_summary_of_results(
     value = extract_amount(df_subset, "outside", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(f"{'End state outside':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
-    value = extract_amount(df_subset, "hazardous", "total", cell_volume)
+    value = extract_amount(df_subset, "nogo", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(
-        f"{'End state hazardous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
+        f"{'End state no-go':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
     )
     if "zone" in dfs:
         unique_zones = set(dfs["zone"].unique())
@@ -1058,15 +1058,15 @@ def prepare_writing_details(
     tot = f",{'Total':>{width}}"
     con = f",{'Contained':>{width}}"
     out = f",{'Outside':>{width}}"
-    haz = f",{'Hazardous':>{width}}"
+    nog = f",{'No-go':>{width}}"
     if calc_type == "cell_volume":
         details["over_header"] = details["blank"] * (details["num_cols"] - 2)
-        details["header"] = dat + tot + con + out + haz
+        details["header"] = dat + tot + con + out + nog
     else:
         details["over_header"] = (
-            tot * (n_phase + 3) + con * n_phase + out * n_phase + haz * n_phase
+            tot * (n_phase + 3) + con * n_phase + out * n_phase + nog * n_phase
         )
-        details["header"] = dat + tot + phase + con + out + haz + phase * 3
+        details["header"] = dat + tot + phase + con + out + nog + phase * 3
     if calc_type == "mass":
         c_type = f" Calc type,{'Mass':>{width}}"
         unit = f"\n      Unit,{'Megatons':>{width}}," + " " * width
@@ -1211,7 +1211,7 @@ def main() -> None:
         arguments_processed.residual_trapping,
         injection_wells,
         arguments_processed.containment_polygon,
-        arguments_processed.hazardous_polygon,
+        arguments_processed.nogo_polygon,
         arguments_processed.gas_molar_mass,
     )
     sort_and_replace_nones(data_frame)
