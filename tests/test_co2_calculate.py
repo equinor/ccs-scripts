@@ -135,10 +135,10 @@ def test_single_poly_co2_containment():
         "dissolved_water",
         # ) == pytest.approx(0.1727292176064847)
     ) == pytest.approx(0.193662335166215)
-    assert extract_amount(table, "no-go", "gas") == pytest.approx(0.0)
+    assert extract_amount(table, "nogo", "gas") == pytest.approx(0.0)
     assert extract_amount(
         table,
-        "no-go",
+        "nogo",
         "dissolved_water",
     ) == pytest.approx(0.0)
 
@@ -181,10 +181,10 @@ def test_multi_poly_co2_containment():
         "contained",
         "dissolved_water",
     ) == pytest.approx(0.314587815245215)
-    assert extract_amount(table, "no-go", "gas") == pytest.approx(0.0)
+    assert extract_amount(table, "nogo", "gas") == pytest.approx(0.0)
     assert extract_amount(
         table,
-        "no-go",
+        "nogo",
         "dissolved_water",
     ) == pytest.approx(0.0)
 
@@ -223,12 +223,12 @@ def test_nogo_poly_co2_containment():
     ) == pytest.approx(0.193662335166215)
     assert extract_amount(
         table,
-        "no-go",
+        "nogo",
         "gas",
     ) == pytest.approx(0.0104613371367665)
     assert extract_amount(
         table,
-        "no-go",
+        "nogo",
         "dissolved_water",
     ) == pytest.approx(0.027464813694839)
 
@@ -391,7 +391,7 @@ def test_reek_grid():
         residual_trapping=True,
     )
     sort_and_replace_nones(table4)
-    cs4 = ["total"] * 4 + ["contained"] * 2 + ["no-go"] * 3
+    cs4 = ["total"] * 4 + ["contained"] * 2 + ["nogo"] * 3
     gas_part = ["trapped_gas", "free_gas"]
     ps4 = ["total"] + gas_part + ["dissolved_water"] + gas_part + ["total"] + gas_part
     amounts4 = [
