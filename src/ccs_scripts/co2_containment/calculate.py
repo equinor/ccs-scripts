@@ -194,10 +194,7 @@ def _make_location_filters(
         ]
     )
     locations["outside"] = np.array(
-        [
-            not x and not y
-            for x, y in zip(locations["contained"], locations["nogo"])
-        ]
+        [not x and not y for x, y in zip(locations["contained"], locations["nogo"])]
     )
     locations["total"] = np.ones(len(co2_data.x_coord), dtype=bool)
     return locations

@@ -784,9 +784,7 @@ def log_summary_of_results(
     logging.info(f"{'End state outside':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
     value = extract_amount(df_subset, "nogo", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(
-        f"{'End state no-go':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
-    )
+    logging.info(f"{'End state no-go':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
     if "zone" in dfs:
         unique_zones = set(dfs["zone"].unique())
         unique_zones.discard("all")
