@@ -57,7 +57,7 @@ def calculate_out_of_bounds_co2(
     residual_trapping: bool,
     inj_wells: List[InjectionWellData],
     file_cont_polygon: Optional[str] = None,
-    file_haz_polygon: Optional[str] = None,
+    file_nogo_polygon: Optional[str] = None,
     gas_molar_mass: Optional[float] = None,
 ) -> pd.DataFrame:
     """
@@ -72,7 +72,7 @@ def calculate_out_of_bounds_co2(
         calc_type_input (str): Choose mass / cell_volume / actual_volume
         file_cont_polygon (str): Path to polygon defining the
             containment area
-        file_haz_polygon (str): Path to polygon defining the
+        file_nogo_polygon (str): Path to polygon defining the
             nogo area
         zone_info (ZoneInfo): Containing path to zone-file,
             or zranges (if the zone-file is provided as a YAML-file
@@ -100,7 +100,7 @@ def calculate_out_of_bounds_co2(
     )
 
     cont_polygon = _read_polygon(file_cont_polygon) if file_cont_polygon else None
-    nogo_polygon = _read_polygon(file_haz_polygon) if file_haz_polygon else None
+    nogo_polygon = _read_polygon(file_nogo_polygon) if file_nogo_polygon else None
 
     if len(inj_wells) == 0:
         plume_groups = None
