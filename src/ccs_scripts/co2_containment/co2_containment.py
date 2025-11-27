@@ -1041,10 +1041,11 @@ def prepare_writing_details(
     for column in details["numeric"]:
         df[column] /= 1e6
     width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
+    # Keep length of column names below <= 11 to be sure of no alignment issues
     phase_names = ["Free gas", "Trapped gas"] if residual_trapping else ["Gas"]
-    phase_names += ["Dissolved water"]
+    phase_names += ["Dis. water"]
     phase_names += (
-        ["Dissolved oil"] if any("dissolved_oil" in col for col in df.columns) else []
+        ["Dis. oil"] if any("dissolved_oil" in col for col in df.columns) else []
     )
     phase = "," + ",".join(f"{name:>{width}}" for name in phase_names)
     n_phase = 0 if calc_type == "cell_volume" else len(phase_names)
