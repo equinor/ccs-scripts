@@ -59,6 +59,7 @@ def calculate_out_of_bounds_co2(
     file_cont_polygon: Optional[str] = None,
     file_haz_polygon: Optional[str] = None,
     gas_molar_mass: Optional[float] = None,
+    oil_molar_mass: Optional[float] = None,
 ) -> pd.DataFrame:
     """
     Calculates sum of co2 mass or volume at each time step. Use polygons
@@ -84,6 +85,8 @@ def calculate_out_of_bounds_co2(
         inj_wells (List): Injection wells used for plume tracking
         gas_molar_mass (float): Hydrocarbon gas molar mass. (Applies for cases with more
             than two components)
+        oil_molar_mass (float): Oil molar mass. (Applies for cases with more
+            than two components)
 
     Returns:
         pd.DataFrame
@@ -97,6 +100,7 @@ def calculate_out_of_bounds_co2(
         calc_type_input,
         init_file,
         gas_molar_mass,
+        oil_molar_mass,
     )
 
     cont_polygon = _read_polygon(file_cont_polygon) if file_cont_polygon else None
@@ -434,6 +438,11 @@ def get_parser() -> argparse.ArgumentParser:
         help="Gas molar mass if working in COMP3/COMP4",
         default=None,
     )
+    parser.add_argument(
+        "--oil_molar_mass",
+        help="Oil molar mass if working in COMP3/COMP4",
+        default=None,
+    )
 
     return parser
 
@@ -469,6 +478,8 @@ def _replace_default_dummies_from_ert(args):
         args.readable_output = False
     if args.gas_molar_mass == "-1":
         args.gas_molar_mass = None
+    if args.oil_molar_mass == "-1":
+        args.oil_molar_mass = None
 
 
 class InputError(Exception):
@@ -491,6 +502,12 @@ def process_args() -> argparse.Namespace:
             args.gas_molar_mass = float(args.gas_molar_mass)
         except ValueError:
             error_text = "Invalid input: gas_molar_mass must be numeric"
+            raise ValueError(format_error(error_text))
+    if args.oil_molar_mass is not None:
+        try:
+            args.oil_molar_mass = float(args.oil_molar_mass)
+        except ValueError:
+            error_text = "Invalid input: oil_molar_mass must be numeric"
             raise ValueError(format_error(error_text))
     # NBNB: Remove this when residual trapping is added for cell_volume
     if args.residual_trapping and args.calc_type_input == "cell_volume":
@@ -1213,6 +1230,7 @@ def main() -> None:
         arguments_processed.containment_polygon,
         arguments_processed.hazardous_polygon,
         arguments_processed.gas_molar_mass,
+        arguments_processed.oil_molar_mass,
     )
     sort_and_replace_nones(data_frame)
     log_summary_of_results(data_frame, arguments_processed.calc_type_input)

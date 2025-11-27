@@ -26,7 +26,7 @@ from ccs_scripts.utils.utils import (
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
-PROPERTIES_NEEDED_PFLOTRAN = ["DGAS", "DWAT", "AMFG", "YMFG"]
+PROPERTIES_NEEDED_PFLOTRAN = ["DGAS", "DWAT"]#, "AMFG", "YMFG"]
 PROPERTIES_NEEDED_ECLIPSE = ["BGAS", "BWAT", "XMF2", "YMF2"]
 
 RELEVANT_PROPERTIES = [
@@ -117,6 +117,47 @@ class Scenario(Enum):
     AQUIFER = 0
     DEPLETED_GAS_FIELD = 1
     DEPLETED_OIL_GAS_FIELD = 2
+
+import pandas as pd
+import numpy as np
+
+def source_data_to_dataframe(source_data):
+    # Number of active cells
+    n = len(source_data.x_coord)
+    cell_ids = np.arange(n)
+
+    rows = []
+
+    for d in source_data.DATES:
+        row = {
+            "cell_id": cell_ids,
+            "date": d,
+            "x_coord": source_data.x_coord,
+            "y_coord": source_data.y_coord,
+            "zone": source_data.zone,
+            "region": source_data.region,
+        }
+
+        # Loop through all dataclass fields
+        for field in source_data.__dataclass_fields__:
+            value = getattr(source_data, field)
+
+            # skip coordinates and zones (already included)
+            if field in ("x_coord", "y_coord", "DATES", "zone", "region"):
+                continue
+
+            # time-dependent dict properties
+            if isinstance(value, dict):
+                if d in value:
+                    row[field] = value[d]
+            # static properties (rare)
+            elif isinstance(value, np.ndarray):
+                row[field] = value
+
+        rows.append(pd.DataFrame(row))
+
+    df = pd.concat(rows, ignore_index=True)
+    return df
 
 
 @dataclass
@@ -209,9 +250,10 @@ def _detect_eclipse_mole_fraction_props(
     while suffix_count < 50:
         tmp_x = try_prop(unrst, "XMF" + str(suffix_count))
         tmp_y = try_prop(unrst, "YMF" + str(suffix_count))
+        tmp_z = try_prop(unrst, "ZMF" + str(suffix_count))
         if tmp_x is None and tmp_y is None:
             break
-        if (tmp_x is None) != (tmp_y is None):
+        if (tmp_x is None) != (tmp_y is None) or (tmp_z is None) != (tmp_y is None) :
             error_text = (
                 "Error: Number of components with XMF property differ from "
                 "the number of components with YMF"
@@ -221,11 +263,11 @@ def _detect_eclipse_mole_fraction_props(
             current_source_data.extend(
                 [
                     (name + str(suffix_count), Optional[Dict[str, np.ndarray]], None)
-                    for name in ["XMF", "YMF"]
+                    for name in ["XMF", "YMF", "ZMF"]
                 ]
             )
             props_to_extract.extend(
-                [name + str(suffix_count) for name in ["XMF", "YMF"]]
+                [name + str(suffix_count) for name in ["XMF", "YMF", "ZMF"]]
             )
         suffix_count += 1
     return current_source_data, props_to_extract
@@ -257,6 +299,25 @@ def _n_components(active_props: List):
         raise ValueError(format_error(error_text))
     return max_xmf_suffix
 
+def _convert_density_from_mass_to_mole(source_data,
+                                       scenario: Scenario,
+                                       co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
+                                       water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
+                                       gas_molar_mass: Optional[float] = None,
+                                       oil_molar_mass: Optional[float] = None,
+                                       ):
+    dates = source_data.DATES
+    dwat = source_data.DWAT
+    dgas = source_data.DGAS
+    doil = source_data.DOIL
+    bwat = {}
+    bgas = {}
+    boil = {}
+    for date in dates:
+        bwat[date] = dwat[date] * water_molar_mass
+        bgas[date] = dgas[date] * co2_molar_mass if scenario == Scenario.AQUIFER else dgas[date] * gas_molar_mass
+        boil[date] = doil[date] * oil_molar_mass if doil else None
+    return bwat, bgas, boil
 
 def _find_props_to_extract(unrst_file: str, residual_trapping: bool):
     props_to_extract = copy.deepcopy(RELEVANT_PROPERTIES)
@@ -1094,8 +1155,9 @@ def _calculate_co2_data_from_source_data(
         co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
         water_molar_mass (float): Water molar mass - Default is 18 g/mol
         gas_molar_mass (float): Hydrocarbon gas molar mass - Default is 0 g/mol,
-                                should by provided by user
-        oil_molar_mass (float) = Oil molar mass - Default is 0 g/mol, not there yet
+                                should be provided by user
+        oil_molar_mass (float): Oil molar mass - Default is 0 g/mol, should be provided
+                                by user
         residual_trapping (bool): Indicate if residual trapping should be calculated
 
     Returns:
@@ -1128,6 +1190,13 @@ def _calculate_co2_data_from_source_data(
             error_text += (
                 "\nTo compute mass or actual volume in this scenario "
                 "hydrocarbon gas molar mass must be provided"
+            )
+            raise ValueError(format_error(error_text))
+        elif scenario == Scenario.DEPLETED_OIL_GAS_FIELD and oil_molar_mass is None:
+            error_text = f"\nScenario: {scenario.name}."
+            error_text += (
+                "\nTo compute mass or actual volume in this scenario "
+                "oil molar mass must be provided"
             )
             raise ValueError(format_error(error_text))
         if scenario == Scenario.AQUIFER:
@@ -1196,6 +1265,18 @@ def _find_source_and_scenario(
             scenario = Scenario.DEPLETED_OIL_GAS_FIELD
         elif is_subset(["AMFS"], active_props):
             scenario = Scenario.DEPLETED_GAS_FIELD
+        elif is_subset(["XMF2", "SOIL"], active_props):
+            scenario = Scenario.DEPLETED_OIL_GAS_FIELD
+            source = "PFlotran EOS"
+        elif is_subset(["XMF2"], active_props):
+            scenario = Scenario.DEPLETED_GAS_FIELD
+            source = "PFlotran EOS"
+            active_props = [
+                prop
+                for prop in active_props
+                if not (prop.startswith("XMF") or prop.startswith("YMF"))
+                or prop.endswith("2")
+            ]
     elif is_subset(props_needed_eclipse, active_props):
         source = "Eclipse"
         if is_subset(["XMF2", "SOIL"], active_props):
@@ -1240,6 +1321,17 @@ def _calc_co2_amount(
             oil_molar_mass,
         )
     else:
+        if source == "PFlotran EOS":
+            bwat, bgas, boil = _convert_density_from_mass_to_mole(source_data,
+                                               scenario,
+                                               co2_molar_mass,
+                                               water_molar_mass,
+                                               gas_molar_mass,
+                                               oil_molar_mass
+                                               )
+            source_data.BWAT = bwat
+            source_data.BGAS = bgas
+            source_data.BOIL = boil
         co2_mass_cell = _eclipse_co2mass(
             source_data, scenario, pore_volume_prop, co2_molar_mass
         )
