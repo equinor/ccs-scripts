@@ -126,7 +126,7 @@ class Co2PlumeExtentStep(ForwardModelStepPlugin):
             command=[
                 shutil.which("co2_plume_extent"),
                 "<CASE>",
-                "--config_file",
+                "--config_plume_extent",
                 "<CONFIG_PLUME_EXTENT>",
                 "--inj_point",
                 "<INJ_POINT>",
