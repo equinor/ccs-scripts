@@ -76,7 +76,7 @@ class Co2ContainmentStep(ForwardModelStepPlugin):
             "<RESIDUAL_TRAPPING>",
             "--readable_output",
             "<READABLE_OUTPUT>",
-            "--config_file_inj_wells",
+            "--config_plume_tracking",
             "<CONFIG_PLUME_TRACKING>",
             "--gas_molar_mass",
             "<GAS_MOLAR_MASS>",
