@@ -10,6 +10,7 @@ import numpy as np
 import xtgeo
 from xtgeo.common import XTGeoDialog
 
+from ccs_scripts.aggregate import _config, _grid_aggregation
 from ccs_scripts.aggregate._co2_mass import MapName
 from ccs_scripts.aggregate._config import (
     AggregationMethod,
@@ -28,7 +29,6 @@ from ccs_scripts.aggregate._parser import (
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, format_warning
-from ccs_scripts.aggregate import _config, _grid_aggregation
 
 _XTG = XTGeoDialog()
 
