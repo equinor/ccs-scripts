@@ -14,6 +14,7 @@ import platform
 import socket
 import subprocess
 import sys
+import warnings
 from datetime import datetime
 from typing import Dict, List, Optional, TextIO, Tuple, Union
 
@@ -363,6 +364,11 @@ def get_parser() -> argparse.ArgumentParser:
         default=None,
     )
     parser.add_argument(
+        "--hazardous_polygon",
+        help="Deprecated: use --nogo_polygon instead.",
+        default=None,
+    )
+    parser.add_argument(
         "--egrid",
         help="Path to EGRID file. Overwrites <case> if provided.",
         default=None,
@@ -438,6 +444,18 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _handle_deprecated_args(args):
+    if args.hazardous_polygon is not None:
+        warning_text = (
+            "'--hazardous_polygon' / '<HAZARDOUS_POLYGON>' is deprecated and will be removed in a future "
+            "release.\nPlease use '--nogo_polygon' / '<NOGO_POLYGON>' instead."
+        )
+        logging.warning(format_warning(warning_text))
+        warnings.warn(warning_text, DeprecationWarning)
+        if args.nogo_polygon is None:
+            args.nogo_polygon = args.hazardous_polygon
+
+
 def _replace_default_dummies_from_ert(args):
     if args.root_dir == "-1":
         args.root_dir = None
@@ -485,6 +503,16 @@ def process_args() -> argparse.Namespace:
         argparse.Namespace
     """
     args = get_parser().parse_args()
+
+    if args.debug:
+        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+    elif args.no_logging:
+        logging.basicConfig(format="%(message)s", level=logging.WARNING)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
+
+    _handle_deprecated_args(args)
+
     args.calc_type_input = args.calc_type_input.lower()
     if args.gas_molar_mass is not None:
         try:
@@ -539,13 +567,6 @@ def process_args() -> argparse.Namespace:
             args.init = args.init.replace(".EGRID", ".INIT")
         else:
             args.init += ".INIT"
-
-    if args.debug:
-        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif args.no_logging:
-        logging.basicConfig(format="%(message)s", level=logging.WARNING)
-    else:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
 
     return args
 
