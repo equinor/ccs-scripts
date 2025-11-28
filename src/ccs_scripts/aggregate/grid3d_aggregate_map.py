@@ -28,8 +28,7 @@ from ccs_scripts.aggregate._parser import (
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, format_warning
-
-from . import _config, _grid_aggregation
+from ccs_scripts.aggregate import _config, _grid_aggregation
 
 _XTG = XTGeoDialog()
 
@@ -428,9 +427,9 @@ def main(arguments=None):
     timer = Timer()
     timer.start("total")
 
-    config_ = process_arguments(arguments)
+    config_ = process_arguments(arguments, map_type="aggregate")
     config_.input.properties = _distribute_config_property(config_.input.properties)
-    log_input_configuration(config_, calc_type="aggregate")
+    log_input_configuration(config_, map_type="aggregate")
     generate_from_config(config_)
 
     timer.stop("total")
