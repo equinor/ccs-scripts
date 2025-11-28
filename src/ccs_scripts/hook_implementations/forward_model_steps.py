@@ -28,7 +28,7 @@ class Co2ContainmentStep(ForwardModelStepPlugin):
             "<OUT_DIR>": "-1",
             "<CONTAINMENT_POLYGON>": "-1",
             "<NOGO_POLYGON>": "-1",
-            "<HAZARDOUS_POLYGON>": "-1",  # Keep for backward compatibility, remove later
+            "<HAZARDOUS_POLYGON>": "-1",  # Keep for backward comp., remove later
             "<ZONEFILE>": "-1",
             "<REGIONFILE>": "-1",
             "<REGION_PROPERTY>": "-1",
@@ -57,7 +57,7 @@ class Co2ContainmentStep(ForwardModelStepPlugin):
             "<CONTAINMENT_POLYGON>",
             "--nogo_polygon",
             "<NOGO_POLYGON>",
-            "--hazardous_polygon",  # Keep for backward compatibility, remove later
+            "--hazardous_polygon",  # Keep for backward comp., remove later
             "<HAZARDOUS_POLYGON>",
             "--zonefile",
             "<ZONEFILE>",

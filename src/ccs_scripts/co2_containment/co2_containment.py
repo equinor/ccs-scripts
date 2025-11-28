@@ -447,7 +447,8 @@ def get_parser() -> argparse.ArgumentParser:
 def _handle_deprecated_args(args):
     if args.hazardous_polygon is not None:
         warning_text = (
-            "'--hazardous_polygon' / '<HAZARDOUS_POLYGON>' is deprecated and will be removed in a future "
+            "'--hazardous_polygon' / '<HAZARDOUS_POLYGON>' is deprecated and "
+            "will be removed in a future "
             "release.\nPlease use '--nogo_polygon' / '<NOGO_POLYGON>' instead."
         )
         logging.warning(format_warning(warning_text))
