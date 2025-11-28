@@ -76,7 +76,9 @@ def parse_arguments(arguments, map_type: str):
         metavar="<PLOTFOLDER>",
     )
     parser.add_argument(
-        "--eclroot", help="Eclipse root name (includes case name)", default=None,
+        "--eclroot",
+        help="Eclipse root name (includes case name)",
+        default=None,
         metavar="<ECLROOT>",
     )
     parser.add_argument(

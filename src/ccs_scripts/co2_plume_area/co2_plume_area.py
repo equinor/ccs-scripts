@@ -37,7 +37,8 @@ xtgeo_logger.setLevel(logging.WARNING)
 def _make_parser():
     parser = argparse.ArgumentParser(description="Calculate plume area")
     parser.add_argument(
-        "input", help="Path to maps created through grid3d_aggregate_map",
+        "input",
+        help="Path to maps created through grid3d_aggregate_map",
         metavar="<INPUT>",
     )
     parser.add_argument(
