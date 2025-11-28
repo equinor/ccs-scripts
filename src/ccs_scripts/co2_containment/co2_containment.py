@@ -478,6 +478,8 @@ def _replace_default_dummies_from_ert(args):
         args.containment_polygon = None
     if args.nogo_polygon == "-1":
         args.nogo_polygon = None
+    if args.hazardous_polygon == "-1":
+        args.hazardous_polygon = None
     if args.no_logging == "-1":
         args.no_logging = False
     if args.debug == "-1":
