@@ -512,6 +512,8 @@ def process_args() -> argparse.Namespace:
     else:
         logging.basicConfig(format="%(message)s", level=logging.INFO)
 
+    _replace_default_dummies_from_ert(args)
+
     _handle_deprecated_args(args)
 
     args.calc_type_input = args.calc_type_input.lower()
@@ -524,8 +526,6 @@ def process_args() -> argparse.Namespace:
     # NBNB: Remove this when residual trapping is added for cell_volume
     if args.residual_trapping and args.calc_type_input == "cell_volume":
         args.residual_trapping = False
-
-    _replace_default_dummies_from_ert(args)
 
     if args.root_dir is None:
         p = pathlib.Path(args.case).parents
