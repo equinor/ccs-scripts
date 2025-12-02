@@ -367,6 +367,7 @@ def get_parser() -> argparse.ArgumentParser:
         "--nogo_polygon",
         help="Path to polygon that determines the bounds of the no-go area.",
         default=None,
+        metavar="<NOGO_POLYGON>",
     )
     parser.add_argument(
         "--hazardous_polygon",
