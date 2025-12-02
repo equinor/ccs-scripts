@@ -50,7 +50,7 @@ def parse_arguments(arguments, map_type: str):
     elif map_type == "migration_time":
         config_arg_name = "--config_migtime"
         ert_command = "<CONFIG_MIGTIME>"
-    else:  #  map_type == "co2_mass"
+    else:  # map_type == "co2_mass"
         config_arg_name = "--config_co2_mass_map"
         ert_command = "<CONFIG_CO2_MASS_MAP>"
 
@@ -172,7 +172,7 @@ def process_arguments(arguments, map_type: str) -> RootConfig:
         config_file = getattr(parsed_args, "config_migtime")
         gas_molar_mass = None
         gridfolder = None
-    else:  #  map_type == "co2_mass"
+    else:  # map_type == "co2_mass"
         config_file = getattr(parsed_args, "config_co2_mass_map")
         gas_molar_mass = parsed_args.gas_molar_mass
         gridfolder = parsed_args.gridfolder

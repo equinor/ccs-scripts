@@ -576,9 +576,12 @@ def _log_input_configuration(args: argparse.Namespace) -> None:
     logging.info(f"\nCase                    : {args.case}")
     if not os.path.isabs(args.case):
         logging.info(f"  => Absolute path      : {os.path.abspath(args.case)}")
+    if args.config_plume_extent == "":
+        config_str = "Not specified"
+    else:
+        config_str = args.config_plume_extent
     logging.info(
-        f"Configuration YAML-file : "
-        f"{args.config_plume_extent if args.config_plume_extent != '' else 'Not specified'}"
+        f"Configuration YAML-file : {config_str}"
     )
     if args.inj_point != "":
         logging.info("Configuration from args :")
