@@ -475,7 +475,7 @@ def test_yaml_file_pflotran(mocker):
         [
             "--case",
             case_path,
-            "--config_file",
+            "--config_plume_extent",
             config_path,
             "--output",
             output_path,
@@ -512,7 +512,7 @@ def test_yaml_file_pflotran_plume_tracking(mocker):
         [
             "--case",
             case_path,
-            "--config_file",
+            "--config_plume_extent",
             config_path,
             "--output",
             output_path,
