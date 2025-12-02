@@ -276,6 +276,7 @@ def main(argv=None):
         "--root-dir",
         type=Path,
         help="Root directory for batch processing",
+        metavar="<ROOT_DIR>",
     )
 
     parser.add_argument(

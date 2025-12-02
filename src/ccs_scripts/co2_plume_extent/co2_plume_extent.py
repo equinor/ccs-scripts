@@ -446,11 +446,12 @@ class Configuration:
 
 def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Calculate plume extent (distance)")
-    parser.add_argument("case", help="Name of Eclipse case")
+    parser.add_argument("case", help="Name of Eclipse case", metavar="<CASE>")
     parser.add_argument(
-        "--config_file",
+        "--config_plume_extent",
         help="YML file with configurations for distance calculations.",
         default="",
+        metavar="<CONFIG_PLUME_EXTENT>",
     )
     parser.add_argument(
         "--inj_point",
@@ -462,6 +463,7 @@ def _make_parser() -> argparse.ArgumentParser:
         'east'/'west'/'north'/'south' and value is the \
         corresponding x or y value that defines this line.",
         default="",
+        metavar="<INJ_POINT>",
     )
     parser.add_argument(
         "--calc_type",
@@ -473,29 +475,34 @@ def _make_parser() -> argparse.ArgumentParser:
         eastern/western/northern/southern line.",
         default="plume_extent",
         type=str,
+        metavar="<CALC_TYPE>",
     )
     parser.add_argument(
         "--output_csv",
         help="Path to output CSV file",
         default=None,
+        metavar="<OUTPUT_CSV>",
     )
     parser.add_argument(
         "--threshold_gas",
         default=DEFAULT_THRESHOLD_GAS,
         type=float,
         help="Threshold for gas saturation (SGAS)",
+        metavar="<THRESHOLD_GAS>",
     )
     parser.add_argument(
         "--threshold_dissolved",
         default=DEFAULT_THRESHOLD_DISSOLVED,
         type=float,
         help="Threshold for aqueous mole fraction of gas (AMFG or XMF2)",
+        metavar="<THRESHOLD_DISSOLVED>",
     )
     parser.add_argument(
         "--column_name",
         default="",
         type=str,
         help="Name that will be included in the column of the CSV file",
+        metavar="<COLUMN_NAME>",
     )
     parser.add_argument(
         "--no_logging",
@@ -503,6 +510,7 @@ def _make_parser() -> argparse.ArgumentParser:
         type=str_to_bool,
         nargs="?",
         const=True,
+        metavar="<NO_LOGGING>",
     )
     parser.add_argument(
         "--debug",
@@ -511,6 +519,7 @@ def _make_parser() -> argparse.ArgumentParser:
         type=str_to_bool,
         nargs="?",
         const=True,
+        metavar="<DEBUG>",
     )
 
     return parser
@@ -564,31 +573,32 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     )
     logging.info(f"Python version      : {py_version}")
 
-    logging.info(f"\nCase                    : {arguments.case}")
-    if not os.path.isabs(arguments.case):
-        logging.info(f"  => Absolute path      : {os.path.abspath(arguments.case)}")
-    logging.info(
-        f"Configuration YAML-file : "
-        f"{arguments.config_file if arguments.config_file != '' else 'Not specified'}"
-    )
-    if arguments.inj_point != "":
+    logging.info(f"\nCase                    : {args.case}")
+    if not os.path.isabs(args.case):
+        logging.info(f"  => Absolute path      : {os.path.abspath(args.case)}")
+    if args.config_plume_extent == "":
+        config_str = "Not specified"
+    else:
+        config_str = args.config_plume_extent
+    logging.info(f"Configuration YAML-file : {config_str}")
+    if args.inj_point != "":
         logging.info("Configuration from args :")
-        logging.info(f"    Injection point info: {arguments.inj_point}")
-        logging.info(f"    Calculation type    : {arguments.calc_type}")
-        col = arguments.column_name
+        logging.info(f"    Injection point info: {args.inj_point}")
+        logging.info(f"    Calculation type    : {args.calc_type}")
+        col = args.column_name
         if col != "":
             logging.info(
                 f"    Column name         : " f"{col if col != '' else 'Not specified'}"
             )
     else:
         logging.info("Configuration from args : Not specified")
-    if arguments.output_csv is None or arguments.output_csv == "":
+    if args.output_csv is None or args.output_csv == "":
         text = "Not specified, using default"
     else:
-        text = arguments.output_csv
+        text = args.output_csv
     logging.info(f"Output CSV file         : {text}")
-    logging.info(f"Threshold gas           : {arguments.threshold_gas}")
-    logging.info(f"Threshold dissolved     : {arguments.threshold_dissolved}\n")
+    logging.info(f"Threshold gas           : {args.threshold_gas}")
+    logging.info(f"Threshold dissolved     : {args.threshold_dissolved}\n")
 
 
 def _log_distance_calculation_configurations(config: Configuration) -> None:
@@ -1349,7 +1359,7 @@ def main():
     _log_input_configuration(args)
 
     config = Configuration(
-        args.config_file,
+        args.config_plume_extent,
         args.calc_type,
         args.inj_point,
         args.column_name,

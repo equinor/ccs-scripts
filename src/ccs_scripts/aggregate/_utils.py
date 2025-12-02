@@ -10,7 +10,7 @@ from datetime import datetime
 from ccs_scripts.aggregate._config import RootConfig
 
 
-def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -> None:
+def log_input_configuration(config_: RootConfig, map_type: str = "aggregate") -> None:
     """
     Log the provided input
     """
@@ -34,13 +34,13 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     col1 = 37
     now = datetime.now()
     date_time = now.strftime("%B %d, %Y %H:%M:%S")
-    if calc_type == "aggregate":
+    if map_type == "aggregate":
         logging.info("CCS-scripts - Aggregate maps")
         logging.info("============================")
-    elif calc_type == "migration_time":
+    elif map_type == "migration_time":
         logging.info("CCS-scripts - Migration time maps")
         logging.info("=================================")
-    elif calc_type == "co2_mass":
+    elif map_type == "co2_mass":
         logging.info("CCS-scripts - CO2 mass maps")
         logging.info("===========================")
     logging.info(f"{'Version':<{col1}} : {version}")
@@ -53,7 +53,7 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     )
     logging.info(f"{'Python version':<{col1}} : {py_version}")
 
-    if calc_type == "co2_mass":
+    if map_type == "co2_mass":
         logging.info(f"\n{'Unit':<{col1}} : tons")
 
     logging.info("\nInput configuration:")
@@ -63,7 +63,7 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
             f"{'    => Absolute path':<{col1}} : "
             f"{os.path.abspath(config_.input.grid)}"
         )
-    if calc_type != "co2_mass":
+    if map_type != "co2_mass":
         logging.info("  Properties:")
         if config_.input.properties is None:
             logging.info("    No properties specified")
@@ -100,7 +100,7 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     else:
         logging.info(f"{'  Plot folder':<{col1}} : - (plot export not selected)")
 
-    if calc_type == "co2_mass":
+    if map_type == "co2_mass":
         if op.gridfolder is not None:
             logging.info(f"{'  Grid folder':<{col1}} : {op.gridfolder}")
             if not os.path.isabs(op.gridfolder):
@@ -245,7 +245,7 @@ def log_input_configuration(config_: RootConfig, calc_type: str = "aggregate") -
     logging.info(f"{'    Pixel-to-cell-size ratio':<{col1}} : {ms.pixel_to_cell_ratio}")
 
     cms = config_.co2_mass_settings
-    if calc_type == "co2_mass" and cms is not None:
+    if map_type == "co2_mass" and cms is not None:
         logging.info("\nCO2 mass configuration:")
         logging.info(f"{'  UNRST source':<{col1}} : {cms.unrst_source}")
         if not os.path.isabs(cms.unrst_source):

@@ -76,7 +76,7 @@ class Co2ContainmentStep(ForwardModelStepPlugin):
             "<RESIDUAL_TRAPPING>",
             "--readable_output",
             "<READABLE_OUTPUT>",
-            "--config_file_inj_wells",
+            "--config_plume_tracking",
             "<CONFIG_PLUME_TRACKING>",
             "--gas_molar_mass",
             "<GAS_MOLAR_MASS>",
@@ -126,7 +126,7 @@ class Co2PlumeExtentStep(ForwardModelStepPlugin):
             command=[
                 shutil.which("co2_plume_extent"),
                 "<CASE>",
-                "--config_file",
+                "--config_plume_extent",
                 "<CONFIG_PLUME_EXTENT>",
                 "--inj_point",
                 "<INJ_POINT>",
@@ -229,7 +229,7 @@ class Grid3dAggregateMapStep(ForwardModelStepPlugin):
             name="GRID3D_AGGREGATE_MAP",
             command=[
                 shutil.which("grid3d_aggregate_map"),
-                "--config",
+                "--config_aggregate",
                 "<CONFIG_AGGREGATE>",
                 "--eclroot",
                 "<ECLROOT>",
@@ -271,7 +271,7 @@ class Grid3dCo2MassMapStep(ForwardModelStepPlugin):
             name="GRID3D_CO2_MASS_MAP",
             command=[
                 shutil.which("grid3d_co2_mass_map"),
-                "--config",
+                "--config_co2_mass_map",
                 "<CONFIG_CO2_MASS_MAP>",
                 "--eclroot",
                 "<ECLROOT>",
@@ -319,7 +319,7 @@ class Grid3dMigrationTimeStep(ForwardModelStepPlugin):
             name="GRID3D_MIGRATION_TIME",
             command=[
                 shutil.which("grid3d_migration_time"),
-                "--config",
+                "--config_migtime",
                 "<CONFIG_MIGTIME>",
                 "--eclroot",
                 "<ECLROOT>",
