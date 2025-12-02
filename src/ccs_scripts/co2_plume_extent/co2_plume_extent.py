@@ -580,9 +580,7 @@ def _log_input_configuration(args: argparse.Namespace) -> None:
         config_str = "Not specified"
     else:
         config_str = args.config_plume_extent
-    logging.info(
-        f"Configuration YAML-file : {config_str}"
-    )
+    logging.info(f"Configuration YAML-file : {config_str}")
     if args.inj_point != "":
         logging.info("Configuration from args :")
         logging.info(f"    Injection point info: {args.inj_point}")
