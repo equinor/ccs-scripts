@@ -37,12 +37,15 @@ xtgeo_logger.setLevel(logging.WARNING)
 def _make_parser():
     parser = argparse.ArgumentParser(description="Calculate plume area")
     parser.add_argument(
-        "input", help="Path to maps created through grid3d_aggregate_map"
+        "input",
+        help="Path to maps created through grid3d_aggregate_map",
+        metavar="<INPUT>",
     )
     parser.add_argument(
         "--output_csv",
         help="Path to output CSV file",
         default=None,
+        metavar="<OUTPUT_CSV>",
     )
     parser.add_argument(
         "--no_logging",
@@ -50,6 +53,7 @@ def _make_parser():
         type=str_to_bool,
         nargs="?",
         const=True,
+        metavar="<NO_LOGGING>",
     )
     parser.add_argument(
         "--debug",
@@ -58,6 +62,7 @@ def _make_parser():
         type=str_to_bool,
         nargs="?",
         const=True,
+        metavar="<DEBUG>",
     )
 
     return parser

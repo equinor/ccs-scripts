@@ -77,7 +77,7 @@ def test_co2_mass_map_reek_grid():
         os.makedirs(result)
     grid3d_co2_mass_map.main(
         [
-            "--config",
+            "--config_co2_mass_map",
             str(
                 Path(__file__).absolute().parent
                 / "yaml"
@@ -131,7 +131,7 @@ def test_co2_mass_map_residual_trapping_pflotran():
 
     grid3d_co2_mass_map.main(
         [
-            "--config",
+            "--config_co2_mass_map",
             str(
                 Path(__file__).absolute().parent
                 / "yaml"

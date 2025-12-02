@@ -180,9 +180,9 @@ def main(arguments=None):
     timer = Timer()
     timer.start("total")
 
-    config_ = _parser.process_arguments(arguments, calc_type="migration_time")
+    config_ = _parser.process_arguments(arguments, map_type="migration_time")
     _check_config(config_)
-    log_input_configuration(config_, calc_type="migration_time")
+    log_input_configuration(config_, map_type="migration_time")
     p_spec = []
     if any(x.name in MIGRATION_TIME_PROPERTIES for x in config_.input.properties):
         removed_props = [

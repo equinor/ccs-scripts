@@ -333,17 +333,20 @@ def get_parser() -> argparse.ArgumentParser:
         "case",
         help="Path to Eclipse case (EGRID, INIT and UNRST files), including base name,\
         but excluding the file extension (.EGRID, .INIT, .UNRST)",
+        metavar="<CASE>",
     )
     parser.add_argument(
         "calc_type_input",
         help="CO2 calculation options: mass / cell_volume / actual_volume. "
         "Mass is calculated in tons, volume in cubic metres.",
+        metavar="<CALC_TYPE_INPUT>",
     )
     parser.add_argument(
         "--root_dir",
         help="Path to root directory. The other paths can be provided relative \
         to this or as absolute paths. Default is 2 levels up from Eclipse case.",
         default=None,
+        metavar="<ROOT_DIR>",
     )
     parser.add_argument(
         "--out_dir",
@@ -351,12 +354,14 @@ def get_parser() -> argparse.ArgumentParser:
         'plume_<calculation type>.csv'). \
         Defaults to <root_dir>/share/results/tables.",
         default=None,
+        metavar="<OUT_DIR>",
     )
     parser.add_argument(
         "--containment_polygon",
         help="Path to polygon that determines the bounds of the containment area. \
         Count all CO2 as contained if polygon is not provided.",
         default=None,
+        metavar="<CONTAINMENT_POLYGON>",
     )
     parser.add_argument(
         "--nogo_polygon",
@@ -367,38 +372,45 @@ def get_parser() -> argparse.ArgumentParser:
         "--hazardous_polygon",
         help="Deprecated: use --nogo_polygon instead.",
         default=None,
+        metavar="<HAZARDOUS_POLYGON>",
     )
     parser.add_argument(
         "--egrid",
         help="Path to EGRID file. Overwrites <case> if provided.",
         default=None,
+        metavar="<EGRID>",
     )
     parser.add_argument(
         "--unrst",
         help="Path to UNRST file. Overwrites <case> if provided.",
         default=None,
+        metavar="<UNRST>",
     )
     parser.add_argument(
         "--init",
         help="Path to INIT file. Overwrites <case> if provided.",
         default=None,
+        metavar="<INIT>",
     )
     parser.add_argument(
         "--zonefile",
         help="Path to yaml or roff file containing zone information.",
         default=None,
+        metavar="<ZONEFILE>",
     )
     parser.add_argument(
         "--regionfile",
         help="Path to roff file containing region information. "
         "Use either 'regionfile' or 'region_property', not both.",
         default=None,
+        metavar="<REGIONFILE>",
     )
     parser.add_argument(
         "--region_property",
         help="Property in INIT file containing integer grid of regions. "
         "Use either 'regionfile' or 'region_property', not both.",
         default=None,
+        metavar="<REGION_PROPERTY>",
     )
     parser.add_argument(
         "--no_logging",
@@ -406,6 +418,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=str_to_bool,
         nargs="?",
         const=True,
+        metavar="<NO_LOGGING>",
     )
     parser.add_argument(
         "--debug",
@@ -414,6 +427,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=str_to_bool,
         nargs="?",
         const=True,
+        metavar="<DEBUG>",
     )
     parser.add_argument(
         "--residual_trapping",
@@ -421,6 +435,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=str_to_bool,
         nargs="?",
         const=True,
+        metavar="<RESIDUAL_TRAPPING>",
     )
     parser.add_argument(
         "--readable_output",
@@ -429,16 +444,19 @@ def get_parser() -> argparse.ArgumentParser:
         type=str_to_bool,
         nargs="?",
         const=True,
+        metavar="<READABLE_OUTPUT>",
     )
     parser.add_argument(
-        "--config_file_inj_wells",
+        "--config_plume_tracking",
         help="YML file with configurations for plume tracking calculations.",
         default="",
+        metavar="<CONFIG_PLUME_TRACKING>",
     )
     parser.add_argument(
         "--gas_molar_mass",
         help="Gas molar mass if working in COMP3/COMP4",
         default=None,
+        metavar="<GAS_MOLAR_MASS>",
     )
 
     return parser
@@ -729,11 +747,11 @@ def log_input_configuration(args: argparse.Namespace) -> None:
         "yes" if args.readable_output is not None and args.readable_output else "no"
     )
     logging.info(f"{'Readable output':<{col1}} : " f"{readable_output_str}")
-    config_file_inj_wells_str = (
-        args.config_file_inj_wells if args.config_file_inj_wells != "" else "-"
+    config_plume_tracking_str = (
+        args.config_plume_tracking if args.config_plume_tracking != "" else "-"
     )
     logging.info(
-        f"{'Plume tracking YAML-file':<{col1}} : " f"{config_file_inj_wells_str}\n"
+        f"{'Plume tracking YAML-file':<{col1}} : " f"{config_plume_tracking_str}\n"
     )
 
 
@@ -1218,10 +1236,10 @@ def main() -> None:
 
     log_input_configuration(arguments_processed)
 
-    if arguments_processed.config_file_inj_wells == "":
+    if arguments_processed.config_plume_tracking == "":
         injection_wells = []
     else:
-        config = Configuration(arguments_processed.config_file_inj_wells)
+        config = Configuration(arguments_processed.config_plume_tracking)
         injection_wells = config.injection_wells
 
     data_frame = calculate_out_of_bounds_co2(
