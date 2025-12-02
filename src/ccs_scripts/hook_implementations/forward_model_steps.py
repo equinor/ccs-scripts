@@ -229,7 +229,7 @@ class Grid3dAggregateMapStep(ForwardModelStepPlugin):
             name="GRID3D_AGGREGATE_MAP",
             command=[
                 shutil.which("grid3d_aggregate_map"),
-                "--config",
+                "--config_aggregate",
                 "<CONFIG_AGGREGATE>",
                 "--eclroot",
                 "<ECLROOT>",
@@ -271,7 +271,7 @@ class Grid3dCo2MassMapStep(ForwardModelStepPlugin):
             name="GRID3D_CO2_MASS_MAP",
             command=[
                 shutil.which("grid3d_co2_mass_map"),
-                "--config",
+                "--config_co2_mass_map",
                 "<CONFIG_CO2_MASS_MAP>",
                 "--eclroot",
                 "<ECLROOT>",
@@ -318,7 +318,7 @@ class Grid3dMigrationTimeStep(ForwardModelStepPlugin):
             name="GRID3D_MIGRATION_TIME",
             command=[
                 shutil.which("grid3d_migration_time"),
-                "--config",
+                "--config_migtime",
                 "<CONFIG_MIGTIME>",
                 "--eclroot",
                 "<ECLROOT>",
