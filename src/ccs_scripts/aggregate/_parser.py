@@ -40,41 +40,52 @@ xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
 
 
-def parse_arguments(arguments):
+def parse_arguments(arguments, map_type: str):
     """
     Uses argparse to parse arguments as expected from command line invocation
     """
+    if map_type == "aggregate":
+        config_arg_name = "--config_aggregate"
+        ert_command = "<CONFIG_AGGREGATE>"
+    elif map_type == "migration_time":
+        config_arg_name = "--config_migtime"
+        ert_command = "<CONFIG_MIGTIME>"
+    else:  # map_type == "co2_mass"
+        config_arg_name = "--config_co2_mass_map"
+        ert_command = "<CONFIG_CO2_MASS_MAP>"
+
     parser = argparse.ArgumentParser(__file__)
     parser.add_argument(
         "-c",
-        "--config",
+        config_arg_name,
         type=str,
         required=True,
         help="Config file on YAML format (required)",
+        metavar=ert_command,
     )
     parser.add_argument(
         "--mapfolder",
         help="Path to output map folder (overrides yaml file)",
         default=None,
+        metavar="<MAPFOLDER>",
     )
     parser.add_argument(
         "--plotfolder",
         help="Path to output plot folder (overrides yaml file)",
         default=None,
+        metavar="<PLOTFOLDER>",
     )
     parser.add_argument(
-        "--eclroot", help="Eclipse root name (includes case name)", default=None
+        "--eclroot",
+        help="Eclipse root name (includes case name)",
+        default=None,
+        metavar="<ECLROOT>",
     )
     parser.add_argument(
         "--folderroot",
         help="Folder root name ($-alias available in config file)",
         default=None,
-    )
-    parser.add_argument(
-        "--gridfolder",
-        help="Path to output 3d grid folder (only for co2 mass maps,"
-        " overrides yaml file)",
-        default=None,
+        metavar="<FOLDERROOT>",
     )
     parser.add_argument(
         "--no_logging",
@@ -82,6 +93,7 @@ def parse_arguments(arguments):
         type=str_to_bool,
         nargs="?",
         const=True,
+        metavar="<NO_LOGGING>",
     )
     parser.add_argument(
         "--debug",
@@ -90,44 +102,55 @@ def parse_arguments(arguments):
         type=str_to_bool,
         nargs="?",
         const=True,
+        metavar="<DEBUG>",
     )
-    parser.add_argument(
-        "--gas_molar_mass",
-        help="Predifinied gas molar mass (g/m3) for residual gas component",
-        type=float,
-        nargs="?",
-        default=None,
-    )
+    if map_type == "co2_mass":
+        parser.add_argument(
+            "--gridfolder",
+            help="Path to output 3d grid folder (only for co2 mass maps,"
+            " overrides yaml file)",
+            default=None,
+            metavar="<GRIDFOLDER>",
+        )
+        parser.add_argument(
+            "--gas_molar_mass",
+            help="Predifinied gas molar mass (g/m3) for residual gas component",
+            type=float,
+            nargs="?",
+            default=None,
+            metavar="<GAS_MOLAR_MASS>",
+        )
 
     return parser.parse_args(arguments)
 
 
-def _replace_default_dummies_from_ert(args):
+def _replace_default_dummies_from_ert(args, map_type: str):
     if args.eclroot == "-1":
         args.eclroot = None
     if args.mapfolder == "-1":
         args.mapfolder = None
     if args.plotfolder == "-1":
         args.plotfolder = None
-    if args.gridfolder == "-1":
-        args.gridfolder = None
     if args.folderroot == "-1":
         args.folderroot = None
     if args.no_logging == "-1":
         args.no_logging = False
     if args.debug == "-1":
         args.debug = False
-    if args.gas_molar_mass == "-1":
-        args.gas_molar_mass = None
+    if map_type == "co2_mass":
+        if args.gridfolder == "-1":
+            args.gridfolder = None
+        if args.gas_molar_mass == "-1":
+            args.gas_molar_mass = None
 
 
-def process_arguments(arguments, calc_type: Optional[str] = None) -> RootConfig:
+def process_arguments(arguments, map_type: str) -> RootConfig:
     """
     Interprets and parses the provided arguments to an internal representation of input
     in the `RootConfig` class
     """
-    parsed_args = parse_arguments(arguments)
-    _replace_default_dummies_from_ert(parsed_args)
+    parsed_args = parse_arguments(arguments, map_type)
+    _replace_default_dummies_from_ert(parsed_args, map_type)
     replacements = {}
     if parsed_args.eclroot is not None:
         replacements["eclroot"] = parsed_args.eclroot
@@ -141,14 +164,27 @@ def process_arguments(arguments, calc_type: Optional[str] = None) -> RootConfig:
     else:
         logging.basicConfig(format="%(message)s", level=logging.INFO)
 
+    if map_type == "aggregate":
+        config_file = getattr(parsed_args, "config_aggregate")
+        gas_molar_mass = None
+        gridfolder = None
+    elif map_type == "migration_time":
+        config_file = getattr(parsed_args, "config_migtime")
+        gas_molar_mass = None
+        gridfolder = None
+    else:  # map_type == "co2_mass"
+        config_file = getattr(parsed_args, "config_co2_mass_map")
+        gas_molar_mass = parsed_args.gas_molar_mass
+        gridfolder = parsed_args.gridfolder
+
     config = parse_yaml(
-        parsed_args.config,
+        config_file,
         parsed_args.mapfolder,
         parsed_args.plotfolder,
-        parsed_args.gridfolder,
-        parsed_args.gas_molar_mass,
+        gridfolder,
+        gas_molar_mass,
         replacements,
-        calc_type,
+        map_type,
     )
     _check_directories(config.output.mapfolder)
     _check_thresholds(config)
@@ -162,7 +198,7 @@ def parse_yaml(
     grid_folder: Optional[str],
     gas_molar_mass: Optional[str],
     replacements: Dict[str, str],
-    calc_type: Optional[str] = None,
+    map_type: str,
 ) -> RootConfig:
     """
     Parses a yaml file to a corresponding `RootConfig` object. See `load_yaml` for
@@ -179,7 +215,7 @@ def parse_yaml(
         if "co2_mass_settings" not in config
         else CO2MassSettings(**config.get("co2_mass_settings", {}))
     )
-    if calc_type == "migration_time":
+    if map_type == "migration_time":
         for p in config["input"]["properties"]:
             if "lower_threshold" not in p and "name" in p:
                 if isinstance(p["name"], str):
