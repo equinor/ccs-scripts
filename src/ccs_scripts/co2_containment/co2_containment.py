@@ -14,6 +14,7 @@ import platform
 import socket
 import subprocess
 import sys
+import warnings
 from datetime import datetime
 from typing import Dict, List, Optional, TextIO, Tuple, Union
 
@@ -57,12 +58,12 @@ def calculate_out_of_bounds_co2(
     residual_trapping: bool,
     inj_wells: List[InjectionWellData],
     file_cont_polygon: Optional[str] = None,
-    file_haz_polygon: Optional[str] = None,
+    file_nogo_polygon: Optional[str] = None,
     gas_molar_mass: Optional[float] = None,
 ) -> pd.DataFrame:
     """
     Calculates sum of co2 mass or volume at each time step. Use polygons
-    to divide into different categories (inside / outside / hazardous). Result
+    to divide into different categories (inside / outside / nogo). Result
     is a data frame.
 
     Args:
@@ -72,8 +73,8 @@ def calculate_out_of_bounds_co2(
         calc_type_input (str): Choose mass / cell_volume / actual_volume
         file_cont_polygon (str): Path to polygon defining the
             containment area
-        file_haz_polygon (str): Path to polygon defining the
-            hazardous area
+        file_nogo_polygon (str): Path to polygon defining the
+            nogo area
         zone_info (ZoneInfo): Containing path to zone-file,
             or zranges (if the zone-file is provided as a YAML-file
             with zones defined through intervals in depth)
@@ -100,7 +101,7 @@ def calculate_out_of_bounds_co2(
     )
 
     cont_polygon = _read_polygon(file_cont_polygon) if file_cont_polygon else None
-    haz_polygon = _read_polygon(file_haz_polygon) if file_haz_polygon else None
+    nogo_polygon = _read_polygon(file_nogo_polygon) if file_nogo_polygon else None
 
     if len(inj_wells) == 0:
         plume_groups = None
@@ -110,7 +111,7 @@ def calculate_out_of_bounds_co2(
     return calculate_from_co2_data(
         co2_data,
         cont_polygon,
-        haz_polygon,
+        nogo_polygon,
         calc_type_input,
         zone_info.int_to_zone,
         region_info.int_to_region,
@@ -149,7 +150,7 @@ def _find_plume_groups(
 def calculate_from_co2_data(
     co2_data: Co2Data,
     cont_polygon: shapely.geometry.Polygon,
-    haz_polygon: Union[shapely.geometry.Polygon, None],
+    nogo_polygon: Union[shapely.geometry.Polygon, None],
     calc_type_input: str,
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
@@ -157,7 +158,7 @@ def calculate_from_co2_data(
     plume_groups: Optional[List[List[str]]] = None,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
-    Use polygons (inside / outside / hazardous) and/or regions and/or zones
+    Use polygons (inside / outside / nogo) and/or regions and/or zones
     and/or plume groups to divide co2 mass or volume into different categories.
     Result is a data frame.
 
@@ -165,8 +166,8 @@ def calculate_from_co2_data(
         co2_data (Co2Data): Mass/volume of CO2 at each time step
         cont_polygon (shapely.geometry.Polygon): Polygon defining the
             containment area
-        haz_polygon (shapely.geometry.Polygon): Polygon defining the
-            hazardous area
+        nogo_polygon (shapely.geometry.Polygon): Polygon defining the
+            nogo area
         calc_type_input (str): Choose mass / cell_volume / actual_volume
         int_to_zone (List): List of zone names
         int_to_region (List): List of region names
@@ -182,7 +183,7 @@ def calculate_from_co2_data(
     contained_co2 = calculate_co2_containment(
         co2_data,
         cont_polygon,
-        haz_polygon,
+        nogo_polygon,
         int_to_zone,
         int_to_region,
         calc_type,
@@ -242,7 +243,7 @@ def _merge_date_rows(
     data_frame = data_frame.drop(
         columns=["zone", "region", "plume_group"], axis=1, errors="ignore"
     )
-    locations = ["contained", "outside", "hazardous"]
+    locations = ["contained", "outside", "nogo"]
     if calc_type == CalculationType.CELL_VOLUME:
         total_df = (
             data_frame[data_frame["containment"] == "total"]
@@ -363,8 +364,14 @@ def get_parser() -> argparse.ArgumentParser:
         metavar="<CONTAINMENT_POLYGON>",
     )
     parser.add_argument(
+        "--nogo_polygon",
+        help="Path to polygon that determines the bounds of the no-go area.",
+        default=None,
+        metavar="<NOGO_POLYGON>",
+    )
+    parser.add_argument(
         "--hazardous_polygon",
-        help="Path to polygon that determines the bounds of the hazardous area.",
+        help="Deprecated: use --nogo_polygon instead.",
         default=None,
         metavar="<HAZARDOUS_POLYGON>",
     )
@@ -456,6 +463,19 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _handle_deprecated_args(args):
+    if args.hazardous_polygon is not None:
+        warning_text = (
+            "'--hazardous_polygon' / '<HAZARDOUS_POLYGON>' is deprecated and "
+            "will be removed in a future "
+            "release.\nPlease use '--nogo_polygon' / '<NOGO_POLYGON>' instead."
+        )
+        logging.warning(format_warning(warning_text))
+        warnings.warn(warning_text, DeprecationWarning)
+        if args.nogo_polygon is None:
+            args.nogo_polygon = args.hazardous_polygon
+
+
 def _replace_default_dummies_from_ert(args):
     if args.root_dir == "-1":
         args.root_dir = None
@@ -475,6 +495,8 @@ def _replace_default_dummies_from_ert(args):
         args.region_property = None
     if args.containment_polygon == "-1":
         args.containment_polygon = None
+    if args.nogo_polygon == "-1":
+        args.nogo_polygon = None
     if args.hazardous_polygon == "-1":
         args.hazardous_polygon = None
     if args.no_logging == "-1":
@@ -503,6 +525,18 @@ def process_args() -> argparse.Namespace:
         argparse.Namespace
     """
     args = get_parser().parse_args()
+
+    if args.debug:
+        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+    elif args.no_logging:
+        logging.basicConfig(format="%(message)s", level=logging.WARNING)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
+
+    _replace_default_dummies_from_ert(args)
+
+    _handle_deprecated_args(args)
+
     args.calc_type_input = args.calc_type_input.lower()
     if args.gas_molar_mass is not None:
         try:
@@ -513,8 +547,6 @@ def process_args() -> argparse.Namespace:
     # NBNB: Remove this when residual trapping is added for cell_volume
     if args.residual_trapping and args.calc_type_input == "cell_volume":
         args.residual_trapping = False
-
-    _replace_default_dummies_from_ert(args)
 
     if args.root_dir is None:
         p = pathlib.Path(args.case).parents
@@ -533,7 +565,7 @@ def process_args() -> argparse.Namespace:
         "zonefile",
         "regionfile",
         "containment_polygon",
-        "hazardous_polygon",
+        "nogo_polygon",
     ]
     for key in paths:
         if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
@@ -557,13 +589,6 @@ def process_args() -> argparse.Namespace:
             args.init = args.init.replace(".EGRID", ".INIT")
         else:
             args.init += ".INIT"
-
-    if args.debug:
-        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif args.no_logging:
-        logging.basicConfig(format="%(message)s", level=logging.WARNING)
-    else:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
 
     return args
 
@@ -594,10 +619,10 @@ def check_input(arguments: argparse.Namespace):
         arguments.containment_polygon
     ):
         files_not_found.append(arguments.containment_polygon)
-    if arguments.hazardous_polygon is not None and not os.path.isfile(
-        arguments.hazardous_polygon
+    if arguments.nogo_polygon is not None and not os.path.isfile(
+        arguments.nogo_polygon
     ):
-        files_not_found.append(arguments.hazardous_polygon)
+        files_not_found.append(arguments.nogo_polygon)
     if files_not_found:
         error_text = "The following file(s) were not found:"
         for file in files_not_found:
@@ -704,7 +729,7 @@ def log_input_configuration(args: argparse.Namespace) -> None:
     logging.info(f"{'Root directory':<{col1}} : {args.root_dir}")
     logging.info(f"{'Output directory':<{col1}} : {args.out_dir}")
     logging.info(f"{'Containment polygon':<{col1}} : {args.containment_polygon}")
-    logging.info(f"{'Hazardous polygon':<{col1}} : {args.hazardous_polygon}")
+    logging.info(f"{'No-go polygon':<{col1}} : {args.nogo_polygon}")
     logging.info(f"{'EGRID file':<{col1}} : {args.egrid}")
     logging.info(f"{'UNRST file':<{col1}} : {args.unrst}")
     logging.info(f"{'INIT file':<{col1}} : {args.init}")
@@ -800,11 +825,9 @@ def log_summary_of_results(
     value = extract_amount(df_subset, "outside", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(f"{'End state outside':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
-    value = extract_amount(df_subset, "hazardous", "total", cell_volume)
+    value = extract_amount(df_subset, "nogo", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
-    logging.info(
-        f"{'End state hazardous':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %"
-    )
+    logging.info(f"{'End state no-go':<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
     if "zone" in dfs:
         unique_zones = set(dfs["zone"].unique())
         unique_zones.discard("all")
@@ -1061,10 +1084,11 @@ def prepare_writing_details(
     for column in details["numeric"]:
         df[column] /= 1e6
     width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
+    # Keep length of column names below <= 11 to be sure of no alignment issues
     phase_names = ["Free gas", "Trapped gas"] if residual_trapping else ["Gas"]
-    phase_names += ["Dissolved water"]
+    phase_names += ["Dis. water"]
     phase_names += (
-        ["Dissolved oil"] if any("dissolved_oil" in col for col in df.columns) else []
+        ["Dis. oil"] if any("dissolved_oil" in col for col in df.columns) else []
     )
     phase = "," + ",".join(f"{name:>{width}}" for name in phase_names)
     n_phase = 0 if calc_type == "cell_volume" else len(phase_names)
@@ -1076,15 +1100,15 @@ def prepare_writing_details(
     tot = f",{'Total':>{width}}"
     con = f",{'Contained':>{width}}"
     out = f",{'Outside':>{width}}"
-    haz = f",{'Hazardous':>{width}}"
+    nog = f",{'No-go':>{width}}"
     if calc_type == "cell_volume":
         details["over_header"] = details["blank"] * (details["num_cols"] - 2)
-        details["header"] = dat + tot + con + out + haz
+        details["header"] = dat + tot + con + out + nog
     else:
         details["over_header"] = (
-            tot * (n_phase + 3) + con * n_phase + out * n_phase + haz * n_phase
+            tot * (n_phase + 3) + con * n_phase + out * n_phase + nog * n_phase
         )
-        details["header"] = dat + tot + phase + con + out + haz + phase * 3
+        details["header"] = dat + tot + phase + con + out + nog + phase * 3
     if calc_type == "mass":
         c_type = f" Calc type,{'Mass':>{width}}"
         unit = f"\n      Unit,{'Megatons':>{width}}," + " " * width
@@ -1229,7 +1253,7 @@ def main() -> None:
         arguments_processed.residual_trapping,
         injection_wells,
         arguments_processed.containment_polygon,
-        arguments_processed.hazardous_polygon,
+        arguments_processed.nogo_polygon,
         arguments_processed.gas_molar_mass,
     )
     sort_and_replace_nones(data_frame)

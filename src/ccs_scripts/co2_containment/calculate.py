@@ -27,7 +27,7 @@ class ContainedCo2:
         amount (float): Numerical value with the computed amount at "date"
         phase (Literal): One of gas (or trapped_gas/free_gas)/dissolved/undefined.
             The phase of "amount".
-        containment (Literal): One of contained/outside/hazardous. The location
+        containment (Literal): One of contained/outside/nogo. The location
             that "amount" corresponds to.
         zone (str):
         region (str):
@@ -58,7 +58,7 @@ class ContainedCo2:
 def calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
-    hazardous_polygon: Union[Polygon, MultiPolygon, None],
+    nogo_polygon: Union[Polygon, MultiPolygon, None],
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
     calc_type: CalculationType,
@@ -67,7 +67,7 @@ def calculate_co2_containment(
 ) -> List[ContainedCo2]:
     """
     Calculates the amount (mass/volume) of CO2 within given boundaries
-    (contained/outside/hazardous) at each time step for each phase
+    (contained/outside/nogo) at each time step for each phase
     (dissolved/gaseous). Result is a list of ContainedCo2 objects.
 
     Args:
@@ -75,8 +75,8 @@ def calculate_co2_containment(
             each time step
         containment_polygon (Union[Polygon,Multipolygon]): The polygon that defines
             the containment area
-        hazardous_polygon (Union[Polygon,Multipolygon]): The polygon that defines
-             the hazardous area
+        nogo_polygon (Union[Polygon,Multipolygon]): The polygon that defines
+             the nogo area
         int_to_zone (List): List of zone names
         int_to_region (List): List of region names
         calc_type (CalculationType): Which calculation is to be performed
@@ -97,7 +97,7 @@ def calculate_co2_containment(
     locations = _make_location_filters(
         co2_data,
         containment_polygon,
-        hazardous_polygon,
+        nogo_polygon,
     )
     timer.stop("make_location_filters")
     _log_summary_of_grid_node_location(locations)
@@ -160,10 +160,10 @@ def calculate_co2_containment(
 def _make_location_filters(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
-    hazardous_polygon: Union[Polygon, MultiPolygon, None],
+    nogo_polygon: Union[Polygon, MultiPolygon, None],
 ) -> Dict:
     """
-    Return a dictionary connecting location (contained/outside/hazardous) to boolean
+    Return a dictionary connecting location (contained/outside/nogo) to boolean
     arrays over all grid nodes indicating membership to said location
     """
     locations = {}
@@ -175,29 +175,26 @@ def _make_location_filters(
         )
     else:
         locations["contained"] = np.ones(len(co2_data.x_coord), dtype=bool)
-        logging.info("No containment polygon specified.")
-    if hazardous_polygon is not None:
-        locations["hazardous"] = _calculate_containment(
+        logging.info("Containment polygon not specified.")
+    if nogo_polygon is not None:
+        locations["nogo"] = _calculate_containment(
             co2_data.x_coord,
             co2_data.y_coord,
-            hazardous_polygon,
+            nogo_polygon,
         )
     else:
-        locations["hazardous"] = np.zeros(len(co2_data.x_coord), dtype=bool)
-        logging.info("No hazardous polygon specified.")
+        locations["nogo"] = np.zeros(len(co2_data.x_coord), dtype=bool)
+        logging.info("No-go polygon not specified.")
 
-    # Count as hazardous if the two boundaries overlap:
+    # Count as nogo if the two boundaries overlap:
     locations["contained"] = np.array(
         [
             x if not y else False
-            for x, y in zip(locations["contained"], locations["hazardous"])
+            for x, y in zip(locations["contained"], locations["nogo"])
         ]
     )
     locations["outside"] = np.array(
-        [
-            not x and not y
-            for x, y in zip(locations["contained"], locations["hazardous"])
-        ]
+        [not x and not y for x, y in zip(locations["contained"], locations["nogo"])]
     )
     locations["total"] = np.ones(len(co2_data.x_coord), dtype=bool)
     return locations
@@ -210,11 +207,11 @@ def _log_summary_of_grid_node_location(locations: Dict) -> None:
         f"{locations['contained'].sum():>10}"
     )
     logging.info(
-        "  * Inside hazardous polygon                          :"
-        f"{locations['hazardous'].sum():>10}"
+        "  * Inside no-go polygon                              :"
+        f"{locations['nogo'].sum():>10}"
     )
     logging.info(
-        "  * Outside containment polygon and hazardous polygon :"
+        "  * Outside containment polygon and no-go polygon     :"
         f"{locations['outside'].sum():>10}"
     )
     logging.info(

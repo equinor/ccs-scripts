@@ -1,4 +1,4 @@
-date,total,total_gas,total_aqueous,total_contained,total_outside,total_hazardous,gas_contained,aqueous_contained,gas_outside,aqueous_outside,gas_hazardous,aqueous_hazardous
+date,total,total_gas,total_aqueous,total_contained,total_outside,total_nogo,gas_contained,aqueous_contained,gas_outside,aqueous_outside,gas_nogo,aqueous_nogo
 2025-01-01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 2027-01-01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 2031-01-01,1917000247.9239812,1565877519.0602646,351122728.8637166,1189674872.3048248,696029065.5329478,31296310.08620862,1020420186.6097412,169254685.69508362,525565959.92220306,170463105.61074466,19891372.528320312,11404937.557888309
