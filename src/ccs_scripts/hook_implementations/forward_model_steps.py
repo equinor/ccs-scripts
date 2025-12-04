@@ -39,7 +39,7 @@ class Co2ContainmentStep(ForwardModelStepPlugin):
             "<RESIDUAL_TRAPPING>": "-1",
             "<READABLE_OUTPUT>": "-1",
             "<CONFIG_PLUME_TRACKING>": "",
-            "<GAS_MOLAR_MASS>": "-1",
+            "<CIRRUS_INFO_FILE>": "-1",
         }
 
     @staticmethod
@@ -78,8 +78,8 @@ class Co2ContainmentStep(ForwardModelStepPlugin):
             "<READABLE_OUTPUT>",
             "--config_file_inj_wells",
             "<CONFIG_PLUME_TRACKING>",
-            "--gas_molar_mass",
-            "<GAS_MOLAR_MASS>",
+            "--cirrus_info_file",
+            "<CIRRUS_INFO_FILE>",
         ]
 
     @staticmethod
@@ -287,8 +287,8 @@ class Grid3dCo2MassMapStep(ForwardModelStepPlugin):
                 "<NO_LOGGING>",
                 "--debug",
                 "<DEBUG>",
-                "--gas_molar_mass",
-                "<GAS_MOLAR_MASS>",
+                "--cirrus_info_file",
+                "<CIRRUS_INFO_FILE>",
             ],
             default_mapping={
                 "<ECLROOT>": "-1",
