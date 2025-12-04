@@ -52,7 +52,8 @@ def _check_config(config_: RootConfig) -> None:
         )
         logging.warning(format_warning(warning_str))
         config_.computesettings.indicator_map = False
-    config_.computesettings.aggregation = _config.AggregationMethod.MIN
+    # config_.computesettings.aggregation = _config.AggregationMethod.MIN
+    config_.computesettings.aggregation = _config.AggregationMethod.MAX
     config_.output.aggregation_tag = False
     config_.output.replace_masked_with_zero = False
     config_.computesettings.aggregate_map = True
