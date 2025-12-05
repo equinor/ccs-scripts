@@ -160,7 +160,35 @@ def co2_mass_property_to_map(
                     1e-6,  # 0.001 kg
                 )
             )
-    grid3d_aggregate_map.generate_from_config(config_)
+    # grid3d_aggregate_map.generate_from_config(config_)
+
+    print(config_)
+    print("\n\n\n\n")
+    config_.input.properties = []
+    for props in out_property_list:
+        if isinstance(props, str):
+            # NBNB-AS: Temp find name
+            if "co2_mass_gas_phase" in props:
+                name = "CO2_MASS_GAS"
+            elif "co2_mass_dissolved_water_phase" in props:
+                name = "CO2_MASS_DISSOLVED_WATER"
+            elif "co2_mass_total" in props:
+                name = "CO2_MASS_TOTAL"
+            else:
+                name = None
+            config_.input.properties.append(
+                _config.Property(
+                    props,
+                    None,
+                    # name,
+                    # 1000e-0,  # = 100000.0 kg ?  # NBNB-AS: Change this? And depends on size of grid nodes
+                    1e-1,  # = 10.0 kg ?  # NBNB-AS: Change this? And depends on size of grid nodes
+                )
+            )
+    # NBNB-AS: Call migration time script here?:
+    from ccs_scripts.aggregate import grid3d_migration_time
+    grid3d_migration_time.generate_from_config(config_)
+
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:

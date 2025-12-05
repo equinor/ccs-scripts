@@ -40,6 +40,9 @@ MIGRATION_TIME_PROPERTIES = [
     "SGAS",
     "SWAT",
     "SOIL",
+    # "CO2_MASS_GAS",
+    # "CO2_MASS_DISSOLVED_WATER",
+    # "CO2_MASS_TOTAL",
 ]
 
 
@@ -171,20 +174,12 @@ def _init_timer():
     }
 
 
-def main(arguments=None):
-    """
-    Calculates a migration time property and aggregates it to a 2D map
-    """
-    if arguments is None:
-        arguments = sys.argv[1:]
-    _init_timer()
-    timer = Timer()
-    timer.start("total")
-
-    config_ = _parser.process_arguments(arguments, map_type="migration_time")
+def generate_from_config(config_: _config.RootConfig):
     _check_config(config_)
     log_input_configuration(config_, map_type="migration_time")
     p_spec = []
+    print("\nAAAAAAAAA")
+    print(config_.input.properties)
     if any(x.name in MIGRATION_TIME_PROPERTIES for x in config_.input.properties):
         removed_props = [
             x.name
@@ -201,6 +196,12 @@ def main(arguments=None):
                 ", ".join(str(x) for x in removed_props),
             )
             logging.warning(format_warning(warning_str))
+    elif any(x.name is None for x in config_.input.properties):
+        print("\nBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+        # NBNB-AS: Temp to make code run from co2 mass script
+        p_spec.extend(
+            [x for x in config_.input.properties]
+        )
     else:
         error_text = (
             "Migration time maps are not supported for "
@@ -220,11 +221,28 @@ def main(arguments=None):
                 config_.input.grid,
                 config_.input.dates,
             )
-            temp_path = os.path.join(temp_dir, prop.name)
+            if prop.name is not None:
+                temp_path = os.path.join(temp_dir, prop.name)
+            else:
+                temp_path = os.path.join(temp_dir, "None")  # NBNB-AS: Temp
             migration_time_property_to_map(config_, t_prop, temp_path)
     finally:
         logging.info(f"\nDeleting temporary directory for 3D grids: {temp_dir}")
         shutil.rmtree(temp_dir)
+
+
+def main(arguments=None):
+    """
+    Calculates a migration time property and aggregates it to a 2D map
+    """
+    if arguments is None:
+        arguments = sys.argv[1:]
+    _init_timer()
+    timer = Timer()
+    timer.start("total")
+
+    config_ = _parser.process_arguments(arguments, map_type="migration_time")
+    generate_from_config(config_)
 
     timer.stop("total")
     timer.report()
