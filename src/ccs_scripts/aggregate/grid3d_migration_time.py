@@ -46,7 +46,7 @@ MIGRATION_TIME_PROPERTIES = [
 ]
 
 
-def _check_config(config_: RootConfig) -> None:
+def _check_config(config_: RootConfig, temp_test_stabilization: bool = False) -> None:
     config_.input.properties = _distribute_config_property(config_.input.properties)
     if config_.computesettings.indicator_map:
         warning_str = (
@@ -55,8 +55,10 @@ def _check_config(config_: RootConfig) -> None:
         )
         logging.warning(format_warning(warning_str))
         config_.computesettings.indicator_map = False
-    # config_.computesettings.aggregation = _config.AggregationMethod.MIN
-    config_.computesettings.aggregation = _config.AggregationMethod.MAX
+    if not temp_test_stabilization:
+        config_.computesettings.aggregation = _config.AggregationMethod.MIN
+    else:
+        config_.computesettings.aggregation = _config.AggregationMethod.MAX
     config_.output.aggregation_tag = False
     config_.output.replace_masked_with_zero = False
     config_.computesettings.aggregate_map = True
@@ -110,6 +112,7 @@ def calculate_migration_time_property(
     lower_threshold: float,
     grid_file: Optional[str],
     dates: List[str],
+    temp_test_stabilization: bool = False,
 ) -> xtgeo.GridProperty:
     """
     Calculates a 3D migration time property from the provided grid and grid property
@@ -131,7 +134,7 @@ def calculate_migration_time_property(
 
     timer.start("generate_migration_time_property")
     t_prop = _migration_time.generate_migration_time_property(
-        properties, lower_threshold
+        properties, lower_threshold, temp_test_stabilization
     )
     timer.stop("generate_migration_time_property")
     _log_t_prop(t_prop, property_name)
@@ -174,12 +177,10 @@ def _init_timer():
     }
 
 
-def generate_from_config(config_: _config.RootConfig):
-    _check_config(config_)
+def generate_from_config(config_: _config.RootConfig, temp_test_stabilization: bool = False):
+    _check_config(config_, temp_test_stabilization)
     log_input_configuration(config_, map_type="migration_time")
     p_spec = []
-    print("\nAAAAAAAAA")
-    print(config_.input.properties)
     if any(x.name in MIGRATION_TIME_PROPERTIES for x in config_.input.properties):
         removed_props = [
             x.name
@@ -197,7 +198,6 @@ def generate_from_config(config_: _config.RootConfig):
             )
             logging.warning(format_warning(warning_str))
     elif any(x.name is None for x in config_.input.properties):
-        print("\nBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
         # NBNB-AS: Temp to make code run from co2 mass script
         p_spec.extend(
             [x for x in config_.input.properties]
@@ -220,6 +220,7 @@ def generate_from_config(config_: _config.RootConfig):
                 prop.lower_threshold,
                 config_.input.grid,
                 config_.input.dates,
+                temp_test_stabilization,
             )
             if prop.name is not None:
                 temp_path = os.path.join(temp_dir, prop.name)
@@ -242,7 +243,8 @@ def main(arguments=None):
     timer.start("total")
 
     config_ = _parser.process_arguments(arguments, map_type="migration_time")
-    generate_from_config(config_)
+    # BK-TEST: Change temp_test_stabilization here (migration time vs stablization time for property)
+    generate_from_config(config_, temp_test_stabilization=False)
 
     timer.stop("total")
     timer.report()

@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple
 
 import yaml
 
-from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map
+from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map, grid3d_migration_time
 from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
 from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
@@ -150,6 +150,7 @@ def co2_mass_property_to_map(
                            to be aggregated
 
     """
+    # Aggregate maps:
     config_.input.properties = []
     for props in out_property_list:
         if isinstance(props, str):
@@ -160,35 +161,25 @@ def co2_mass_property_to_map(
                     1e-6,  # 0.001 kg
                 )
             )
-    # grid3d_aggregate_map.generate_from_config(config_)
+    grid3d_aggregate_map.generate_from_config(config_)
 
-    print(config_)
-    print("\n\n\n\n")
+    # Migration time maps:
     config_.input.properties = []
     for props in out_property_list:
         if isinstance(props, str):
-            # NBNB-AS: Temp find name
-            if "co2_mass_gas_phase" in props:
-                name = "CO2_MASS_GAS"
-            elif "co2_mass_dissolved_water_phase" in props:
-                name = "CO2_MASS_DISSOLVED_WATER"
-            elif "co2_mass_total" in props:
-                name = "CO2_MASS_TOTAL"
-            else:
-                name = None
             config_.input.properties.append(
                 _config.Property(
                     props,
                     None,
-                    # name,
-                    # 1000e-0,  # = 100000.0 kg ?  # NBNB-AS: Change this? And depends on size of grid nodes
-                    1e-1,  # = 10.0 kg ?  # NBNB-AS: Change this? And depends on size of grid nodes
+                    # BK-TEST: Change threshold here, maybe 0.1 for migration time,
+                    #          something larger for stabilization time (1.0 maybe?).
+                    #          The unit is tons. We calculate co2 mass for each grid cell,
+                    #          so the treshold will depend a lot on the grid cell size.
+                    1.0,
                 )
             )
-    # NBNB-AS: Call migration time script here?:
-    from ccs_scripts.aggregate import grid3d_migration_time
-    grid3d_migration_time.generate_from_config(config_)
-
+    # BK-TEST: Change temp_test_stabilization here (migration time vs stablization time for co2 mass)
+    grid3d_migration_time.generate_from_config(config_, temp_test_stabilization=True)
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:
