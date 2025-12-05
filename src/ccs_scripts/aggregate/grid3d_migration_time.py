@@ -240,8 +240,8 @@ def main(arguments=None):
     timer.start("total")
 
     config_ = _parser.process_arguments(arguments, map_type="migration_time")
-    # BK-TEST: Change temp_test_stabilization here (migration time vs stablization time for property)
-    generate_from_config(config_, temp_test_stabilization=False)
+    # BK-TEST: Use temp_test_stabilization here (migration time vs stablization time for property)
+    generate_from_config(config_, temp_test_stabilization=True)
 
     timer.stop("total")
     timer.report()
