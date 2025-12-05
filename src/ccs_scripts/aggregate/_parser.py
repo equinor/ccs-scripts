@@ -358,17 +358,12 @@ def extract_properties(
                 if spec.name is None
                 else [spec.name] if isinstance(spec.name, str) else spec.name
             )
-            # print("=> names:", names)
-            # print(f"Source: {spec.source}")
             props = xtgeo.gridproperties_from_file(
                 spec.source,
                 names=names,
                 grid=grid,
                 dates=dates or "all",
             ).props
-            # print("=> props:", props)
-            # print(props[0])
-            # exit()
         except (RuntimeError, ValueError):
             props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
         if mask_low_values and spec.lower_threshold is not None:

@@ -40,9 +40,6 @@ MIGRATION_TIME_PROPERTIES = [
     "SGAS",
     "SWAT",
     "SOIL",
-    # "CO2_MASS_GAS",
-    # "CO2_MASS_DISSOLVED_WATER",
-    # "CO2_MASS_TOTAL",
 ]
 
 
