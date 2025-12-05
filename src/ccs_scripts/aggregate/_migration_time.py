@@ -52,9 +52,10 @@ def generate_migration_time_property(
         t_prop.values[~t_prop.values.mask] = 0.0  # time_since_start[-1]
         dt_prev = time_since_start[-1]
         for co2, dt in zip(
-            reversed(co2_props[:-1]),
-            reversed(time_since_start[:-1]),
+            co2_props[-2::-1],
+            time_since_start[-2::-1],
         ):
+            logging.info(f"dt: {dt}, dt_prev: {dt_prev}")
             diff_prop = co2.values - co2_props[-1].values
             # print(f"    diff_prop.mean(): {diff_prop.mean()} (#values: {diff_prop.size})")
             diff_prop = abs(diff_prop)
