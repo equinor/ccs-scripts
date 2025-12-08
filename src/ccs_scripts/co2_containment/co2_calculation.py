@@ -917,7 +917,7 @@ def _compositional_co2mass(
                 phase_moles[date][2]
             ]
         else:
-            phase_moles[date].extend(boil[date] * soil[date] * eff_vols[date])
+            phase_moles[date].extend([boil[date] * soil[date] * eff_vols[date]])
             total_moles = phase_moles[date][0] + phase_moles[date][1] + phase_moles[date][2]
             total_co2_mass = total_moles * zmf2[date] * conv_fact
             co2_mass[date] = [
