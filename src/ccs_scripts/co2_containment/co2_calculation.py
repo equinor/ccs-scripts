@@ -74,6 +74,7 @@ source_data_: List[Tuple[str, Any, None]] = [
     ("DOIL", Optional[Dict[str, np.ndarray]], None),
     ("BWAT", Optional[Dict[str, np.ndarray]], None),
     ("BGAS", Optional[Dict[str, np.ndarray]], None),
+    ("BOIL", Optional[Dict[str, np.ndarray]], None),
     ("AMFS", Optional[Dict[str, np.ndarray]], None),
     ("YMFS", Optional[Dict[str, np.ndarray]], None),
     ("XMFS", Optional[Dict[str, np.ndarray]], None),
@@ -254,7 +255,7 @@ def _extract_molar_masses(
     elif source == "PFlotran":
         info_data = pd.read_csv(cirrus_info_file)
         if "MWG" in info_data["Mnemonic"].values:
-            subset = info_data[info_data["Mnemonic"] == "MWG", "Value"]
+            subset = info_data.loc[info_data["Mnemonic"] == "MWG", "Value"]
             if subset.empty:
                 error_text = f"\nScenario: {scenario.name}."
                 error_text += (
@@ -263,7 +264,7 @@ def _extract_molar_masses(
                 )
             gas_molar_mass = subset.iloc[0]
         if "MWO" in info_data["Mnemonic"].values:  # NB: Does it exist?
-            subset = info_data[info_data["Mnemonic"] == "MWO", "Value"]
+            subset = info_data.loc[info_data["Mnemonic"] == "MWO", "Value"]
             if subset.empty and scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
                     error_text = f"\nScenario: {scenario.name}."
                     error_text += (
@@ -271,7 +272,7 @@ def _extract_molar_masses(
                         "oil molar mass must be provided"
                     )
                     raise ValueError(format_error(error_text))
-            oil_molar_mass = subset.iloc[0] if scenario == Scenario.OIL_GAS_FIELD else None
+            oil_molar_mass = subset.iloc[0] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else None
         return gas_molar_mass, oil_molar_mass
     elif source == "PFlotran COMP":
         info_data = pd.read_csv(cirrus_info_file)
@@ -309,28 +310,49 @@ def _detect_eclipse_mole_fraction_props(
     """
     unrst = ResdataFile(unrst_file)
     suffix_count = 1
+    review_z = True
     while suffix_count < 50:
         tmp_x = try_prop(unrst, "XMF" + str(suffix_count))
         tmp_y = try_prop(unrst, "YMF" + str(suffix_count))
         tmp_z = try_prop(unrst, "ZMF" + str(suffix_count))
+        if suffix_count == 1 and tmp_z is None:
+            review_z = False
         if tmp_x is None and tmp_y is None:
             break
-        if (tmp_x is None) != (tmp_y is None) or (tmp_z is None) != (tmp_y is None) :
-            error_text = (
-                "Error: Number of components with XMF property differ from "
-                "the number of components with YMF"
-            )
-            raise ValueError(format_error(error_text))
+        if review_z:
+            if (tmp_x is None) != (tmp_y is None) or (tmp_z is None) != (tmp_y is None) :
+                error_text = (
+                    "Error: Number of components with XMF property differ from "
+                    "the number of components with YMF"
+                )
+                raise ValueError(format_error(error_text))
+            else:
+                current_source_data.extend(
+                    [
+                        (name + str(suffix_count), Optional[Dict[str, np.ndarray]], None)
+                        for name in ["XMF", "YMF", "ZMF"]
+                    ]
+                )
+                props_to_extract.extend(
+                    [name + str(suffix_count) for name in ["XMF", "YMF", "ZMF"]]
+                )
         else:
-            current_source_data.extend(
-                [
-                    (name + str(suffix_count), Optional[Dict[str, np.ndarray]], None)
-                    for name in ["XMF", "YMF", "ZMF"]
-                ]
-            )
-            props_to_extract.extend(
-                [name + str(suffix_count) for name in ["XMF", "YMF", "ZMF"]]
-            )
+            if (tmp_x is None) != (tmp_y is None):
+                error_text = (
+                    "Error: Number of components with XMF property differ from "
+                    "the number of components with YMF"
+                )
+                raise ValueError(format_error(error_text))
+            else:
+                current_source_data.extend(
+                    [
+                        (name + str(suffix_count), Optional[Dict[str, np.ndarray]], None)
+                        for name in ["XMF", "YMF"]
+                    ]
+                )
+                props_to_extract.extend(
+                    [name + str(suffix_count) for name in ["XMF", "YMF"]]
+                )
         suffix_count += 1
     return current_source_data, props_to_extract
 
@@ -917,7 +939,7 @@ def _compositional_co2mass(
                 phase_moles[date][2]
             ]
         else:
-            phase_moles[date].extend(boil[date] * soil[date] * eff_vols[date])
+            phase_moles[date].extend([boil[date] * soil[date] * eff_vols[date]])
             total_moles = phase_moles[date][0] + phase_moles[date][1] + phase_moles[date][2]
             total_co2_mass = total_moles * zmf2[date] * conv_fact
             co2_mass[date] = [
