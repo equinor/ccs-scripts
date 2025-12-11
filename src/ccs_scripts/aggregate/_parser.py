@@ -163,11 +163,11 @@ def process_arguments(arguments, map_type: str) -> RootConfig:
 
     if map_type == "aggregate":
         config_file = getattr(parsed_args, "config_aggregate")
-        gas_molar_mass = None
+        cirrus_info_file = None
         gridfolder = None
     elif map_type == "migration_time":
         config_file = getattr(parsed_args, "config_migtime")
-        gas_molar_mass = None
+        cirrus_info_file = None
         gridfolder = None
     else:  # map_type == "co2_mass"
         config_file = getattr(parsed_args, "config_co2_mass_map")
@@ -179,7 +179,7 @@ def process_arguments(arguments, map_type: str) -> RootConfig:
         parsed_args.mapfolder,
         parsed_args.plotfolder,
         gridfolder,
-        gas_molar_mass,
+        cirrus_info_file,
         replacements,
         map_type,
     )
