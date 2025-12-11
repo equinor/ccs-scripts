@@ -1102,7 +1102,7 @@ def prepare_writing_details(
     width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     # Keep length of column names below <= 11 to be sure of no alignment issues
     if residual_trapping:
-        phase_names = ["Eff free gas", "Eff trapped gas", "Max free gas", "Max trapped gas"]
+        phase_names = ["Eff free gas", "Eff trap gas", "Max free gas", "Max trap gas"]
     else:
         phase_names = ["Gas"]
     phase_names += ["Dis. water"]
