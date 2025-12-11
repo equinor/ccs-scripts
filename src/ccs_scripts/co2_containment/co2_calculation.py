@@ -63,6 +63,7 @@ source_data_: List[Tuple[str, Any, None]] = [
     ("SGAS", Optional[Dict[str, np.ndarray]], None),
     ("SGSTRAND", Optional[Dict[str, np.ndarray]], None),
     ("SGTRH", Optional[Dict[str, np.ndarray]], None),
+    ("SGTRAP", Optional[Dict[str, np.ndarray]], None),
     ("RPORV", Optional[Dict[str, np.ndarray]], None),
     ("PORV", Optional[Dict[str, np.ndarray]], None),
     ("AMFG", Optional[Dict[str, np.ndarray]], None),
@@ -141,8 +142,10 @@ class Co2DataAtTimeStep:
     gas_phase: np.ndarray
     dis_oil_phase: np.ndarray
     volume_coverage: np.ndarray
-    trapped_gas_phase: np.ndarray
-    free_gas_phase: np.ndarray
+    trapped1_gas_phase: np.ndarray  # NBNB-AS
+    free1_gas_phase: np.ndarray
+    trapped2_gas_phase: np.ndarray
+    free2_gas_phase: np.ndarray
 
     def total_mass(self) -> np.ndarray:
         """
@@ -265,7 +268,7 @@ def _find_props_to_extract(unrst_file: str, residual_trapping: bool):
         unrst_file, props_to_extract, current_source_data
     )
     if residual_trapping:
-        props_to_extract.extend(["SGSTRAND", "SGTRH"])
+        props_to_extract.extend(["SGSTRAND", "SGTRH", "SGTRAP"])
 
     return source_data_updated, props_to_extract
 
@@ -616,6 +619,7 @@ def _pflotran_co2mass(
         # => The remainder must be the mole fraction for water
         xmfw = {key: 1 - xmfg[key] - xmfs[key] - xmfo[key] for key in xmfg}
     sgstrand = source_data.SGSTRAND
+    sgtrap = source_data.SGTRAP
     eff_vols = source_data.RPORV if pore_volume_prop == "RPORV" else source_data.PORV
 
     mole_fractions = _construct_mole_fractions(
@@ -670,35 +674,40 @@ def _pflotran_co2mass(
         else:
             co2_mass[date].extend([np.zeros_like(co2_mass[date][0])])
 
-        if sgstrand:
-            co2_mass[date].extend(
-                [
-                    eff_vols[date]
-                    * sgstrand[date]
-                    * dgas[date]
-                    * _mole_to_mass_fraction(
-                        mole_fractions["Gas"]["CO2"][date],
-                        mole_fractions["Gas"]["Gas"][date],
-                        mole_fractions["Gas"]["Water"][date],
-                        co2_molar_mass,
-                        water_molar_mass,
-                        gas_molar_mass,
-                        oil_molar_mass,
-                    ),
-                    eff_vols[date]
-                    * (sgas[date] - sgstrand[date])
-                    * dgas[date]
-                    * _mole_to_mass_fraction(
-                        mole_fractions["Gas"]["CO2"][date],
-                        mole_fractions["Gas"]["Gas"][date],
-                        mole_fractions["Gas"]["Water"][date],
-                        co2_molar_mass,
-                        water_molar_mass,
-                        gas_molar_mass,
-                        oil_molar_mass,
-                    ),
-                ]
-            )
+        for residual_prop in [sgstrand, sgtrap]:
+            # Can in theory have both sgstrand and sgtrap,
+            # but will normally just be one of them
+            if residual_prop:
+                co2_mass[date].extend(
+                    [
+                        eff_vols[date]
+                        * residual_prop[date]
+                        * dgas[date]
+                        * _mole_to_mass_fraction(
+                            mole_fractions["Gas"]["CO2"][date],
+                            mole_fractions["Gas"]["Gas"][date],
+                            mole_fractions["Gas"]["Water"][date],
+                            co2_molar_mass,
+                            water_molar_mass,
+                            gas_molar_mass,
+                            oil_molar_mass,
+                        ),  # NBNB-AS: Can reuse some results here:
+                        eff_vols[date]
+                        * (sgas[date] - residual_prop[date])
+                        * dgas[date]
+                        * _mole_to_mass_fraction(
+                            mole_fractions["Gas"]["CO2"][date],
+                            mole_fractions["Gas"]["Gas"][date],
+                            mole_fractions["Gas"]["Water"][date],
+                            co2_molar_mass,
+                            water_molar_mass,
+                            gas_molar_mass,
+                            oil_molar_mass,
+                        ),
+                    ]
+                )
+            else:
+                co2_mass[date].extend([np.zeros_like(co2_mass[date][0])])
     return co2_mass
 
 
@@ -730,6 +739,7 @@ def _eclipse_co2mass(
     sgas = source_data.SGAS
     swat = source_data.SWAT
     sgtrh = source_data.SGTRH
+    sgtrap = source_data.SGTRAP
     eff_vols = source_data.RPORV if pore_volume_prop == "RPORV" else source_data.PORV
     conv_fact = co2_molar_mass
 
@@ -749,17 +759,22 @@ def _eclipse_co2mass(
         ]
         co2_mass[date].extend([np.zeros_like(co2_mass[date][0])])
 
-        if sgtrh:
-            co2_mass[date].extend(
-                [
-                    conv_fact * bgas[date] * ymf2[date] * sgtrh[date] * eff_vols[date],
-                    conv_fact
-                    * bgas[date]
-                    * ymf2[date]
-                    * (sgas[date] - sgtrh[date])
-                    * eff_vols[date],
-                ]
-            )
+        for residual_prop in [sgtrh, sgtrap]:
+            # Can in theory have both sgtrh and sgtrap,
+            # but will normally just be one of them
+            if residual_prop:
+                co2_mass[date].extend(
+                    [
+                        conv_fact * bgas[date] * ymf2[date] * residual_prop[date] * eff_vols[date],
+                        conv_fact
+                        * bgas[date]
+                        * ymf2[date]
+                        * (sgas[date] - residual_prop[date])
+                        * eff_vols[date],
+                    ]
+                )
+            else:
+                co2_mass[date].extend([np.zeros_like(co2_mass[date][0])])
     return co2_mass
 
 
@@ -931,7 +946,7 @@ def _pflotran_co2_molar_volume(
             0 if x < 0 or y == 0 else x
             for x, y in zip(co2_molar_vol[date][2], mole_fractions["Oil"]["CO2"][date])
         ]
-        if source_data.SGSTRAND is not None:
+        if source_data.SGSTRAND is not None:  # NBNB-AS
             co2_molar_vol[date].extend([co2_molar_vol[date][1], co2_molar_vol[date][1]])
     return co2_molar_vol
 
@@ -1000,7 +1015,7 @@ def _eclipse_co2_molar_volume(
             0 if x < 0 or y == 0 else x
             for x, y in zip(co2_molar_vol[date][1], ymf2[date])
         ]
-        if source_data.SGTRH is not None:
+        if source_data.SGTRH is not None:  # NBNB-AS
             co2_molar_vol[date].extend([co2_molar_vol[date][1], co2_molar_vol[date][1]])
     return co2_molar_vol
 
@@ -1185,9 +1200,6 @@ def _find_source_and_scenario(
 ) -> Tuple[str, Scenario]:
     props_needed_pflotran = PROPERTIES_NEEDED_PFLOTRAN.copy()
     props_needed_eclipse = PROPERTIES_NEEDED_ECLIPSE.copy()
-    if residual_trapping:
-        props_needed_pflotran.append("SGSTRAND")
-        props_needed_eclipse.append("SGTRH")
 
     scenario = Scenario.AQUIFER
     if is_subset(props_needed_pflotran, active_props):
@@ -1196,6 +1208,13 @@ def _find_source_and_scenario(
             scenario = Scenario.DEPLETED_OIL_GAS_FIELD
         elif is_subset(["AMFS"], active_props):
             scenario = Scenario.DEPLETED_GAS_FIELD
+        if residual_trapping:
+            if "SGSTRAND" not in active_props and "SGTRAP" not in active_props:
+                error_text = (
+                    "To compute residual trapping in PFlotran scenario, "
+                    "property SGSTRAND or SGTRAP must be provided."
+                )
+                raise ValueError(format_error(error_text))
     elif is_subset(props_needed_eclipse, active_props):
         source = "Eclipse"
         if is_subset(["XMF2", "SOIL"], active_props):
@@ -1209,6 +1228,13 @@ def _find_source_and_scenario(
                 if not (prop.startswith("XMF") or prop.startswith("YMF"))
                 or prop.endswith("2")
             ]
+        if residual_trapping:
+            if "SGTRH" not in active_props and "SGTRAP" not in active_props:
+                error_text = (
+                    "To compute residual trapping in Eclipse scenario, "
+                    "property SGTRH or SGTRAP must be provided."
+                )
+                raise ValueError(format_error(error_text))
     else:
         _raise_missing_props_error(
             active_props, props_needed_pflotran, props_needed_eclipse
@@ -1253,8 +1279,10 @@ def _calc_co2_amount(
                 value[1],
                 value[2],
                 np.zeros_like(value[0]),
-                (value[3] if residual_trapping else np.zeros_like(value[0])),
-                (value[4] if residual_trapping else np.zeros_like(value[0])),
+                value[3],
+                value[4],
+                value[5],
+                value[6],
             )
             for key, value in co2_mass_cell.items()
         ],
