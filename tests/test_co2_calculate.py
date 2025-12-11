@@ -362,7 +362,7 @@ def test_reek_grid():
     )
     sort_and_replace_nones(table3)
     cs3 = ["total"] * 4 + ["contained"] * 2 + ["nogo"] * 3
-    gas_part = ["trapped_gas", "free_gas"]
+    gas_part = ["eff_trapped_gas", "eff_free_gas"]
     ps3 = ["total"] + gas_part + ["dissolved_water"] + gas_part + ["total"] + gas_part
     amounts3 = [
         696.17120388324,
@@ -392,7 +392,7 @@ def test_reek_grid():
     )
     sort_and_replace_nones(table4)
     cs4 = ["total"] * 4 + ["contained"] * 2 + ["nogo"] * 3
-    gas_part = ["trapped_gas", "free_gas"]
+    gas_part = ["eff_trapped_gas", "eff_free_gas"]
     ps4 = ["total"] + gas_part + ["dissolved_water"] + gas_part + ["total"] + gas_part
     amounts4 = [
         1018.524203883313,
