@@ -1306,18 +1306,27 @@ def _calc_co2_amount(
         )
         co2_mass = {
             co2_mass_output.data_list[t].date: (
+                # [
+                #     co2_mass_output.data_list[t].dis_water_phase,
+                #     co2_mass_output.data_list[t].gas_phase,
+                #     co2_mass_output.data_list[t].dis_oil_phase,
+                # ]
+                # if not residual_trapping
+                # else [
+                #     co2_mass_output.data_list[t].dis_water_phase,
+                #     co2_mass_output.data_list[t].gas_phase,
+                #     co2_mass_output.data_list[t].dis_oil_phase,
+                #     co2_mass_output.data_list[t].trapped1_gas_phase,
+                #     co2_mass_output.data_list[t].free1_gas_phase,
+                # ]
                 [
                     co2_mass_output.data_list[t].dis_water_phase,
                     co2_mass_output.data_list[t].gas_phase,
                     co2_mass_output.data_list[t].dis_oil_phase,
-                ]
-                if not residual_trapping
-                else [
-                    co2_mass_output.data_list[t].dis_water_phase,
-                    co2_mass_output.data_list[t].gas_phase,
-                    co2_mass_output.data_list[t].dis_oil_phase,
-                    co2_mass_output.data_list[t].trapped_gas_phase,
-                    co2_mass_output.data_list[t].free_gas_phase,
+                    co2_mass_output.data_list[t].trapped1_gas_phase,
+                    co2_mass_output.data_list[t].free1_gas_phase,
+                    co2_mass_output.data_list[t].trapped2_gas_phase,
+                    co2_mass_output.data_list[t].free2_gas_phase,
                 ]
             )
             for t in range(0, len(co2_mass_output.data_list))
@@ -1339,16 +1348,20 @@ def _calc_co2_amount(
                     np.array(vols_co2[t][1]),
                     np.array(vols_co2[t][2]),
                     np.zeros_like(np.array(vols_co2[t][0])),
-                    (
-                        np.array(vols_co2[t][3])
-                        if residual_trapping
-                        else np.zeros_like(np.array(vols_co2[t][0]))
-                    ),
-                    (
-                        np.array(vols_co2[t][4])
-                        if residual_trapping
-                        else np.zeros_like(np.array(vols_co2[t][0]))
-                    ),
+                    np.array(vols_co2[t][3]),
+                    np.array(vols_co2[t][4]),
+                    np.array(vols_co2[t][5]),
+                    np.array(vols_co2[t][6]),
+                    # (
+                    #     np.array(vols_co2[t][3])
+                    #     if residual_trapping
+                    #     else np.zeros_like(np.array(vols_co2[t][0]))
+                    # ),
+                    # (
+                    #     np.array(vols_co2[t][4])
+                    #     if residual_trapping
+                    #     else np.zeros_like(np.array(vols_co2[t][0]))
+                    # ),
                 )
                 for t in vols_co2
             ],
@@ -1501,6 +1514,8 @@ def _calc_co2_amount_cell_volume(
                 np.array(vols_ext[t]),
                 np.zeros_like(np.array(vols_ext[t])),
                 np.zeros_like(np.array(vols_ext[t])),
+                np.zeros_like(np.array(vols_ext[t])),
+                np.zeros_like(np.array(vols_ext[t])),
             )
             for t in vols_ext
         ],
@@ -1547,8 +1562,10 @@ def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
             values.dis_water_phase,
             values.gas_phase,
             values.dis_oil_phase,
-            values.trapped_gas_phase,
-            values.free_gas_phase,
+            values.trapped1_gas_phase,
+            values.free1_gas_phase,
+            values.trapped2_gas_phase,
+            values.free2_gas_phase,
         ]:
             x *= 0.001
 
