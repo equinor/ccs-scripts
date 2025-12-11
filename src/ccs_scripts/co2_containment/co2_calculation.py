@@ -228,24 +228,28 @@ def _extract_molar_masses(
         if "MWO" in info_data["Mnemonic"].values:  # NB: Does it exist?
             subset = info_data.loc[info_data["Mnemonic"] == "MWO", "Value"]
             if subset.empty and scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
-                    error_text = f"\nScenario: {scenario.name}."
-                    error_text += (
-                        "\nTo compute mass or actual volume in this scenario "
-                        "oil molar mass must be provided"
-                    )
-                    raise ValueError(format_error(error_text))
-            oil_molar_mass = subset.iloc[0] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else None
+                error_text = f"\nScenario: {scenario.name}."
+                error_text += (
+                    "\nTo compute mass or actual volume in this scenario "
+                    "oil molar mass must be provided"
+                )
+                raise ValueError(format_error(error_text))
+            oil_molar_mass = (
+                subset.iloc[0] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else None
+            )
         return gas_molar_mass, oil_molar_mass
     elif source == "PFlotran COMP":
         info_data = pd.read_csv(cirrus_info_file)
         suffix_count = 1
         molar_weights = {}
         while suffix_count < 50:
-                subset = info_data.loc[info_data["Mnemonic"] == f"COMP_{suffix_count}", "Value"]
-                if subset.empty:
-                    break
-                molar_weights[suffix_count] = subset.iloc[0]
-                suffix_count += 1
+            subset = info_data.loc[
+                info_data["Mnemonic"] == f"COMP_{suffix_count}", "Value"
+            ]
+            if subset.empty:
+                break
+            molar_weights[suffix_count] = subset.iloc[0]
+            suffix_count += 1
         print(f"We ended in suffix_count {suffix_count}")
         if suffix_count <= 2:
             error_text = f"\nScenario: {scenario.name}."
@@ -256,6 +260,7 @@ def _extract_molar_masses(
             )
             raise ValueError(format_error(error_text))
         return molar_weights
+
 
 def _detect_eclipse_mole_fraction_props(
     unrst_file: str,
@@ -1186,12 +1191,10 @@ def _calculate_co2_data_from_source_data(
     comp_molar_masses = None
     if source != "PFlotran COMP":
         gas_molar_mass, oil_molar_mass = _extract_molar_masses(
-        source, scenario, cirrus_info_file
-        )
-    else:
-        comp_molar_masses = _extract_molar_masses(
             source, scenario, cirrus_info_file
         )
+    else:
+        comp_molar_masses = _extract_molar_masses(source, scenario, cirrus_info_file)
     logging.info("Found valid properties")
     logging.info(f"Data source : {source}")
     logging.info(f"Scenario    : {scenario.name}")
