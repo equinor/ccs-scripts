@@ -677,6 +677,9 @@ def _pflotran_co2mass(
         for residual_prop in [sgstrand, sgtrap]:
             # Can in theory have both sgstrand and sgtrap,
             # but will normally just be one of them
+            # NBNB-AS: The order here is important
+            #          SGSTRAND: Effectively residual trapping
+            #          SGTRAP:   Maximum residual trapping
             if residual_prop:
                 co2_mass[date].extend(
                     [
@@ -762,6 +765,10 @@ def _eclipse_co2mass(
         for residual_prop in [sgtrh, sgtrap]:
             # Can in theory have both sgtrh and sgtrap,
             # but will normally just be one of them
+            # NBNB-AS: The order here is important
+            #          SGTRH:  Effectively residual trapping
+            #          SGTRAP: Maximum residual trapping
+            # NBNB-AS: Is this correct interpretation of Eclipse properties?
             if residual_prop:
                 co2_mass[date].extend(
                     [

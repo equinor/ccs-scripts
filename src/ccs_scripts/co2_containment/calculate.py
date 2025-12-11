@@ -25,7 +25,7 @@ class ContainedCo2:
     Args:
         date (str): A given time step
         amount (float): Numerical value with the computed amount at "date"
-        phase (Literal): One of gas (or trapped_gas/free_gas)/dissolved/undefined.
+        phase (Literal): One of gas (or trapped1_gas/free1_gas/trapped2_gas/free2_gas)/dissolved/undefined.
             The phase of "amount".
         containment (Literal): One of contained/outside/nogo. The location
             that "amount" corresponds to.
@@ -233,7 +233,7 @@ def _lists_of_phases(
         phases = ["undefined"]
     else:
         phases = ["total", "dissolved_water"]
-        phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
+        phases += ["trapped1_gas", "free1_gas", "trapped2_gas", "free2_gas"] if residual_trapping else ["gas"]  # NBNB-AS
         phases += (
             ["dissolved_oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
         )
@@ -254,7 +254,7 @@ def _lists_of_co2_for_each_phase(
     else:
         arrays = [co2_at_date.total_mass(), co2_at_date.dis_water_phase]
         arrays += (
-            [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
+            [co2_at_date.trapped1_gas_phase, co2_at_date.free1_gas_phase, co2_at_date.trapped2_gas_phase, co2_at_date.free2_gas_phase]
             if residual_trapping
             else [co2_at_date.gas_phase]
         )

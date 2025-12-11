@@ -268,7 +268,7 @@ def _merge_date_rows(
         )
         df_phases = list(pd.unique(data_frame["phase"]))
         df_phases = [name for name in df_phases if name not in ["all"]]
-        phases = ["free_gas", "trapped_gas"] if residual_trapping else ["gas"]
+        phases = ["free1_gas", "trapped1_gas", "free2_gas", "trapped2_gas"] if residual_trapping else ["gas"]  # NBNB-AS
         phases += ["dissolved_water"]
         phases += ["dissolved_oil"] if "dissolved_oil" in df_phases else []
         # Total by phase
@@ -792,16 +792,29 @@ def log_summary_of_results(
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
         else:
-            value = extract_amount(df_subset, "total", "free_gas")
+            # NBNB-AS
+            value = extract_amount(df_subset, "total", "free1_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"{'End state free gas':<{col1}} : "
+                f"{'End state free1 gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
-            value = extract_amount(df_subset, "total", "trapped_gas")
+            value = extract_amount(df_subset, "total", "trapped1_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"{'End state trapped gas':<{col1}} : "
+                f"{'End state trapped1 gas':<{col1}} : "
+                f"{value:{n}.1f}  ={percent:>5.1f} %"
+            )
+            value = extract_amount(df_subset, "total", "free2_gas")
+            percent = 100.0 * value / total if total > 0.0 else 0.0
+            logging.info(
+                f"{'End state free2 gas':<{col1}} : "
+                f"{value:{n}.1f}  ={percent:>5.1f} %"
+            )
+            value = extract_amount(df_subset, "total", "trapped2_gas")
+            percent = 100.0 * value / total if total > 0.0 else 0.0
+            logging.info(
+                f"{'End state trapped2 gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
         value = extract_amount(df_subset, "total", "dissolved_water")
@@ -1085,7 +1098,7 @@ def prepare_writing_details(
         df[column] /= 1e6
     width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     # Keep length of column names below <= 11 to be sure of no alignment issues
-    phase_names = ["Free gas", "Trapped gas"] if residual_trapping else ["Gas"]
+    phase_names = ["Free1 gas", "Trapped1 gas", "Free2 gas", "Trapped2 gas"] if residual_trapping else ["Gas"]  # NBNB-AS
     phase_names += ["Dis. water"]
     phase_names += (
         ["Dis. oil"] if any("dissolved_oil" in col for col in df.columns) else []

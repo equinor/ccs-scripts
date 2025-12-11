@@ -33,8 +33,10 @@ class MapName(Enum):
     MASSDISW = "co2_mass_dissolved_water_phase"
     MASSDISO = "co2_mass_dissolved_oil_phase"
     MASS_GAS = "co2_mass_gas_phase"
-    MASSTGAS = "co2_mass_trapped_gas_phase"
-    MASSFGAS = "co2_mass_free_gas_phase"
+    MASST1GS = "co2_mass_effective_trapped_gas_phase"  # NBNB-AS
+    MASSF1GS = "co2_mass_effective_free_gas_phase"
+    MASST2GS = "co2_mass_maximum_trapped_gas_phase"
+    MASSF2GS = "co2_mass_maximum_free_gas_phase"
 
 
 class PropertyGridOutput(TypedDict):
@@ -384,16 +386,20 @@ def _convert_to_grid(
             co2_at_date.dis_water_phase,
             co2_at_date.dis_oil_phase,
             co2_at_date.gas_phase,
-            co2_at_date.trapped_gas_phase,
-            co2_at_date.free_gas_phase,
+            co2_at_date.trapped1_gas_phase,  # NBNB-AS
+            co2_at_date.free1_gas_phase,
+            co2_at_date.trapped2_gas_phase,
+            co2_at_date.free2_gas_phase,
         ],
         [
             "MASS_TOT",
             "MASSDISW",
             "MASSDISO",
             "MASS_GAS",
-            "MASSTGAS",
-            "MASSFGAS",
+            "MASST1GS",  # NBNB-AS
+            "MASSF1GS",
+            "MASST2GS",
+            "MASSF2GS",
         ],
     ):
         mass_array = np.zeros(n_act_cells, dtype=mass.dtype)
