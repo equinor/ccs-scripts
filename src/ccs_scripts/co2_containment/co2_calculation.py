@@ -694,7 +694,7 @@ def _pflotran_co2mass(
                             water_molar_mass,
                             gas_molar_mass,
                             oil_molar_mass,
-                        ),  # NBNB-AS: Can reuse some results here:
+                        ),  # NBNB-AS: Can re-use some results here:
                         eff_vols[date]
                         * (sgas[date] - residual_prop[date])
                         * dgas[date]
@@ -710,7 +710,12 @@ def _pflotran_co2mass(
                     ]
                 )
             else:
-                co2_mass[date].extend([np.zeros_like(co2_mass[date][0])])
+                co2_mass[date].extend(
+                    [
+                        np.zeros_like(co2_mass[date][0]),
+                        np.zeros_like(co2_mass[date][0]),
+                    ]
+                )
     return co2_mass
 
 
@@ -781,7 +786,12 @@ def _eclipse_co2mass(
                     ]
                 )
             else:
-                co2_mass[date].extend([np.zeros_like(co2_mass[date][0])])
+                co2_mass[date].extend(
+                    [
+                        np.zeros_like(co2_mass[date][0]),
+                        np.zeros_like(co2_mass[date][0]),
+                    ]
+                )
     return co2_mass
 
 
