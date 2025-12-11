@@ -268,7 +268,10 @@ def _merge_date_rows(
         )
         df_phases = list(pd.unique(data_frame["phase"]))
         df_phases = [name for name in df_phases if name not in ["all"]]
-        phases = ["free1_gas", "trapped1_gas", "free2_gas", "trapped2_gas"] if residual_trapping else ["gas"]  # NBNB-AS
+        if residual_trapping:
+            phases = ["eff_free_gas", "eff_trapped_gas", "max_free_gas", "max_trapped_gas"]
+        else:
+            phases = ["gas"]
         phases += ["dissolved_water"]
         phases += ["dissolved_oil"] if "dissolved_oil" in df_phases else []
         # Total by phase
@@ -793,25 +796,25 @@ def log_summary_of_results(
             )
         else:
             # NBNB-AS
-            value = extract_amount(df_subset, "total", "free1_gas")
+            value = extract_amount(df_subset, "total", "eff_free_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
                 f"{'End state effective free gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
-            value = extract_amount(df_subset, "total", "trapped1_gas")
+            value = extract_amount(df_subset, "total", "eff_trapped_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
                 f"{'End state effective trapped gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
-            value = extract_amount(df_subset, "total", "free2_gas")
+            value = extract_amount(df_subset, "total", "max_free_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
                 f"{'End state maximum free gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
-            value = extract_amount(df_subset, "total", "trapped2_gas")
+            value = extract_amount(df_subset, "total", "max_trapped_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
                 f"{'End state maximum trapped gas':<{col1}} : "
@@ -1098,7 +1101,10 @@ def prepare_writing_details(
         df[column] /= 1e6
     width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     # Keep length of column names below <= 11 to be sure of no alignment issues
-    phase_names = ["Free1 gas", "Trapped1 gas", "Free2 gas", "Trapped2 gas"] if residual_trapping else ["Gas"]  # NBNB-AS
+    if residual_trapping:
+        phase_names = ["Eff free gas", "Eff trapped gas", "Max free gas", "Max trapped gas"]
+    else:
+        phase_names = ["Gas"]
     phase_names += ["Dis. water"]
     phase_names += (
         ["Dis. oil"] if any("dissolved_oil" in col for col in df.columns) else []
