@@ -232,11 +232,11 @@ def main(arguments=None):
     timer = Timer()
     timer.start("total")
 
-    config_ = _parser.process_arguments(arguments)
+    config_ = _parser.process_arguments(arguments, map_type="co2_mass")
     config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
     config_.output.aggregation_tag = False
     _check_config(config_)
-    log_input_configuration(config_, calc_type="co2_mass")
+    log_input_configuration(config_, map_type="co2_mass")
     generate_co2_mass_maps(config_)
 
     timer.stop("total")

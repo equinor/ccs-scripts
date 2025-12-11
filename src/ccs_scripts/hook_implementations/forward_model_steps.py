@@ -27,7 +27,8 @@ class Co2ContainmentStep(ForwardModelStepPlugin):
             "<ROOT_DIR>": "-1",
             "<OUT_DIR>": "-1",
             "<CONTAINMENT_POLYGON>": "-1",
-            "<HAZARDOUS_POLYGON>": "-1",
+            "<NOGO_POLYGON>": "-1",
+            "<HAZARDOUS_POLYGON>": "-1",  # Keep for backward comp., remove later
             "<ZONEFILE>": "-1",
             "<REGIONFILE>": "-1",
             "<REGION_PROPERTY>": "-1",
@@ -54,7 +55,9 @@ class Co2ContainmentStep(ForwardModelStepPlugin):
             "<OUT_DIR>",
             "--containment_polygon",
             "<CONTAINMENT_POLYGON>",
-            "--hazardous_polygon",
+            "--nogo_polygon",
+            "<NOGO_POLYGON>",
+            "--hazardous_polygon",  # Keep for backward comp., remove later
             "<HAZARDOUS_POLYGON>",
             "--zonefile",
             "<ZONEFILE>",
@@ -76,7 +79,7 @@ class Co2ContainmentStep(ForwardModelStepPlugin):
             "<RESIDUAL_TRAPPING>",
             "--readable_output",
             "<READABLE_OUTPUT>",
-            "--config_file_inj_wells",
+            "--config_plume_tracking",
             "<CONFIG_PLUME_TRACKING>",
             "--cirrus_info_file",
             "<CIRRUS_INFO_FILE>",
@@ -126,7 +129,7 @@ class Co2PlumeExtentStep(ForwardModelStepPlugin):
             command=[
                 shutil.which("co2_plume_extent"),
                 "<CASE>",
-                "--config_file",
+                "--config_plume_extent",
                 "<CONFIG_PLUME_EXTENT>",
                 "--inj_point",
                 "<INJ_POINT>",
@@ -166,7 +169,7 @@ class Co2PlumeExtentStep(ForwardModelStepPlugin):
         )
 
 
-class Co2CsvArrowConverterStep(ForwardModelStepPlugin):
+class TabularDataConverterStep(ForwardModelStepPlugin):
     def __init__(self):
         # This FORWARD_MODEL is slightly different from the others, as it
         # does not provide individual keywords for every possible argument.
@@ -190,9 +193,9 @@ class Co2CsvArrowConverterStep(ForwardModelStepPlugin):
         # from the others, which may be confusing to users.
 
         super().__init__(
-            name="CO2_CSV_ARROW_CONVERTER",
+            name="TABULAR_DATA_CONVERTER",
             command=[
-                shutil.which("co2_csv_arrow_converter"),
+                shutil.which("tabular_data_converter"),
                 "--root_dir",
                 "<ROOT_DIR>",
                 "<OPTIONS>",
@@ -217,9 +220,9 @@ class Co2CsvArrowConverterStep(ForwardModelStepPlugin):
     @staticmethod
     def documentation() -> ForwardModelStepDocumentation:
         return ForwardModelStepDocumentation(
-            description=_DESC_CO2_CSV_ARROW_CONVERTER,
+            description=_DESC_TABULAR_DATA_CONVERTER,
             category=_CATEGORY,
-            examples=_EXAMPLES_CO2_CSV_ARROW_CONVERTER,
+            examples=_EXAMPLES_TABULAR_DATA_CONVERTER,
         )
 
 
@@ -229,7 +232,7 @@ class Grid3dAggregateMapStep(ForwardModelStepPlugin):
             name="GRID3D_AGGREGATE_MAP",
             command=[
                 shutil.which("grid3d_aggregate_map"),
-                "--config",
+                "--config_aggregate",
                 "<CONFIG_AGGREGATE>",
                 "--eclroot",
                 "<ECLROOT>",
@@ -271,7 +274,7 @@ class Grid3dCo2MassMapStep(ForwardModelStepPlugin):
             name="GRID3D_CO2_MASS_MAP",
             command=[
                 shutil.which("grid3d_co2_mass_map"),
-                "--config",
+                "--config_co2_mass_map",
                 "<CONFIG_CO2_MASS_MAP>",
                 "--eclroot",
                 "<ECLROOT>",
@@ -298,6 +301,7 @@ class Grid3dCo2MassMapStep(ForwardModelStepPlugin):
                 "<FOLDERROOT>": "-1",
                 "<NO_LOGGING>": "-1",
                 "<DEBUG>": "-1",
+                "<GAS_MOLAR_MASS>": "-1",
             },
             stderr_file="GRID3D_CO2_MASS_MAP.stderr",
             stdout_file="GRID3D_CO2_MASS_MAP.stdout",
@@ -318,7 +322,7 @@ class Grid3dMigrationTimeStep(ForwardModelStepPlugin):
             name="GRID3D_MIGRATION_TIME",
             command=[
                 shutil.which("grid3d_migration_time"),
-                "--config",
+                "--config_migtime",
                 "<CONFIG_MIGTIME>",
                 "--eclroot",
                 "<ECLROOT>",
@@ -390,10 +394,11 @@ YAML-file will be combined to a single CSV-file with many columns.
 """
 
 
-_DESC_CO2_CSV_ARROW_CONVERTER = """
-This scripts checks all FMU realizations for missing arrow or
-csv files representing plume extent, area or containment data. If one exists,
-but not the other, it will create the missing file.
+_DESC_TABULAR_DATA_CONVERTER = """
+General-purpose tabular data format converter for bidirectional conversion
+between CSV and Arrow formats. Handles plume extent, area, and containment
+data with optional date-based aggregation. Both file formats are useful as
+they serve different purposes in data workflows.
 """
 
 
@@ -414,20 +419,20 @@ produced. See tests/yaml for examples of yaml files.
 _DESC_GRID3D_MIGRATION_TIME = "Generate migration time property maps."
 
 
-_EXAMPLES_CO2_CSV_ARROW_CONVERTER = """
+_EXAMPLES_TABULAR_DATA_CONVERTER = """
 If running from the root directory of the project, the default parameters
 is probably what you want:
 
 .. code-block:: console
 
-  FORWARD_MODEL CO2_CSV_ARROW_CONVERTER()
+  FORWARD_MODEL TABULAR_DATA_CONVERTER()
 
 The root directory can be specified with the <ROOT_DIR> parameter, and more
 advanced options can be specified with the <OPTIONS> parameter. For example:
 
 .. code-block:: console
 
-  FORWARD_MODEL CO2_CSV_ARROW_CONVERTER(<ROOT_DIR>=/path/to/root, <OPTIONS>="--force_arrow_overwrite --realization_pattern=realization-*/iter-* --kept_columns=zone,plume_group")
+  FORWARD_MODEL TABULAR_DATA_CONVERTER(<ROOT_DIR>=/path/to/root, <OPTIONS>="--src-pattern '**/*.csv' --format arrow --aggregate-columns phase,zone")
 """  # noqa: E501
 
 
@@ -458,7 +463,7 @@ def installable_forward_model_steps() -> List[ForwardModelStepPlugin]:
         Co2ContainmentStep,
         Co2PlumeAreaStep,
         Co2PlumeExtentStep,
-        Co2CsvArrowConverterStep,
+        TabularDataConverterStep,
         Grid3dAggregateMapStep,
         Grid3dCo2MassMapStep,
         Grid3dMigrationTimeStep,

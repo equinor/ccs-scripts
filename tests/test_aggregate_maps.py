@@ -17,7 +17,7 @@ def test_aggregated_map1():
 
     grid3d_aggregate_map.main(
         [
-            "--config",
+            "--config_aggregate",
             cfg,
             "--mapfolder",
             str(result),
@@ -39,7 +39,7 @@ def test_aggregated_map2():
 
     grid3d_aggregate_map.main(
         [
-            "--config",
+            "--config_aggregate",
             cfg,
             "--mapfolder",
             str(result),
@@ -61,7 +61,7 @@ def test_aggregated_map3():
 
     grid3d_aggregate_map.main(
         [
-            "--config",
+            "--config_aggregate",
             cfg,
             "--mapfolder",
             str(result),
@@ -83,7 +83,7 @@ def test_aggregated_map4():
 
     grid3d_aggregate_map.main(
         [
-            "--config",
+            "--config_aggregate",
             yml,
             "--mapfolder",
             str(result),
@@ -108,7 +108,7 @@ def test_aggregated_map5():
 
     grid3d_aggregate_map.main(
         [
-            "--config",
+            "--config_aggregate",
             cfg,
             "--mapfolder",
             str(result),
@@ -130,7 +130,7 @@ def test_aggregated_map6():
 
     grid3d_aggregate_map.main(
         [
-            "--config",
+            "--config_aggregate",
             cfg,
             "--mapfolder",
             str(result),
@@ -163,7 +163,7 @@ def test_aggregated_map7():
 
     grid3d_aggregate_map.main(
         [
-            "--config",
+            "--config_aggregate",
             cfg,
             "--mapfolder",
             str(result),

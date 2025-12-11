@@ -12,7 +12,7 @@ def expected_jobs() -> list[str]:
         "CO2_CONTAINMENT",
         "CO2_PLUME_AREA",
         "CO2_PLUME_EXTENT",
-        "CO2_CSV_ARROW_CONVERTER",
+        "TABULAR_DATA_CONVERTER",
         "GRID3D_CO2_MASS_MAP",
         "GRID3D_AGGREGATE_MAP",
         "GRID3D_MIGRATION_TIME",

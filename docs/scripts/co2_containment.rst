@@ -27,7 +27,7 @@ Example of how the output CSV file is structured:
      - total
      - total_contained
      - total_outside
-     - total_hazardous
+     - total_nogo
      - total_gas
      - total_aqueous
      - gas_contained

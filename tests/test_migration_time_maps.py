@@ -12,7 +12,7 @@ def test_migration_time1():
     result.mkdir(parents=True)
     grid3d_migration_time.main(
         [
-            "--config",
+            "--config_migtime",
             "tests/yaml/config_migration_time1.yml",
             "--mapfolder",
             str(result),
@@ -29,7 +29,7 @@ def test_migration_time2():
     result.mkdir(parents=True)
     grid3d_migration_time.main(
         [
-            "--config",
+            "--config_migtime",
             "tests/yaml/config_migration_time2.yml",
             "--mapfolder",
             str(result),
