@@ -963,8 +963,14 @@ def _pflotran_co2_molar_volume(
             0 if x < 0 or y == 0 else x
             for x, y in zip(co2_molar_vol[date][2], mole_fractions["Oil"]["CO2"][date])
         ]
-        if source_data.SGSTRAND is not None:  # NBNB-AS
-            co2_molar_vol[date].extend([co2_molar_vol[date][1], co2_molar_vol[date][1]])
+        co2_molar_vol[date].extend(
+            [
+                co2_molar_vol[date][1], 
+                co2_molar_vol[date][1],
+                co2_molar_vol[date][1],
+                co2_molar_vol[date][1],
+            ]
+        )
     return co2_molar_vol
 
 
@@ -1032,8 +1038,14 @@ def _eclipse_co2_molar_volume(
             0 if x < 0 or y == 0 else x
             for x, y in zip(co2_molar_vol[date][1], ymf2[date])
         ]
-        if source_data.SGTRH is not None:  # NBNB-AS
-            co2_molar_vol[date].extend([co2_molar_vol[date][1], co2_molar_vol[date][1]])
+        co2_molar_vol[date].extend(
+            [
+                co2_molar_vol[date][1], 
+                co2_molar_vol[date][1],
+                co2_molar_vol[date][1],
+                co2_molar_vol[date][1],
+            ]
+        )
     return co2_molar_vol
 
 
@@ -1170,7 +1182,6 @@ def _calculate_co2_data_from_source_data(
             source,
             scenario,
             calc_type,
-            residual_trapping,
             source_data,
             pore_volume_prop,
             co2_molar_mass,
@@ -1264,7 +1275,6 @@ def _calc_co2_amount(
     source: str,
     scenario: Scenario,
     calc_type: CalculationType,
-    residual_trapping: bool,
     source_data,
     pore_volume_prop: str,
     co2_molar_mass: float,
@@ -1323,19 +1333,6 @@ def _calc_co2_amount(
         )
         co2_mass = {
             co2_mass_output.data_list[t].date: (
-                # [
-                #     co2_mass_output.data_list[t].dis_water_phase,
-                #     co2_mass_output.data_list[t].gas_phase,
-                #     co2_mass_output.data_list[t].dis_oil_phase,
-                # ]
-                # if not residual_trapping
-                # else [
-                #     co2_mass_output.data_list[t].dis_water_phase,
-                #     co2_mass_output.data_list[t].gas_phase,
-                #     co2_mass_output.data_list[t].dis_oil_phase,
-                #     co2_mass_output.data_list[t].trapped1_gas_phase,
-                #     co2_mass_output.data_list[t].free1_gas_phase,
-                # ]
                 [
                     co2_mass_output.data_list[t].dis_water_phase,
                     co2_mass_output.data_list[t].gas_phase,
@@ -1369,16 +1366,6 @@ def _calc_co2_amount(
                     np.array(vols_co2[t][4]),
                     np.array(vols_co2[t][5]),
                     np.array(vols_co2[t][6]),
-                    # (
-                    #     np.array(vols_co2[t][3])
-                    #     if residual_trapping
-                    #     else np.zeros_like(np.array(vols_co2[t][0]))
-                    # ),
-                    # (
-                    #     np.array(vols_co2[t][4])
-                    #     if residual_trapping
-                    #     else np.zeros_like(np.array(vols_co2[t][0]))
-                    # ),
                 )
                 for t in vols_co2
             ],

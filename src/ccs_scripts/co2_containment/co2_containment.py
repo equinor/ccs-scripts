@@ -776,7 +776,7 @@ def log_summary_of_results(
     total = extract_amount(df_subset, "total", "total", cell_volume)
     n = len(f"{total:.1f}")
 
-    col1 = 30
+    col1 = 31
     logging.info("\nSummary of results:")
     logging.info("===================")
     logging.info(f"{'Number of dates':<{col1}} : {len(dfs['date'].unique())}")
@@ -796,25 +796,25 @@ def log_summary_of_results(
             value = extract_amount(df_subset, "total", "free1_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"{'End state free1 gas':<{col1}} : "
+                f"{'End state effective free gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
             value = extract_amount(df_subset, "total", "trapped1_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"{'End state trapped1 gas':<{col1}} : "
+                f"{'End state effective trapped gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
             value = extract_amount(df_subset, "total", "free2_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"{'End state free2 gas':<{col1}} : "
+                f"{'End state maximum free gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
             value = extract_amount(df_subset, "total", "trapped2_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
-                f"{'End state trapped2 gas':<{col1}} : "
+                f"{'End state maximum trapped gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
         value = extract_amount(df_subset, "total", "dissolved_water")

@@ -145,13 +145,13 @@ def test_co2_mass_map_residual_trapping_pflotran():
         Path(__file__).absolute().parent
         / "answers"
         / "mass_map"
-        / "all--co2_mass_free_gas_phase--23000101.gri"
+        / "all--co2_mass_effective_free_gas_phase--23000101.gri"
     )
     trapped_gas_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
         / "mass_map"
-        / "all--co2_mass_trapped_gas_phase--23000101.gri"
+        / "all--co2_mass_effective_trapped_gas_phase--23000101.gri"
     )
     total_co2_file = (
         Path(__file__).absolute().parent
