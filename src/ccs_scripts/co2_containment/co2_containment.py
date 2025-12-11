@@ -59,7 +59,7 @@ def calculate_out_of_bounds_co2(
     inj_wells: List[InjectionWellData],
     file_cont_polygon: Optional[str] = None,
     file_nogo_polygon: Optional[str] = None,
-    cirrus_info_file: Optional[float] = None,
+    cirrus_info_file: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Calculates sum of co2 mass or volume at each time step. Use polygons
