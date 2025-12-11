@@ -33,7 +33,7 @@ class MapName(Enum):
     MASSDISW = "co2_mass_dissolved_water_phase"
     MASSDISO = "co2_mass_dissolved_oil_phase"
     MASS_GAS = "co2_mass_gas_phase"
-    MASST1GS = "co2_mass_effective_trapped_gas_phase"  # NBNB-AS
+    MASST1GS = "co2_mass_effective_trapped_gas_phase"  # NBNB-AS: Converting to reasonable names here at least
     MASSF1GS = "co2_mass_effective_free_gas_phase"
     MASST2GS = "co2_mass_maximum_trapped_gas_phase"
     MASSF2GS = "co2_mass_maximum_free_gas_phase"
@@ -115,8 +115,10 @@ def translate_co2data_to_property(
     dissolved_water_mass_data = copy.deepcopy(mass_data_template)
     dissolved_oil_mass_data = copy.deepcopy(mass_data_template)
     free_mass_data = copy.deepcopy(mass_data_template)
-    free_gas_mass_data = copy.deepcopy(mass_data_template)
-    trapped_gas_mass_data = copy.deepcopy(mass_data_template)
+    free1_gas_mass_data = copy.deepcopy(mass_data_template)  # NBNB-AS: Rename in this method, 1 and 2
+    trapped1_gas_mass_data = copy.deepcopy(mass_data_template)
+    free2_gas_mass_data = copy.deepcopy(mass_data_template)
+    trapped2_gas_mass_data = copy.deepcopy(mass_data_template)
 
     unrst_data = ResdataFile(co2_mass_settings.unrst_source)
     grid_data = ResdataFile(grid_file)
@@ -196,72 +198,113 @@ def translate_co2data_to_property(
                 dissolved_oil_mass_data["egrid_kw"].extend(custom_egrid)
         if (
             store_all or "free_co2" in maps
-        ) and not co2_mass_settings.residual_trapping:
-            free_mass_data["unrst_kw"].extend(
-                [
-                    ("SEQNUM  ", [date_i32]),
-                    ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
-                    ("LOGIHEAD", logihead_array),
-                    ("MASS_GAS", mass_as_grid["MASS_GAS"]["data"]),
-                ]
-            )
-            if (
-                mass_as_grid["MASS_GAS"]["unrst_path"]
-                not in free_mass_data["unrst_path"]
-            ):
-                free_mass_data["unrst_path"].append(
+        ):
+            if not co2_mass_settings.residual_trapping:
+                free_mass_data["unrst_kw"].extend(
+                    [
+                        ("SEQNUM  ", [date_i32]),
+                        ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
+                        ("LOGIHEAD", logihead_array),
+                        ("MASS_GAS", mass_as_grid["MASS_GAS"]["data"]),
+                    ]
+                )
+                if (
                     mass_as_grid["MASS_GAS"]["unrst_path"]
+                    not in free_mass_data["unrst_path"]
+                ):
+                    free_mass_data["unrst_path"].append(
+                        mass_as_grid["MASS_GAS"]["unrst_path"]
+                    )
+                    free_mass_data["egrid_path"].append(
+                        mass_as_grid["MASS_GAS"]["egrid_path"]
+                    )
+                    free_mass_data["egrid_kw"].extend(custom_egrid)
+            else:
+                free1_gas_mass_data["unrst_kw"].extend(
+                    [
+                        ("SEQNUM  ", [date_i32]),
+                        ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
+                        ("LOGIHEAD", logihead_array),
+                        ("MASSF1GS", mass_as_grid["MASSF1GS"]["data"]),
+                    ]
                 )
-                free_mass_data["egrid_path"].append(
-                    mass_as_grid["MASS_GAS"]["egrid_path"]
+                if (
+                    mass_as_grid["MASSF1GS"]["unrst_path"]
+                    not in free1_gas_mass_data["unrst_path"]
+                ):
+                    free1_gas_mass_data["unrst_path"].append(
+                        mass_as_grid["MASSF1GS"]["unrst_path"]
+                    )
+                    free1_gas_mass_data["egrid_path"].append(
+                        mass_as_grid["MASSF1GS"]["egrid_path"]
+                    )
+                    free1_gas_mass_data["egrid_kw"].extend(custom_egrid)
+                trapped1_gas_mass_data["unrst_kw"].extend(
+                    [
+                        ("SEQNUM  ", [date_i32]),
+                        ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
+                        ("LOGIHEAD", logihead_array),
+                        ("MASST1GS", mass_as_grid["MASST1GS"]["data"]),
+                    ]
                 )
-                free_mass_data["egrid_kw"].extend(custom_egrid)
-        if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
-            free_gas_mass_data["unrst_kw"].extend(
-                [
-                    ("SEQNUM  ", [date_i32]),
-                    ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
-                    ("LOGIHEAD", logihead_array),
-                    ("MASSFGAS", mass_as_grid["MASSFGAS"]["data"]),
-                ]
-            )
-            if (
-                mass_as_grid["MASSFGAS"]["unrst_path"]
-                not in free_gas_mass_data["unrst_path"]
-            ):
-                free_gas_mass_data["unrst_path"].append(
-                    mass_as_grid["MASSFGAS"]["unrst_path"]
+                if (
+                    mass_as_grid["MASST1GS"]["unrst_path"]
+                    not in trapped1_gas_mass_data["unrst_path"]
+                ):
+                    trapped1_gas_mass_data["unrst_path"].append(
+                        mass_as_grid["MASST1GS"]["unrst_path"]
+                    )
+                    trapped1_gas_mass_data["egrid_path"].append(
+                        mass_as_grid["MASST1GS"]["egrid_path"]
+                    )
+                    trapped1_gas_mass_data["egrid_kw"].extend(custom_egrid)
+                free2_gas_mass_data["unrst_kw"].extend(
+                    [
+                        ("SEQNUM  ", [date_i32]),
+                        ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
+                        ("LOGIHEAD", logihead_array),
+                        ("MASSF2GS", mass_as_grid["MASSF2GS"]["data"]),
+                    ]
                 )
-                free_gas_mass_data["egrid_path"].append(
-                    mass_as_grid["MASSFGAS"]["egrid_path"]
+                if (
+                    mass_as_grid["MASSF2GS"]["unrst_path"]
+                    not in free2_gas_mass_data["unrst_path"]
+                ):
+                    free2_gas_mass_data["unrst_path"].append(
+                        mass_as_grid["MASSF2GS"]["unrst_path"]
+                    )
+                    free2_gas_mass_data["egrid_path"].append(
+                        mass_as_grid["MASSF2GS"]["egrid_path"]
+                    )
+                    free2_gas_mass_data["egrid_kw"].extend(custom_egrid)
+                trapped2_gas_mass_data["unrst_kw"].extend(
+                    [
+                        ("SEQNUM  ", [date_i32]),
+                        ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
+                        ("LOGIHEAD", logihead_array),
+                        ("MASST2GS", mass_as_grid["MASST2GS"]["data"]),
+                    ]
                 )
-                free_gas_mass_data["egrid_kw"].extend(custom_egrid)
-            trapped_gas_mass_data["unrst_kw"].extend(
-                [
-                    ("SEQNUM  ", [date_i32]),
-                    ("INTEHEAD", unrst_data["INTEHEAD"][date_idx].numpyView()),
-                    ("LOGIHEAD", logihead_array),
-                    ("MASSTGAS", mass_as_grid["MASSTGAS"]["data"]),
-                ]
-            )
-            if (
-                mass_as_grid["MASSTGAS"]["unrst_path"]
-                not in trapped_gas_mass_data["unrst_path"]
-            ):
-                trapped_gas_mass_data["unrst_path"].append(
-                    mass_as_grid["MASSTGAS"]["unrst_path"]
-                )
-                trapped_gas_mass_data["egrid_path"].append(
-                    mass_as_grid["MASSTGAS"]["egrid_path"]
-                )
-                trapped_gas_mass_data["egrid_kw"].extend(custom_egrid)
+                if (
+                    mass_as_grid["MASST2GS"]["unrst_path"]
+                    not in trapped2_gas_mass_data["unrst_path"]
+                ):
+                    trapped2_gas_mass_data["unrst_path"].append(
+                        mass_as_grid["MASST2GS"]["unrst_path"]
+                    )
+                    trapped2_gas_mass_data["egrid_path"].append(
+                        mass_as_grid["MASST2GS"]["egrid_path"]
+                    )
+                    trapped2_gas_mass_data["egrid_kw"].extend(custom_egrid)
     out = [
         _export_unrst_and_kw_data(free_mass_data),
         _export_unrst_and_kw_data(dissolved_water_mass_data),
         _export_unrst_and_kw_data(dissolved_oil_mass_data),
         _export_unrst_and_kw_data(total_mass_data),
-        _export_unrst_and_kw_data(free_gas_mass_data),
-        _export_unrst_and_kw_data(trapped_gas_mass_data),
+        _export_unrst_and_kw_data(free1_gas_mass_data),
+        _export_unrst_and_kw_data(trapped1_gas_mass_data),
+        _export_unrst_and_kw_data(free2_gas_mass_data),
+        _export_unrst_and_kw_data(trapped2_gas_mass_data),
     ]
     timer.stop("translate_co2data_to_property")
     return out
