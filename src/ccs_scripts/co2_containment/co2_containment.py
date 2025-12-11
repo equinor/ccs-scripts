@@ -1254,8 +1254,6 @@ def main() -> None:
         arguments_processed.residual_trapping,
         injection_wells,
         arguments_processed.containment_polygon,
-        arguments_processed.hazardous_polygon,
-        arguments_processed.cirrus_info_file,
         arguments_processed.nogo_polygon,
         arguments_processed.cirrus_info_file,
     )
