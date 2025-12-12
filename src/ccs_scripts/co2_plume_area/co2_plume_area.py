@@ -194,8 +194,8 @@ def _read_args() -> Tuple[str, str]:
 
 
 def _log_input_configuration(input_path: str, output_path: str) -> None:
-    version = "v0.12.0"
-    is_dev_version = False
+    version = "v0.13.0"
+    is_dev_version = True
     if is_dev_version:
         version += "_dev"
         try:
