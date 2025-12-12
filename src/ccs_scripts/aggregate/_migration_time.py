@@ -57,14 +57,23 @@ def generate_migration_time_property(
         ):
             logging.info(f"dt: {dt}, dt_prev: {dt_prev}")
             diff_prop = co2.values - co2_props[-1].values
-            # print(f"    diff_prop.mean(): {diff_prop.mean()} (#values: {diff_prop.size})")
-            diff_prop = abs(diff_prop)
-            # print(f"    diff_prop.mean()     : {diff_prop.mean()} (#values: {diff_prop.size})")
-            above_threshold = diff_prop > co2_threshold
-            # print(f"    above_threshold.sum(): {above_threshold.sum()} (#values: {above_threshold.size})")
+
+            # BK-TEST: Choose option here:
+            choice = "stops_changing"
+            if choice == "stops_changing":
+                diff_prop = abs(diff_prop)
+                above_threshold = diff_prop > co2_threshold
+            elif choice == "stops_increasing":
+                above_threshold = diff_prop < -co2_threshold
+            elif choice == "stops_decreasing":
+                above_threshold = diff_prop > co2_threshold
+
             t_prop.values[above_threshold] = np.maximum(t_prop.values[above_threshold], dt_prev)
             dt_prev = dt
 
+            # print(f"    diff_prop.mean(): {diff_prop.mean()} (#values: {diff_prop.size})")
+            # print(f"    diff_prop.mean()     : {diff_prop.mean()} (#values: {diff_prop.size})")
+            # print(f"    above_threshold.sum(): {above_threshold.sum()} (#values: {above_threshold.size})")
             # Print summary of unique values on t_prop.values:
             unique, counts = np.unique(t_prop.values, return_counts=True)
             for a, b in zip(unique, counts):
