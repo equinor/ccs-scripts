@@ -403,7 +403,8 @@ def _compute_phases_avg_mol_weight(
 ):
     if comps_molar_mass is None:
         raise ValueError(
-            "comps_molar_masses cannot be None when computing phase average molar mass weight"
+            "comps_molar_masses cannot be None when computing phase average molar "
+            "mass weight"
         )
     dates = source_data.DATES
     gas_avg_mol_weight = {}
