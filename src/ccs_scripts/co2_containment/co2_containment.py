@@ -507,8 +507,8 @@ def _replace_default_dummies_from_ert(args):
         args.residual_trapping = False
     if args.readable_output == "-1":
         args.readable_output = False
-    if args.cirrus_info_file  == "-1":
-        args.cirrus_info_file  = None
+    if args.cirrus_info_file == "-1":
+        args.cirrus_info_file = None
 
 
 class InputError(Exception):

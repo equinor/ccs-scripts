@@ -113,9 +113,9 @@ def parse_arguments(arguments, map_type: str):
             metavar="<GRIDFOLDER>",
         )
         parser.add_argument(
-          "--cirrus_info_file",
-          help="Path to Cirrus info file. Relevant for COMP3/4",
-          default=None,
+            "--cirrus_info_file",
+            help="Path to Cirrus info file. Relevant for COMP3/4",
+            default=None,
         )
     return parser.parse_args(arguments)
 
