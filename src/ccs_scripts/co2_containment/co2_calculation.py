@@ -121,10 +121,6 @@ class Scenario(Enum):
     DEPLETED_OIL_GAS_FIELD = 2
 
 
-import numpy as np
-import pandas as pd
-
-
 def source_data_to_dataframe(source_data):
     # Number of active cells
     n = len(source_data.x_coord)
