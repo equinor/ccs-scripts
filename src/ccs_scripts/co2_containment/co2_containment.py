@@ -558,7 +558,6 @@ def process_args() -> argparse.Namespace:
         "zonefile",
         "regionfile",
         "containment_polygon",
-        "hazardous_polygon",
         "nogo_polygon",
         "cirrus_info_file",
     ]
@@ -687,7 +686,7 @@ def log_input_configuration(args: argparse.Namespace) -> None:
     """
     Log the provided input
     """
-    version = "v0.12.0"
+    version = "v0.13.0"
     is_dev_version = True
     if is_dev_version:
         version += "_dev"
@@ -1254,8 +1253,6 @@ def main() -> None:
         arguments_processed.residual_trapping,
         injection_wells,
         arguments_processed.containment_polygon,
-        arguments_processed.hazardous_polygon,
-        arguments_processed.cirrus_info_file,
         arguments_processed.nogo_polygon,
         arguments_processed.cirrus_info_file,
     )
