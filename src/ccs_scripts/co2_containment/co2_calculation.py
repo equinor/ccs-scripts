@@ -398,9 +398,13 @@ def _n_components(active_props: List):
 def _compute_phases_avg_mol_weight(
     source_data,
     scenario: Scenario,
-    comps_molar_mass: dict,
+    comps_molar_mass: Optional[Dict[str, float]],
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ):
+    if comps_molar_mass is None:
+        raise ValueError(
+            "comps_molar_masses cannot be None when computing phase average molar mass weight"
+        )
     dates = source_data.DATES
     gas_avg_mol_weight = {}
     oil_avg_mol_weight = {}
@@ -444,7 +448,7 @@ def _compute_phases_avg_mol_weight(
 def _convert_phase_density_from_mass_to_mole(
     source_data,
     scenario: Scenario,
-    comps_molar_masses: Dict[str, float],
+    comps_molar_masses: Optional[Dict[str, float]],
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ):
     water_avg_mol_weight, gas_avg_mol_weight, oil_avg_mol_weight = (
@@ -973,7 +977,7 @@ def _compositional_co2mass(
             total_moles = (
                 phase_moles[date][0] + phase_moles[date][1] + phase_moles[date][2]
             )
-            total_co2_mass = total_moles * zmf2[date] * conv_fact
+            total_co2_mass = total_moles * zmf2[date] * conv_fact if zmf2 else None
             co2_mass[date] = [
                 phase_moles[date][1] * ymf2[date] * conv_fact,
                 phase_moles[date][2] * xmf2[date] * conv_fact,
