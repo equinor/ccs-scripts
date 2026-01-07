@@ -120,7 +120,7 @@ def _find_dates(search_path: str, fm: np.ndarray, rskey: str) -> List[str]:
     return date_list
 
 
-def _neigh_nodes(x: Tuple[np.int64, np.int64]) -> set:
+def _neigh_nodes(x: Tuple[int, int]) -> set:
     # If all the four nodes of the cell are not masked we count the area
     sq_vert = {(x[0] + 1, x[1]), (x[0], int(x[1]) + 1), (x[0] + 1, x[1] + 1)}
 
