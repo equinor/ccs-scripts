@@ -457,7 +457,7 @@ def get_parser() -> argparse.ArgumentParser:
         "--cirrus_info_file",
         help="Path to Cirrus info file. Relevant for COMP3/4",
         default=None,
-        metavar="<GAS_MOLAR_MASS>",
+        metavar="<CIRRUS_INFO_FILE>",
     )
 
     return parser

@@ -224,7 +224,6 @@ def _extract_molar_masses(
                     "hydrocarbon gas molar mass must be provided"
                 )
             gas_molar_mass = subset.iloc[0]
-            print(f"This is gas_molar_mass: {gas_molar_mass}")
         if "MWO" in info_data["Mnemonic"].values:  # NB: Does it exist?
             subset = info_data.loc[info_data["Mnemonic"] == "MWO", "Value"]
             if subset.empty and scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
@@ -250,7 +249,6 @@ def _extract_molar_masses(
                 break
             molar_weights[suffix_count] = subset.iloc[0]
             suffix_count += 1
-        print(f"We ended in suffix_count {suffix_count}")
         if suffix_count <= 2:
             error_text = f"\nScenario: {scenario.name}."
             error_text += f"\nSource: {source}."
@@ -357,11 +355,11 @@ def _extract_source_data(
     Args:
       grid_file (str): Path to EGRID-file
       unrst_file (str): Path to UNRST-file
+      source_data_updated: Source data with properties to be extracted
       props_to_extract (List): Names of the properties to be extracted
       init_file (str): Path to INIT-file
       zone_info (ZoneInfo): Zone information
       region_info (Dict): Region information
-      cirrus_info_file: Path to Cirrus input file
 
     Returns:
       SourceData
@@ -1168,6 +1166,7 @@ def _calculate_co2_data_from_source_data(
                                 should by provided by user
         oil_molar_mass (float) = Oil molar mass - Default is 0 g/mol, not there yet
         residual_trapping (bool): Indicate if residual trapping should be calculated
+        cirrus_info_file (Optional[str]): Path to cirrus info file
 
     Returns:
       Co2Data
@@ -1640,7 +1639,6 @@ def calculate_co2(
     calc_type = _set_calc_type_from_input_string(calc_type_input)
 
     timer.start("calculate_co2")
-
     co2_data = _calculate_co2_data_from_source_data(
         source_data,
         calc_type=calc_type,

@@ -116,7 +116,8 @@ def parse_arguments(arguments, map_type: str):
             "--cirrus_info_file",
             help="Path to Cirrus info file. Relevant for COMP3/4",
             default=None,
-        )  # NB: metavar
+            metavar="<CIRRUSINFOFILE>",
+        )
 
     return parser.parse_args(arguments)
 
