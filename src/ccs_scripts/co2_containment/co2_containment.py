@@ -89,7 +89,7 @@ def calculate_out_of_bounds_co2(
     Returns:
         pd.DataFrame
     """
-    co2_data = calculate_co2(
+    co2_data = calculate_co2(  # NBNB-AS: Use res_trap_type here also
         grid_file,
         unrst_file,
         zone_info,

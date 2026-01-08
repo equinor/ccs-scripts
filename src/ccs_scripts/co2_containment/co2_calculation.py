@@ -120,6 +120,17 @@ class Scenario(Enum):
     DEPLETED_OIL_GAS_FIELD = 2
 
 
+class ResidualTrappingType(Enum):
+    """
+    Which residual trapping type is used
+    """
+
+    DEACTIVATED = 0
+    EFFECTIVE = 1  # SGSTRAND (Cirrus) or SGTRH (Eclipse)
+    MAXIMUM = 2  # SGTRAP (Cirrus and Eclipse)
+    BOTH = 3
+
+
 @dataclass
 class Co2DataAtTimeStep:
     """
@@ -176,6 +187,7 @@ class Co2Data:
     data_list: List[Co2DataAtTimeStep]
     units: Literal["kg", "tons", "m3"]
     scenario: Scenario
+    res_trap_type: ResidualTrappingType
     zone: Optional[np.ndarray] = None
     region: Optional[np.ndarray] = None
 
@@ -1158,11 +1170,14 @@ def _calculate_co2_data_from_source_data(
         raise ValueError(format_error(error_text))
 
     pore_volume_prop = _find_pore_volume_prop(active_props)
-    source, scenario = _find_source_and_scenario(residual_trapping, active_props)
+    source, scenario, res_trap_type = _find_source_and_scenario(residual_trapping, active_props)
 
     logging.info("Found valid properties")
-    logging.info(f"Data source : {source}")
-    logging.info(f"Scenario    : {scenario.name}")
+    logging.info(f"Data source                : {source}")
+    logging.info(f"Scenario                   : {scenario.name}")
+    if residual_trapping:
+        txt = res_trap_type.name if res_trap_type != ResidualTrappingType.BOTH else "EFFECTIVE and MAXIMUM"
+        logging.info(f"Residual trapping scenario : {txt.lower()}")
     logging.info("Properties used in the calculations:")
     logging.info(f"    {', '.join(active_props)}")
 
@@ -1181,6 +1196,7 @@ def _calculate_co2_data_from_source_data(
         co2_amount = _calc_co2_amount(
             source,
             scenario,
+            res_trap_type,
             calc_type,
             source_data,
             pore_volume_prop,
@@ -1225,7 +1241,7 @@ def _find_pore_volume_prop(active_props: List[str]) -> str:
 
 def _find_source_and_scenario(
     residual_trapping: bool, active_props: List[str]
-) -> Tuple[str, Scenario]:
+) -> Tuple[str, Scenario, ResidualTrappingType]:
     props_needed_pflotran = PROPERTIES_NEEDED_PFLOTRAN.copy()
     props_needed_eclipse = PROPERTIES_NEEDED_ECLIPSE.copy()
 
@@ -1243,6 +1259,14 @@ def _find_source_and_scenario(
                     "property SGSTRAND or SGTRAP must be provided."
                 )
                 raise ValueError(format_error(error_text))
+            elif "SGSTRAND" in active_props and "SGTRAP" in active_props:
+                res_trap_type = ResidualTrappingType.BOTH
+            elif "SGSTRAND" in active_props:
+                res_trap_type = ResidualTrappingType.EFFECTIVE
+            elif "SGTRAP" in active_props:
+                res_trap_type = ResidualTrappingType.MAXIMUM
+        else:
+            res_trap_type = ResidualTrappingType.DEACTIVATED
     elif is_subset(props_needed_eclipse, active_props):
         source = "Eclipse"
         if is_subset(["XMF2", "SOIL"], active_props):
@@ -1263,17 +1287,26 @@ def _find_source_and_scenario(
                     "property SGTRH or SGTRAP must be provided."
                 )
                 raise ValueError(format_error(error_text))
+            elif "SGTRH" in active_props and "SGTRAP" in active_props:
+                res_trap_type = ResidualTrappingType.BOTH
+            elif "SGTRH" in active_props:
+                res_trap_type = ResidualTrappingType.EFFECTIVE
+            elif "SGTRH" in active_props:
+                res_trap_type = ResidualTrappingType.MAXIMUM
+        else:
+            res_trap_type = ResidualTrappingType.DEACTIVATED
     else:
         _raise_missing_props_error(
             active_props, props_needed_pflotran, props_needed_eclipse
         )
 
-    return source, scenario
+    return source, scenario, res_trap_type
 
 
 def _calc_co2_amount(
     source: str,
     scenario: Scenario,
+    res_trap_type: ResidualTrappingType,
     calc_type: CalculationType,
     source_data,
     pore_volume_prop: str,
@@ -1315,6 +1348,7 @@ def _calc_co2_amount(
         ],
         "kg",
         scenario,
+        res_trap_type,
         source_data.zone,
         source_data.region,
     )
@@ -1371,6 +1405,7 @@ def _calc_co2_amount(
             ],
             "m3",
             scenario,
+            res_trap_type,
             source_data.zone,
             source_data.region,
         )
@@ -1525,6 +1560,7 @@ def _calc_co2_amount_cell_volume(
         ],
         "m3",
         scenario,
+        ResidualTrappingType.DEACTIVATED,
         source_data.zone,
         source_data.region,
     )
