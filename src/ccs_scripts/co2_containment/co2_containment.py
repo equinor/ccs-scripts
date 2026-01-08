@@ -89,7 +89,7 @@ def calculate_out_of_bounds_co2(
     Returns:
         pd.DataFrame
     """
-    co2_data = calculate_co2(  # NBNB-AS: Use res_trap_type here also
+    co2_data = calculate_co2(
         grid_file,
         unrst_file,
         zone_info,
@@ -269,7 +269,11 @@ def _merge_date_rows(
         df_phases = list(pd.unique(data_frame["phase"]))
         df_phases = [name for name in df_phases if name not in ["all"]]
         if residual_trapping:
-            phases = ["eff_free_gas", "eff_trapped_gas", "max_free_gas", "max_trapped_gas"]
+            phases = []
+            if "eff_free_gas" in list(data_frame["phase"]):
+                phases += ["eff_free_gas", "eff_trapped_gas"]
+            if "max_free_gas" in list(data_frame["phase"]):
+                phases += ["max_free_gas", "max_trapped_gas"]
         else:
             phases = ["gas"]
         phases += ["dissolved_water"]
@@ -796,30 +800,32 @@ def log_summary_of_results(
             )
         else:
             # NBNB-AS
-            value = extract_amount(df_subset, "total", "eff_free_gas")
-            percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(
-                f"{'End state effective free gas':<{col1}} : "
-                f"{value:{n}.1f}  ={percent:>5.1f} %"
-            )
-            value = extract_amount(df_subset, "total", "eff_trapped_gas")
-            percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(
-                f"{'End state effective trapped gas':<{col1}} : "
-                f"{value:{n}.1f}  ={percent:>5.1f} %"
-            )
-            value = extract_amount(df_subset, "total", "max_free_gas")
-            percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(
-                f"{'End state maximum free gas':<{col1}} : "
-                f"{value:{n}.1f}  ={percent:>5.1f} %"
-            )
-            value = extract_amount(df_subset, "total", "max_trapped_gas")
-            percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(
-                f"{'End state maximum trapped gas':<{col1}} : "
-                f"{value:{n}.1f}  ={percent:>5.1f} %"
-            )
+            if "eff_free_gas" in list(df_subset["phase"]):
+                value = extract_amount(df_subset, "total", "eff_free_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'End state effective free gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
+                value = extract_amount(df_subset, "total", "eff_trapped_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'End state effective trapped gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
+            if "max_free_gas" in list(df_subset["phase"]):
+                value = extract_amount(df_subset, "total", "max_free_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'End state maximum free gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
+                value = extract_amount(df_subset, "total", "max_trapped_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'End state maximum trapped gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
         value = extract_amount(df_subset, "total", "dissolved_water")
         percent = 100.0 * value / total if total > 0.0 else 0.0
         logging.info(
@@ -1102,7 +1108,11 @@ def prepare_writing_details(
     width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     # Keep length of column names below <= 11 to be sure of no alignment issues
     if residual_trapping:
-        phase_names = ["Eff free gas", "Eff trap gas", "Max free gas", "Max trap gas"]
+        phase_names = []
+        if any(["eff_free_gas" in x for x in list(df.columns)]):
+            phase_names += ["Eff free gas", "Eff trap gas"]
+        if any(["max_free_gas" in x for x in list(df.columns)]):
+            phase_names += ["Max free gas", "Max trap gas"]
     else:
         phase_names = ["Gas"]
     phase_names += ["Dis. water"]

@@ -11,6 +11,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     CalculationType,
     Co2Data,
     Co2DataAtTimeStep,
+    ResidualTrappingType,
     Scenario,
 )
 from ccs_scripts.utils.timer import Timer
@@ -101,7 +102,7 @@ def calculate_co2_containment(
     )
     timer.stop("make_location_filters")
     _log_summary_of_grid_node_location(locations)
-    phases = _lists_of_phases(calc_type, residual_trapping, co2_data.scenario)
+    phases = _lists_of_phases(calc_type, residual_trapping, co2_data.scenario, co2_data.res_trap_type)
 
     # List of tuple with (zone/None, None/region, boolean array over grid)
     zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, int_to_region)
@@ -224,6 +225,7 @@ def _lists_of_phases(
     calc_type: CalculationType,
     residual_trapping: bool,
     scenario: Scenario,
+    res_trap_type: ResidualTrappingType,
 ) -> List[str]:
     """
     Returns a list of the relevant phases depending on calculation type and whether
@@ -234,7 +236,10 @@ def _lists_of_phases(
     else:
         phases = ["total", "dissolved_water"]
         if residual_trapping:
-            phases += ["eff_trapped_gas", "eff_free_gas", "max_trapped_gas", "max_free_gas"]
+            if res_trap_type in [ResidualTrappingType.BOTH, ResidualTrappingType.EFFECTIVE]:
+                phases += ["eff_trapped_gas", "eff_free_gas"]
+            if res_trap_type in [ResidualTrappingType.BOTH, ResidualTrappingType.MAXIMUM]:
+                phases += ["max_trapped_gas", "max_free_gas"]
         else:
             phases += ["gas"]
         phases += (
