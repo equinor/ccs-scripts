@@ -193,7 +193,6 @@ class RegionInfo:
 
 
 def _extract_molar_masses(
-    source: str,
     scenario: Scenario,
     cirrus_info_file: Optional[str] = None,
 ):
@@ -211,53 +210,29 @@ def _extract_molar_masses(
     """
     gas_molar_mass = None
     oil_molar_mass = None
-    if scenario == Scenario.AQUIFER or source == "Eclipse":
-        return gas_molar_mass, oil_molar_mass
-    elif source == "PFlotran":
-        info_data = pd.read_csv(cirrus_info_file)
-        if "MWG" in info_data["Mnemonic"].values:
-            subset = info_data.loc[info_data["Mnemonic"] == "MWG", "Value"]
-            if subset.empty:
-                error_text = f"\nScenario: {scenario.name}."
-                error_text += (
-                    "\nTo compute mass or actual volume in this scenario "
-                    "hydrocarbon gas molar mass must be provided"
-                )
-            gas_molar_mass = subset.iloc[0]
-        if "MWO" in info_data["Mnemonic"].values:  # NB: Does it exist?
-            subset = info_data.loc[info_data["Mnemonic"] == "MWO", "Value"]
-            if subset.empty and scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
-                error_text = f"\nScenario: {scenario.name}."
-                error_text += (
-                    "\nTo compute mass or actual volume in this scenario "
-                    "oil molar mass must be provided"
-                )
-                raise ValueError(format_error(error_text))
-            oil_molar_mass = (
-                subset.iloc[0] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else None
-            )
-        return gas_molar_mass, oil_molar_mass
-    elif source == "PFlotran COMP":
-        info_data = pd.read_csv(cirrus_info_file)
-        suffix_count = 1
-        molar_weights = {}
-        while suffix_count < 50:
-            subset = info_data.loc[
-                info_data["Mnemonic"] == f"COMP_{suffix_count}", "Value"
-            ]
-            if subset.empty:
-                break
-            molar_weights[suffix_count] = subset.iloc[0]
-            suffix_count += 1
-        if suffix_count <= 2:
+    info_data = pd.read_csv(cirrus_info_file)
+    if "MWG" in info_data["Mnemonic"].values:
+        subset = info_data.loc[info_data["Mnemonic"] == "MWG", "Value"]
+        if subset.empty:
             error_text = f"\nScenario: {scenario.name}."
-            error_text += f"\nSource: {source}."
             error_text += (
                 "\nTo compute mass or actual volume in this scenario "
-                "molar weight of CO2 (assumed component #2) must be provided"
+                "hydrocarbon gas molar mass must be provided"
+            )
+        gas_molar_mass = subset.iloc[0]
+    if "MWO" in info_data["Mnemonic"].values:  # NB: Does it exist?
+        subset = info_data.loc[info_data["Mnemonic"] == "MWO", "Value"]
+        if subset.empty and scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
+            error_text = f"\nScenario: {scenario.name}."
+            error_text += (
+                "\nTo compute mass or actual volume in this scenario "
+                "oil molar mass must be provided"
             )
             raise ValueError(format_error(error_text))
-        return molar_weights
+        oil_molar_mass = (
+            subset.iloc[0] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else None
+        )
+    return gas_molar_mass, oil_molar_mass
 
 
 def _detect_eclipse_mole_fraction_props(
@@ -795,43 +770,55 @@ def _eclipse_co2mass(
     dates = source_data.DATES
     bgas = source_data.BGAS
     bwat = source_data.BWAT
+    boil = source_data.BOIL
     xmf2 = source_data.XMF2
     ymf2 = source_data.YMF2
+    zmf2 = source_data.ZMF2 if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else None
     sgas = source_data.SGAS
     swat = source_data.SWAT
     sgtrh = source_data.SGTRH
+    sgstrand = source_data.SGSTRAND
+    soil = source_data.SOIL
     eff_vols = source_data.RPORV if pore_volume_prop == "RPORV" else source_data.PORV
     conv_fact = co2_molar_mass
 
+    phase_moles = {}
     co2_mass = {}
     for date in dates:
-        co2_mass[date] = [
+        phase_moles[date] = [
             (
-                conv_fact * bwat[date] * xmf2[date] * swat[date] * eff_vols[date]
+                bwat[date] * swat[date] * eff_vols[date]
                 if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
-                else conv_fact
-                * bwat[date]
-                * xmf2[date]
-                * (1 - sgas[date])
-                * eff_vols[date]
+                else bwat[date]
+                     * (1 - sgas[date])
+                     * eff_vols[date]
             ),
-            conv_fact * bgas[date] * ymf2[date] * sgas[date] * eff_vols[date],
+            bgas[date] * sgas[date] * eff_vols[date],
         ]
-        co2_mass[date].extend([np.zeros_like(co2_mass[date][0])])
-
-        if sgtrh:
+        if scenario != Scenario.DEPLETED_OIL_GAS_FIELD:
+            phase_moles[date].extend([np.zeros_like(phase_moles[date][0])])
+            co2_mass[date] = [
+                conv_fact * phase_moles[date][0] * xmf2[date],
+                conv_fact * phase_moles[date][1] * ymf2[date],
+                phase_moles[date][2]
+            ]
+        else:
+            phase_moles[date].extend([boil[date] * soil[date] * eff_vols[date]])
+            total_moles = phase_moles[date][0] + phase_moles[date][1] + phase_moles[date][2]
+            total_co2_mass = total_moles * zmf2[date] * conv_fact
+            co2_mass[date] = [
+                phase_moles[date][1] * ymf2[date] * conv_fact,
+                phase_moles[date][2] * xmf2[date] * conv_fact,
+            ]
+            co2_mass[date].insert(0, total_co2_mass - co2_mass[date][0] - co2_mass[date][1])
+        if any(x is not None for x in (sgstrand, sgtrh)):
             co2_mass[date].extend(
                 [
-                    conv_fact * bgas[date] * ymf2[date] * sgtrh[date] * eff_vols[date],
-                    conv_fact
-                    * bgas[date]
-                    * ymf2[date]
-                    * (sgas[date] - sgtrh[date])
-                    * eff_vols[date],
+                    co2_mass[date][0] * sgtrh[date] / sgas[date],
+                    co2_mass[date][0] * (sgas[date] - sgtrh[date]) / sgas[date],
                 ]
             )
     return co2_mass
-
 
 def _pflotran_co2_molar_volume(
     source_data,
@@ -1184,13 +1171,10 @@ def _calculate_co2_data_from_source_data(
     source, scenario = _find_source_and_scenario(residual_trapping, active_props)
     gas_molar_mass = None
     oil_molar_mass = None
-    comp_molar_masses = None
-    if source != "PFlotran COMP":
+    if source == "PFlotran" and scenario != Scenario.AQUIFER:
         gas_molar_mass, oil_molar_mass = _extract_molar_masses(
-            source, scenario, cirrus_info_file
+            scenario, cirrus_info_file
         )
-    else:
-        comp_molar_masses = _extract_molar_masses(source, scenario, cirrus_info_file)
     logging.info("Found valid properties")
     logging.info(f"Data source : {source}")
     logging.info(f"Scenario    : {scenario.name}")
@@ -1209,7 +1193,6 @@ def _calculate_co2_data_from_source_data(
             water_molar_mass,
             gas_molar_mass,
             oil_molar_mass,
-            comp_molar_masses,
         )
     elif calc_type == CalculationType.CELL_VOLUME:
         co2_amount = _calc_co2_amount_cell_volume(scenario, source_data, props_check)
@@ -1293,7 +1276,6 @@ def _calc_co2_amount(
     water_molar_mass: float,
     gas_molar_mass: Optional[float],
     oil_molar_mass: Optional[float],
-    comp_molar_masses: Optional[Dict[str, float]],
 ) -> Co2Data:
     if source == "PFlotran":
         co2_mass_cell = _pflotran_co2mass(
