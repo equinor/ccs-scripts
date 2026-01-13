@@ -75,6 +75,7 @@ source_data_: List[Tuple[str, Any, None]] = [
     ("DOIL", Optional[Dict[str, np.ndarray]], None),
     ("BWAT", Optional[Dict[str, np.ndarray]], None),
     ("BGAS", Optional[Dict[str, np.ndarray]], None),
+    ("BOIL", Optional[Dict[str, np.ndarray]], None),
     ("AMFS", Optional[Dict[str, np.ndarray]], None),
     ("YMFS", Optional[Dict[str, np.ndarray]], None),
     ("XMFS", Optional[Dict[str, np.ndarray]], None),
