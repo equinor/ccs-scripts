@@ -1162,9 +1162,6 @@ def _calculate_co2_data_from_source_data(
                                      actual_volume)
         co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
         water_molar_mass (float): Water molar mass - Default is 18 g/mol
-        gas_molar_mass (float): Hydrocarbon gas molar mass - Default is 0 g/mol,
-                                should by provided by user
-        oil_molar_mass (float) = Oil molar mass - Default is 0 g/mol, not there yet
         residual_trapping (bool): Indicate if residual trapping should be calculated
         cirrus_info_file (Optional[str]): Path to cirrus info file
 
