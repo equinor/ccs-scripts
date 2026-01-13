@@ -41,6 +41,7 @@ RELEVANT_PROPERTIES = [
     "BWAT",
     "SOIL",
     "DOIL",
+    "BOIL",
     "AMFG",
     "YMFG",
     "XMFG",
