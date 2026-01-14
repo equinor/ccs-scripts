@@ -194,6 +194,19 @@ class RegionInfo:
     property_name: Optional[str]
 
 
+def _extract_mnemonic_value(info_data, mnemonic: str) -> Optional[float]:
+    """Return value for mnemonic if present and valid, else None."""
+    if mnemonic not in info_data["Mnemonic"].values:
+        return None
+    subset = info_data.loc[info_data["Mnemonic"] == mnemonic, "Value"]
+    if subset.empty:
+        return None
+    val = subset.iloc[0]
+    if pd.isna(val) or (isinstance(val, str) and not val.strip()):
+        return None
+    return float(val)
+
+
 def _extract_molar_masses(
     scenario: Scenario,
     cirrus_info_file: Optional[str] = None,
@@ -210,30 +223,27 @@ def _extract_molar_masses(
     Returns:
         tuple[float | None, float | None]: (gas_molar_mass, oil_molar_mass)
     """
-    gas_molar_mass = None
-    oil_molar_mass = None
     info_data = pd.read_csv(cirrus_info_file)
-    if "MWG" in info_data["Mnemonic"].values:
-        subset = info_data.loc[info_data["Mnemonic"] == "MWG", "Value"]
-        if subset.empty:
-            error_text = f"\nScenario: {scenario.name}."
-            error_text += (
-                "\nTo compute mass or actual volume in this scenario "
-                "hydrocarbon gas molar mass must be provided"
-            )
-        gas_molar_mass = subset.iloc[0]
-    if "MWO" in info_data["Mnemonic"].values:  # NB: Does it exist?
-        subset = info_data.loc[info_data["Mnemonic"] == "MWO", "Value"]
-        if subset.empty and scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
-            error_text = f"\nScenario: {scenario.name}."
-            error_text += (
-                "\nTo compute mass or actual volume in this scenario "
-                "oil molar mass must be provided"
-            )
-            raise ValueError(format_error(error_text))
-        oil_molar_mass = (
-            subset.iloc[0] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else None
+    gas_molar_mass = _extract_mnemonic_value(info_data, "MWG")
+    oil_molar_mass = (
+        _extract_mnemonic_value(info_data, "MWO")
+        if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
+        else None
+    )
+    if gas_molar_mass is None:
+        error_text = f"\nScenario: {scenario.name}."
+        error_text += (
+            "\nTo compute mass or actual volume in this scenario "
+            "hydrocarbon gas molar mass must be provided"
         )
+        raise ValueError(format_error(error_text))
+    if scenario == Scenario.DEPLETED_OIL_GAS_FIELD and oil_molar_mass is None:
+        error_text = f"\nScenario: {scenario.name}."
+        error_text += (
+            "\nTo compute mass or actual volume in this scenario "
+            "oil molar mass must be provided"
+        )
+        raise ValueError(format_error(error_text))
     return gas_molar_mass, oil_molar_mass
 
 
