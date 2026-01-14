@@ -775,7 +775,6 @@ def _eclipse_co2mass(
     boil = source_data.BOIL
     xmf2 = source_data.XMF2
     ymf2 = source_data.YMF2
-    zmf2 = source_data.ZMF2 if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else None
     sgas = source_data.SGAS
     swat = source_data.SWAT
     sgtrh = source_data.SGTRH
@@ -791,9 +790,7 @@ def _eclipse_co2mass(
             (
                 bwat[date] * swat[date] * eff_vols[date]
                 if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
-                else bwat[date]
-                     * (1 - sgas[date])
-                     * eff_vols[date]
+                else bwat[date] * (1 - sgas[date]) * eff_vols[date]
             ),
             bgas[date] * sgas[date] * eff_vols[date],
         ]
@@ -802,17 +799,22 @@ def _eclipse_co2mass(
             co2_mass[date] = [
                 conv_fact * phase_moles[date][0] * xmf2[date],
                 conv_fact * phase_moles[date][1] * ymf2[date],
-                phase_moles[date][2]
+                phase_moles[date][2],
             ]
         else:
+            zmf2 = source_data.ZMF2
             phase_moles[date].extend([boil[date] * soil[date] * eff_vols[date]])
-            total_moles = phase_moles[date][0] + phase_moles[date][1] + phase_moles[date][2]
+            total_moles = (
+                phase_moles[date][0] + phase_moles[date][1] + phase_moles[date][2]
+            )
             total_co2_mass = total_moles * zmf2[date] * conv_fact
             co2_mass[date] = [
                 phase_moles[date][1] * ymf2[date] * conv_fact,
                 phase_moles[date][2] * xmf2[date] * conv_fact,
             ]
-            co2_mass[date].insert(0, total_co2_mass - co2_mass[date][0] - co2_mass[date][1])
+            co2_mass[date].insert(
+                0, total_co2_mass - co2_mass[date][0] - co2_mass[date][1]
+            )
         if any(x is not None for x in (sgstrand, sgtrh)):
             co2_mass[date].extend(
                 [
@@ -821,6 +823,7 @@ def _eclipse_co2mass(
                 ]
             )
     return co2_mass
+
 
 def _pflotran_co2_molar_volume(
     source_data,
