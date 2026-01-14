@@ -59,7 +59,7 @@ def calculate_out_of_bounds_co2(
     inj_wells: List[InjectionWellData],
     file_cont_polygon: Optional[str] = None,
     file_nogo_polygon: Optional[str] = None,
-    gas_molar_mass: Optional[float] = None,
+    cirrus_info_file: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Calculates sum of co2 mass or volume at each time step. Use polygons
@@ -83,8 +83,8 @@ def calculate_out_of_bounds_co2(
             and list connecting region-numbers to names, if available
         residual_trapping (bool): Indicate if residual trapping should be calculated
         inj_wells (List): Injection wells used for plume tracking
-        gas_molar_mass (float): Hydrocarbon gas molar mass. (Applies for cases with more
-            than two components)
+        cirrus_info_file (str): Path to file with gas molar mass. (Applies for cases
+            with more than two components)
 
     Returns:
         pd.DataFrame
@@ -97,7 +97,7 @@ def calculate_out_of_bounds_co2(
         residual_trapping,
         calc_type_input,
         init_file,
-        gas_molar_mass,
+        cirrus_info_file,
     )
 
     cont_polygon = _read_polygon(file_cont_polygon) if file_cont_polygon else None
@@ -454,10 +454,10 @@ def get_parser() -> argparse.ArgumentParser:
         metavar="<CONFIG_PLUME_TRACKING>",
     )
     parser.add_argument(
-        "--gas_molar_mass",
-        help="Gas molar mass if working in COMP3/COMP4",
+        "--cirrus_info_file",
+        help="Path to Cirrus info file. Relevant for COMP3/4",
         default=None,
-        metavar="<GAS_MOLAR_MASS>",
+        metavar="<CIRRUS_INFO_FILE>",
     )
 
     return parser
@@ -507,8 +507,8 @@ def _replace_default_dummies_from_ert(args):
         args.residual_trapping = False
     if args.readable_output == "-1":
         args.readable_output = False
-    if args.gas_molar_mass == "-1":
-        args.gas_molar_mass = None
+    if args.cirrus_info_file == "-1":
+        args.cirrus_info_file = None
 
 
 class InputError(Exception):
@@ -538,13 +538,6 @@ def process_args() -> argparse.Namespace:
     _handle_deprecated_args(args)
 
     args.calc_type_input = args.calc_type_input.lower()
-    if args.gas_molar_mass is not None:
-        try:
-            args.gas_molar_mass = float(args.gas_molar_mass)
-        except ValueError:
-            error_text = "Invalid input: gas_molar_mass must be numeric"
-            raise ValueError(format_error(error_text))
-    # NBNB: Remove this when residual trapping is added for cell_volume
     if args.residual_trapping and args.calc_type_input == "cell_volume":
         args.residual_trapping = False
 
@@ -566,6 +559,7 @@ def process_args() -> argparse.Namespace:
         "regionfile",
         "containment_polygon",
         "nogo_polygon",
+        "cirrus_info_file",
     ]
     for key in paths:
         if adict[key] is not None and not pathlib.Path(adict[key]).is_absolute():
@@ -589,7 +583,12 @@ def process_args() -> argparse.Namespace:
             args.init = args.init.replace(".EGRID", ".INIT")
         else:
             args.init += ".INIT"
-
+    if args.cirrus_info_file is None:
+        args.cirrus_info_file = args.case
+        if args.cirrus_info_file.endswith(".EGRID"):
+            args.cirrus_info_file = args.cirrus_info_file.replace(".EGRID", "_INFO.csv")
+        else:
+            args.cirrus_info_file += "_INFO.csv"
     return args
 
 
@@ -1254,7 +1253,7 @@ def main() -> None:
         injection_wells,
         arguments_processed.containment_polygon,
         arguments_processed.nogo_polygon,
-        arguments_processed.gas_molar_mass,
+        arguments_processed.cirrus_info_file,
     )
     sort_and_replace_nones(data_frame)
     log_summary_of_results(data_frame, arguments_processed.calc_type_input)

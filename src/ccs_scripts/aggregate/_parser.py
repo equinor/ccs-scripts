@@ -113,12 +113,10 @@ def parse_arguments(arguments, map_type: str):
             metavar="<GRIDFOLDER>",
         )
         parser.add_argument(
-            "--gas_molar_mass",
-            help="Predifinied gas molar mass (g/m3) for residual gas component",
-            type=float,
-            nargs="?",
+            "--cirrus_info_file",
+            help="Path to Cirrus info file. Relevant for COMP3/4",
             default=None,
-            metavar="<GAS_MOLAR_MASS>",
+            metavar="<CIRRUSINFOFILE>",
         )
 
     return parser.parse_args(arguments)
@@ -140,8 +138,8 @@ def _replace_default_dummies_from_ert(args, map_type: str):
     if map_type == "co2_mass":
         if args.gridfolder == "-1":
             args.gridfolder = None
-        if args.gas_molar_mass == "-1":
-            args.gas_molar_mass = None
+        if args.cirrus_info_file == "-1":
+            args.cirrus_info_file = None
 
 
 def process_arguments(arguments, map_type: str) -> RootConfig:
@@ -166,15 +164,15 @@ def process_arguments(arguments, map_type: str) -> RootConfig:
 
     if map_type == "aggregate":
         config_file = getattr(parsed_args, "config_aggregate")
-        gas_molar_mass = None
+        cirrus_info_file = None
         gridfolder = None
     elif map_type == "migration_time":
         config_file = getattr(parsed_args, "config_migtime")
-        gas_molar_mass = None
+        cirrus_info_file = None
         gridfolder = None
     else:  # map_type == "co2_mass"
         config_file = getattr(parsed_args, "config_co2_mass_map")
-        gas_molar_mass = parsed_args.gas_molar_mass
+        cirrus_info_file = parsed_args.cirrus_info_file
         gridfolder = parsed_args.gridfolder
 
     config = parse_yaml(
@@ -182,7 +180,7 @@ def process_arguments(arguments, map_type: str) -> RootConfig:
         parsed_args.mapfolder,
         parsed_args.plotfolder,
         gridfolder,
-        gas_molar_mass,
+        cirrus_info_file,
         replacements,
         map_type,
     )
@@ -196,7 +194,7 @@ def parse_yaml(
     map_folder: Optional[str],
     plot_folder: Optional[str],
     grid_folder: Optional[str],
-    gas_molar_mass: Optional[str],
+    cirrus_info_file: Optional[str],
     replacements: Dict[str, str],
     map_type: str,
 ) -> RootConfig:
@@ -207,9 +205,9 @@ def parse_yaml(
     config = load_yaml(yaml_file, map_folder, plot_folder, grid_folder, replacements)
     if (
         "co2_mass_settings" in config
-        and "gas_molar_mass" not in config["co2_mass_settings"]
+        and "cirrus_info_file" not in config["co2_mass_settings"]
     ):
-        config["co2_mass_settings"]["gas_molar_mass"] = gas_molar_mass
+        config["co2_mass_settings"]["cirrus_info_file"] = cirrus_info_file
     co2_mass_settings = (
         None
         if "co2_mass_settings" not in config

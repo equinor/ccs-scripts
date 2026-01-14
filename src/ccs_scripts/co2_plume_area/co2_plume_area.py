@@ -157,8 +157,8 @@ def calculate_plume_area(path: str, rskey: str) -> Optional[List[List[float]]]:
             year = date[0:4]
             path_file = glob.glob(path + fm + "--" + var + "--" + year + "*.gri")
             mysurf = xtgeo.surface_from_file(path_file[0])
-            use_nodes = np.ma.nonzero(mysurf.values)  # Indexes of the existing nodes
-            use_nodes = set(list(tuple(zip(use_nodes[0], use_nodes[1]))))
+            node_indices = np.ma.nonzero(mysurf.values)  # Indexes of the existing nodes
+            use_nodes = set(list(tuple(zip(node_indices[0], node_indices[1]))))
             all_neigh_nodes = list(map(_neigh_nodes, use_nodes))
             test0 = [xx.issubset(use_nodes) for xx in all_neigh_nodes]
             list_out_temp = [
