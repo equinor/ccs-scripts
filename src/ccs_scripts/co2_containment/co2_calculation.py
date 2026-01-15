@@ -224,6 +224,8 @@ def _extract_molar_masses(
         tuple[float | None, float | None]: (gas_molar_mass, oil_molar_mass)
     """
     info_data = pd.read_csv(cirrus_info_file)
+    info_data.columns = info_data.columns.str.strip()
+    info_data["Mnemonic"] = info_data["Mnemonic"].str.strip()
     gas_molar_mass = _extract_mnemonic_value(info_data, "MWG")
     oil_molar_mass = (
         _extract_mnemonic_value(info_data, "MWO")

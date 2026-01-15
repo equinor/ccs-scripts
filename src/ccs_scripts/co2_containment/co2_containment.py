@@ -586,9 +586,9 @@ def process_args() -> argparse.Namespace:
     if args.cirrus_info_file is None:
         args.cirrus_info_file = args.case
         if args.cirrus_info_file.endswith(".EGRID"):
-            args.cirrus_info_file = args.cirrus_info_file.replace(".EGRID", "_INFO.csv")
+            args.cirrus_info_file = args.cirrus_info_file.replace(".EGRID", "_INFO.CSV")
         else:
-            args.cirrus_info_file += "_INFO.csv"
+            args.cirrus_info_file += "_INFO.CSV"
     return args
 
 
