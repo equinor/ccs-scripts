@@ -41,6 +41,7 @@ RELEVANT_PROPERTIES = [
     "BWAT",
     "SOIL",
     "DOIL",
+    "BOIL",
     "AMFG",
     "YMFG",
     "XMFG",
@@ -232,13 +233,26 @@ class RegionInfo:
     property_name: Optional[str]
 
 
+def _extract_mnemonic_value(info_data, mnemonic: str) -> Optional[float]:
+    """Return value for mnemonic if present and valid, else None."""
+    if mnemonic not in info_data["Mnemonic"].values:
+        return None
+    subset = info_data.loc[info_data["Mnemonic"] == mnemonic, "Value"]
+    if subset.empty:
+        return None
+    val = subset.iloc[0]
+    if pd.isna(val) or (isinstance(val, str) and not val.strip()):
+        return None
+    return float(val)
+
+
 def _extract_molar_masses(
-    source: str,
     scenario: Scenario,
     cirrus_info_file: Optional[str] = None,
 ):
     """
     Extract gas and oil molar masses from a CSV file.
+
     Args:
         cirrus_info_file (str): Path to the Cirrus info CSV file.
         source: (str): Data source
@@ -503,6 +517,7 @@ def _extract_source_data(
     Args:
       grid_file (str): Path to EGRID-file
       unrst_file (str): Path to UNRST-file
+      source_data_updated: Source data with properties to be extracted
       props_to_extract (List): Names of the properties to be extracted
       init_file (str): Path to INIT-file
       zone_info (ZoneInfo): Zone information
@@ -940,6 +955,9 @@ def _compositional_co2mass(
 
     """
     dates = source_data.DATES
+    bgas = source_data.BGAS
+    bwat = source_data.BWAT
+    boil = source_data.BOIL
     xmf2 = source_data.XMF2
     ymf2 = source_data.YMF2
     zmf2 = source_data.ZMF2 if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else None
@@ -947,11 +965,7 @@ def _compositional_co2mass(
     swat = source_data.SWAT
     sgtrh = source_data.SGTRH
     sgstrand = source_data.SGSTRAND
-    # sgtrap = source_data.SGTRAP
     soil = source_data.SOIL
-    bgas = source_data.BGAS
-    bwat = source_data.BWAT
-    boil = source_data.BOIL
     eff_vols = source_data.RPORV if pore_volume_prop == "RPORV" else source_data.PORV
     conv_fact = co2_molar_mass
 
@@ -974,11 +988,12 @@ def _compositional_co2mass(
                 phase_moles[date][2],
             ]
         else:
+            zmf2 = source_data.ZMF2
             phase_moles[date].extend([boil[date] * soil[date] * eff_vols[date]])
             total_moles = (
                 phase_moles[date][0] + phase_moles[date][1] + phase_moles[date][2]
             )
-            total_co2_mass = total_moles * zmf2[date] * conv_fact if zmf2 else None
+            total_co2_mass = total_moles * zmf2[date] * conv_fact
             co2_mass[date] = [
                 phase_moles[date][1] * ymf2[date] * conv_fact,
                 phase_moles[date][2] * xmf2[date] * conv_fact,
@@ -986,7 +1001,7 @@ def _compositional_co2mass(
             co2_mass[date].insert(
                 0, total_co2_mass - co2_mass[date][0] - co2_mass[date][1]
             )
-        if any(x is not None for x in (sgstrand, sgtrh)):  # , sgtrap):
+        if any(x is not None for x in (sgstrand, sgtrh)):
             co2_mass[date].extend(
                 [
                     co2_mass[date][0] * sgtrh[date] / sgas[date],
@@ -1326,6 +1341,7 @@ def _calculate_co2_data_from_source_data(
         co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
         water_molar_mass (float): Water molar mass - Default is 18 g/mol
         residual_trapping (bool): Indicate if residual trapping should be calculated
+        cirrus_info_file (Optional[str]): Path to cirrus info file
 
     Returns:
       Co2Data

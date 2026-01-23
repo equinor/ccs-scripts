@@ -108,6 +108,9 @@ def parse_arguments(arguments, map_type: str):
         parser.add_argument(
             "--gridfolder",
             help="Path to output 3d grid folder (only for co2 mass maps,"
+        nargs="?",
+        const=True,
+        metavar="<DEBUG>",
             " overrides yaml file)",
             default=None,
             metavar="<GRIDFOLDER>",
@@ -116,6 +119,7 @@ def parse_arguments(arguments, map_type: str):
             "--cirrus_info_file",
             help="Path to Cirrus info file. Relevant for COMP3/4",
             default=None,
+            metavar="<CIRRUSINFOFILE>",
         )
     return parser.parse_args(arguments)
 

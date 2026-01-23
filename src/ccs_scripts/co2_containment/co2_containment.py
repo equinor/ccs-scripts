@@ -59,7 +59,7 @@ def calculate_out_of_bounds_co2(
     inj_wells: List[InjectionWellData],
     file_cont_polygon: Optional[str] = None,
     file_nogo_polygon: Optional[str] = None,
-    cirus_info_file: Optional[str] = None,
+    cirrus_info_file: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Calculates sum of co2 mass or volume at each time step. Use polygons
@@ -97,7 +97,7 @@ def calculate_out_of_bounds_co2(
         residual_trapping,
         calc_type_input,
         init_file,
-        cirus_info_file,
+        cirrus_info_file,
     )
 
     cont_polygon = _read_polygon(file_cont_polygon) if file_cont_polygon else None
@@ -457,7 +457,7 @@ def get_parser() -> argparse.ArgumentParser:
         "--cirrus_info_file",
         help="Path to Cirrus info file. Relevant for COMP3/4",
         default=None,
-        metavar="<GAS_MOLAR_MASS>",
+        metavar="<CIRRUS_INFO_FILE>",
     )
 
     return parser
@@ -586,10 +586,9 @@ def process_args() -> argparse.Namespace:
     if args.cirrus_info_file is None:
         args.cirrus_info_file = args.case
         if args.cirrus_info_file.endswith(".EGRID"):
-            args.cirrus_info_file = args.cirrus_info_file.replace(".EGRID", "_INFO.csv")
+            args.cirrus_info_file = args.cirrus_info_file.replace(".EGRID", "_INFO.CSV")
         else:
-            args.cirrus_info_file += "_INFO.csv"
-
+            args.cirrus_info_file += "_INFO.CSV"
     return args
 
 
