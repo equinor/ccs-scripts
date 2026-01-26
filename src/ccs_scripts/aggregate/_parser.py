@@ -108,9 +108,6 @@ def parse_arguments(arguments, map_type: str):
         parser.add_argument(
             "--gridfolder",
             help="Path to output 3d grid folder (only for co2 mass maps,"
-        nargs="?",
-        const=True,
-        metavar="<DEBUG>",
             " overrides yaml file)",
             default=None,
             metavar="<GRIDFOLDER>",

@@ -255,62 +255,55 @@ def _extract_molar_masses(
 
     Args:
         cirrus_info_file (str): Path to the Cirrus info CSV file.
-        source: (str): Data source
         scenario (Scenario): Which scenario co2 mass is computed for
     Returns:
         tuple[float | None, float | None]: (gas_molar_mass, oil_molar_mass)
     """
-    gas_molar_mass = None
-    oil_molar_mass = None
-    if scenario == Scenario.AQUIFER or source == "Eclipse":
-        return gas_molar_mass, oil_molar_mass
-    elif source == "PFlotran":
-        info_data = pd.read_csv(cirrus_info_file)
-        if "MWG" in info_data["Mnemonic"].values:
-            subset = info_data.loc[info_data["Mnemonic"] == "MWG", "Value"]
-            if subset.empty:
-                error_text = f"\nScenario: {scenario.name}."
-                error_text += (
-                    "\nTo compute mass or actual volume in this scenario "
-                    "hydrocarbon gas molar mass must be provided"
-                )
-            gas_molar_mass = subset.iloc[0]
-        if "MWO" in info_data["Mnemonic"].values:  # NB: Does it exist?
-            subset = info_data.loc[info_data["Mnemonic"] == "MWO", "Value"]
-            if subset.empty and scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
-                error_text = f"\nScenario: {scenario.name}."
-                error_text += (
-                    "\nTo compute mass or actual volume in this scenario "
-                    "oil molar mass must be provided"
-                )
-                raise ValueError(format_error(error_text))
-            oil_molar_mass = (
-                subset.iloc[0] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else None
-            )
-        return gas_molar_mass, oil_molar_mass
-    elif source == "PFlotran COMP":
-        info_data = pd.read_csv(cirrus_info_file)
-        suffix_count = 1
-        molar_weights = {}
-        while suffix_count < 50:
-            subset = info_data.loc[
-                info_data["Mnemonic"] == f"COMP_{suffix_count}", "Value"
-            ]
-            if subset.empty:
-                break
-            molar_weights[suffix_count] = subset.iloc[0]
-            suffix_count += 1
-        print(f"We ended in suffix_count {suffix_count}")
-        if suffix_count <= 2:
-            error_text = f"\nScenario: {scenario.name}."
-            error_text += f"\nSource: {source}."
-            error_text += (
-                "\nTo compute mass or actual volume in this scenario "
-                "molar weight of CO2 (assumed component #2) must be provided"
-            )
-            raise ValueError(format_error(error_text))
-        return molar_weights
+    if scenario == Scenario.AQUIFER:
+        return None, None
+    info_data = pd.read_csv(cirrus_info_file)
+    info_data.columns = info_data.columns.str.strip()
+    info_data["Mnemonic"] = info_data["Mnemonic"].str.strip()
+    gas_molar_mass = _extract_mnemonic_value(info_data, "MWG")
+    oil_molar_mass = (
+        _extract_mnemonic_value(info_data, "MWO")
+        if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
+        else None
+    )
+    if gas_molar_mass is None:
+        error_text = f"\nScenario: {scenario.name}."
+        error_text += (
+            "\nTo compute mass or actual volume in this scenario "
+            "hydrocarbon gas molar mass must be provided"
+        )
+        raise ValueError(format_error(error_text))
+    if scenario == Scenario.DEPLETED_OIL_GAS_FIELD and oil_molar_mass is None:
+        error_text = f"\nScenario: {scenario.name}."
+        error_text += (
+            "\nTo compute mass or actual volume in this scenario "
+            "oil molar mass must be provided"
+        )
+        raise ValueError(format_error(error_text))
+    return gas_molar_mass, oil_molar_mass
 
+
+def _extract_comp_molar_masses(
+        cirrus_info_file: str,
+):
+        info_data = pd.read_csv(cirrus_info_file)
+        info_data.columns = info_data.columns.str.strip()
+        info_data["Mnemonic"] = info_data["Mnemonic"].str.strip()
+
+        molar_weights = (
+            info_data
+            .loc[info_data["Mnemonic"].str.startswith("MW_", na=False), ["Value"]]
+            .assign(Value=lambda df: df["Value"].astype(float))
+            .reset_index(drop=True)
+            .rename(index=lambda i: i+1)
+            ["Value"]
+            .to_dict()
+        )
+        return molar_weights
 
 def _detect_eclipse_mole_fraction_props(
     unrst_file: str,
@@ -411,7 +404,6 @@ def _n_components(active_props: List):
 
 def _compute_phases_avg_mol_weight(
     source_data,
-    scenario: Scenario,
     comps_molar_mass: Optional[Dict[str, float]],
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ):
@@ -462,13 +454,12 @@ def _compute_phases_avg_mol_weight(
 
 def _convert_phase_density_from_mass_to_mole(
     source_data,
-    scenario: Scenario,
     comps_molar_masses: Optional[Dict[str, float]],
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ):
     water_avg_mol_weight, gas_avg_mol_weight, oil_avg_mol_weight = (
         _compute_phases_avg_mol_weight(
-            source_data, scenario, comps_molar_masses, water_molar_mass
+            source_data, comps_molar_masses, water_molar_mass
         )
     )
     dates = source_data.DATES
@@ -1365,10 +1356,10 @@ def _calculate_co2_data_from_source_data(
     comp_molar_masses = None
     if source != "PFlotran COMP":
         gas_molar_mass, oil_molar_mass = _extract_molar_masses(
-            source, scenario, cirrus_info_file
+            scenario, cirrus_info_file
         )
     else:
-        comp_molar_masses = _extract_molar_masses(source, scenario, cirrus_info_file)
+        comp_molar_masses = _extract_comp_molar_masses(cirrus_info_file)
     logging.info("Found valid properties")
     logging.info(f"Data source : {source}")
     logging.info(f"Scenario    : {scenario.name}")
@@ -1505,7 +1496,6 @@ def _calc_co2_amount(
         if source == "PFlotran COMP":
             bwat, bgas, boil = _convert_phase_density_from_mass_to_mole(
                 source_data,
-                scenario,
                 comp_molar_masses,
                 water_molar_mass,
             )
