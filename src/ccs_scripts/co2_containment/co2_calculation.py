@@ -290,20 +290,21 @@ def _extract_molar_masses(
 def _extract_comp_molar_masses(
         cirrus_info_file: str,
 ):
-        info_data = pd.read_csv(cirrus_info_file)
-        info_data.columns = info_data.columns.str.strip()
-        info_data["Mnemonic"] = info_data["Mnemonic"].str.strip()
+    info_data = pd.read_csv(cirrus_info_file)
+    info_data.columns = info_data.columns.str.strip()
+    info_data["Mnemonic"] = info_data["Mnemonic"].str.strip()
 
-        molar_weights = (
-            info_data
-            .loc[info_data["Mnemonic"].str.startswith("MW_", na=False), ["Value"]]
-            .assign(Value=lambda df: df["Value"].astype(float))
-            .reset_index(drop=True)
-            .rename(index=lambda i: i+1)
-            ["Value"]
-            .to_dict()
-        )
-        return molar_weights
+    molar_weights = (
+        info_data
+        .loc[info_data["Mnemonic"].str.startswith("MW_", na=False), ["Value"]]
+        .assign(Value=lambda df: df["Value"].astype(float))
+        .reset_index(drop=True)
+        .rename(index=lambda i: i + 1)
+        ["Value"]
+        .to_dict()
+    )
+    return molar_weights
+
 
 def _detect_eclipse_mole_fraction_props(
     unrst_file: str,
@@ -1354,12 +1355,19 @@ def _calculate_co2_data_from_source_data(
     gas_molar_mass = None
     oil_molar_mass = None
     comp_molar_masses = None
-    if source != "PFlotran COMP":
+    if source == "PFlotran COMP":
+        if cirrus_info_file is None:
+            error_text = f"\nScenario: {scenario.name}."
+            error_text += (
+                "\nTo compute mass or actual volume in this scenario "
+                "path to cirrus INFO file must be provided."
+            )
+            raise ValueError(format_error(error_text))
+        comp_molar_masses = _extract_comp_molar_masses(cirrus_info_file)
+    else:
         gas_molar_mass, oil_molar_mass = _extract_molar_masses(
             scenario, cirrus_info_file
         )
-    else:
-        comp_molar_masses = _extract_comp_molar_masses(cirrus_info_file)
     logging.info("Found valid properties")
     logging.info(f"Data source : {source}")
     logging.info(f"Scenario    : {scenario.name}")
