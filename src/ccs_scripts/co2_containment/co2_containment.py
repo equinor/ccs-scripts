@@ -4,6 +4,7 @@ Calculates the amount of CO2 inside and outside a given perimeter,
 and separates the result per formation and phase (gas/dissolved).
 Output is a table in CSV format.
 """
+
 import argparse
 import dataclasses
 import getpass

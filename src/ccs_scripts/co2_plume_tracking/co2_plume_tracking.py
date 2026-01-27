@@ -5,6 +5,7 @@ using SGAS and the dissolved property (AMFG/XMF2).
 Keeps track of which grid cells belong to which
 plume group at each time step, and merges plumes if they meet.
 """
+
 import argparse
 import getpass
 import logging
@@ -272,7 +273,7 @@ def load_data_and_calculate_plume_groups(
 
     logging.info(f"Number of active grid cells: {grid.get_num_active()}")
 
-    (pg_prop_gas, pg_prop_dissolved, dissolved_prop_key) = calculate_all_plume_groups(
+    pg_prop_gas, pg_prop_dissolved, dissolved_prop_key = calculate_all_plume_groups(
         grid,
         unrst,
         threshold_gas,
@@ -549,8 +550,8 @@ def _initialize_groups_from_prev_step_and_inj_wells(
         else:
             # This grid cell did not have CO2 in the last time step
             active_ind = cell_map_gasless_to_active[index]
-            (i, j, k) = grid.get_ijk(active_index=active_ind)
-            (x, y, z) = grid.get_xyz(active_index=active_ind)
+            i, j, k = grid.get_ijk(active_index=active_ind)
+            x, y, z = grid.get_xyz(active_index=active_ind)
             found = False
             for well in inj_wells:
                 if well.z is not None:

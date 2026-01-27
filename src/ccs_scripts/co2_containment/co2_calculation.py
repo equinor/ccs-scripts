@@ -1,5 +1,6 @@
 # pylint: disable-msg=too-many-lines
 """Methods for CO2 containment calculations"""
+
 import copy
 import logging
 from dataclasses import dataclass, fields, make_dataclass
@@ -288,19 +289,17 @@ def _extract_molar_masses(
 
 
 def _extract_comp_molar_masses(
-        cirrus_info_file: str,
+    cirrus_info_file: str,
 ):
     info_data = pd.read_csv(cirrus_info_file)
     info_data.columns = info_data.columns.str.strip()
     info_data["Mnemonic"] = info_data["Mnemonic"].str.strip()
 
     molar_weights = (
-        info_data
-        .loc[info_data["Mnemonic"].str.startswith("MW_", na=False), ["Value"]]
+        info_data.loc[info_data["Mnemonic"].str.startswith("MW_", na=False), ["Value"]]
         .assign(Value=lambda df: df["Value"].astype(float))
         .reset_index(drop=True)
-        .rename(index=lambda i: i + 1)
-        ["Value"]
+        .rename(index=lambda i: i + 1)["Value"]
         .to_dict()
     )
     return molar_weights
