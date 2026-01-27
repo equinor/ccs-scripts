@@ -28,7 +28,7 @@ from ccs_scripts.utils.utils import (
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
-PROPERTIES_NEEDED_PFLOTRAN = ["DGAS", "DWAT"]  # , "AMFG", "YMFG"]
+PROPERTIES_NEEDED_PFLOTRAN = ["DGAS", "DWAT"]
 PROPERTIES_NEEDED_ECLIPSE = ["BGAS", "BWAT", "XMF2", "YMF2"]
 
 RELEVANT_PROPERTIES = [
@@ -121,45 +121,6 @@ class Scenario(Enum):
     AQUIFER = 0
     DEPLETED_GAS_FIELD = 1
     DEPLETED_OIL_GAS_FIELD = 2
-
-
-def source_data_to_dataframe(source_data):
-    # Number of active cells
-    n = len(source_data.x_coord)
-    cell_ids = np.arange(n)
-
-    rows = []
-
-    for d in source_data.DATES:
-        row = {
-            "cell_id": cell_ids,
-            "date": d,
-            "x_coord": source_data.x_coord,
-            "y_coord": source_data.y_coord,
-            "zone": source_data.zone,
-            "region": source_data.region,
-        }
-
-        # Loop through all dataclass fields
-        for field in source_data.__dataclass_fields__:
-            value = getattr(source_data, field)
-
-            # skip coordinates and zones (already included)
-            if field in ("x_coord", "y_coord", "DATES", "zone", "region"):
-                continue
-
-            # time-dependent dict properties
-            if isinstance(value, dict):
-                if d in value:
-                    row[field] = value[d]
-            # static properties (rare)
-            elif isinstance(value, np.ndarray):
-                row[field] = value
-
-        rows.append(pd.DataFrame(row))
-
-    df = pd.concat(rows, ignore_index=True)
-    return df
 
 
 @dataclass
@@ -421,9 +382,7 @@ def _compute_phases_avg_mol_weight(
         gas_avg_mol_weight_at_date = {}
         oil_avg_mol_weight_at_date = {}
         for comp in comps_molar_mass:
-            ymf_tmp_date = getattr(source_data, f"YMF{comp}")[
-                date
-            ]  # source_data.data[f"YMF{comp}"]
+            ymf_tmp_date = getattr(source_data, f"YMF{comp}")[date]
             xmf_tmp_date = getattr(source_data, f"XMF{comp}")[date]
             gas_avg_mol_weight_at_date[comp] = comps_molar_mass[comp] * ymf_tmp_date
             oil_avg_mol_weight_at_date[comp] = (
@@ -446,9 +405,6 @@ def _compute_phases_avg_mol_weight(
         water_avg_mol_weight[date] = np.sum(
             list(water_avg_mol_weight_at_date.values()), axis=0
         )
-    print(gas_avg_mol_weight)
-    print(oil_avg_mol_weight)
-    print(water_avg_mol_weight)
     return water_avg_mol_weight, gas_avg_mol_weight, oil_avg_mol_weight
 
 
