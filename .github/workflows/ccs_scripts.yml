@@ -53,10 +53,6 @@ jobs:
         run: isort --check-only --profile black src tests
 
       - name: Lint with black
-        run: |
-          python -m black --version
-
-      - name: Lint with black
         if: ${{ always() }}
         run: black --check src tests
 
