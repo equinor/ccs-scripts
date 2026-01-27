@@ -1319,7 +1319,7 @@ def _calculate_co2_data_from_source_data(
             )
             raise ValueError(format_error(error_text))
         comp_molar_masses = _extract_comp_molar_masses(cirrus_info_file)
-    else:
+    elif source == "PFlotran":
         gas_molar_mass, oil_molar_mass = _extract_molar_masses(
             scenario, cirrus_info_file
         )
