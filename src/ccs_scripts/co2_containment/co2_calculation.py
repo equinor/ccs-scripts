@@ -28,8 +28,8 @@ from ccs_scripts.utils.utils import (
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
-PROPERTIES_NEEDED_PFLOTRAN = ["DGAS", "DWAT"]
-PROPERTIES_NEEDED_ECLIPSE = ["BGAS", "BWAT", "XMF2", "YMF2"]
+PROPERTIES_NEEDED_PFLOTRAN = ["SGAS", "DGAS", "DWAT"]
+PROPERTIES_NEEDED_ECLIPSE = ["SGAS", "BGAS", "BWAT", "XMF2", "YMF2"]
 
 RELEVANT_PROPERTIES = [
     "RPORV",
@@ -1312,7 +1312,8 @@ def _calculate_co2_data_from_source_data(
     comp_molar_masses = None
     if source == "PFlotran COMP":
         if cirrus_info_file is None:
-            error_text = f"\nScenario: {scenario.name}."
+            error_text = "Source: PFlotran EOS COMP"
+            error_text += f"\nScenario: {scenario.name}."
             error_text += (
                 "\nTo compute mass or actual volume in this scenario "
                 "path to cirrus INFO file must be provided."
@@ -1385,50 +1386,39 @@ def _find_source_and_scenario(
     if residual_trapping:
         props_needed_pflotran.append("SGSTRAND")
         props_needed_eclipse.append("SGTRH")
-
-    scenario = Scenario.AQUIFER
     if is_subset(props_needed_pflotran, active_props):
         source = "PFlotran"
         if is_subset(["AMFS", "YMFO"], active_props):
             scenario = Scenario.DEPLETED_OIL_GAS_FIELD
         elif is_subset(["AMFS"], active_props):
             scenario = Scenario.DEPLETED_GAS_FIELD
-        elif is_subset(["XMF2", "SOIL"], active_props):
-            scenario = Scenario.DEPLETED_OIL_GAS_FIELD
-            source = "PFlotran COMP"
-            active_props = [
-                prop
-                for prop in active_props
-                if not (prop.startswith("XMF") or prop.startswith("YMF"))
-                or prop.endswith("2")
-            ]
+        elif is_subset(["AMFG", "YMFG"], active_props):
+            scenario = Scenario.AQUIFER
         elif is_subset(["XMF2"], active_props):
-            scenario = Scenario.DEPLETED_GAS_FIELD
             source = "PFlotran COMP"
-            active_props = [
-                prop
-                for prop in active_props
-                if not (prop.startswith("XMF") or prop.startswith("YMF"))
-                or prop.endswith("2")
-            ]
+            if _n_components(active_props) <= 3:
+                scenario = Scenario.AQUIFER
+            elif is_subset(["SOIL"], active_props):
+                scenario = Scenario.DEPLETED_OIL_GAS_FIELD
+            else:
+                scenario = Scenario.DEPLETED_GAS_FIELD
+        else:
+            error_text = (
+                "Need to provide either AMFS, AMFG or XMF2 to perform the calculations"
+            )
+            raise ValueError(format_error(error_text))
     elif is_subset(props_needed_eclipse, active_props):
         source = "Eclipse"
-        if is_subset(["XMF2", "SOIL"], active_props):
+        if _n_components(active_props) <= 3:
+            scenario = Scenario.AQUIFER
+        elif is_subset(["SOIL"], active_props):
             scenario = Scenario.DEPLETED_OIL_GAS_FIELD
-        # NBNB: X/YMF properties ending in 2 are assumed to correspond to CO2
-        elif _n_components(active_props) > 3:
+        else:
             scenario = Scenario.DEPLETED_GAS_FIELD
-            active_props = [
-                prop
-                for prop in active_props
-                if not (prop.startswith("XMF") or prop.startswith("YMF"))
-                or prop.endswith("2")
-            ]
     else:
         _raise_missing_props_error(
             active_props, props_needed_pflotran, props_needed_eclipse
         )
-
     return source, scenario
 
 
