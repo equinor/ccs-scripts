@@ -160,9 +160,7 @@ def generate_maps(
     _log_grid_info(grid)
 
     timer.start("extract_properties")
-    print("input_.properties:", input_.properties)
     properties = extract_properties(input_.properties, grid, input_.dates)
-    print(properties)
     timer.stop("extract_properties")
     _log_properties_info(properties)
 

@@ -1,5 +1,4 @@
 import datetime
-import logging
 from typing import List
 
 import numpy as np
@@ -11,77 +10,28 @@ MIGRATION_TIME_PNAME = "MigrationTime"
 def generate_migration_time_property(
     co2_props: List[xtgeo.GridProperty],
     co2_threshold: float,
-    temp_test_stabilization: bool = False,
 ) -> xtgeo.GridProperty:
     """
     Calculates a 3D grid property reflecting the migration time. Migration time is
     defined as the first time step at which the property value exceeds its initial
     condition
     """
-    logging.info(f"\ngenerate_migration_time_property()")
-    logging.info(f"Temp test stab. : {temp_test_stabilization}")
     # Calculate time since simulation start
     times = [datetime.datetime.strptime(_prop.date, "%Y%m%d") for _prop in co2_props]
-    # logging.info(f"times           : {times}")
     time_since_start = [(t - times[0]).days / 365 for t in times]
-    # logging.info(f"time_since_start: {time_since_start}")
-
     # Duplicate first property to ensure equal actnum
     prop_name = co2_props[0].name.split("--")[0]
-    logging.info(f"prop_name       : {prop_name}")
     t_prop = co2_props[0].copy(newname=MIGRATION_TIME_PNAME + "_" + prop_name)
-
-    if not temp_test_stabilization:
-        logging.info(f"co2_threshold   : {co2_threshold}")
-        t_prop.values[~t_prop.values.mask] = np.inf
-
-        for co2, dt in zip(
-            co2_props[1:],
-            time_since_start[1:],
-        ):
-            diff_prop = co2.values - co2_props[0].values
-            above_threshold = diff_prop > co2_threshold
-            t_prop.values[above_threshold] = np.minimum(t_prop.values[above_threshold], dt)
-    else:
-        if prop_name == "SGAS":
-            co2_threshold = 0.05
-        elif prop_name == "AMFG":
-            co2_threshold = 0.01
-        logging.info(f"co2_threshold   : {co2_threshold}")
-
-        t_prop.values[~t_prop.values.mask] = 0.0  # time_since_start[-1]
-        dt_prev = time_since_start[-1]
-        for co2, dt in zip(
-            co2_props[-2::-1],
-            time_since_start[-2::-1],
-        ):
-            logging.info(f"dt: {dt}, dt_prev: {dt_prev}")
-            diff_prop = co2.values - co2_props[-1].values
-
-            # BK-TEST: Choose option here:
-            choice = "stops_changing"
-            if choice == "stops_changing":
-                diff_prop = abs(diff_prop)
-                above_threshold = diff_prop > co2_threshold
-            elif choice == "stops_increasing":
-                above_threshold = diff_prop < -co2_threshold
-            elif choice == "stops_decreasing":
-                above_threshold = diff_prop > co2_threshold
-
-            t_prop.values[above_threshold] = np.maximum(t_prop.values[above_threshold], dt_prev)
-            dt_prev = dt
-
-            # print(f"    diff_prop.mean(): {diff_prop.mean()} (#values: {diff_prop.size})")
-            # print(f"    diff_prop.mean()     : {diff_prop.mean()} (#values: {diff_prop.size})")
-            # print(f"    above_threshold.sum(): {above_threshold.sum()} (#values: {above_threshold.size})")
-            # Print summary of unique values on t_prop.values:
-            unique, counts = np.unique(t_prop.values, return_counts=True)
-            for a, b in zip(unique, counts):
-                logging.info(f"        t_prop.values: {a:.4f} (#cells: {b})")
-
+    t_prop.values[~t_prop.values.mask] = np.inf
+    for co2, dt in zip(
+        co2_props[1:],
+        time_since_start[1:],
+    ):
+        diff_prop = co2.values - co2_props[0].values
+        above_threshold = diff_prop > co2_threshold
+        t_prop.values[above_threshold] = np.minimum(t_prop.values[above_threshold], dt)
     # Mask inf values
     if not isinstance(t_prop.values.mask, np.ndarray):
         t_prop.values.mask = np.asarray(t_prop.values.mask)
     t_prop.values.mask[np.isinf(t_prop.values)] = 1
-
     return t_prop

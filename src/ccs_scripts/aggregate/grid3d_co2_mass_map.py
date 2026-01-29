@@ -171,15 +171,12 @@ def co2_mass_property_to_map(
                 _config.Property(
                     props,
                     None,
-                    # BK-TEST: Change threshold here, maybe 0.1 for migration time,
-                    #          something larger for stabilization time (1.0 maybe?).
-                    #          The unit is tons. We calculate co2 mass for each grid cell,
-                    #          so the treshold will depend a lot on the grid cell size.
+                    # The unit is tons. We calculate co2 mass for each grid cell,
+                    # so the treshold will depend a lot on the grid cell size.
                     1.0,
                 )
             )
-    # BK-TEST: Change temp_test_stabilization here (migration time vs stablization time for co2 mass)
-    grid3d_migration_time.generate_from_config(config_, temp_test_stabilization=True)
+    grid3d_migration_time.generate_from_config(config_)
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:

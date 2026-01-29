@@ -36,11 +36,6 @@ class MapName(Enum):
     MASSTGAS = "co2_mass_trapped_gas_phase"
     MASSFGAS = "co2_mass_free_gas_phase"
     MigrationTime_MASS_TOT = "co2_mass_migration_time_total"  # NBNB-AS
-    MigrationTime_MASSDISW = "co2_mass_migration_time_dissolved_water_phase"  # NBNB-AS
-    MigrationTime_MASSDISO = "co2_mass_migration_time_dissolved_oil_phase"  # NBNB-AS
-    MigrationTime_MASS_GAS = "co2_mass_migration_time_gas_phase"  # NBNB-AS
-    MigrationTime_MASSTGAS = "co2_mass_migration_time_trapped_gas_phase"  # NBNB-AS
-    MigrationTime_MASSFGAS = "co2_mass_migration_time_free_gas_phase"  # NBNB-AS
 
 
 class PropertyGridOutput(TypedDict):
