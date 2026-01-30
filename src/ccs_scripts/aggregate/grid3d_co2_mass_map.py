@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Tuple
 import yaml
 
 from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map, grid3d_migration_time
-from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property
+from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property, MapName
 from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.co2_containment.co2_calculation import (
@@ -163,19 +163,24 @@ def co2_mass_property_to_map(
             )
     grid3d_aggregate_map.generate_from_config(config_)
 
+    print(out_property_list)
+    print(MapName.MASS_TOT.value)
+
     # Migration time maps:
     config_.input.properties = []
     for props in out_property_list:
         if isinstance(props, str):
-            config_.input.properties.append(
-                _config.Property(
-                    props,
-                    None,
-                    # The unit is tons. We calculate co2 mass for each grid cell,
-                    # so the treshold will depend a lot on the grid cell size.
-                    1.0,
+            # We currently only calculate migration time maps for total co2 mass
+            if MapName.MASS_TOT.value in props:
+                config_.input.properties.append(
+                    _config.Property(
+                        props,
+                        None,
+                        # The unit is tons. We calculate co2 mass for each grid cell,
+                        # so the treshold will depend a lot on the grid cell size.
+                        1.0,
+                    )
                 )
-            )
     grid3d_migration_time.generate_from_config(config_)
 
 

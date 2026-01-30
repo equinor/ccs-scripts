@@ -171,8 +171,10 @@ def _init_timer():
 
 
 def generate_from_config(config_: _config.RootConfig):
+    print("\ngenerate_from_config - migration time")
     _check_config(config_)
     log_input_configuration(config_, map_type="migration_time")
+    print(config_.input.properties)
     p_spec = []
     if any(x.name in MIGRATION_TIME_PROPERTIES for x in config_.input.properties):
         removed_props = [
@@ -191,7 +193,7 @@ def generate_from_config(config_: _config.RootConfig):
             )
             logging.warning(format_warning(warning_str))
     elif any(x.name is None for x in config_.input.properties):
-        # NBNB-AS: Temp to make code run from co2 mass script
+        # For co2 mass properties
         p_spec.extend(
             [x for x in config_.input.properties]
         )
@@ -202,6 +204,7 @@ def generate_from_config(config_: _config.RootConfig):
         )
         error_text += f"{', '.join([x.name for x in config_.input.properties])}"
         raise ValueError(format_error(error_text))
+
     config_.input.properties = p_spec
     temp_dir = tempfile.mkdtemp()
     logging.info(f"\nMaking temporary directory for 3D grids: {temp_dir}")
