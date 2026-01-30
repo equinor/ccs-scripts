@@ -137,7 +137,7 @@ class PlumeGroups:
         self, ijk, grid, cell_map_active_to_gasless: Dict[int, int], tol: int = 1
     ) -> List[List[int]]:
         out = []
-        (i1, j1, k1) = ijk
+        i1, j1, k1 = ijk
         neigs = list(
             itertools.product(
                 range(max((i1 - tol), 0), min((i1 + tol), grid.get_nx() - 1) + 1),

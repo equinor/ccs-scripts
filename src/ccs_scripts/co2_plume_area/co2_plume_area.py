@@ -3,6 +3,7 @@
 Script calculating the area extent of the plume depending on which map / date
 are present in the share/results/maps folder
 """
+
 ################################################################################
 #
 # Created by : Jorge Sicacha (NR), Oct 2022

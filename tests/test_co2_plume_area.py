@@ -50,7 +50,7 @@ def _get_synthetic_case_paths(case: str):
 
 
 def test_plume_area_synthetic_case_eclipse(mocker):
-    (input_path, output_path) = _get_synthetic_case_paths("eclipse")
+    input_path, output_path = _get_synthetic_case_paths("eclipse")
     mocker.patch("sys.argv", ["--input", input_path, "--output_csv", output_path])
     main()
 
@@ -68,7 +68,7 @@ def test_plume_area_synthetic_case_eclipse(mocker):
 
 
 def test_plume_area_synthetic_case_pflotran(mocker):
-    (input_path, output_path) = _get_synthetic_case_paths("pflotran")
+    input_path, output_path = _get_synthetic_case_paths("pflotran")
     mocker.patch("sys.argv", ["--input", input_path, "--output_csv", output_path])
     main()
 

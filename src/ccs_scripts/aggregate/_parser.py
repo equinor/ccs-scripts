@@ -118,7 +118,6 @@ def parse_arguments(arguments, map_type: str):
             default=None,
             metavar="<CIRRUSINFOFILE>",
         )
-
     return parser.parse_args(arguments)
 
 
