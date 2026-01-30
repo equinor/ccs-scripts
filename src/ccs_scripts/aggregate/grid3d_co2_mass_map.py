@@ -163,9 +163,6 @@ def co2_mass_property_to_map(
             )
     grid3d_aggregate_map.generate_from_config(config_)
 
-    print(out_property_list)
-    print(MapName.MASS_TOT.value)
-
     # Migration time maps:
     config_.input.properties = []
     for props in out_property_list:
@@ -178,7 +175,8 @@ def co2_mass_property_to_map(
                         None,
                         # The unit is tons. We calculate co2 mass for each grid cell,
                         # so the treshold will depend a lot on the grid cell size.
-                        1.0,
+                        0.01,
+                        #1.0,
                     )
                 )
     grid3d_migration_time.generate_from_config(config_)
