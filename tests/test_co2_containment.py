@@ -555,10 +555,7 @@ def test_synthetic_case_cirrus_mass(mocker):
     os.remove(output_path)
 
     answer_file = str(
-        Path(__file__).parents[0]
-        / "answers"
-        / "containment"
-        / "plume_mass_cirrus.csv"
+        Path(__file__).parents[0] / "answers" / "containment" / "plume_mass_cirrus.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 
