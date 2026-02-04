@@ -121,9 +121,9 @@ def test_co2_mass_map_reek_grid():
     )
 
 
-def test_co2_mass_map_residual_trapping_pflotran():
+def test_co2_mass_map_residual_trapping_cirrus():
     """
-    Test CO2 mass maps, with synthetic_case pflotran data
+    Test CO2 mass maps, with synthetic_case cirrus data
     """
     result = str(Path(__file__).absolute().parent / "answers" / "mass_map")
     if not os.path.exists(result):
@@ -135,7 +135,7 @@ def test_co2_mass_map_residual_trapping_pflotran():
             str(
                 Path(__file__).absolute().parent
                 / "yaml"
-                / "config_co2_mass_map_pflotran.yml"
+                / "config_co2_mass_map_cirrus.yml"
             ),
             "--mapfolder",
             str(result),

@@ -67,8 +67,8 @@ def test_plume_area_synthetic_case_eclipse(mocker):
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
-def test_plume_area_synthetic_case_pflotran(mocker):
-    input_path, output_path = _get_synthetic_case_paths("pflotran")
+def test_plume_area_synthetic_case_cirrus(mocker):
+    input_path, output_path = _get_synthetic_case_paths("cirrus")
     mocker.patch("sys.argv", ["--input", input_path, "--output_csv", output_path])
     main()
 
@@ -76,7 +76,7 @@ def test_plume_area_synthetic_case_pflotran(mocker):
     os.remove(output_path)
 
     answer_file = str(
-        Path(__file__).parents[0] / "answers" / "plume_area" / "plume_area_pflotran.csv"
+        Path(__file__).parents[0] / "answers" / "plume_area" / "plume_area_cirrus.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 

@@ -7,7 +7,7 @@ CO2_PLUME_AREA
    :func: get_parser
    :prog: plume_area
 
-Calculates the area of the CO\ :sub:`2` plume for each formation and time step, for both SGAS and AMFG (Pflotran) / YMF2 (Eclipse).
+Calculates the area of the CO\ :sub:`2` plume for each formation and time step, for both SGAS and AMFG (Cirrus) / YMF2 (Eclipse).
 
 Output is a table on CSV format.
 

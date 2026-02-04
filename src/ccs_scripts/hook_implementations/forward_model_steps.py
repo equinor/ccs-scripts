@@ -376,7 +376,7 @@ representative volume of CO2
 
 _DESC_CO2_PLUME_AREA = """
 Calculates the area of the CO2 plume for each formation and time step, for both
-SGAS and AMFG (Pflotran) / YMF2 (Eclipse).
+SGAS and AMFG (Cirrus) / YMF2 (Eclipse).
 
 Output is a table on CSV format.
 """
@@ -386,7 +386,7 @@ _DESC_CO2_PLUME_EXTENT = """
 Calculates the maximum lateral distance of the CO2 plume from a given location,
 for instance an injection point. It is also possible to instead calculate the
 distance to a point or a line (north-south or east-west). The distances are
-calculated for each time step, for both SGAS and AMFG (Pflotran) / XMF2
+calculated for each time step, for both SGAS and AMFG (Cirrus) / XMF2
 (Eclipse).
 
 Output is a table on CSV format. Multiple calculations specified in the

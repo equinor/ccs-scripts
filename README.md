@@ -1,6 +1,6 @@
 # ccs-scripts
 
-:scroll: **ccs-scripts** gathers a collection of post-processing scripts dedicated to CCS outputs from Eclipse and Pflotran.
+:scroll: **ccs-scripts** gathers a collection of post-processing scripts dedicated to CCS outputs from Eclipse and Cirrus.
 
 >Note: These scripts are beeing tested and frequently updated, new releases will be available occasionally :recycle:
 

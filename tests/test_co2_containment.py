@@ -180,8 +180,8 @@ def _get_synthetic_case_paths(case: str):
     file_name = ""
     if case == "eclipse":
         file_name = "E_FLT_01-0"
-    elif case == "pflotran":
-        file_name = "P_FLT_01-0"
+    elif case == "cirrus":
+        file_name = "C_FLT_01-0"
     main_path = (
         Path(__file__).parents[1]
         / "tests"
@@ -517,7 +517,7 @@ def test_synthetic_case_eclipse_mass_no_zones_no_regions(mocker):
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
-def test_synthetic_case_pflotran_mass(mocker):
+def test_synthetic_case_cirrus_mass(mocker):
     (
         main_path,
         case_path,
@@ -526,7 +526,7 @@ def test_synthetic_case_pflotran_mass(mocker):
         nogo_polygon,
         output_dir,
         zone_file_path,
-    ) = _get_synthetic_case_paths("pflotran")
+    ) = _get_synthetic_case_paths("cirrus")
     args = [
         "sys.argv",
         case_path,
@@ -558,7 +558,7 @@ def test_synthetic_case_pflotran_mass(mocker):
         Path(__file__).parents[0]
         / "answers"
         / "containment"
-        / "plume_mass_pflotran.csv"
+        / "plume_mass_cirrus.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 
@@ -567,7 +567,7 @@ def test_synthetic_case_pflotran_mass(mocker):
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
-def test_synthetic_case_pflotran_actual_volume(mocker):
+def test_synthetic_case_cirrus_actual_volume(mocker):
     (
         main_path,
         case_path,
@@ -576,7 +576,7 @@ def test_synthetic_case_pflotran_actual_volume(mocker):
         nogo_polygon,
         output_dir,
         zone_file_path,
-    ) = _get_synthetic_case_paths("pflotran")
+    ) = _get_synthetic_case_paths("cirrus")
     args = [
         "sys.argv",
         case_path,
@@ -610,7 +610,7 @@ def test_synthetic_case_pflotran_actual_volume(mocker):
         Path(__file__).parents[0]
         / "answers"
         / "containment"
-        / "plume_actual_volume_pflotran.csv"
+        / "plume_actual_volume_cirrus.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 
@@ -621,7 +621,7 @@ def test_synthetic_case_pflotran_actual_volume(mocker):
     )  # NBNB-AS: Temp change tolerance, because of difference for numpy 2
 
 
-def test_synthetic_case_pflotran_cell_volume(mocker):
+def test_synthetic_case_cirrus_cell_volume(mocker):
     (
         main_path,
         case_path,
@@ -630,7 +630,7 @@ def test_synthetic_case_pflotran_cell_volume(mocker):
         nogo_polygon,
         output_dir,
         zone_file_path,
-    ) = _get_synthetic_case_paths("pflotran")
+    ) = _get_synthetic_case_paths("cirrus")
     args = [
         "sys.argv",
         case_path,
@@ -664,7 +664,7 @@ def test_synthetic_case_pflotran_cell_volume(mocker):
         Path(__file__).parents[0]
         / "answers"
         / "containment"
-        / "plume_cell_volume_pflotran.csv"
+        / "plume_cell_volume_cirrus.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 
@@ -673,7 +673,7 @@ def test_synthetic_case_pflotran_cell_volume(mocker):
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
-def test_synthetic_case_pflotran_mass_residual_trapping(mocker):
+def test_synthetic_case_cirrus_mass_residual_trapping(mocker):
     (
         main_path,
         case_path,
@@ -682,7 +682,7 @@ def test_synthetic_case_pflotran_mass_residual_trapping(mocker):
         nogo_polygon,
         output_dir,
         zone_file_path,
-    ) = _get_synthetic_case_paths("pflotran")
+    ) = _get_synthetic_case_paths("cirrus")
     args = [
         "sys.argv",
         case_path,
@@ -715,7 +715,7 @@ def test_synthetic_case_pflotran_mass_residual_trapping(mocker):
         Path(__file__).parents[0]
         / "answers"
         / "containment"
-        / "plume_mass_pflotran_residual_trapping.csv"
+        / "plume_mass_cirrus_residual_trapping.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 
@@ -724,7 +724,7 @@ def test_synthetic_case_pflotran_mass_residual_trapping(mocker):
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
-def test_synthetic_case_pflotran_actual_volume_residual_trapping(mocker):
+def test_synthetic_case_cirrus_actual_volume_residual_trapping(mocker):
     (
         main_path,
         case_path,
@@ -733,7 +733,7 @@ def test_synthetic_case_pflotran_actual_volume_residual_trapping(mocker):
         nogo_polygon,
         output_dir,
         zone_file_path,
-    ) = _get_synthetic_case_paths("pflotran")
+    ) = _get_synthetic_case_paths("cirrus")
     args = [
         "sys.argv",
         case_path,
@@ -768,7 +768,7 @@ def test_synthetic_case_pflotran_actual_volume_residual_trapping(mocker):
         Path(__file__).parents[0]
         / "answers"
         / "containment"
-        / "plume_actual_volume_pflotran_residual_trapping.csv"
+        / "plume_actual_volume_cirrus_residual_trapping.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 

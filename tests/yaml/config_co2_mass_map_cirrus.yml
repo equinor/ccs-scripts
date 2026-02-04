@@ -1,5 +1,5 @@
 input:
-  eclroot: tests/synthetic_model/realization-0/iter-0/pflotran/model/P_FLT_01-0
+  eclroot: tests/synthetic_model/realization-0/iter-0/cirrus/model/C_FLT_01-0
   grid: $eclroot.EGRID
 
 co2_mass_settings:

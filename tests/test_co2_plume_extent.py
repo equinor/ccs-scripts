@@ -241,8 +241,8 @@ def _get_synthetic_case_paths(case: str, realization: int = 0):
     file_name = ""
     if case == "eclipse":
         file_name = "E_FLT_01-" + str(realization)
-    elif case == "pflotran":
-        file_name = "P_FLT_01-" + str(realization)
+    elif case == "cirrus":
+        file_name = "C_FLT_01-" + str(realization)
     case_path = str(
         Path(__file__).parents[1]
         / "tests"
@@ -364,8 +364,8 @@ def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
-def test_plume_extent_pflotran_using_well_name(mocker):
-    case_path, output_path = _get_synthetic_case_paths("pflotran")
+def test_plume_extent_cirrus_using_well_name(mocker):
+    case_path, output_path = _get_synthetic_case_paths("cirrus")
     mocker.patch(
         "sys.argv",
         [
@@ -390,7 +390,7 @@ def test_plume_extent_pflotran_using_well_name(mocker):
         Path(__file__).parents[0]
         / "answers"
         / "plume_extent"
-        / "plume_extent_pflotran.csv"
+        / "plume_extent_cirrus.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 
@@ -399,8 +399,8 @@ def test_plume_extent_pflotran_using_well_name(mocker):
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
-def test_plume_extent_pflotran_using_coordinates(mocker):
-    case_path, output_path = _get_synthetic_case_paths("pflotran")
+def test_plume_extent_cirrus_using_coordinates(mocker):
+    case_path, output_path = _get_synthetic_case_paths("cirrus")
     mocker.patch(
         "sys.argv",
         [
@@ -425,7 +425,7 @@ def test_plume_extent_pflotran_using_coordinates(mocker):
         Path(__file__).parents[0]
         / "answers"
         / "plume_extent"
-        / "plume_extent_pflotran.csv"
+        / "plume_extent_cirrus.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 
@@ -434,8 +434,8 @@ def test_plume_extent_pflotran_using_coordinates(mocker):
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
-def test_plume_extent_pflotran_using_coordinates_default_thresholds(mocker):
-    case_path, output_path = _get_synthetic_case_paths("pflotran")
+def test_plume_extent_cirrus_using_coordinates_default_thresholds(mocker):
+    case_path, output_path = _get_synthetic_case_paths("cirrus")
     mocker.patch(
         "sys.argv",
         [
@@ -456,7 +456,7 @@ def test_plume_extent_pflotran_using_coordinates_default_thresholds(mocker):
         Path(__file__).parents[0]
         / "answers"
         / "plume_extent"
-        / "plume_extent_pflotran_default_thresholds.csv"
+        / "plume_extent_cirrus_default_thresholds.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 
@@ -465,8 +465,8 @@ def test_plume_extent_pflotran_using_coordinates_default_thresholds(mocker):
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
-def test_yaml_file_pflotran(mocker):
-    case_path, output_path = _get_synthetic_case_paths("pflotran")
+def test_yaml_file_cirrus(mocker):
+    case_path, output_path = _get_synthetic_case_paths("cirrus")
     config_path = str(
         Path(__file__).parents[1] / "tests" / "yaml" / "config_co2_plume_extent.yml"
     )
@@ -490,7 +490,7 @@ def test_yaml_file_pflotran(mocker):
         Path(__file__).parents[0]
         / "answers"
         / "plume_extent"
-        / "plume_extent_pflotran_yaml_file.csv"
+        / "plume_extent_cirrus_yaml_file.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 
@@ -499,8 +499,8 @@ def test_yaml_file_pflotran(mocker):
     pandas.testing.assert_frame_equal(df, df_answer)
 
 
-def test_yaml_file_pflotran_plume_tracking(mocker):
-    case_path, output_path = _get_synthetic_case_paths("pflotran", realization=2)
+def test_yaml_file_cirrus_plume_tracking(mocker):
+    case_path, output_path = _get_synthetic_case_paths("cirrus", realization=2)
     config_path = str(
         Path(__file__).parents[1]
         / "tests"
@@ -529,7 +529,7 @@ def test_yaml_file_pflotran_plume_tracking(mocker):
         Path(__file__).parents[0]
         / "answers"
         / "plume_extent"
-        / "plume_extent_pflotran_yaml_file_plume_tracking.csv"
+        / "plume_extent_cirrus_yaml_file_plume_tracking.csv"
     )
     df_answer = pandas.read_csv(answer_file)
 

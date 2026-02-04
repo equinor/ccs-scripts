@@ -10,7 +10,7 @@ CO2_PLUME_EXTENT
 Calculates the maximum lateral distance of the CO\ :sub:`2` plume from a given location,
 for instance an injection point. It is also possible to instead calculate the distance
 to a point or a line (north-south or east-west). The distances are calculated for each
-time step, for both SGAS and AMFG (Pflotran) / YMF2 (Eclipse). It is possible to
+time step, for both SGAS and AMFG (Cirrus) / YMF2 (Eclipse). It is possible to
 use an YAML-file to set up multiple calculations.
 
 Output is a table on CSV format. Multiple calculations specified in the YAML-file

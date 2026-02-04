@@ -1,6 +1,6 @@
 -- 
 -- CO2STORE example. Comparative case for testing fault and
--- hysteresis in Pflotran
+-- hysteresis in Cirrus
 
 RUNSPEC
  

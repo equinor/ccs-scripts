@@ -28,7 +28,7 @@ from ccs_scripts.utils.utils import (
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
-PROPERTIES_NEEDED_PFLOTRAN = ["SGAS", "DGAS", "DWAT"]
+PROPERTIES_NEEDED_CIRRUS = ["SGAS", "DGAS", "DWAT"]
 PROPERTIES_NEEDED_ECLIPSE = ["SGAS", "BGAS", "BWAT", "XMF2", "YMF2"]
 
 RELEVANT_PROPERTIES = [
@@ -743,7 +743,7 @@ def _set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
     return CalculationType[calc_type_input]
 
 
-def _pflotran_co2mass(
+def _cirrus_co2mass(
     source_data,
     scenario: Scenario,
     pore_volume_prop: str,
@@ -753,7 +753,7 @@ def _pflotran_co2mass(
     oil_molar_mass: Optional[float] = None,
 ) -> Dict[str, List[np.ndarray]]:
     """
-    Calculates CO2 mass based on the existing properties in PFlotran
+    Calculates CO2 mass based on the existing properties in Cirrus
 
     Args:
       source_data (SourceData): Data with the information of the necessary properties
@@ -958,7 +958,7 @@ def _compositional_co2mass(
     return co2_mass
 
 
-def _pflotran_co2_molar_volume(
+def _cirrus_co2_molar_volume(
     source_data,
     scenario: Scenario,
     water_density: np.ndarray,
@@ -970,7 +970,7 @@ def _pflotran_co2_molar_volume(
     oil_molar_mass: Optional[float] = None,
 ) -> Dict:
     """
-    Calculates CO2 molar volume (mol/m3) based on the existing properties in PFlotran
+    Calculates CO2 molar volume (mol/m3) based on the existing properties in Cirrus
 
     Args:
       source_data (SourceData): Data with the information of the necessary properties
@@ -1310,9 +1310,9 @@ def _calculate_co2_data_from_source_data(
     gas_molar_mass = None
     oil_molar_mass = None
     comp_molar_masses = None
-    if source == "PFlotran COMP":
+    if source == "Cirrus COMP":
         if cirrus_info_file is None:
-            error_text = "Source: PFlotran EOS COMP"
+            error_text = "Source: Cirrus EOS COMP"
             error_text += f"\nScenario: {scenario.name}."
             error_text += (
                 "\nTo compute mass or actual volume in this scenario "
@@ -1320,7 +1320,7 @@ def _calculate_co2_data_from_source_data(
             )
             raise ValueError(format_error(error_text))
         comp_molar_masses = _extract_comp_molar_masses(cirrus_info_file)
-    elif source == "PFlotran":
+    elif source == "Cirrus":
         gas_molar_mass, oil_molar_mass = _extract_molar_masses(
             scenario, cirrus_info_file
         )
@@ -1381,13 +1381,13 @@ def _find_pore_volume_prop(active_props: List[str]) -> str:
 def _find_source_and_scenario(
     residual_trapping: bool, active_props: List[str]
 ) -> Tuple[str, Scenario]:
-    props_needed_pflotran = PROPERTIES_NEEDED_PFLOTRAN.copy()
+    props_needed_cirrus = PROPERTIES_NEEDED_CIRRUS.copy()
     props_needed_eclipse = PROPERTIES_NEEDED_ECLIPSE.copy()
     if residual_trapping:
-        props_needed_pflotran.append("SGSTRAND")
+        props_needed_cirrus.append("SGSTRAND")
         props_needed_eclipse.append("SGTRH")
-    if is_subset(props_needed_pflotran, active_props):
-        source = "PFlotran"
+    if is_subset(props_needed_cirrus, active_props):
+        source = "Cirrus"
         if is_subset(["AMFS", "YMFO"], active_props):
             scenario = Scenario.DEPLETED_OIL_GAS_FIELD
         elif is_subset(["AMFS"], active_props):
@@ -1395,7 +1395,7 @@ def _find_source_and_scenario(
         elif is_subset(["AMFG", "YMFG"], active_props):
             scenario = Scenario.AQUIFER
         elif is_subset(["XMF2"], active_props):
-            source = "PFlotran COMP"
+            source = "Cirrus COMP"
             if _n_components(active_props) <= 3:
                 scenario = Scenario.AQUIFER
             elif is_subset(["SOIL"], active_props):
@@ -1417,7 +1417,7 @@ def _find_source_and_scenario(
             scenario = Scenario.DEPLETED_GAS_FIELD
     else:
         _raise_missing_props_error(
-            active_props, props_needed_pflotran, props_needed_eclipse
+            active_props, props_needed_cirrus, props_needed_eclipse
         )
     return source, scenario
 
@@ -1435,8 +1435,8 @@ def _calc_co2_amount(
     oil_molar_mass: Optional[float],
     comp_molar_masses: Optional[Dict[str, float]],
 ) -> Co2Data:
-    if source == "PFlotran":
-        co2_mass_cell = _pflotran_co2mass(
+    if source == "Cirrus":
+        co2_mass_cell = _cirrus_co2mass(
             source_data,
             scenario,
             pore_volume_prop,
@@ -1446,7 +1446,7 @@ def _calc_co2_amount(
             oil_molar_mass,
         )
     else:
-        if source == "PFlotran COMP":
+        if source == "Cirrus COMP":
             bwat, bgas, boil = _convert_phase_density_from_mass_to_mole(
                 source_data,
                 comp_molar_masses,
@@ -1559,7 +1559,7 @@ def _calculate_molar_vols_co2(
     gas_molar_mass: Optional[float],
     oil_molar_mass: Optional[float],
 ):
-    if source == "PFlotran":
+    if source == "Cirrus":
         y_prop = source_data.AMFG if scenario == Scenario.AQUIFER else source_data.AMFS
         y = y_prop[source_data.DATES[0]]
         where_min_amf_co2 = np.where(y < THRESHOLD_DISSOLVED)[0]
@@ -1612,7 +1612,7 @@ def _calculate_molar_vols_co2(
                     for x in enumerate(doil)
                 ]
             )
-        molar_vols_co2 = _pflotran_co2_molar_volume(
+        molar_vols_co2 = _cirrus_co2_molar_volume(
             source_data,
             scenario,
             water_density,
@@ -1704,13 +1704,13 @@ def _calc_co2_amount_cell_volume(
 
 def _raise_missing_props_error(
     active_props: List[str],
-    props_needed_pflotran: List[str],
+    props_needed_cirrus: List[str],
     props_needed_eclipse: List[str],
 ):
-    if any(prop in props_needed_pflotran for prop in active_props):
-        missing_props = [x for x in props_needed_pflotran if x not in active_props]
+    if any(prop in props_needed_cirrus for prop in active_props):
+        missing_props = [x for x in props_needed_cirrus if x not in active_props]
         error_text = "Lacking some required properties to compute CO2 mass/volume."
-        error_text += "\nAssumed source: PFlotran"
+        error_text += "\nAssumed source: Cirrus"
         error_text += "\nMissing properties: "
         error_text += ", ".join(missing_props)
         raise ValueError(format_error(error_text))
@@ -1723,8 +1723,8 @@ def _raise_missing_props_error(
         raise ValueError(format_error(error_text))
     error_text = "Lacking all required properties to compute CO2 mass/volume."
     error_text += "\nNeed either:"
-    error_text += f"\n  PFlotran: \
-        {', '.join(props_needed_pflotran)}"
+    error_text += f"\n  Cirrus: \
+        {', '.join(props_needed_cirrus)}"
     error_text += f"\n  Eclipse : \
         {', '.join(props_needed_eclipse)}"
     raise ValueError(format_error(error_text))
