@@ -217,10 +217,8 @@ def generate_from_config(config_: _config.RootConfig):
                 config_.input.grid,
                 config_.input.dates,
             )
-            if prop.name is not None:
-                temp_path = os.path.join(temp_dir, prop.name)
-            else:
-                temp_path = os.path.join(temp_dir, "None")  # NBNB-AS: Temp
+            tmp_subdir = prop.name if prop.name is not None else "co2_total_mass"
+            temp_path = os.path.join(temp_dir, tmp_subdir)
             migration_time_property_to_map(config_, t_prop, temp_path)
     finally:
         logging.info(f"\nDeleting temporary directory for 3D grids: {temp_dir}")
