@@ -637,6 +637,15 @@ def _pflotran_co2mass(
     dgas = source_data.DGAS
     doil = source_data.DOIL
     amfg = source_data.AMFG
+    # print(amfg)
+    # for date in amfg:
+    #     amfg[date] = np.where(amfg[date] != 0, 0.0005, amfg[date])
+    # amfg = source_data.AMFG
+    # last_date = dates[-1]
+    # amfg[last_date] = np.where(amfg[last_date] != 0, 0.0005, amfg[last_date])
+    # print("\n\n")
+    # print(amfg)
+    # exit()
     ymfg = source_data.YMFG
     xmfg = source_data.XMFG
     amfw = source_data.AMFW

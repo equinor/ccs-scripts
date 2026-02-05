@@ -163,6 +163,10 @@ def co2_mass_property_to_map(
             )
     grid3d_aggregate_map.generate_from_config(config_)
 
+    grid_cell_size = 850000  # NBNB-AS: Change this
+    factor = 0.25  # A factor of 0.5 will correponds roughly to AMFG threshold of 0.0005
+    threshold = factor * grid_cell_size * 0.001  # From kg to tonns
+
     # Migration time maps:
     config_.input.properties = []
     for props in out_property_list:
@@ -175,7 +179,8 @@ def co2_mass_property_to_map(
                         None,
                         # The unit is tons. We calculate co2 mass for each grid cell,
                         # so the treshold will depend a lot on the grid cell size.
-                        0.01,
+                        threshold,
+                        # 0.01,
                         #1.0,
                     )
                 )
@@ -253,6 +258,7 @@ def main(arguments=None):
 
     config_ = _parser.process_arguments(arguments, map_type="co2_mass")
     config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
+    # config_.computesettings.aggregation = AggregationMethod.MAX
     config_.output.aggregation_tag = False
     _check_config(config_)
     log_input_configuration(config_, map_type="co2_mass")
