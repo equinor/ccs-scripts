@@ -3,6 +3,7 @@
 Calculates the plume extent from a given coordinate, or well point,
 using SGAS and the dissolved property (AMFG/XMF2).
 """
+
 import argparse
 import getpass
 import logging
@@ -283,7 +284,7 @@ class Configuration:
                         logging.warning(format_warning(warning_text))
 
             if well_name is not None:
-                (x, y) = self.calculate_well_coordinates(case, well_name)
+                x, y = self.calculate_well_coordinates(case, well_name)
 
             calculation = Calculation(
                 type=calculation_type,
@@ -344,7 +345,7 @@ class Configuration:
                 CalculationType.POINT,
             ):
                 try:
-                    (x, y) = (float(values[0]), float(values[1]))
+                    x, y = (float(values[0]), float(values[1]))
                     logging.info(f"Using injection coordinates: [{x}, {y}]")
                 except ValueError:
                     error_text = (
@@ -356,7 +357,7 @@ class Configuration:
                     sys.exit(1)
             elif calculation_type == CalculationType.LINE:
                 try:
-                    (direction_str, coord) = (str(values[0]), float(values[1]))
+                    direction_str, coord = (str(values[0]), float(values[1]))
                     logging.info(f"Using injection info: [{direction_str}, {coord}]")
                 except ValueError:
                     error_text = (
@@ -388,7 +389,7 @@ class Configuration:
                 logging.error(format_error(error_text))
                 sys.exit(1)
 
-            (x, y) = self.calculate_well_coordinates(case, injection_point_info)
+            x, y = self.calculate_well_coordinates(case, injection_point_info)
 
         calculation = Calculation(
             type=calculation_type,
@@ -543,7 +544,7 @@ def _setup_log_configuration(arguments: argparse.Namespace) -> None:
 
 def _log_input_configuration(args: argparse.Namespace) -> None:
     version = "v0.13.0"
-    is_dev_version = True
+    is_dev_version = False
     if is_dev_version:
         version += "_dev"
         try:
@@ -853,7 +854,7 @@ def calculate_distances(
     all_results = []
     for i, single_config in enumerate(distance_calculations, 1):
         logging.info(f"\nCalculating distances for configuration number: {i}\n")
-        (a, b, c) = calculate_single_distances(
+        a, b, c = calculate_single_distances(
             grid,
             unrst,
             threshold_gas,
@@ -1148,7 +1149,7 @@ def _collect_results_into_dataframe(
     for i, (result, single_config) in enumerate(
         zip(all_results, config.distance_calculations), 1
     ):
-        (gas_results, dissolved_results, _) = result
+        gas_results, dissolved_results, _ = result
 
         col = _find_column_name(single_config, len(config.distance_calculations), i)
 

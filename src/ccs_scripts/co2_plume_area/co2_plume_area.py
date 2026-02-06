@@ -3,6 +3,7 @@
 Script calculating the area extent of the plume depending on which map / date
 are present in the share/results/maps folder
 """
+
 ################################################################################
 #
 # Created by : Jorge Sicacha (NR), Oct 2022
@@ -195,7 +196,7 @@ def _read_args() -> Tuple[str, str]:
 
 def _log_input_configuration(input_path: str, output_path: str) -> None:
     version = "v0.13.0"
-    is_dev_version = True
+    is_dev_version = False
     if is_dev_version:
         version += "_dev"
         try:

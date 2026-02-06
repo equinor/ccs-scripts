@@ -260,7 +260,7 @@ def _get_synthetic_case_paths(case: str, realization: int = 0):
 
 
 def test_plume_extent_eclipse_using_well_name(mocker):
-    (case_path, output_path) = _get_synthetic_case_paths("eclipse")
+    case_path, output_path = _get_synthetic_case_paths("eclipse")
     mocker.patch(
         "sys.argv",
         [
@@ -295,7 +295,7 @@ def test_plume_extent_eclipse_using_well_name(mocker):
 
 
 def test_plume_extent_eclipse_using_coordinates(mocker):
-    (case_path, output_path) = _get_synthetic_case_paths("eclipse")
+    case_path, output_path = _get_synthetic_case_paths("eclipse")
     mocker.patch(
         "sys.argv",
         [
@@ -330,7 +330,7 @@ def test_plume_extent_eclipse_using_coordinates(mocker):
 
 
 def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
-    (case_path, output_path) = _get_synthetic_case_paths("eclipse")
+    case_path, output_path = _get_synthetic_case_paths("eclipse")
     mocker.patch(
         "sys.argv",
         [
@@ -365,7 +365,7 @@ def test_plume_extent_eclipse_using_coordinates_small_thresholds(mocker):
 
 
 def test_plume_extent_pflotran_using_well_name(mocker):
-    (case_path, output_path) = _get_synthetic_case_paths("pflotran")
+    case_path, output_path = _get_synthetic_case_paths("pflotran")
     mocker.patch(
         "sys.argv",
         [
@@ -400,7 +400,7 @@ def test_plume_extent_pflotran_using_well_name(mocker):
 
 
 def test_plume_extent_pflotran_using_coordinates(mocker):
-    (case_path, output_path) = _get_synthetic_case_paths("pflotran")
+    case_path, output_path = _get_synthetic_case_paths("pflotran")
     mocker.patch(
         "sys.argv",
         [
@@ -435,7 +435,7 @@ def test_plume_extent_pflotran_using_coordinates(mocker):
 
 
 def test_plume_extent_pflotran_using_coordinates_default_thresholds(mocker):
-    (case_path, output_path) = _get_synthetic_case_paths("pflotran")
+    case_path, output_path = _get_synthetic_case_paths("pflotran")
     mocker.patch(
         "sys.argv",
         [
@@ -466,7 +466,7 @@ def test_plume_extent_pflotran_using_coordinates_default_thresholds(mocker):
 
 
 def test_yaml_file_pflotran(mocker):
-    (case_path, output_path) = _get_synthetic_case_paths("pflotran")
+    case_path, output_path = _get_synthetic_case_paths("pflotran")
     config_path = str(
         Path(__file__).parents[1] / "tests" / "yaml" / "config_co2_plume_extent.yml"
     )
@@ -500,7 +500,7 @@ def test_yaml_file_pflotran(mocker):
 
 
 def test_yaml_file_pflotran_plume_tracking(mocker):
-    (case_path, output_path) = _get_synthetic_case_paths("pflotran", realization=2)
+    case_path, output_path = _get_synthetic_case_paths("pflotran", realization=2)
     config_path = str(
         Path(__file__).parents[1]
         / "tests"
