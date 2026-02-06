@@ -327,23 +327,6 @@ def _extract_source_data(
     except Exception as e:
         logging.info(format_warning(f"WARNING: Could not compute grid cell size: {e}"))
         cell_size = None
-    # exit()
-
-    # # Calculate representative volume
-    # representative_volume = np.mean(vol0)
-    # print(f"\nrepresentative_volume mean  : {representative_volume}")
-    # # Or median for robustness against outliers
-    # representative_volume = np.median(vol0)
-    # print(f"representative_volume median: {representative_volume}")
-    # # Plot histogram:
-    # import matplotlib.pyplot as plt
-    # plt.hist(vol0, bins=1000)
-    # plt.title("Histogram of grid cell volumes for active cells")
-    # plt.xlabel("Cell volume (m3)")
-    # plt.ylabel("Number of cells")
-    # plt.axvline(representative_volume, color="red", linestyle="dashed", linewidth=1)
-    # plt.show()
-    # exit()
 
     props_reduced["VOL"] = {d: vol0 for d in dates}
     if init is not None:
@@ -644,15 +627,6 @@ def _pflotran_co2mass(
     dgas = source_data.DGAS
     doil = source_data.DOIL
     amfg = source_data.AMFG
-    # print(amfg)
-    # for date in amfg:
-    #     amfg[date] = np.where(amfg[date] != 0, 0.0005, amfg[date])
-    # amfg = source_data.AMFG
-    # last_date = dates[-1]
-    # amfg[last_date] = np.where(amfg[last_date] != 0, 0.0005, amfg[last_date])
-    # print("\n\n")
-    # print(amfg)
-    # exit()
     ymfg = source_data.YMFG
     xmfg = source_data.XMFG
     amfw = source_data.AMFW

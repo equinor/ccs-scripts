@@ -171,10 +171,8 @@ def _init_timer():
 
 
 def generate_from_config(config_: _config.RootConfig):
-    print("\ngenerate_from_config - migration time")
     _check_config(config_)
     log_input_configuration(config_, map_type="migration_time")
-    print(config_.input.properties)
     p_spec = []
     if any(x.name in MIGRATION_TIME_PROPERTIES for x in config_.input.properties):
         removed_props = [
