@@ -176,6 +176,7 @@ class Co2Data:
     scenario: Scenario
     zone: Optional[np.ndarray] = None
     region: Optional[np.ndarray] = None
+    cell_size: Optional[float] = None
 
 
 @dataclass
@@ -319,7 +320,13 @@ def _extract_source_data(
     zone = _process_zones(zone_info, grid, grid_file, global_active_idx)
     region = _process_regions(region_info, grid, grid_file, init, active, gasless)
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
-    _log_grid_cell_dimensions(vol0)
+
+    try: 
+        cell_size = np.median(vol0)
+        _log_grid_cell_dimensions(vol0)
+    except Exception as e:
+        logging.info(format_warning(f"WARNING: Could not compute grid cell size: {e}"))
+        cell_size = None
     # exit()
 
     # # Calculate representative volume
@@ -357,7 +364,7 @@ def _extract_source_data(
         region=region,
     )
     logging.info("\nDone extracting source data\n")
-    return source_data
+    return source_data, cell_size
 
 
 def _log_grid_cell_dimensions(vol0: list) -> None:
@@ -1610,7 +1617,7 @@ def calculate_co2(
         unrst_file, residual_trapping
     )
     timer.start("extract_source_data")
-    source_data = _extract_source_data(
+    source_data, cell_size = _extract_source_data(
         grid_file,
         unrst_file,
         source_data_updated,
@@ -1631,6 +1638,7 @@ def calculate_co2(
         oil_molar_mass=oil_molar_mass,
     )
     timer.stop("calculate_co2")
+    co2_data.cell_size = cell_size
     return co2_data
 
 

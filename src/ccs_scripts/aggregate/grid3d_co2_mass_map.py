@@ -79,7 +79,7 @@ def generate_co2_mass_maps(config_: RootConfig):
             dates_idx,
         )
 
-        co2_mass_property_to_map(config_, out_property_list)
+        co2_mass_property_to_map(config_, out_property_list, co2_data.cell_size)
     finally:
         # Make sure temp directory is deleted even if exception is thrown above
         if delete_tmp_grid_folder:
@@ -139,6 +139,7 @@ def clean_tmp(grid_folder: str):
 def co2_mass_property_to_map(
     config_: RootConfig,
     out_property_list: List[Optional[str]],
+    cell_size: Optional[float] = None,
 ):
     """
     Aggregates with SUM and writes a list of CO2 mass property to files
@@ -163,9 +164,12 @@ def co2_mass_property_to_map(
             )
     grid3d_aggregate_map.generate_from_config(config_)
 
-    grid_cell_size = 850000  # NBNB-AS: Change this
-    factor = 0.25  # A factor of 0.5 will correponds roughly to AMFG threshold of 0.0005
-    threshold = factor * grid_cell_size * 0.001  # From kg to tonns
+    if cell_size is not None:
+        factor = 0.25  # A factor of 0.5 will correponds roughly to AMFG threshold of 0.0005
+        threshold = factor * cell_size * 0.001  # From kg to tons
+    else:
+        threshold = 0.01
+    logging.info(f"\nThreshold for co2 total mass migration time maps: {threshold:.1f} tons")
 
     # Migration time maps:
     config_.input.properties = []
