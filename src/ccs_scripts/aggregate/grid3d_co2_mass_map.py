@@ -79,7 +79,7 @@ def generate_co2_mass_maps(config_: RootConfig):
             dates_idx,
         )
 
-        co2_mass_property_to_map(config_, out_property_list, co2_data.cell_size)
+        co2_mass_property_to_map(config_, out_property_list, co2_mass_settings, co2_data.cell_size)
     finally:
         # Make sure temp directory is deleted even if exception is thrown above
         if delete_tmp_grid_folder:
@@ -139,6 +139,7 @@ def clean_tmp(grid_folder: str):
 def co2_mass_property_to_map(
     config_: RootConfig,
     out_property_list: List[Optional[str]],
+    co2_mass_settings: _config.CO2MassSettings,
     cell_size: Optional[float] = None,
 ):
     """
@@ -149,6 +150,8 @@ def co2_mass_property_to_map(
         config_:           Arguments in the config file
         out_property_list: List with paths of the GridProperties objects
                            to be aggregated
+        co2_mass_settings: CO2 mass calculation settings
+        cell_size:         Grid cell size for threshold calculation
 
     """
     # Aggregate maps:
@@ -164,31 +167,41 @@ def co2_mass_property_to_map(
             )
     grid3d_aggregate_map.generate_from_config(config_)
 
-    if cell_size is not None:
-        factor = 0.25  # A factor of 0.5 will correponds roughly to AMFG threshold of 0.0005
-        threshold = factor * cell_size * 0.001  # From kg to tons
-    else:
-        threshold = 0.01
-    logging.info(f"\nThreshold for co2 total mass migration time maps: {threshold:.1f} tons")
-
     # Migration time maps:
-    config_.input.properties = []
-    for props in out_property_list:
-        if isinstance(props, str):
-            # We currently only calculate migration time maps for total co2 mass
-            if MapName.MASS_TOT.value in props:
-                config_.input.properties.append(
-                    _config.Property(
-                        props,
-                        None,
-                        # The unit is tons. We calculate co2 mass for each grid cell,
-                        # so the treshold will depend a lot on the grid cell size.
-                        threshold,
-                        # 0.01,
-                        #1.0,
+    if co2_mass_settings.calculate_migration_time_map:
+        if co2_mass_settings.migration_time_threshold is not None:
+            threshold = co2_mass_settings.migration_time_threshold
+        elif cell_size is not None:
+            # A factor of 0.5 will correponds roughly dissolved co2 mass for AMFG threshold of 0.0005
+            factor = 0.1
+            threshold = factor * cell_size * 0.001  # From kg to tons
+        else:
+            threshold = 0.01
+
+        logging.info(
+            f"\nThreshold for co2 total mass migration time maps: {threshold:.2f} tons"
+        )
+
+        config_.input.properties = []
+        for props in out_property_list:
+            if isinstance(props, str):
+                # We currently only calculate migration time maps for total co2 mass
+                if MapName.MASS_TOT.value in props:
+                    config_.input.properties.append(
+                        _config.Property(
+                            props,
+                            None,
+                            # The unit is tons. We calculate co2 mass for each grid cell,
+                            # so the treshold will depend a lot on the grid cell size.
+                            threshold,
+                        )
                     )
-                )
-    grid3d_migration_time.generate_from_config(config_)
+        grid3d_migration_time.generate_from_config(config_)
+    else:
+        logging.info(
+            "\nSkipping migration time map calculation "
+            "(calculate_migration_time_map is False)"
+        )
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:

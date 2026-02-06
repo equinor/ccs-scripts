@@ -98,10 +98,14 @@ class CO2MassSettings:
     maps: Optional[List[str]] = None
     residual_trapping: bool = False
     gas_molar_mass: Optional[float] = None
+    calculate_migration_time_map: bool = False
+    migration_time_threshold: Optional[float] = None  # In tons
 
     def __post_init__(self):
         if self.gas_molar_mass is not None:
             self.gas_molar_mass = float(self.gas_molar_mass)
+        if self.migration_time_threshold is not None:
+            self.migration_time_threshold = float(self.migration_time_threshold)
 
 
 @dataclass

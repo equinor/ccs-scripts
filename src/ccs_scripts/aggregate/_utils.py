@@ -268,6 +268,15 @@ def log_input_configuration(config_: RootConfig, map_type: str = "aggregate") ->
             f"{'  Include residual trapping':<{col1}} : "
             f"{_bool_str(cms.residual_trapping)}"
         )
+        logging.info(
+            f"{'  Calculate migration time map':<{col1}} : "
+            f"{_bool_str(cms.calculate_migration_time_map)}"
+        )
+        if cms.calculate_migration_time_map:
+            logging.info(
+                f"{'  Migration time threshold (tons)':<{col1}} : "
+                f"{cms.migration_time_threshold if cms.migration_time_threshold is not None else '- (will be calculated automatically)'}"
+            )
 
 
 def _bool_str(value: bool):
