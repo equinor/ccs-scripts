@@ -320,10 +320,10 @@ def _extract_source_data(
     zone = _process_zones(zone_info, grid, grid_file, global_active_idx)
     region = _process_regions(region_info, grid, grid_file, init, active, gasless)
     vol0 = [grid.cell_volume(global_index=x) for x in global_active_idx]
-
-    try: 
+    try:
         cell_size = np.median(vol0)
-        _log_grid_cell_dimensions(vol0)
+        cell_dims = [grid.get_cell_dims(global_index=x) for x in global_active_idx]
+        _log_grid_cell_dimensions(vol0, cell_dims)
     except Exception as e:
         logging.info(format_warning(f"WARNING: Could not compute grid cell size: {e}"))
         cell_size = None
@@ -350,23 +350,31 @@ def _extract_source_data(
     return source_data, cell_size
 
 
-def _log_grid_cell_dimensions(vol0: list) -> None:
+def _log_grid_cell_dimensions(vol0: list, cell_dims: list) -> None:
     vol0_scaled = np.array(vol0) / 1000.0
 
-    logging.info("Summary of grid cell sizes, in 10^3 cubic meters:")
+    dimensions = [
+        ("dx (m)", np.array([dim[0] for dim in cell_dims])),
+        ("dy (m)", np.array([dim[1] for dim in cell_dims])),
+        ("dz (m)", np.array([dim[2] for dim in cell_dims])),
+        ("vol (1000 m^3)", vol0_scaled),
+    ]
 
-    header = f"{'Min':>12} {'P10':>12} {'Median':>12} {'Mean':>12} {'P90':>12} {'Max':>12}"
+    header = f"\n{'Grid dimension':<15} {'Min':>12} {'P10':>12} {'Median':>12} {'Mean':>12} {'P90':>12} {'Max':>12}"
     logging.info(header)
+    logging.info(f"{'-'*93}")
 
-    values = (
-        f"{vol0_scaled.min():>12.1f} "
-        f"{np.percentile(vol0_scaled, 10):>12.1f} "
-        f"{np.median(vol0_scaled):>12.1f} "
-        f"{vol0_scaled.mean():>12.1f} "
-        f"{np.percentile(vol0_scaled, 90):>12.1f} "
-        f"{vol0_scaled.max():>12.1f}"
-    )
-    logging.info(values)
+    for label, values in dimensions:
+        row = (
+            f"{label:<15} "
+            f"{values.min():>12.1f} "
+            f"{np.percentile(values, 10):>12.1f} "
+            f"{np.median(values):>12.1f} "
+            f"{values.mean():>12.1f} "
+            f"{np.percentile(values, 90):>12.1f} "
+            f"{values.max():>12.1f}"
+        )
+        logging.info(row)
 
 
 def _check_grid_dimensions(
