@@ -190,8 +190,8 @@ def generate_from_config(config_: _config.RootConfig):
         if len(removed_props) > 0:
             warning_str = (
                 "\nWARNING: Migration time maps are "
-                "not supported for these properties: " +
-                ", ".join(str(x) for x in removed_props)
+                "not supported for these properties: "
+                + ", ".join(str(x) for x in removed_props)
             )
             logging.warning(format_warning(warning_str))
     elif any(x.name is None for x in config_.input.properties):
@@ -202,7 +202,8 @@ def generate_from_config(config_: _config.RootConfig):
             "Migration time maps are not supported for "
             "any of the properties provided: "
         )
-        error_text += f"{', '.join([x.name for x in config_.input.properties])}"
+        ep = [x.name if x.name is not None else "-" for x in config_.input.properties]
+        error_text += f"{', '.join(ep)}"
         raise ValueError(format_error(error_text))
 
     config_.input.properties = p_spec
@@ -210,6 +211,14 @@ def generate_from_config(config_: _config.RootConfig):
     logging.info(f"\nMaking temporary directory for 3D grids: {temp_dir}")
     try:
         for prop in config_.input.properties:
+            # NBNB-AS: Better handling than assert here...:
+            assert (
+                prop.name is not None
+            ), "Property name must be defined for migration time maps"
+            assert (
+                prop.lower_threshold is not None
+            ), "Lower threshold must be defined for migration time maps"
+
             t_prop = calculate_migration_time_property(
                 prop.source,
                 prop.name,
