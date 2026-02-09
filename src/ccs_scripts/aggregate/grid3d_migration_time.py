@@ -192,9 +192,7 @@ def generate_from_config(config_: _config.RootConfig):
             logging.warning(format_warning(warning_str))
     elif any(x.name is None for x in config_.input.properties):
         # For co2 mass properties
-        p_spec.extend(
-            [x for x in config_.input.properties]
-        )
+        p_spec.extend([x for x in config_.input.properties])
     else:
         error_text = (
             "Migration time maps are not supported for "

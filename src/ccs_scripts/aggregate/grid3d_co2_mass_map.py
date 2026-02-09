@@ -9,8 +9,13 @@ from typing import Dict, List, Optional, Tuple
 
 import yaml
 
-from ccs_scripts.aggregate import _config, _parser, grid3d_aggregate_map, grid3d_migration_time
-from ccs_scripts.aggregate._co2_mass import translate_co2data_to_property, MapName
+from ccs_scripts.aggregate import (
+    _config,
+    _parser,
+    grid3d_aggregate_map,
+    grid3d_migration_time,
+)
+from ccs_scripts.aggregate._co2_mass import MapName, translate_co2data_to_property
 from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.co2_containment.co2_calculation import (
@@ -79,7 +84,9 @@ def generate_co2_mass_maps(config_: RootConfig):
             dates_idx,
         )
 
-        co2_mass_property_to_map(config_, out_property_list, co2_mass_settings, co2_data.cell_size)
+        co2_mass_property_to_map(
+            config_, out_property_list, co2_mass_settings, co2_data.cell_size
+        )
     finally:
         # Make sure temp directory is deleted even if exception is thrown above
         if delete_tmp_grid_folder:
