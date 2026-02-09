@@ -4,6 +4,7 @@ Configuration for the `aggregate` module. Starting from `RootConfig`, it is poss
 deduce mandatory and optional parameters, as well as default values for whatever is not
 explicitly provided.
 """
+
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
@@ -97,13 +98,11 @@ class CO2MassSettings:
     init_source: str
     maps: Optional[List[str]] = None
     residual_trapping: bool = False
-    gas_molar_mass: Optional[float] = None
+    cirrus_info_file: Optional[str] = None
     calculate_migration_time_map: bool = False
     migration_time_threshold: Optional[float] = None  # In tons
 
     def __post_init__(self):
-        if self.gas_molar_mass is not None:
-            self.gas_molar_mass = float(self.gas_molar_mass)
         if self.migration_time_threshold is not None:
             self.migration_time_threshold = float(self.migration_time_threshold)
 

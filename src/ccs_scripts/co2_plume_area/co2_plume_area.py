@@ -3,6 +3,7 @@
 Script calculating the area extent of the plume depending on which map / date
 are present in the share/results/maps folder
 """
+
 ################################################################################
 #
 # Created by : Jorge Sicacha (NR), Oct 2022
@@ -157,8 +158,8 @@ def calculate_plume_area(path: str, rskey: str) -> Optional[List[List[float]]]:
             year = date[0:4]
             path_file = glob.glob(path + fm + "--" + var + "--" + year + "*.gri")
             mysurf = xtgeo.surface_from_file(path_file[0])
-            use_nodes = np.ma.nonzero(mysurf.values)  # Indexes of the existing nodes
-            use_nodes = set(list(tuple(zip(use_nodes[0], use_nodes[1]))))
+            node_indices = np.ma.nonzero(mysurf.values)  # Indexes of the existing nodes
+            use_nodes = set(list(tuple(zip(node_indices[0], node_indices[1]))))
             all_neigh_nodes = list(map(_neigh_nodes, use_nodes))
             test0 = [xx.issubset(use_nodes) for xx in all_neigh_nodes]
             list_out_temp = [
@@ -194,7 +195,7 @@ def _read_args() -> Tuple[str, str]:
 
 
 def _log_input_configuration(input_path: str, output_path: str) -> None:
-    version = "v0.12.0"
+    version = "v0.14.0"
     is_dev_version = True
     if is_dev_version:
         version += "_dev"
