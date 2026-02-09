@@ -548,7 +548,7 @@ def _log_grid_cell_dimensions(vol0: list, cell_dims: list) -> None:
         f"{'Median':>12} {'Mean':>12} {'P90':>12} {'Max':>12}"
     )
     logging.info(header)
-    logging.info(f"{'-'*93}")
+    logging.info(f"{'-' * 93}")
 
     for label, values in dimensions:
         row = (
