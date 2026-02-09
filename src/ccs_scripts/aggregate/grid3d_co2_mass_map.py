@@ -179,7 +179,8 @@ def co2_mass_property_to_map(
         if co2_mass_settings.migration_time_threshold is not None:
             threshold = co2_mass_settings.migration_time_threshold
         elif cell_size is not None:
-            # A factor of 0.5 will correponds roughly dissolved co2 mass for AMFG threshold of 0.0005
+            # A factor of 0.5 will roughlycorrepond to
+            # dissolved co2 mass for AMFG threshold of 0.0005
             factor = 0.1
             threshold = factor * cell_size * 0.001  # From kg to tons
         else:
@@ -198,8 +199,9 @@ def co2_mass_property_to_map(
                         _config.Property(
                             props,
                             None,
-                            # The unit is tons. We calculate co2 mass for each grid cell,
-                            # so the treshold will depend a lot on the grid cell size.
+                            # The unit is tons. We calculate co2 mass for
+                            # each grid cell, so the threshold will depend
+                            # a lot on the grid cell size.
                             threshold,
                         )
                     )

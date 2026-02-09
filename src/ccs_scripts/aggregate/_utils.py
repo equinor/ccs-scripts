@@ -273,9 +273,13 @@ def log_input_configuration(config_: RootConfig, map_type: str = "aggregate") ->
             f"{_bool_str(cms.calculate_migration_time_map)}"
         )
         if cms.calculate_migration_time_map:
+            threshold_text = (
+                cms.migration_time_threshold
+                if cms.migration_time_threshold is not None
+                else "- (will be calculated automatically)"
+            )
             logging.info(
-                f"{'  Migration time threshold (tons)':<{col1}} : "
-                f"{cms.migration_time_threshold if cms.migration_time_threshold is not None else '- (will be calculated automatically)'}"
+                f"{'  Migration time threshold (tons)':<{col1}} : " f"{threshold_text}"
             )
 
 

@@ -543,7 +543,10 @@ def _log_grid_cell_dimensions(vol0: list, cell_dims: list) -> None:
         ("vol (1000 m^3)", vol0_scaled),
     ]
 
-    header = f"\n{'Grid dimension':<15} {'Min':>12} {'P10':>12} {'Median':>12} {'Mean':>12} {'P90':>12} {'Max':>12}"
+    header = (
+        f"\n{'Grid dimension':<15} {'Min':>12} {'P10':>12} "
+        f"{'Median':>12} {'Mean':>12} {'P90':>12} {'Max':>12}"
+    )
     logging.info(header)
     logging.info(f"{'-'*93}")
 
