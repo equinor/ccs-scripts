@@ -173,6 +173,10 @@ def _init_timer():
 def generate_from_config(config_: _config.RootConfig):
     _check_config(config_)
     log_input_configuration(config_, map_type="migration_time")
+
+    # NBNB-AS: Handle somewhere else?:
+    assert config_.input.properties is not None, "Properties must be defined"
+
     p_spec = []
     if any(x.name in MIGRATION_TIME_PROPERTIES for x in config_.input.properties):
         removed_props = [
@@ -186,8 +190,8 @@ def generate_from_config(config_: _config.RootConfig):
         if len(removed_props) > 0:
             warning_str = (
                 "\nWARNING: Migration time maps are "
-                "not supported for these properties: ",
-                ", ".join(str(x) for x in removed_props),
+                "not supported for these properties: " +
+                ", ".join(str(x) for x in removed_props)
             )
             logging.warning(format_warning(warning_str))
     elif any(x.name is None for x in config_.input.properties):
