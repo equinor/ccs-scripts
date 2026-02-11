@@ -848,6 +848,7 @@ def _cirrus_co2mass(
         scenario, amfg, amfs, amfw, ymfg, ymfs, ymfw, xmfs, xmfw, xmfg
     )
 
+    free_prev = 0
     co2_mass = {}
     for date in dates:
         co2_mass[date] = [
@@ -925,6 +926,26 @@ def _cirrus_co2mass(
                     ),
                 ]
             )
+            # Not taking into account different time steps..
+            free_current = co2_mass[date][4]
+            delta_free = free_current - free_prev
+            delta_free[delta_free < 0] = 0
+            diff_free = free_current - delta_free
+            co2_mass[date].extend([delta_free, diff_free])
+            if date == "25000101" or True:
+                print(f"\nDate: {date}")
+                print(f"Dissolved H20 CO2 mass: {np.sum(co2_mass[date][0]) / 1000000:>7.2f}")
+                print(f"Gas           CO2 mass: {np.sum(co2_mass[date][1]) / 1000000:>7.2f}")
+                print(f"Dissolved oil CO2 mass: {np.sum(co2_mass[date][2]) / 1000000:>7.2f}")
+                print(f"Trapped       CO2 mass: {np.sum(co2_mass[date][3]) / 1000000:>7.2f}")
+                print(f"Free          CO2 mass: {np.sum(co2_mass[date][4]) / 1000000:>7.2f}")
+                print(f"Moved         CO2 mass: {np.sum(co2_mass[date][5]) / 1000000:>7.2f}   <------")
+                print(f"Diff          CO2 mass: {np.sum(co2_mass[date][6]) / 1000000:>7.2f}")
+                print(f"Total         CO2 mass: {(np.sum(co2_mass[date][0])+np.sum(co2_mass[date][1])+np.sum(co2_mass[date][2])) / 1000000:>7.2f}")
+                # for x in co2_mass[date]:
+                #     print(np.sum(x) / 1000000)
+                # exit()
+            free_prev = free_current
     return co2_mass
 
 
