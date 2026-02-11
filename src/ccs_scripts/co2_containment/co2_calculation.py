@@ -796,14 +796,19 @@ def _get_free_co2_10years_ago(
     co2_mass: Dict[str, List[np.ndarray]],
     dates: List[str],
     years: int = 25,
+    gas_instead_of_free_gas: bool = False,
 ) -> np.ndarray:
     current_date = datetime.strptime(current_date_str, "%Y%m%d")
     target_date = current_date - timedelta(days=365.25 * years)
 
     date_objects = [datetime.strptime(d, "%Y%m%d") for d in dates]
 
+    if gas_instead_of_free_gas:
+        idx = 1
+    else:
+        idx = 4
     if target_date <= date_objects[0]:
-        return np.zeros_like(co2_mass[dates[0]][4])
+        return np.zeros_like(co2_mass[dates[0]][idx])
 
     before_idx = None
     after_idx = None
@@ -817,7 +822,7 @@ def _get_free_co2_10years_ago(
 
     # If exact match found
     if before_idx is not None and date_objects[before_idx] == target_date:
-        return co2_mass[dates[before_idx]][4]
+        return co2_mass[dates[before_idx]][idx]
 
     # Interpolate between before and after dates
     if before_idx is not None and after_idx is not None:
@@ -829,13 +834,13 @@ def _get_free_co2_10years_ago(
         days_from_before = (target_date - date_before).days
         weight = days_from_before / total_days if total_days > 0 else 0
 
-        free_before = co2_mass[dates[before_idx]][4]
-        free_after = co2_mass[dates[after_idx]][4]
+        free_before = co2_mass[dates[before_idx]][idx]
+        free_after = co2_mass[dates[after_idx]][idx]
 
         return free_before * (1 - weight) + free_after * weight
 
     # Fallback: return zeros if something unexpected happens
-    return np.zeros_like(co2_mass[dates[0]][4])
+    return np.zeros_like(co2_mass[dates[0]][idx])
 
 
 def _cirrus_co2mass(
@@ -897,6 +902,7 @@ def _cirrus_co2mass(
     )
 
     free_prev = 0.0
+    gas_prev = 0.0
     co2_mass = {}
     for date in dates:
         co2_mass[date] = [
@@ -945,6 +951,34 @@ def _cirrus_co2mass(
         else:
             co2_mass[date].extend([np.zeros_like(co2_mass[date][0])])
 
+        if (True):
+            gas_current = co2_mass[date][1]
+            gas_10years_ago = _get_free_co2_10years_ago(date, co2_mass, dates, 10, True)
+            delta_gas = gas_current - gas_10years_ago
+            delta_gas[delta_gas < 0] = 0
+            diff_gas = gas_current - delta_gas
+            # co2_mass[date].extend([delta_gas, diff_gas])
+
+            delta_gas_old = gas_current - gas_prev
+            delta_gas_old[delta_gas_old < 0] = 0
+
+            if date == "25000101" or True:
+                print(f"\nDate: {date}")
+                print(f"Total CO2 mass: {(np.sum(co2_mass[date][0])+np.sum(co2_mass[date][1])+np.sum(co2_mass[date][2])) / 1000000:>8.2f}")
+                print(f"Dissolved     : {np.sum(co2_mass[date][0]) / 1000000:>8.2f}")
+                print(f"Gas           : {np.sum(co2_mass[date][1]) / 1000000:>8.2f}")
+                # print(f"Dissolved oil : {np.sum(co2_mass[date][2]) / 1000000:>8.2f}")
+                # print(f"Trapped       : {np.sum(co2_mass[date][3]) / 1000000:>8.2f}")
+                # print(f"Free          : {np.sum(co2_mass[date][4]) / 1000000:>8.2f}")
+                print(f"Moved         : {np.sum(delta_gas        ) / 1000000:>8.2f}   <------")
+                # print(f"Moved (old)   : {np.sum(delta_gas_old    ) / 1000000:>8.2f}   <------")
+                print(f"Stationary    : {np.sum(diff_gas         ) / 1000000:>8.2f}")
+                # print(f"Free 10y ago  CO2 mass: {np.sum(free_10years_ago ) / 1000000:>8.2f}")
+                # for x in co2_mass[date]:
+                #     print(np.sum(x) / 1000000)
+                # exit()
+            gas_prev = gas_current
+
         if sgstrand:
             co2_mass[date].extend(
                 [
@@ -974,33 +1008,34 @@ def _cirrus_co2mass(
                     ),
                 ]
             )
-            # Calculate free CO2 with 10-year lookback and interpolation
-            free_current = co2_mass[date][4]
-            free_10years_ago = _get_free_co2_10years_ago(date, co2_mass, dates)
-            delta_free = free_current - free_10years_ago
-            delta_free[delta_free < 0] = 0
-            diff_free = free_current - delta_free
-            co2_mass[date].extend([delta_free, diff_free])
+            if (True):
+                # Calculate free CO2 with 10-year lookback and interpolation
+                free_current = co2_mass[date][4]
+                free_10years_ago = _get_free_co2_10years_ago(date, co2_mass, dates, 10)
+                delta_free = free_current - free_10years_ago
+                delta_free[delta_free < 0] = 0
+                diff_free = free_current - delta_free
+                co2_mass[date].extend([delta_free, diff_free])
 
-            delta_free_old = free_current - free_prev
-            delta_free_old[delta_free_old < 0] = 0
+                delta_free_old = free_current - free_prev
+                delta_free_old[delta_free_old < 0] = 0
 
-            if date == "25000101" or True:
-                print(f"\nDate: {date}")
-                print(f"Total CO2 mass: {(np.sum(co2_mass[date][0])+np.sum(co2_mass[date][1])+np.sum(co2_mass[date][2])) / 1000000:>7.2f}")
-                print(f"Dissolved     : {np.sum(co2_mass[date][0]) / 1000000:>7.2f}")
-                # print(f"Gas           : {np.sum(co2_mass[date][1]) / 1000000:>7.2f}")
-                # print(f"Dissolved oil : {np.sum(co2_mass[date][2]) / 1000000:>7.2f}")
-                print(f"Trapped       : {np.sum(co2_mass[date][3]) / 1000000:>7.2f}")
-                print(f"Free          : {np.sum(co2_mass[date][4]) / 1000000:>7.2f}")
-                print(f"Moved         : {np.sum(co2_mass[date][5]) / 1000000:>7.2f}   <------")
-                print(f"Moved (old)   : {np.sum(delta_free_old   ) / 1000000:>7.2f}   <------")
-                print(f"Stationary    : {np.sum(co2_mass[date][6]) / 1000000:>7.2f}")
-                # print(f"Free 10y ago  CO2 mass: {np.sum(free_10years_ago ) / 1000000:>7.2f}")
-                # for x in co2_mass[date]:
-                #     print(np.sum(x) / 1000000)
-                # exit()
-            free_prev = free_current
+                if date == "25000101" or True:
+                    print(f"\nDate: {date}")
+                    print(f"Total CO2 mass: {(np.sum(co2_mass[date][0])+np.sum(co2_mass[date][1])+np.sum(co2_mass[date][2])) / 1000000:>7.2f}")
+                    print(f"Dissolved     : {np.sum(co2_mass[date][0]) / 1000000:>7.2f}")
+                    # print(f"Gas           : {np.sum(co2_mass[date][1]) / 1000000:>7.2f}")
+                    # print(f"Dissolved oil : {np.sum(co2_mass[date][2]) / 1000000:>7.2f}")
+                    print(f"Trapped       : {np.sum(co2_mass[date][3]) / 1000000:>7.2f}")
+                    print(f"Free          : {np.sum(co2_mass[date][4]) / 1000000:>7.2f}")
+                    print(f"Moved         : {np.sum(co2_mass[date][5]) / 1000000:>7.2f}   <------")
+                    print(f"Moved (old)   : {np.sum(delta_free_old   ) / 1000000:>7.2f}   <------")
+                    print(f"Stationary    : {np.sum(co2_mass[date][6]) / 1000000:>7.2f}")
+                    # print(f"Free 10y ago  CO2 mass: {np.sum(free_10years_ago ) / 1000000:>7.2f}")
+                    # for x in co2_mass[date]:
+                    #     print(np.sum(x) / 1000000)
+                    # exit()
+                free_prev = free_current
     return co2_mass
 
 
