@@ -4,6 +4,7 @@
 import copy
 import logging
 from dataclasses import dataclass, fields, make_dataclass
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
@@ -790,6 +791,53 @@ def _set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
     return CalculationType[calc_type_input]
 
 
+def _get_free_co2_10years_ago(
+    current_date_str: str,
+    co2_mass: Dict[str, List[np.ndarray]],
+    dates: List[str],
+    years: int = 25,
+) -> np.ndarray:
+    current_date = datetime.strptime(current_date_str, "%Y%m%d")
+    target_date = current_date - timedelta(days=365.25 * years)
+
+    date_objects = [datetime.strptime(d, "%Y%m%d") for d in dates]
+
+    if target_date <= date_objects[0]:
+        return np.zeros_like(co2_mass[dates[0]][4])
+
+    before_idx = None
+    after_idx = None
+
+    for i, date_obj in enumerate(date_objects):
+        if date_obj <= target_date:
+            before_idx = i
+        if date_obj >= target_date and after_idx is None:
+            after_idx = i
+            break
+
+    # If exact match found
+    if before_idx is not None and date_objects[before_idx] == target_date:
+        return co2_mass[dates[before_idx]][4]
+
+    # Interpolate between before and after dates
+    if before_idx is not None and after_idx is not None:
+        date_before = date_objects[before_idx]
+        date_after = date_objects[after_idx]
+
+        # Linear interpolation weight
+        total_days = (date_after - date_before).days
+        days_from_before = (target_date - date_before).days
+        weight = days_from_before / total_days if total_days > 0 else 0
+
+        free_before = co2_mass[dates[before_idx]][4]
+        free_after = co2_mass[dates[after_idx]][4]
+
+        return free_before * (1 - weight) + free_after * weight
+
+    # Fallback: return zeros if something unexpected happens
+    return np.zeros_like(co2_mass[dates[0]][4])
+
+
 def _cirrus_co2mass(
     source_data,
     scenario: Scenario,
@@ -848,7 +896,7 @@ def _cirrus_co2mass(
         scenario, amfg, amfs, amfw, ymfg, ymfs, ymfw, xmfs, xmfw, xmfg
     )
 
-    free_prev = 0
+    free_prev = 0.0
     co2_mass = {}
     for date in dates:
         co2_mass[date] = [
@@ -926,22 +974,29 @@ def _cirrus_co2mass(
                     ),
                 ]
             )
-            # Not taking into account different time steps..
+            # Calculate free CO2 with 10-year lookback and interpolation
             free_current = co2_mass[date][4]
-            delta_free = free_current - free_prev
+            free_10years_ago = _get_free_co2_10years_ago(date, co2_mass, dates)
+            delta_free = free_current - free_10years_ago
             delta_free[delta_free < 0] = 0
             diff_free = free_current - delta_free
             co2_mass[date].extend([delta_free, diff_free])
+
+            delta_free_old = free_current - free_prev
+            delta_free_old[delta_free_old < 0] = 0
+
             if date == "25000101" or True:
                 print(f"\nDate: {date}")
-                print(f"Dissolved H20 CO2 mass: {np.sum(co2_mass[date][0]) / 1000000:>7.2f}")
-                print(f"Gas           CO2 mass: {np.sum(co2_mass[date][1]) / 1000000:>7.2f}")
-                print(f"Dissolved oil CO2 mass: {np.sum(co2_mass[date][2]) / 1000000:>7.2f}")
-                print(f"Trapped       CO2 mass: {np.sum(co2_mass[date][3]) / 1000000:>7.2f}")
-                print(f"Free          CO2 mass: {np.sum(co2_mass[date][4]) / 1000000:>7.2f}")
-                print(f"Moved         CO2 mass: {np.sum(co2_mass[date][5]) / 1000000:>7.2f}   <------")
-                print(f"Diff          CO2 mass: {np.sum(co2_mass[date][6]) / 1000000:>7.2f}")
-                print(f"Total         CO2 mass: {(np.sum(co2_mass[date][0])+np.sum(co2_mass[date][1])+np.sum(co2_mass[date][2])) / 1000000:>7.2f}")
+                print(f"Total CO2 mass: {(np.sum(co2_mass[date][0])+np.sum(co2_mass[date][1])+np.sum(co2_mass[date][2])) / 1000000:>7.2f}")
+                print(f"Dissolved     : {np.sum(co2_mass[date][0]) / 1000000:>7.2f}")
+                # print(f"Gas           : {np.sum(co2_mass[date][1]) / 1000000:>7.2f}")
+                # print(f"Dissolved oil : {np.sum(co2_mass[date][2]) / 1000000:>7.2f}")
+                print(f"Trapped       : {np.sum(co2_mass[date][3]) / 1000000:>7.2f}")
+                print(f"Free          : {np.sum(co2_mass[date][4]) / 1000000:>7.2f}")
+                print(f"Moved         : {np.sum(co2_mass[date][5]) / 1000000:>7.2f}   <------")
+                print(f"Moved (old)   : {np.sum(delta_free_old   ) / 1000000:>7.2f}   <------")
+                print(f"Stationary    : {np.sum(co2_mass[date][6]) / 1000000:>7.2f}")
+                # print(f"Free 10y ago  CO2 mass: {np.sum(free_10years_ago ) / 1000000:>7.2f}")
                 # for x in co2_mass[date]:
                 #     print(np.sum(x) / 1000000)
                 # exit()
