@@ -793,36 +793,93 @@ def _set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
     return CalculationType[calc_type_input]
 
 
+def _calculate_moved_stationary_co2(
+    co2_mass: Dict[str, List[np.ndarray]],
+    dates: List[str],
+    n_years: int = 10,
+    use_free_gas: bool = True,
+    create_plot: bool = False,
+    print_debug: bool = False,
+) -> Dict[str, List[np.ndarray]]:
+    """
+    Calculate moved and stationary CO2 based on gas phase change over time.
+    
+    Args:
+        co2_mass: Dictionary of CO2 mass arrays by date
+        dates: List of all available dates in chronological order
+        n_years: Number of years to look back for comparison (default: 10)
+        use_free_gas: If True, use free gas (index 4); if False, use total gas (index 1)
+        create_plot: If True, generate distribution plots
+        print_debug: If True, print debug information for each date
+    
+    Returns:
+        Updated co2_mass dictionary with moved and stationary CO2 appended
+    """
+    gas_idx = 4 if use_free_gas else 1
+    gas_type_name = "Free" if use_free_gas else "Gas"
+    
+    for date in dates:
+        gas_current = co2_mass[date][gas_idx]
+        gas_past = _get_free_co2_10years_ago(date, co2_mass, dates, n_years, not use_free_gas)
+        
+        delta_gas = gas_current - gas_past
+        delta_gas[delta_gas < 0] = 0
+        diff_gas = gas_current - delta_gas
+        
+        co2_mass[date].extend([delta_gas, diff_gas])
+        
+        if print_debug:
+            print(f"\nDate: {date}")
+            total_mass = sum(np.sum(co2_mass[date][i]) for i in range(3)) / 1000000
+            print(f"Total CO2 mass: {total_mass:>10.2f} Mt")
+            print(f"Dissolved     : {np.sum(co2_mass[date][0]) / 1000000:>10.2f} Mt")
+            if len(co2_mass[date]) > 3:
+                print(f"Trapped       : {np.sum(co2_mass[date][3]) / 1000000:>10.2f} Mt")
+            if use_free_gas and len(co2_mass[date]) > 4:
+                print(f"{gas_type_name:14s}: {np.sum(co2_mass[date][gas_idx]) / 1000000:>10.2f} Mt")
+            else:
+                print(f"{gas_type_name:14s}: {np.sum(co2_mass[date][gas_idx]) / 1000000:>10.2f} Mt")
+            print(f"Moved ({n_years}y)   : {np.sum(delta_gas) / 1000000:>10.2f} Mt   <------")
+            print(f"Stationary    : {np.sum(diff_gas) / 1000000:>10.2f} Mt")
+    
+    if create_plot:
+        _plot_co2_distribution_over_time(co2_mass, dates, n_years, use_free_gas)
+    
+    return co2_mass
+
+
 def _plot_co2_distribution_over_time(
     co2_mass: Dict[str, List[np.ndarray]],
     dates: List[str],
     n_years: int,
+    use_free_gas: bool = True,
 ) -> None:
     """
     Plot CO2 distribution over time showing dissolved, moved, and stationary CO2.
     
     Args:
-        co2_mass: Dictionary of CO2 mass arrays by date
+        co2_mass: Dictionary of CO2 mass arrays by date (must include moved/stationary indices)
         dates: List of all available dates in chronological order
+        n_years: Number of years used for moved/stationary calculation
+        use_free_gas: If True, use free gas; if False, use total gas
     """
     date_objects = [datetime.strptime(d, "%Y%m%d") for d in dates]
     dissolved_total = []
     moved_total = []
     stationary_total = []
     
+    # Find the indices for moved and stationary (should be last two elements)
+    moved_idx = len(co2_mass[dates[0]]) - 2
+    stationary_idx = len(co2_mass[dates[0]]) - 1
+    gas_type = "Free CO2" if use_free_gas else "Gas CO2"
+    
     for date in dates:
         # Get dissolved CO2 (aqueous phase)
         dissolved = np.sum(co2_mass[date][0]) / 1000000  # Convert to Mt (megatonnes)
         
-        # Calculate moved and stationary based on gas phase (not free gas)
-        gas_current = co2_mass[date][1]
-        gas_10years_ago = _get_free_co2_10years_ago(date, co2_mass, dates, n_years, True)
-        delta_gas = gas_current - gas_10years_ago
-        delta_gas[delta_gas < 0] = 0
-        diff_gas = gas_current - delta_gas
-        
-        moved = np.sum(delta_gas) / 1000000  # Convert to Mt
-        stationary = np.sum(diff_gas) / 1000000  # Convert to Mt
+        # Get pre-calculated moved and stationary
+        moved = np.sum(co2_mass[date][moved_idx]) / 1000000  # Convert to Mt
+        stationary = np.sum(co2_mass[date][stationary_idx]) / 1000000  # Convert to Mt
         
         dissolved_total.append(dissolved)
         moved_total.append(moved)
@@ -831,7 +888,7 @@ def _plot_co2_distribution_over_time(
     # Create stacked area plot with dissolved at the bottom and moved at the top
     fig, ax = plt.subplots(figsize=(14, 6))
     ax.stackplot(date_objects, dissolved_total, stationary_total, moved_total,
-                 labels=['Dissolved CO2', 'Stationary CO2', f'Moved CO2 ({n_years}y)'],
+                 labels=['Dissolved CO2', f'Stationary {gas_type}', f'Moved {gas_type} ({n_years}y)'],
                  alpha=0.8)
     
     ax.set_xlabel('Date', fontsize=12)
@@ -854,7 +911,7 @@ def _plot_co2_distribution_over_time(
     
     fig2, ax2 = plt.subplots(figsize=(14, 6))
     ax2.stackplot(date_objects, dissolved_total, gas_total,
-                  labels=['Dissolved CO2', 'Gas CO2'],
+                  labels=['Dissolved CO2', gas_type],
                   alpha=0.8)
     
     ax2.set_xlabel('Date', fontsize=12)
@@ -1034,34 +1091,6 @@ def _cirrus_co2mass(
         else:
             co2_mass[date].extend([np.zeros_like(co2_mass[date][0])])
 
-        if (True):
-            gas_current = co2_mass[date][1]
-            gas_10years_ago = _get_free_co2_10years_ago(date, co2_mass, dates, n_years, True)
-            delta_gas = gas_current - gas_10years_ago
-            delta_gas[delta_gas < 0] = 0
-            diff_gas = gas_current - delta_gas
-            # co2_mass[date].extend([delta_gas, diff_gas])
-
-            delta_gas_old = gas_current - gas_prev
-            delta_gas_old[delta_gas_old < 0] = 0
-
-            if date == "25000101" or True:
-                print(f"\nDate: {date}")
-                print(f"Total CO2 mass: {(np.sum(co2_mass[date][0])+np.sum(co2_mass[date][1])+np.sum(co2_mass[date][2])) / 1000000:>8.2f}")
-                print(f"Dissolved     : {np.sum(co2_mass[date][0]) / 1000000:>8.2f}")
-                print(f"Gas           : {np.sum(co2_mass[date][1]) / 1000000:>8.2f}")
-                # print(f"Dissolved oil : {np.sum(co2_mass[date][2]) / 1000000:>8.2f}")
-                # print(f"Trapped       : {np.sum(co2_mass[date][3]) / 1000000:>8.2f}")
-                # print(f"Free          : {np.sum(co2_mass[date][4]) / 1000000:>8.2f}")
-                print(f"Moved         : {np.sum(delta_gas        ) / 1000000:>8.2f}   <------")
-                # print(f"Moved (old)   : {np.sum(delta_gas_old    ) / 1000000:>8.2f}   <------")
-                print(f"Stationary    : {np.sum(diff_gas         ) / 1000000:>8.2f}")
-                # print(f"Free 10y ago  CO2 mass: {np.sum(free_10years_ago ) / 1000000:>8.2f}")
-                # for x in co2_mass[date]:
-                #     print(np.sum(x) / 1000000)
-                # exit()
-            gas_prev = gas_current
-
         if sgstrand:
             co2_mass[date].extend(
                 [
@@ -1091,37 +1120,6 @@ def _cirrus_co2mass(
                     ),
                 ]
             )
-            if (True):
-                # Calculate free CO2 with n_years lookback and interpolation
-                free_current = co2_mass[date][4]
-                free_10years_ago = _get_free_co2_10years_ago(date, co2_mass, dates, n_years)
-                delta_free = free_current - free_10years_ago
-                delta_free[delta_free < 0] = 0
-                diff_free = free_current - delta_free
-                co2_mass[date].extend([delta_free, diff_free])
-
-                delta_free_old = free_current - free_prev
-                delta_free_old[delta_free_old < 0] = 0
-
-                if date == "25000101" or True:
-                    print(f"\nDate: {date}")
-                    print(f"Total CO2 mass: {(np.sum(co2_mass[date][0])+np.sum(co2_mass[date][1])+np.sum(co2_mass[date][2])) / 1000000:>7.2f}")
-                    print(f"Dissolved     : {np.sum(co2_mass[date][0]) / 1000000:>7.2f}")
-                    # print(f"Gas           : {np.sum(co2_mass[date][1]) / 1000000:>7.2f}")
-                    # print(f"Dissolved oil : {np.sum(co2_mass[date][2]) / 1000000:>7.2f}")
-                    print(f"Trapped       : {np.sum(co2_mass[date][3]) / 1000000:>7.2f}")
-                    print(f"Free          : {np.sum(co2_mass[date][4]) / 1000000:>7.2f}")
-                    print(f"Moved         : {np.sum(co2_mass[date][5]) / 1000000:>7.2f}   <------")
-                    print(f"Moved (old)   : {np.sum(delta_free_old   ) / 1000000:>7.2f}   <------")
-                    print(f"Stationary    : {np.sum(co2_mass[date][6]) / 1000000:>7.2f}")
-                    # print(f"Free {n_years}y ago  CO2 mass: {np.sum(free_10years_ago ) / 1000000:>7.2f}")
-                    # for x in co2_mass[date]:
-                    #     print(np.sum(x) / 1000000)
-                    # exit()
-                free_prev = free_current
-    
-    # Temporary plotting
-    _plot_co2_distribution_over_time(co2_mass, dates, n_years)
     
     return co2_mass
 
@@ -1729,6 +1727,17 @@ def _calc_co2_amount(
             co2_molar_mass,
             co2_position,
         )
+    
+    co2_mass_cell = _calculate_moved_stationary_co2(
+        co2_mass_cell,
+        source_data.DATES,
+        n_years=1,
+        use_free_gas=residual_trapping,  # Use free gas if residual trapping available
+        create_plot=True,
+        print_debug=True,
+    )
+    exit()
+    
     co2_mass_output = Co2Data(
         source_data.x_coord,
         source_data.y_coord,
