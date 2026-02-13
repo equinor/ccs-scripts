@@ -885,10 +885,11 @@ def _plot_co2_distribution_over_time(
         moved_total.append(moved)
         stationary_total.append(stationary)
     
-    # Create stacked area plot with dissolved at the bottom and moved at the top
+    # Create stacked area plot with dissolved at the top and moved at the bottom
     fig, ax = plt.subplots(figsize=(14, 6))
-    ax.stackplot(date_objects, dissolved_total, stationary_total, moved_total,
-                 labels=['Dissolved CO2', f'Stationary {gas_type}', f'Moved {gas_type} ({n_years}y)'],
+    ax.stackplot(date_objects, moved_total, stationary_total, dissolved_total,
+                 labels=[f'Moved {gas_type} ({n_years}y)', f'Stationary {gas_type}', 'Dissolved CO2'],
+                 colors=['red', 'green', 'blue'],
                  alpha=0.8)
     
     ax.set_xlabel('Date', fontsize=12)
@@ -910,8 +911,9 @@ def _plot_co2_distribution_over_time(
     gas_total = [m + s for m, s in zip(moved_total, stationary_total)]
     
     fig2, ax2 = plt.subplots(figsize=(14, 6))
-    ax2.stackplot(date_objects, dissolved_total, gas_total,
-                  labels=['Dissolved CO2', gas_type],
+    ax2.stackplot(date_objects, gas_total, dissolved_total,
+                  labels=[gas_type, 'Dissolved CO2'],
+                  colors=['green', 'blue'],
                   alpha=0.8)
     
     ax2.set_xlabel('Date', fontsize=12)
