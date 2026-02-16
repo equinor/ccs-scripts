@@ -85,11 +85,12 @@ def _check_threshold(
     return lower_threshold
 
 
-def _log_t_prop(t_prop: xtgeo.GridProperty, prop_name: str):
+def _log_t_prop(t_prop: xtgeo.GridProperty, prop_name: Optional[str]):
     col1 = 20
     col2 = 8
 
     n_finite = np.sum(np.isfinite(t_prop.values))
+    prop_name = prop_name if prop_name is not None else ""
     logging.info(f"\nSummary of time migration 3D grid property {prop_name}:")
     logging.info(f"{'  - Minimum':<{col1}} : {t_prop.values.min():>{col2}.1f}")
     logging.info(f"{'  - Mean':<{col1}} : {t_prop.values.mean():>{col2}.1f}")
@@ -102,7 +103,7 @@ def _log_t_prop(t_prop: xtgeo.GridProperty, prop_name: str):
 
 def calculate_migration_time_property(
     properties_files: str,
-    property_name: str,
+    property_name: Optional[str],
     lower_threshold: float,
     grid_file: Optional[str],
     dates: List[str],
@@ -212,9 +213,6 @@ def generate_from_config(config_: _config.RootConfig):
     try:
         for prop in config_.input.properties:
             # NBNB-AS: Better handling than assert here...:
-            assert (
-                prop.name is not None
-            ), "Property name must be defined for migration time maps"
             assert (
                 prop.lower_threshold is not None
             ), "Lower threshold must be defined for migration time maps"
