@@ -832,13 +832,13 @@ def _eclipse_co2mass(
             co2_mass[date].extend(
                 [
                     np.divide(
-                        co2_mass[date][0] * sgtrh[date],
+                        co2_mass[date][1] * sgtrh[date],
                         sgas[date],
                         out=np.zeros_like(sgas[date]),
                         where=sgas[date] != 0,
                     ),
                     np.divide(
-                        co2_mass[date][0] * (sgas[date] - sgtrh[date]),
+                        co2_mass[date][1] * (sgas[date] - sgtrh[date]),
                         sgas[date],
                         out=np.zeros_like(sgas[date]),
                         where=sgas[date] != 0,
