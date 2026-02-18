@@ -831,8 +831,18 @@ def _eclipse_co2mass(
         if any(x is not None for x in (sgstrand, sgtrh)):
             co2_mass[date].extend(
                 [
-                    co2_mass[date][0] * sgtrh[date] / sgas[date],
-                    co2_mass[date][0] * (sgas[date] - sgtrh[date]) / sgas[date],
+                    np.divide(
+                        co2_mass[date][0] * sgtrh[date],
+                        sgas[date],
+                        out=np.zeros_like(sgas[date]),
+                        where=sgas[date] != 0,
+                    ),
+                    np.divide(
+                        co2_mass[date][0] * (sgas[date] - sgtrh[date]),
+                        sgas[date],
+                        out=np.zeros_like(sgas[date]),
+                        where=sgas[date] != 0,
+                    ),
                 ]
             )
     return co2_mass
