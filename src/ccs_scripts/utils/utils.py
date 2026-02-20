@@ -38,6 +38,25 @@ def try_prop(unrst: ResdataFile, prop_name: str):
     return prop
 
 
+def _test_for_soil(props: dict):
+    if "SGAS" and "SWAT" in props:
+        sgas = props["SGAS"]
+        swat = props["SWAT"]
+        soil = {}
+        for date in sgas:
+            soil[date] = 1.0 - sgas[date] - swat[date]
+        print("****")
+        print([arr.max() for arr in soil.values()])
+        max_val = max(arr.max() for arr in soil.values())
+        is_greater_than_zero = max_val > 0
+        if is_greater_than_zero:
+            return soil
+        else:
+            return None
+    else:
+        return None
+
+
 def _read_props(
     unrst: ResdataFile,
     prop_names: List,
@@ -80,6 +99,10 @@ def fetch_properties(
     props = {
         p: {d[1]: props[p][d[0]].numpy_copy() for d in enumerate(dates)} for p in props
     }
+    if "SOIL" not in props:
+        soil = _test_for_soil(props)
+        if soil is not None:
+            props["SOIL"] = soil
     logging.info(
         "Done reading properties from file"
         "\nRelevant properties extracted:"
