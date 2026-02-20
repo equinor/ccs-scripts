@@ -89,7 +89,7 @@ def fetch_properties(
     return props, dates
 
 
-def test_unrst_consistency(dates: List, props: List[List]) -> None:
+def test_unrst_consistency(dates: List, props: dict) -> None:
     """
     Checks consistency between UNRST dates and properties.
 
