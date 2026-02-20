@@ -110,14 +110,14 @@ def test_unrst_consistency(dates: List, props: dict) -> None:
             )
         )
 
-    n_props = unique_lengths.pop()
+    n_time_steps = unique_lengths.pop()
     n_dates = len(dates)
 
-    if n_props != n_dates:
+    if n_time_steps != n_dates:
         raise ValueError(
             format_error(
                 f"Mismatch between number of dates ({n_dates}) "
-                f"and number of timesteps for properties({n_props})"
+                f"and number of timesteps for properties({n_time_steps})"
             )
         )
 
