@@ -77,6 +77,7 @@ def fetch_properties(
     """
     dates = [d.strftime("%Y%m%d") for d in unrst.report_dates]
     props = _read_props(unrst, props_to_extract)
+    test_unrst_consistency(dates, props)
     props = {
         p: {d[1]: props[p][d[0]].numpy_copy() for d in enumerate(dates)} for p in props
     }
@@ -86,6 +87,39 @@ def fetch_properties(
         f"\n    {', '.join(list(props.keys()))}\n"
     )
     return props, dates
+
+
+def test_unrst_consistency(dates: List, props: List[List]) -> None:
+    """
+    Checks consistency between UNRST dates and properties.
+
+    Args:
+        dates (list): List of dates
+        props (list): List with lists of properties at each date
+
+    """
+
+    lengths = {name: len(values) for name, values in props.items()}
+
+    unique_lengths = set(lengths.values())
+    if len(unique_lengths) != 1:
+        raise ValueError(
+            format_error(
+                "Inconsistent UNRST properties lengths: "
+                + ", ".join(f"{k}={v}" for k, v in lengths.items())
+            )
+        )
+
+    n_props = unique_lengths.pop()
+    n_dates = len(dates)
+
+    if n_props != n_dates:
+        raise ValueError(
+            format_error(
+                f"Mismatch between number of dates ({n_dates}) "
+                f"and number of timesteps for properties({n_props})"
+            )
+        )
 
 
 def identify_gas_less_cells(
