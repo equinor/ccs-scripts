@@ -386,7 +386,16 @@ def _find_inj_wells_grid_indices(
                     f"{z_str:>9} {'X':>6} {'X':>6} {'X':>6}"
                 )
 
-    # if some None...
+    wells_with_errors = [well for well in inj_wells if inj_wells_grid_indices[well.name] is None or any(entry is None for entry in inj_wells_grid_indices[well.name])]
+    if wells_with_errors:
+        error_text = (
+            f"\nERROR: Could not find grid cell indices for the following injection well(s):"
+        )
+        for well in wells_with_errors:
+            error_text += f"\n         - {well.name}  (x: {well.x}, y: {well.y}, {'z: ' + str(well.z) if well.z is not None else 'z: not provided'})"
+        error_text += "\n       Please check the coordinates and make sure they are within the grid."
+        logging.error(format_error(error_text))
+        sys.exit(1)
 
 
 def calculate_plume_groups(
