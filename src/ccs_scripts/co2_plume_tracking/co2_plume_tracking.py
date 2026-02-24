@@ -337,6 +337,7 @@ def _find_inj_wells_grid_indices(
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     grid: Grid,
     inj_wells: List[InjectionWellData],
+    print_table: bool = False,
 ):
     for well in inj_wells:
         if well.z is not None:
@@ -349,6 +350,43 @@ def _find_inj_wells_grid_indices(
                 xy = grid.find_cell_xy(x=well.x, y=well.y, k=k)
                 if xy + (None,) not in inj_wells_grid_indices[well.name]:
                     inj_wells_grid_indices[well.name].append((xy[0], xy[1], None))
+
+    if print_table:
+        logging.info("Found the following grid cell indices for injection wells:")
+        logging.info(
+            f"\n{'Name':<25} {'x':>12} {'y':>12} {'z':>9} "
+            f"{'i':>6} {'j':>6} {'k':>6}"
+        )
+        logging.info("-" * 82)
+        for well in inj_wells:
+            x_str = f"{well.x:.2f}"
+            y_str = f"{well.y:.2f}"
+            z_str = f"{well.z[0]:.2f}" if well.z is not None else "-"
+            indices = inj_wells_grid_indices[well.name]
+            for idx, entry in enumerate(indices):
+                if entry is None or entry[0] is None:
+                    i_str, j_str, k_str = "X", "X", "X"
+                else:
+                    i_str = str(entry[0])
+                    j_str = str(entry[1])
+                    k_str = str(entry[2]) if entry[2] is not None else "-"
+                if idx == 0:
+                    logging.info(
+                        f"{well.name:<25} {x_str:>12} {y_str:>12} "
+                        f"{z_str:>9} {i_str:>6} {j_str:>6} {k_str:>6}"
+                    )
+                else:
+                    logging.info(
+                        f"{'':<25} {'':>12} {'':>12} "
+                        f"{'':>9} {i_str:>6} {j_str:>6} {k_str:>6}"
+                    )
+            if indices is None:
+                logging.info(
+                    f"{well.name:<25} {x_str:>12} {y_str:>12} "
+                    f"{z_str:>9} {'X':>6} {'X':>6} {'X':>6}"
+                )
+
+    # if some None...
 
 
 def calculate_plume_groups(
@@ -393,7 +431,7 @@ def calculate_plume_groups(
     cell_map_active_to_gasless = {v: k for k, v in cell_map_gasless_to_active.items()}
 
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]] = {}
-    _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells)
+    _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells, print_table=True)
 
     logging.info(f"\nStart calculating plume tracking for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
