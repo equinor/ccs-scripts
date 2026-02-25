@@ -360,11 +360,13 @@ def _find_inj_wells_grid_indices(
             print("B")
             inj_wells_grid_indices[well.name] = []
             for k in range(grid.get_nz()):
-                xy = grid.find_cell_xy(x=well.x, y=well.y, k=k)
-                if xy + (None,) not in inj_wells_grid_indices[well.name]:
-                    inj_wells_grid_indices[well.name].append((xy[0], xy[1], None))
+                ij = grid.find_cell_xy(x=well.x, y=well.y, k=k)
+                active_index = grid.get_active_index(ijk=ij + (k,))
+                if active_index != -1:
+                    if ij + (None,) not in inj_wells_grid_indices[well.name]:
+                        inj_wells_grid_indices[well.name].append((ij[0], ij[1], None))
         print(f"  => {inj_wells_grid_indices[well.name]}")
-    exit()
+    # exit()
 
     if print_table:
         logging.info("Found the following grid cell indices for injection wells:")
