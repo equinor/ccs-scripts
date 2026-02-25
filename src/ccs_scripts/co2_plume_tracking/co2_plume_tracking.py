@@ -340,24 +340,17 @@ def _find_inj_wells_grid_indices(
     print_table: bool = True,
 ):
     for well in inj_wells:
-        print(f"\nwell: {well.name}, x: {well.x}, y: {well.y}, z: {well.z}")
         if well.z is not None:
-            print("A")
             for z in well.z:
-                print(f"  z: {z}")
                 ijk = grid.find_cell(x=well.x, y=well.y, z=z)
                 if ijk is not None:
-                    print(f"  => Found cell with ijk: {ijk}")
-                    # active_index = grid.get_active_index(ijk=ijk)
-                    # print(f"  => active index: {active_index}")
                     inj_wells_grid_indices[well.name] = [
                         ijk
                     ]
                     break
-            if well.name not in inj_wells_grid_indices:  # True or 
+            if well.name not in inj_wells_grid_indices:
                 inj_wells_grid_indices[well.name] = [None]
         else:
-            print("B")
             inj_wells_grid_indices[well.name] = []
             for k in range(grid.get_nz()):
                 ij = grid.find_cell_xy(x=well.x, y=well.y, k=k)
@@ -365,8 +358,6 @@ def _find_inj_wells_grid_indices(
                 if active_index != -1:
                     if ij + (None,) not in inj_wells_grid_indices[well.name]:
                         inj_wells_grid_indices[well.name].append((ij[0], ij[1], None))
-        print(f"  => {inj_wells_grid_indices[well.name]}")
-    # exit()
 
     if print_table:
         logging.info("Found the following grid cell indices for injection wells:")
@@ -616,12 +607,6 @@ def _initialize_groups_from_prev_step_and_inj_wells(
             active_ind = cell_map_gasless_to_active[index]
             i, j, k = grid.get_ijk(active_index=active_ind)
             x, y, z = grid.get_xyz(active_index=active_ind)
-            # How to know if this cell is valid? Can get crash later
-            active_index = grid.get_active_index(ijk=(i, j, k))
-            if active_index is None or active_index < 0 or active_index >= grid.get_num_active():
-                print(active_index)
-                exit()
-
 
             found = False
             for well in inj_wells:
@@ -665,8 +650,6 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                         well.name not in new_z_coords
                         or z not in new_z_coords[well.name]
                     ):
-                        print(f"\n\nWant to add new z coordinate for well {well.name}: {z}")
-                        print(f"  Index k: {k}")
                         if well.name not in new_z_coords:
                             new_z_coords[well.name] = [z]
                         else:
@@ -684,15 +667,10 @@ def _update_inj_z_coordinates(
     inj_wells: List[InjectionWellData],
     new_z_coords: Dict[str, List[float]],
 ):
-    print(f"\n_update_inj_z_coordinates()")
     for well in inj_wells:
-        print(f"well: {well.name}")
         if well.name in new_z_coords:
-            print("    bingo")
             for z in new_z_coords[well.name]:
-                print(f"    z: {z}")
                 if well.z is None or z not in well.z and len(well.z) < 5:
-                    print("        => Adding new z")
                     logging.debug(
                         f"Found new injection z-coordinate for well {well.name}: {z}"
                     )
