@@ -339,17 +339,18 @@ def _find_inj_wells_grid_indices(
     inj_wells: List[InjectionWellData],
     print_table: bool = False,
 ):
+    wells_with_errors = []
     for well in inj_wells:
         if well.z is not None:
+            found = False
             for z in well.z:
                 ijk = grid.find_cell(x=well.x, y=well.y, z=z)
                 if ijk is not None:
-                    inj_wells_grid_indices[well.name] = [
-                        ijk
-                    ]
+                    inj_wells_grid_indices[well.name] = [ijk]
+                    found = True
                     break
-            if well.name not in inj_wells_grid_indices:
-                inj_wells_grid_indices[well.name] = [None]
+            if not found:
+                wells_with_errors.append(well)
         else:
             inj_wells_grid_indices[well.name] = []
             for k in range(grid.get_nz()):
@@ -370,35 +371,39 @@ def _find_inj_wells_grid_indices(
             x_str = f"{well.x:.2f}"
             y_str = f"{well.y:.2f}"
             z_str = f"{well.z[0]:.2f}" if well.z is not None else "-"
-            indices = inj_wells_grid_indices[well.name]
-            for idx, entry in enumerate(indices):
-                if entry is None or entry[0] is None:
-                    i_str, j_str, k_str = "X", "X", "X"
-                else:
-                    i_str = str(entry[0])
-                    j_str = str(entry[1])
-                    k_str = str(entry[2]) if entry[2] is not None else "-"
-                if idx == 0:
-                    logging.info(
-                        f"{well.name:<25} {x_str:>12} {y_str:>12} "
-                        f"{z_str:>9} {i_str:>6} {j_str:>6} {k_str:>6}"
-                    )
-                else:
-                    logging.info(
-                        f"{'':<25} {'':>12} {'':>12} "
-                        f"{'':>9} {i_str:>6} {j_str:>6} {k_str:>6}"
-                    )
-            if indices is None:
+            if well not in wells_with_errors:
+                indices = inj_wells_grid_indices[well.name]
+                for idx, entry in enumerate(indices):
+                    if entry is None or entry[0] is None:
+                        i_str, j_str, k_str = "X", "X", "X"
+                    else:
+                        i_str = str(entry[0])
+                        j_str = str(entry[1])
+                        k_str = str(entry[2]) if entry[2] is not None else "-"
+                    if idx == 0:
+                        logging.info(
+                            f"{well.name:<25} {x_str:>12} {y_str:>12} "
+                            f"{z_str:>9} {i_str:>6} {j_str:>6} {k_str:>6}"
+                        )
+                    else:
+                        logging.info(
+                            f"{'':<25} {'':>12} {'':>12} "
+                            f"{'':>9} {i_str:>6} {j_str:>6} {k_str:>6}"
+                        )
+            else:
                 logging.info(
                     f"{well.name:<25} {x_str:>12} {y_str:>12} "
                     f"{z_str:>9} {'X':>6} {'X':>6} {'X':>6}"
                 )
 
-    wells_with_errors = [well for well in inj_wells if inj_wells_grid_indices[well.name] is None or any(entry is None for entry in inj_wells_grid_indices[well.name])]
+    # wells_with_errors = [
+    #     well
+    #     for well in inj_wells
+    #     if inj_wells_grid_indices[well.name] is None
+    #     or any(entry is None for entry in inj_wells_grid_indices[well.name])
+    # ]
     if wells_with_errors:
-        error_text = (
-            f"\nERROR: Could not find grid cell indices for the following injection well(s):"
-        )
+        error_text = f"\nERROR: Could not find grid cell indices for the following injection well(s):"
         for well in wells_with_errors:
             error_text += f"\n         - {well.name}  (x: {well.x}, y: {well.y}, {'z: ' + str(well.z) if well.z is not None else 'z: not provided'})"
         error_text += "\n       Please check the coordinates and make sure they are within the grid."
@@ -448,7 +453,9 @@ def calculate_plume_groups(
     cell_map_active_to_gasless = {v: k for k, v in cell_map_gasless_to_active.items()}
 
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]] = {}
-    _find_inj_wells_grid_indices(inj_wells_grid_indices, grid, inj_wells, print_table=True)
+    _find_inj_wells_grid_indices(
+        inj_wells_grid_indices, grid, inj_wells, print_table=True
+    )
 
     logging.info(f"\nStart calculating plume tracking for {attribute_key}.\n")
     logging.info(f"Progress ({n_time_steps} time steps):")
