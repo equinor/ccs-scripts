@@ -397,10 +397,14 @@ def _find_inj_wells_grid_indices(
                 )
 
     if wells_with_errors:
-        error_text = f"\nERROR: Could not find grid cell indices for the following injection well(s):"
+        error_text = "\nERROR: Could not find grid cell indices for "
+        error_text += "the following injection well(s):"
         for well in wells_with_errors:
-            error_text += f"\n         - {well.name}  (x: {well.x}, y: {well.y}, {'z: ' + str(well.z) if well.z is not None else 'z: not provided'})"
-        error_text += "\n       Please check the coordinates and make sure they are within the grid."
+            z_str = "z: " + str(well.z) if well.z is not None else "z: not provided"
+            error_text += f"\n         - {well.name}  (x: {well.x}, y: {well.y}, "
+            error_text += z_str
+        error_text += "\n       Please check the coordinates and "
+        error_text += "make sure they are within the grid."
         logging.error(format_error(error_text))
         sys.exit(1)
 
