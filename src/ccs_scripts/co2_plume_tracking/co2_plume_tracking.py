@@ -337,7 +337,7 @@ def _find_inj_wells_grid_indices(
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     grid: Grid,
     inj_wells: List[InjectionWellData],
-    print_table: bool = True,
+    print_table: bool = False,
 ):
     for well in inj_wells:
         if well.z is not None:
