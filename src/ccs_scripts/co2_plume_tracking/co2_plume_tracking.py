@@ -364,6 +364,7 @@ def _find_inj_wells_grid_indices(
                 if xy + (None,) not in inj_wells_grid_indices[well.name]:
                     inj_wells_grid_indices[well.name].append((xy[0], xy[1], None))
         print(f"  => {inj_wells_grid_indices[well.name]}")
+    exit()
 
     if print_table:
         logging.info("Found the following grid cell indices for injection wells:")
