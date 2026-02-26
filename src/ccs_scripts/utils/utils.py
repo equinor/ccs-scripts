@@ -39,7 +39,7 @@ def try_prop(unrst: ResdataFile, prop_name: str):
 
 
 def test_for_soil(props: dict):
-    if "SGAS" not in props and "SWAT" not in props:
+    if "SGAS" not in props or "SWAT" not in props:
         return None
     tol = 1e-6
     sgas = props["SGAS"]
