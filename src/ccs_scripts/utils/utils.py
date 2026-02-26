@@ -38,7 +38,7 @@ def try_prop(unrst: ResdataFile, prop_name: str):
     return prop
 
 
-def _test_for_soil(props: dict):
+def test_for_soil(props: dict):
     if "SGAS" not in props and "SWAT" not in props:
         return None
     tol = 1e-6
@@ -97,7 +97,7 @@ def fetch_properties(
         p: {d[1]: props[p][d[0]].numpy_copy() for d in enumerate(dates)} for p in props
     }
     if "SOIL" not in props:
-        soil = _test_for_soil(props)
+        soil = test_for_soil(props)
         if soil is not None:
             props["SOIL"] = soil
     logging.info(
