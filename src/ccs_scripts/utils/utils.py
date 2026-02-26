@@ -39,22 +39,19 @@ def try_prop(unrst: ResdataFile, prop_name: str):
 
 
 def _test_for_soil(props: dict):
-    if "SGAS" and "SWAT" in props:
-        sgas = props["SGAS"]
-        swat = props["SWAT"]
-        soil = {}
-        for date in sgas:
-            soil[date] = 1.0 - sgas[date] - swat[date]
-        print("****")
-        print([arr.max() for arr in soil.values()])
-        max_val = max(arr.max() for arr in soil.values())
-        is_greater_than_zero = max_val > 0
-        if is_greater_than_zero:
-            return soil
-        else:
-            return None
-    else:
+    if "SGAS" not in props and "SWAT" not in props:
         return None
+    tol = 1e-6
+    sgas = props["SGAS"]
+    swat = props["SWAT"]
+    soil = {}
+    max_val = float("-inf")
+    for date in sgas:
+        soil[date] = 1.0 - sgas[date] - swat[date]
+        max_soil_date = soil[date].max()
+        if max_soil_date > max_val:
+            max_val = max_soil_date
+    return soil if max_val > tol else None
 
 
 def _read_props(
