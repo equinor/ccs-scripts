@@ -100,6 +100,13 @@ def fetch_properties(
         soil = test_for_soil(props)
         if soil is not None:
             props["SOIL"] = soil
+            logging.info("Oil Saturation (SOIL) not found as property"
+                         "\n However, as SGAS + SWAT is not 1 everywhere"
+                         "\nThe remaining saturation is assumed to be SOIL."
+                         "\nThis propery has been computed")
+        else:
+            logging.info("Oil Saturation is zero everywhere."
+                         "\n Therefore, two-phase scenario is assumed.")
     logging.info(
         "Done reading properties from file"
         "\nRelevant properties extracted:"
