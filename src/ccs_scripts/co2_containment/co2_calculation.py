@@ -22,6 +22,7 @@ from ccs_scripts.utils.utils import (
     format_warning,
     identify_gas_less_cells,
     is_subset,
+    log_saturation_summaries,
     reduce_properties,
     try_prop,
 )
@@ -495,6 +496,7 @@ def _extract_source_data(
     global_active_idx = active[~gasless]
 
     props_reduced = reduce_properties(properties, ~gasless)
+    log_saturation_summaries(props_reduced)
     # Tuple with (x,y,z) for each cell:
     xyz = [grid.get_xyz(global_index=a) for a in global_active_idx]
     cells_x = np.array([coord[0] for coord in xyz])
