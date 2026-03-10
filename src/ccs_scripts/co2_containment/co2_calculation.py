@@ -799,6 +799,7 @@ def _calculate_moved_stationary_co2(
     n_years: int = 10,
     use_free_gas: bool = True,
     create_plot: bool = False,
+    show_plot: bool = False,
     print_debug: bool = False,
 ) -> Dict[str, List[np.ndarray]]:
     """
@@ -809,7 +810,8 @@ def _calculate_moved_stationary_co2(
         dates: List of all available dates in chronological order
         n_years: Number of years to look back for comparison (default: 10)
         use_free_gas: If True, use free gas (index 4); if False, use total gas (index 1)
-        create_plot: If True, generate distribution plots
+        create_plot: If True, generate and save distribution plots
+        show_plot: If True, display plots interactively (blocks execution)
         print_debug: If True, print debug information for each date
     
     Returns:
@@ -843,7 +845,7 @@ def _calculate_moved_stationary_co2(
             print(f"Stationary    : {np.sum(diff_gas) / 1000000:>10.2f} Mt")
     
     if create_plot:
-        _plot_co2_distribution_over_time(co2_mass, dates, n_years, use_free_gas)
+        _plot_co2_distribution_over_time(co2_mass, dates, n_years, use_free_gas, show_plot)
     
     return co2_mass
 
@@ -853,6 +855,7 @@ def _plot_co2_distribution_over_time(
     dates: List[str],
     n_years: int,
     use_free_gas: bool = True,
+    show_plot: bool = False,
 ) -> None:
     """
     Plot CO2 distribution over time showing dissolved, moved, and stationary CO2.
@@ -862,16 +865,19 @@ def _plot_co2_distribution_over_time(
         dates: List of all available dates in chronological order
         n_years: Number of years used for moved/stationary calculation
         use_free_gas: If True, use free gas; if False, use total gas
+        show_plot: If True, display plots interactively (blocks execution)
     """
     date_objects = [datetime.strptime(d, "%Y%m%d") for d in dates]
     dissolved_total = []
     moved_total = []
     stationary_total = []
+    trapped_total = []
     
     # Find the indices for moved and stationary (should be last two elements)
     moved_idx = len(co2_mass[dates[0]]) - 2
     stationary_idx = len(co2_mass[dates[0]]) - 1
     gas_type = "Free CO2" if use_free_gas else "Gas CO2"
+    has_trapped = use_free_gas  # Trapped phase at index 3 when free gas is used
     
     for date in dates:
         # Get dissolved CO2 (aqueous phase)
@@ -884,42 +890,60 @@ def _plot_co2_distribution_over_time(
         dissolved_total.append(dissolved)
         moved_total.append(moved)
         stationary_total.append(stationary)
+        if has_trapped:
+            trapped_total.append(np.sum(co2_mass[date][3]) / 1000000)
     
     # Create stacked area plot with dissolved at the top and moved at the bottom
     fig, ax = plt.subplots(figsize=(14, 6))
-    ax.stackplot(date_objects, moved_total, stationary_total, dissolved_total,
-                 labels=[f'Moved {gas_type} ({n_years}y)', f'Stationary {gas_type}', 'Dissolved CO2'],
-                 colors=['red', 'green', 'blue'],
-                 alpha=0.8)
+    if has_trapped:
+        ax.stackplot(date_objects, moved_total, stationary_total, trapped_total, dissolved_total,
+                     labels=[f'Moved {gas_type} ({n_years}y)', f'Stationary {gas_type}', 'Trapped CO2', 'Dissolved CO2'],
+                     colors=['red', 'green', 'saddlebrown', 'blue'],
+                     alpha=0.8)
+    else:
+        ax.stackplot(date_objects, moved_total, stationary_total, dissolved_total,
+                     labels=[f'Moved {gas_type} ({n_years}y)', f'Stationary {gas_type}', 'Dissolved CO2'],
+                     colors=['red', 'green', 'blue'],
+                     alpha=0.8)
     
     ax.set_xlabel('Date', fontsize=12)
     ax.set_ylabel('CO2 Mass (Mt)', fontsize=12)
     ax.set_title('CO2 Distribution Over Time (Detailed)', fontsize=14, fontweight='bold')
-    ax.legend(loc='upper left', fontsize=10)
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles[::-1], labels[::-1], loc='upper left', fontsize=10)
     ax.grid(True, alpha=0.3)
     
     # Format x-axis to show dates nicely
     fig.autofmt_xdate()
     
     plt.tight_layout()
-    filename1 = 'co2_distribution_detailed.png'
+    filename1 = f'co2_distribution_detailed_{n_years}years.png'
     plt.savefig(filename1, dpi=300, bbox_inches='tight')
     print(f"\nPlot saved as: {os.path.abspath(filename1)}")
-    plt.show()
+    if show_plot:
+        plt.show()
+    plt.close(fig)
     
     # Create second plot with gas (moved + stationary) combined
     gas_total = [m + s for m, s in zip(moved_total, stationary_total)]
     
     fig2, ax2 = plt.subplots(figsize=(14, 6))
-    ax2.stackplot(date_objects, gas_total, dissolved_total,
-                  labels=[gas_type, 'Dissolved CO2'],
-                  colors=['green', 'blue'],
-                  alpha=0.8)
+    if has_trapped:
+        ax2.stackplot(date_objects, gas_total, trapped_total, dissolved_total,
+                      labels=[gas_type, 'Trapped CO2', 'Dissolved CO2'],
+                      colors=['green', 'saddlebrown', 'blue'],
+                      alpha=0.8)
+    else:
+        ax2.stackplot(date_objects, gas_total, dissolved_total,
+                      labels=[gas_type, 'Dissolved CO2'],
+                      colors=['green', 'blue'],
+                      alpha=0.8)
     
     ax2.set_xlabel('Date', fontsize=12)
     ax2.set_ylabel('CO2 Mass (Mt)', fontsize=12)
     ax2.set_title('CO2 Distribution Over Time (Simplified)', fontsize=14, fontweight='bold')
-    ax2.legend(loc='upper left', fontsize=10)
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend(handles2[::-1], labels2[::-1], loc='upper left', fontsize=10)
     ax2.grid(True, alpha=0.3)
     
     # Format x-axis to show dates nicely
@@ -929,7 +953,33 @@ def _plot_co2_distribution_over_time(
     filename2 = 'co2_distribution_simplified.png'
     plt.savefig(filename2, dpi=300, bbox_inches='tight')
     print(f"Plot saved as: {os.path.abspath(filename2)}")
-    plt.show()
+    if show_plot:
+        plt.show()
+    plt.close(fig2)
+    
+    # Create third plot with moved vs stationary gas only
+    fig3, ax3 = plt.subplots(figsize=(14, 6))
+    ax3.stackplot(date_objects, moved_total, stationary_total,
+                  labels=[f'Moved {gas_type} ({n_years}y)', f'Stationary {gas_type}'],
+                  colors=['red', 'green'],
+                  alpha=0.8)
+    
+    ax3.set_xlabel('Date', fontsize=12)
+    ax3.set_ylabel('CO2 Mass (Mt)', fontsize=12)
+    ax3.set_title(f'{gas_type}: Moved vs Stationary ({n_years}y)', fontsize=14, fontweight='bold')
+    handles3, labels3 = ax3.get_legend_handles_labels()
+    ax3.legend(handles3[::-1], labels3[::-1], loc='upper left', fontsize=10)
+    ax3.grid(True, alpha=0.3)
+    
+    fig3.autofmt_xdate()
+    
+    plt.tight_layout()
+    filename3 = f'co2_distribution_moved_vs_stationary_{n_years}years.png'
+    plt.savefig(filename3, dpi=300, bbox_inches='tight')
+    print(f"Plot saved as: {os.path.abspath(filename3)}")
+    if show_plot:
+        plt.show()
+    plt.close(fig3)
 
 
 def _get_free_co2_10years_ago(
@@ -1733,10 +1783,11 @@ def _calc_co2_amount(
     co2_mass_cell = _calculate_moved_stationary_co2(
         co2_mass_cell,
         source_data.DATES,
-        n_years=1,
+        n_years=300,
         use_free_gas=residual_trapping,  # Use free gas if residual trapping available
         create_plot=True,
         print_debug=True,
+        show_plot=True,
     )
     exit()
     
