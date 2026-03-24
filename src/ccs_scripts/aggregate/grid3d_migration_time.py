@@ -56,8 +56,6 @@ def _check_config(config_: RootConfig) -> None:
     config_.output.aggregation_tag = False
     config_.output.replace_masked_with_zero = False
     config_.computesettings.aggregate_map = True
-    if config_.migration_time_settings is None:
-        config_.migration_time_settings = Migration_Time_Settings()
 
 
 def _check_threshold(
@@ -214,12 +212,14 @@ def generate_from_config(config_: _config.RootConfig):
     temp_dir = tempfile.mkdtemp()
     logging.info(f"\nMaking temporary directory for 3D grids: {temp_dir}")
     try:
+        assert (
+            config_.migration_time_settings is not None
+        ), "Migration time settings must be defined"
         for prop in config_.input.properties:
             # NBNB-AS: Better handling than assert here...:
             assert (
                 prop.lower_threshold is not None
             ), "Lower threshold must be defined for migration time maps"
-
             t_prop = calculate_migration_time_property(
                 prop.source,
                 prop.name,

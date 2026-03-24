@@ -1,10 +1,11 @@
 import datetime
-from ccs_scripts.utils.utils import format_error
+import logging
 from typing import List, Optional
 
-import logging
 import numpy as np
 import xtgeo
+
+from ccs_scripts.utils.utils import format_error
 
 MIGRATION_TIME_PNAME = "MigrationTime"
 
