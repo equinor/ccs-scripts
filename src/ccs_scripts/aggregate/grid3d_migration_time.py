@@ -56,6 +56,8 @@ def _check_config(config_: RootConfig) -> None:
     config_.output.aggregation_tag = False
     config_.output.replace_masked_with_zero = False
     config_.computesettings.aggregate_map = True
+    if config_.migration_time_settings is None:
+        config_.migration_time_settings = Migration_Time_Settings()
 
 
 def _check_threshold(
@@ -107,6 +109,7 @@ def calculate_migration_time_property(
     lower_threshold: float,
     grid_file: Optional[str],
     dates: List[str],
+    first_injection_year: Optional[int],
 ) -> xtgeo.GridProperty:
     """
     Calculates a 3D migration time property from the provided grid and grid property
@@ -128,7 +131,7 @@ def calculate_migration_time_property(
 
     timer.start("generate_migration_time_property")
     t_prop = _migration_time.generate_migration_time_property(
-        properties, lower_threshold
+        properties, lower_threshold, first_injection_year
     )
     timer.stop("generate_migration_time_property")
     _log_t_prop(t_prop, property_name)
@@ -223,6 +226,7 @@ def generate_from_config(config_: _config.RootConfig):
                 prop.lower_threshold,
                 config_.input.grid,
                 config_.input.dates,
+                config_.migration_time_settings.first_injection_year,
             )
             tmp_subdir = prop.name if prop.name is not None else "co2_total_mass"
             temp_path = os.path.join(temp_dir, tmp_subdir)

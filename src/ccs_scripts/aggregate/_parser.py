@@ -19,6 +19,7 @@ from ccs_scripts.aggregate._config import (
     ComputeSettings,
     Input,
     MapSettings,
+    MigrationTimeSettings,
     Output,
     Property,
     RootConfig,
@@ -118,6 +119,13 @@ def parse_arguments(arguments, map_type: str):
             default=None,
             metavar="<CIRRUSINFOFILE>",
         )
+    if map_type == "migration_time":
+        parser.add_argument(
+            "--first_injection_year",
+            help="First injection year for migration time",
+            default=None,
+            metavar="<FIRST_INJECTION_YEAR>",
+        )
     return parser.parse_args(arguments)
 
 
@@ -139,6 +147,9 @@ def _replace_default_dummies_from_ert(args, map_type: str):
             args.gridfolder = None
         if args.cirrus_info_file == "-1":
             args.cirrus_info_file = None
+    if map_type == "migration_time":
+        if args.first_injection_year == "-1":
+            args.first_injection_year = None
 
 
 def process_arguments(arguments, map_type: str) -> RootConfig:
@@ -212,6 +223,11 @@ def parse_yaml(
         if "co2_mass_settings" not in config
         else CO2MassSettings(**config.get("co2_mass_settings", {}))
     )
+    migration_time_settings = (
+        MigrationTimeSettings()
+        if "migration_time_settings" not in config
+        else MigrationTimeSettings(**config.get("migration_time_settings", {}))
+    )
     if map_type == "migration_time":
         for p in config["input"]["properties"]:
             if "lower_threshold" not in p and "name" in p:
@@ -244,6 +260,7 @@ def parse_yaml(
         computesettings=ComputeSettings(**config.get("computesettings", {})),
         mapsettings=MapSettings(**config.get("mapsettings", {})),
         co2_mass_settings=co2_mass_settings,
+        migration_time_settings=migration_time_settings,
     )
 
 

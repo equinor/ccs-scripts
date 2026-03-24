@@ -108,6 +108,15 @@ class CO2MassSettings:
 
 
 @dataclass
+class MigrationTimeSettings:
+    first_injection_year: Optional[int] = None
+
+    def __post_init__(self):
+        if self.first_injection_year is not None:
+            self.first_injection_year = int(self.first_injection_year)
+
+
+@dataclass
 class MapSettings:
     # pylint: disable=too-many-instance-attributes
     xori: Optional[float] = None
@@ -144,3 +153,4 @@ class RootConfig:
     computesettings: ComputeSettings = field(default_factory=ComputeSettings)
     mapsettings: MapSettings = field(default_factory=MapSettings)
     co2_mass_settings: Optional[CO2MassSettings] = None
+    migration_time_settings: Optional[MigrationTimeSettings] = None
