@@ -84,8 +84,16 @@ def test_migration_time_first_injection_year():
         shifted_swat = xtgeo.surface_from_file(
             shifted_result / "all--migrationtime_swat.gri"
         )
-    assert default_swat.values.max() == pytest.approx(3.08767, abs=0.001)
-    assert shifted_swat.values.max() == pytest.approx(2.0, abs=0.001)
-    assert shifted_swat.values.max() < default_swat.values.max()
+        assert default_swat.values.max() == pytest.approx(3.08767, abs=0.001)
+        assert shifted_swat.values.max() == pytest.approx(2.0, abs=0.001)
+        assert shifted_swat.values.max() < default_swat.values.max()
+    finally:
+        if default_result.exists():
+            shutil.rmtree(str(Path(default_result)))
+        if shifted_result.exists():
+            shutil.rmtree(str(Path(shifted_result)))
+        if shifted_config.exists():
+            shifted_config.unlink()
+
 
 
