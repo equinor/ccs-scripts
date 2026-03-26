@@ -117,19 +117,24 @@ class MigrationTimeSettings:
                 year = int(self.first_injection_year)
             except (TypeError, ValueError) as exc:
                 error_text = (
-                    "Invalid value for 'first_injection_year' in 'migration_time_settings': "
-                    f"{self.first_injection_year!r}. Expected an integer year between 1 and 9999."
+                    "Invalid value for 'first_injection_year' in"
+                    " 'migration_time_settings': "
+                    f"{self.first_injection_year!r}. Expected an integer "
+                    f"year between 1 and 9999."
                 )
                 raise ValueError(format_error(error_text)) from exc
 
             if year <= 0 or year > 9999:
                 error_text = (
-                    "Invalid value for 'first_injection_year' in 'migration_time_settings': "
+                    "Invalid value for 'first_injection_year' in "
+                    "'migration_time_settings': "
                     f"{year}. Year must be between 1 and 9999."
                 )
                 raise ValueError(format_error(error_text))
 
             self.first_injection_year = year
+
+
 @dataclass
 class MapSettings:
     # pylint: disable=too-many-instance-attributes

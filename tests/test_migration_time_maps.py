@@ -94,6 +94,3 @@ def test_migration_time_first_injection_year():
             shutil.rmtree(str(Path(shifted_result)))
         if shifted_config.exists():
             shifted_config.unlink()
-
-
-
