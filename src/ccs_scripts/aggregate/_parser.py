@@ -119,13 +119,6 @@ def parse_arguments(arguments, map_type: str):
             default=None,
             metavar="<CIRRUSINFOFILE>",
         )
-    if map_type == "migration_time":
-        parser.add_argument(
-            "--first_injection_year",
-            help="First injection year for migration time",
-            default=None,
-            metavar="<FIRST_INJECTION_YEAR>",
-        )
     return parser.parse_args(arguments)
 
 
@@ -147,9 +140,6 @@ def _replace_default_dummies_from_ert(args, map_type: str):
             args.gridfolder = None
         if args.cirrus_info_file == "-1":
             args.cirrus_info_file = None
-    if map_type == "migration_time":
-        if args.first_injection_year == "-1":
-            args.first_injection_year = None
 
 
 def process_arguments(arguments, map_type: str) -> RootConfig:
