@@ -19,7 +19,6 @@ from ccs_scripts.aggregate._config import (
     ComputeSettings,
     Input,
     MapSettings,
-    MigrationTimeSettings,
     Output,
     Property,
     RootConfig,
@@ -213,11 +212,6 @@ def parse_yaml(
         if "co2_mass_settings" not in config
         else CO2MassSettings(**config.get("co2_mass_settings", {}))
     )
-    migration_time_settings = (
-        MigrationTimeSettings()
-        if "migration_time_settings" not in config
-        else MigrationTimeSettings(**config.get("migration_time_settings", {}))
-    )
     if map_type == "migration_time":
         for p in config["input"]["properties"]:
             if "lower_threshold" not in p and "name" in p:
@@ -250,7 +244,6 @@ def parse_yaml(
         computesettings=ComputeSettings(**config.get("computesettings", {})),
         mapsettings=MapSettings(**config.get("mapsettings", {})),
         co2_mass_settings=co2_mass_settings,
-        migration_time_settings=migration_time_settings,
     )
 
 

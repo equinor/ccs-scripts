@@ -14,8 +14,8 @@ def log_input_configuration(config_: RootConfig, map_type: str = "aggregate") ->
     """
     Log the provided input
     """
-    version = "v0.15.0"
-    is_dev_version = True
+    version = "v0.14.0"
+    is_dev_version = False
     if is_dev_version:
         version += "_dev"
         try:
