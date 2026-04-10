@@ -543,8 +543,8 @@ def _setup_log_configuration(arguments: argparse.Namespace) -> None:
 
 
 def _log_input_configuration(args: argparse.Namespace) -> None:
-    version = "v0.14.0"
-    is_dev_version = False
+    version = "v0.15.0"
+    is_dev_version = True
     if is_dev_version:
         version += "_dev"
         try:

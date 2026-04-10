@@ -108,6 +108,34 @@ class CO2MassSettings:
 
 
 @dataclass
+class MigrationTimeSettings:
+    first_injection_year: Optional[int] = None
+
+    def __post_init__(self):
+        if self.first_injection_year is not None:
+            try:
+                year = int(self.first_injection_year)
+            except (TypeError, ValueError) as exc:
+                error_text = (
+                    "Invalid value for 'first_injection_year' in"
+                    " 'migration_time_settings': "
+                    f"{self.first_injection_year!r}. Expected an integer "
+                    f"year between 1 and 9999."
+                )
+                raise ValueError(format_error(error_text)) from exc
+
+            if year <= 0 or year > 9999:
+                error_text = (
+                    "Invalid value for 'first_injection_year' in "
+                    "'migration_time_settings': "
+                    f"{year}. Year must be between 1 and 9999."
+                )
+                raise ValueError(format_error(error_text))
+
+            self.first_injection_year = year
+
+
+@dataclass
 class MapSettings:
     # pylint: disable=too-many-instance-attributes
     xori: Optional[float] = None
@@ -144,3 +172,4 @@ class RootConfig:
     computesettings: ComputeSettings = field(default_factory=ComputeSettings)
     mapsettings: MapSettings = field(default_factory=MapSettings)
     co2_mass_settings: Optional[CO2MassSettings] = None
+    migration_time_settings: Optional[MigrationTimeSettings] = None
