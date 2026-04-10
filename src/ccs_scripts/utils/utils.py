@@ -38,6 +38,78 @@ def try_prop(unrst: ResdataFile, prop_name: str):
     return prop
 
 
+def log_saturation_summaries(props: Dict) -> None:
+    sgas = props["SGAS"]
+    swat = props["SWAT"]
+    soil = props["SOIL"] if "SOIL" in props else None
+
+    first_timestep = next(iter(sgas))
+    saturations_first_timestep = [
+        ("sgas", sgas[first_timestep]),
+        ("swat", swat[first_timestep]),
+    ]
+    last_timestep = next(reversed(sgas))
+    saturations_last_timestep = [
+        ("sgas", sgas[last_timestep]),
+        ("swat", swat[last_timestep]),
+    ]
+
+    if soil is not None:
+        saturations_first_timestep.append(("soil", soil[first_timestep]))
+        saturations_last_timestep.append(("soil", soil[last_timestep]))
+
+    header = (
+        f"\n{'Property':<15} {'Min':>12} {'P10':>12} "
+        f"{'Median':>12} {'Mean':>12} {'P90':>12} {'Max':>12}"
+    )
+    logging.info("\nPhase saturation summaries for first timestep - Active cells only")
+    logging.info(header)
+    logging.info(f"{'-' * 93}")
+    for label, values in saturations_first_timestep:
+        row = (
+            f"{label:<15} "
+            f"{values.min():>12.1f} "
+            f"{np.percentile(values, 10):>12.1f} "
+            f"{np.median(values):>12.1f} "
+            f"{values.mean():>12.1f} "
+            f"{np.percentile(values, 90):>12.1f} "
+            f"{values.max():>12.1f}"
+        )
+        logging.info(row)
+
+    logging.info("\nPhase saturation summaries for last timestep - Active cells only")
+    logging.info(header)
+    logging.info(f"{'-' * 93}")
+
+    for label, values in saturations_last_timestep:
+        row = (
+            f"{label:<15} "
+            f"{values.min():>12.1f} "
+            f"{np.percentile(values, 10):>12.1f} "
+            f"{np.median(values):>12.1f} "
+            f"{values.mean():>12.1f} "
+            f"{np.percentile(values, 90):>12.1f} "
+            f"{values.max():>12.1f}"
+        )
+        logging.info(row)
+
+
+def test_for_soil(props: dict):
+    if "SGAS" not in props or "SWAT" not in props:
+        return None
+    tol = 1e-6
+    sgas = props["SGAS"]
+    swat = props["SWAT"]
+    soil = {}
+    max_val = float("-inf")
+    for date in sgas:
+        soil[date] = np.maximum(0.0, 1.0 - sgas[date] - swat[date])
+        max_soil_date = soil[date].max()
+        if max_soil_date > max_val:
+            max_val = max_soil_date
+    return soil if max_val > tol else None
+
+
 def _read_props(
     unrst: ResdataFile,
     prop_names: List,
@@ -81,6 +153,21 @@ def fetch_properties(
     props = {
         p: {d[1]: props[p][d[0]].numpy_copy() for d in enumerate(dates)} for p in props
     }
+    if "SOIL" not in props:
+        soil = test_for_soil(props)
+        if soil is not None:
+            props["SOIL"] = soil
+            logging.info(
+                "Oil Saturation (SOIL) not found as property"
+                "\nHowever, as SGAS + SWAT is not 1 everywhere"
+                "\nThe remaining saturation is assumed to be SOIL."
+                "\nThis propery has been computed"
+            )
+        else:
+            logging.info(
+                "Oil Saturation is zero everywhere."
+                "\n Therefore, two-phase scenario is assumed."
+            )
     logging.info(
         "Done reading properties from file"
         "\nRelevant properties extracted:"
