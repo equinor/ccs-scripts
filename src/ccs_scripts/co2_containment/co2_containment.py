@@ -687,7 +687,7 @@ def log_input_configuration(args: argparse.Namespace) -> None:
     Log the provided input
     """
     version = "v0.15.0"
-    is_dev_version = False
+    is_dev_version = True
     if is_dev_version:
         version += "_dev"
         try:
