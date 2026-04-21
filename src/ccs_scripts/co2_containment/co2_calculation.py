@@ -1783,11 +1783,11 @@ def _calc_co2_amount(
     co2_mass_cell = _calculate_moved_stationary_co2(
         co2_mass_cell,
         source_data.DATES,
-        n_years=300,
+        n_years=25,
         use_free_gas=residual_trapping,  # Use free gas if residual trapping available
         create_plot=True,
         print_debug=True,
-        show_plot=True,
+        show_plot=True, 
     )
     exit()
     
