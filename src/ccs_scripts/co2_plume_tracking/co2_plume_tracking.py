@@ -15,6 +15,7 @@ import socket
 import subprocess
 import sys
 import time
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -39,6 +40,13 @@ from ccs_scripts.utils.utils import (
     read_yaml_file,
     reduce_properties,
 )
+from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
+
+# Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
+warnings.filterwarnings("ignore", "EGrid file given with numres < 1", UserWarning)
+warnings.filterwarnings("ignore", "Unknown simulator code -1", UserWarning)
+
+setup_xtgeo_logging()
 
 DEFAULT_THRESHOLD_GAS = 0.2
 DEFAULT_THRESHOLD_DISSOLVED = 0.0005
