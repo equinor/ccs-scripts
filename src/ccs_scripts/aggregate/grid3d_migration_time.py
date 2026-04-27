@@ -4,7 +4,6 @@ import os
 import shutil
 import sys
 import tempfile
-import warnings
 from typing import List, Optional
 
 import numpy as np
@@ -23,10 +22,6 @@ from ccs_scripts.aggregate.grid3d_aggregate_map import _distribute_config_proper
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, format_warning
 from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
-
-# Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
-warnings.filterwarnings("ignore", "EGrid file given with numres < 1", UserWarning)
-warnings.filterwarnings("ignore", "Unknown simulator code -1", UserWarning)
 
 setup_xtgeo_logging()
 

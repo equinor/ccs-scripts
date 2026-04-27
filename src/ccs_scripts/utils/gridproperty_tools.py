@@ -5,14 +5,7 @@ from typing import Literal
 
 import xtgeo
 
-from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging, suppress_xtgeo_temporarily
-
-# Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
-warnings.filterwarnings("ignore", "EGrid file given with numres < 1", UserWarning)
-warnings.filterwarnings("ignore", "Unknown simulator code -1", UserWarning)
-
-setup_xtgeo_logging()
-
+from ccs_scripts.utils.xtgeo_logging import suppress_xtgeo_warning_by_message
 
 class GridHandler:
     def __init__(
@@ -63,7 +56,7 @@ class GridHandler:
         names: list[str] | Literal["all"],
         dates: list[str] | Literal["all"],
     ) -> xtgeo.GridProperties:
-        with suppress_xtgeo_temporarily():
+        with suppress_xtgeo_warning_by_message("Unknown simulator code"):
             result = xtgeo.gridproperties_from_file(
                 self._properties_file,
                 names=names,
