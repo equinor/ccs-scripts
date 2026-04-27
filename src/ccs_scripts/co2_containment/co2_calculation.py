@@ -535,6 +535,7 @@ def _extract_source_data(
                 init = xtgeo.gridproperties_from_file(
                     init_file, grid=grid_handler.grid, names="all"
                 )
+                print("B")
         except Exception:
             init = None
     if init is None:
