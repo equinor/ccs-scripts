@@ -7,6 +7,7 @@ import xtgeo
 
 from ccs_scripts.utils.xtgeo_logging import suppress_xtgeo_warning_by_message
 
+
 class GridHandler:
     def __init__(
         self,
@@ -75,7 +76,9 @@ def _read_grid(grid_file: Path) -> tuple[xtgeo.Grid, bool]:
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         # Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
-        warnings.filterwarnings("ignore", "EGrid file given with numres < 1", UserWarning)
+        warnings.filterwarnings(
+            "ignore", "EGrid file given with numres < 1", UserWarning
+        )
         warnings.filterwarnings("ignore", "Unknown simulator code -1", UserWarning)
         grid = xtgeo.grid_from_file(grid_file)
     has_lgr = any(
