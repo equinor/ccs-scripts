@@ -64,7 +64,6 @@ class GridHandler:
                 grid=self._property_grid,
                 namestyle=1,
             )
-            print("C")
         return result
 
 
