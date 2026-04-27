@@ -330,7 +330,7 @@ def calculate_all_plume_groups(
         dissolved_prop_key = "AMFG"
     elif "XMF2" in properties:
         dissolved_prop_key = "XMF2"
-    
+
     pg_prop_gas, _ = calculate_plume_groups(
         "SGAS",
         threshold_gas,
@@ -340,7 +340,7 @@ def calculate_all_plume_groups(
         inj_wells,
         gasless,
     )
-    
+
     if dissolved_prop_key is not None:
         pg_prop_dissolved, _ = calculate_plume_groups(
             dissolved_prop_key,
