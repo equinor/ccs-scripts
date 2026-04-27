@@ -1910,7 +1910,7 @@ def _calc_co2_amount_cell_volume(
             props.append(source_data.SGAS)
         elif p == "AMFG":
             props.append(
-                source_data.AMFG if scenario != Scenario.AQUIFER else source_data.AMFG
+                source_data.AMFS if scenario != Scenario.AQUIFER else source_data.AMFG
             )
         elif p == "XMF2":
             props.append(source_data.xmfs[2])
