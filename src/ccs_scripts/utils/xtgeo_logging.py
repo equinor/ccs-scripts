@@ -5,11 +5,6 @@ import logging
 
 
 def setup_xtgeo_logging():
-    """Configure xtgeo logging settings.
-    
-    This function can be called multiple times safely (idempotent).
-    Currently sets xtgeo logger to WARNING level to reduce verbose output.
-    """
     logger = logging.getLogger("xtgeo")
     logger.setLevel(logging.WARNING)
 
