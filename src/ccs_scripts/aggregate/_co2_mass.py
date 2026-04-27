@@ -1,8 +1,8 @@
+import logging
+import warnings
 from enum import Enum
 from pathlib import Path
 from typing import List
-import logging
-import warnings
 
 import numpy as np
 import xtgeo

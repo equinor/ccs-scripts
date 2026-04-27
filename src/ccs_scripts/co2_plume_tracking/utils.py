@@ -1,8 +1,8 @@
-from functools import cached_property
 import itertools
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import cached_property
 from typing import Any, Dict, List, Optional
 
 import numpy as np
