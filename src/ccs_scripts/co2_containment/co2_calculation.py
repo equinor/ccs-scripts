@@ -1252,9 +1252,7 @@ def _cirrus_co2mass(
     assert dwat is not None
     assert sgas is not None
     assert dgas is not None
-    n_years = 10
-    free_prev = 0.0
-    gas_prev = 0.0
+
     co2_mass = {}
     for date in dates:
         co2_mass[date] = [
