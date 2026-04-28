@@ -710,7 +710,9 @@ def calculate_single_distances(
         inj_wells, calculation_type, x_co2, y_co2, config
     )
 
-    dissolved_prop_key = next((p for p in ("AMFG", "XMF2") if p in properties), None)
+    dissolved_prop_key = next(
+        (p for p in ("AMFS", "AMFG", "XMF2") if p in properties), None
+    )
 
     gas_results = _find_distances_per_time_step(
         "SGAS",
@@ -763,7 +765,7 @@ def calculate_distances(
 
     if do_plume_tracking and injection_wells is not None:
         dissolved_prop_key = next(
-            (p for p in ("AMFG", "XMF2") if p in properties), None
+            (p for p in ("AMFS", "AMFG", "XMF2") if p in properties), None
         )
 
         plume_groups_gas, _ = calculate_plume_groups(

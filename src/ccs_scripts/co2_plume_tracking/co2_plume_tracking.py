@@ -128,7 +128,7 @@ def load_plume_tracking_data(
     grid_data = GridData.from_xtgeo_grid(grid_handler.grid)
 
     dissolved_prop = next(
-        (p for p in ("AMFG", "XMF2") if p in grid_handler.property_names), None
+        (p for p in ("AMFS", "AMFG", "XMF2") if p in grid_handler.property_names), None
     )
 
     props_to_extract = ["SGAS"]
@@ -142,9 +142,9 @@ def load_plume_tracking_data(
 
 DESCRIPTION = """
 Calculations for tracking the CO2 plumes from different injection wells,
-using SGAS and the dissolved property (AMFG/XMF2). Keeps track of which
-grid cells belong to which plume group at each time step, and merges
-plumes if they meet.
+using SGAS and the dissolved property (AMFS/AMFG/XMF2). Keeps track of
+which grid cells belong to which plume group at each time step, and
+merges plumes if they meet.
 
 Output is a table on CSV format, counting the number of grid cells in
 each group at each time step. The functionality is also used by the plume
@@ -230,7 +230,7 @@ def _make_parser() -> argparse.ArgumentParser:
         "--threshold_dissolved",
         default=DEFAULT_THRESHOLD_DISSOLVED,
         type=float,
-        help="Threshold for aqueous mole fraction of gas (AMFG or XMF2)",
+        help="Threshold for aqueous mole fraction of gas (AMFS, AMFG or XMF2)",
     )
     parser.add_argument(
         "--no_logging",
@@ -323,6 +323,14 @@ def calculate_all_plume_groups(
     threshold_dissolved: float,
     inj_wells: List[InjectionWellData],
 ) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str]]:
+    dissolved_prop_key = None
+    if "AMFS" in properties:
+        dissolved_prop_key = "AMFS"
+    elif "AMFG" in properties:
+        dissolved_prop_key = "AMFG"
+    elif "XMF2" in properties:
+        dissolved_prop_key = "XMF2"
+
     pg_prop_gas, _ = calculate_plume_groups(
         "SGAS",
         threshold_gas,
@@ -332,9 +340,10 @@ def calculate_all_plume_groups(
         inj_wells,
         gasless,
     )
-    if "AMFG" in properties:
+
+    if dissolved_prop_key is not None:
         pg_prop_dissolved, _ = calculate_plume_groups(
-            "AMFG",
+            dissolved_prop_key,
             threshold_dissolved,
             grid_data,
             properties,
@@ -342,22 +351,10 @@ def calculate_all_plume_groups(
             inj_wells,
             gasless,
         )
-        dissolved_prop_key = "AMFG"
-    elif "XMF2" in properties:
-        pg_prop_dissolved, _ = calculate_plume_groups(
-            "XMF2",
-            threshold_dissolved,
-            grid_data,
-            properties,
-            dates,
-            inj_wells,
-            gasless,
-        )
-        dissolved_prop_key = "XMF2"
     else:
         pg_prop_dissolved = None
-        dissolved_prop_key = None
-        warning_text = "WARNING: Neither AMFG nor XMF2 exists as properties."
+        warning_text = "WARNING: Cannot find any of the following properties: "
+        warning_text += "AMFS, AMFG or XMF2."
         logging.warning(format_warning(warning_text))
 
     return pg_prop_gas, pg_prop_dissolved, dissolved_prop_key

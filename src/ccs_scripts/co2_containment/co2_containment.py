@@ -129,7 +129,9 @@ def _find_plume_groups(
         grid_file, unrst_file
     )
 
-    dissolved_prop = next((p for p in ("AMFG", "XMF2") if p in properties), None)
+    dissolved_prop = next(
+        (p for p in ("AMFS", "AMFG", "XMF2") if p in properties), None
+    )
     if dissolved_prop is None:
         return None
 
