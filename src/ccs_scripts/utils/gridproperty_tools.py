@@ -1,4 +1,3 @@
-import logging
 import warnings
 from pathlib import Path
 from typing import Literal
@@ -75,7 +74,8 @@ def _read_grid(grid_file: Path) -> tuple[xtgeo.Grid, bool]:
     # are present or not.
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        # Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
+        # Temp suppress these warnings.
+        # Can remove if input data or xtgeo behaviour changes.
         warnings.filterwarnings(
             "ignore", "EGrid file given with numres < 1", UserWarning
         )
