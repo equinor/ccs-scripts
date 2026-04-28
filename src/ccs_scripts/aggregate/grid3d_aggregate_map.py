@@ -119,8 +119,10 @@ def _log_surfaces_exported(
     logging.info(f"\nDone exporting {len(surfs)} {map_type} maps")
     logging.info(f"  - {len(types):>2} types: {', '.join(types)}")
     logging.info(f"  - {len(zone_names):>2} zones: {', '.join(zone_names)}")
-    if len(categories[0]) == 3:  # No date for time migration maps
-        dates = list(set([v[2] for v in categories]))
+    dates = list(
+        set([v[2] for v in categories if len(v) > 2])
+    )  # Static properties don't have dates
+    if len(dates) > 0:
         dates.sort()
         logging.info(f"  - {len(dates):>2} dates: {', '.join(dates)}")
     timer.stop("logging")
