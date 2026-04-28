@@ -1,8 +1,11 @@
+import logging
 import warnings
 from pathlib import Path
 from typing import Literal
 
 import xtgeo
+
+from ccs_scripts.utils.xtgeo_logging import suppress_xtgeo_warning_by_message
 
 
 class GridHandler:
@@ -54,13 +57,15 @@ class GridHandler:
         names: list[str] | Literal["all"],
         dates: list[str] | Literal["all"],
     ) -> xtgeo.GridProperties:
-        return xtgeo.gridproperties_from_file(
-            self._properties_file,
-            names=names,
-            dates=dates,
-            grid=self._property_grid,
-            namestyle=1,
-        )
+        with suppress_xtgeo_warning_by_message("Unknown simulator code"):
+            result = xtgeo.gridproperties_from_file(
+                self._properties_file,
+                names=names,
+                dates=dates,
+                grid=self._property_grid,
+                namestyle=1,
+            )
+        return result
 
 
 def _read_grid(grid_file: Path) -> tuple[xtgeo.Grid, bool]:
@@ -70,6 +75,11 @@ def _read_grid(grid_file: Path) -> tuple[xtgeo.Grid, bool]:
     # are present or not.
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
+        # Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
+        warnings.filterwarnings(
+            "ignore", "EGrid file given with numres < 1", UserWarning
+        )
+        warnings.filterwarnings("ignore", "Unknown simulator code -1", UserWarning)
         grid = xtgeo.grid_from_file(grid_file)
     has_lgr = any(
         "egrid file contains local grid refinements (LGR)" in str(warn.message)

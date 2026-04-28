@@ -28,17 +28,16 @@ from ccs_scripts.aggregate._config import (
 )
 from ccs_scripts.co2_containment.co2_containment import str_to_bool
 from ccs_scripts.utils.utils import format_error, format_warning
+from ccs_scripts.utils.xtgeo_logging import (
+    setup_xtgeo_logging,
+    suppress_xtgeo_warning_by_message,
+)
 
 # Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
 warnings.filterwarnings("ignore", "EGrid file given with numres < 1", UserWarning)
 warnings.filterwarnings("ignore", "Unknown simulator code -1", UserWarning)
 
-# Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
-warnings.filterwarnings("ignore", "EGrid file given with numres < 1", UserWarning)
-warnings.filterwarnings("ignore", "Unknown simulator code -1", UserWarning)
-
-xtgeo_logger = logging.getLogger("xtgeo")
-xtgeo_logger.setLevel(logging.WARNING)
+setup_xtgeo_logging()
 
 
 def parse_arguments(arguments, map_type: str):
@@ -367,14 +366,16 @@ def extract_properties(
                 if spec.name is None
                 else [spec.name] if isinstance(spec.name, str) else spec.name
             )
-            props = xtgeo.gridproperties_from_file(
-                spec.source,
-                names=names,
-                grid=grid,
-                dates=dates or "all",
-            ).props
+            with suppress_xtgeo_warning_by_message("Unknown simulator code"):
+                props = xtgeo.gridproperties_from_file(
+                    spec.source,
+                    names=names,
+                    grid=grid,
+                    dates=dates or "all",
+                ).props
         except (RuntimeError, ValueError):
-            props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
+            with suppress_xtgeo_warning_by_message("Unknown simulator code"):
+                props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
         if mask_low_values and spec.lower_threshold is not None:
             for prop in props:
                 if not isinstance(prop.values.mask, np.ndarray):

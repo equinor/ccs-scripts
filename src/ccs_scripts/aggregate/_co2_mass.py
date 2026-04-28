@@ -1,3 +1,5 @@
+import logging
+import warnings
 from enum import Enum
 from pathlib import Path
 from typing import List
@@ -12,6 +14,9 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Scenario,
 )
 from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
+
+setup_xtgeo_logging()
 
 CO2_MASS_PNAME = "CO2Mass"
 

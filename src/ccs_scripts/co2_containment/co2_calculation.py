@@ -23,6 +23,7 @@ from ccs_scripts.utils.utils import (
     is_subset,
     log_saturation_summaries,
 )
+from ccs_scripts.utils.xtgeo_logging import suppress_xtgeo_warning_by_message
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
 DEFAULT_WATER_MOLAR_MASS = 18.0
@@ -530,9 +531,10 @@ def _extract_source_data(
         try:
             # Extract everything from the init file. This is (probably) small
             # amounts of data compared to the dynamic part
-            init = xtgeo.gridproperties_from_file(
-                init_file, grid=grid_handler.grid, names="all"
-            )
+            with suppress_xtgeo_warning_by_message("Unknown simulator code"):
+                init = xtgeo.gridproperties_from_file(
+                    init_file, grid=grid_handler.grid, names="all"
+                )
         except Exception:
             init = None
     if init is None:

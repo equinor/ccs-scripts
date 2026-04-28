@@ -39,6 +39,9 @@ from ccs_scripts.utils.utils import (
     read_yaml_file,
     reduce_properties,
 )
+from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
+
+setup_xtgeo_logging()
 
 DEFAULT_THRESHOLD_GAS = 0.2
 DEFAULT_THRESHOLD_DISSOLVED = 0.0005

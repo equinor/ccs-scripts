@@ -21,6 +21,9 @@ from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.aggregate.grid3d_aggregate_map import _distribute_config_property
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, format_warning
+from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
+
+setup_xtgeo_logging()
 
 _XTG = XTGeoDialog()
 
