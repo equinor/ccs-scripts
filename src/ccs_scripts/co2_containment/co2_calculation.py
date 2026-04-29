@@ -962,16 +962,26 @@ def _calculate_moved_stationary_co2(
         co2_mass: Dictionary of CO2 mass arrays by date
         dates: List of all available dates in chronological order
         n_years: Number of years to look back for comparison (default: 10)
-        use_free_gas: If True, use free gas (index 4); if False, use total gas (index 1)
+        use_free_gas: If True, use free gas; if False, use total gas
         create_plot: If True, generate and save distribution plots
         show_plot: If True, display plots interactively (blocks execution)
         print_debug: If True, print debug information for each date
 
     Returns:
-        Updated co2_mass dictionary with moved and stationary CO2 appended
+        Updated co2_mass dictionary with moved and stationary CO2 added.
+        Adds keys: 'moving_free_gas' and 'stationary_free_gas' if use_free_gas=True,
+        or 'moving_gas' and 'stationary_gas' if use_free_gas=False
     """
     gas_key = "free_gas" if use_free_gas else "gas"
     gas_type_name = "Free" if use_free_gas else "Gas"
+
+    # Determine the output key names based on use_free_gas
+    if use_free_gas:
+        moving_key = "moving_free_gas"
+        stationary_key = "stationary_free_gas"
+    else:
+        moving_key = "moving_gas"
+        stationary_key = "stationary_gas"
 
     for date in dates:
         gas_current = co2_mass[date][gas_key]
@@ -981,8 +991,8 @@ def _calculate_moved_stationary_co2(
         delta_gas[delta_gas < 0] = 0
         diff_gas = gas_current - delta_gas
 
-        co2_mass[date]["moved_gas"] = delta_gas
-        co2_mass[date]["stationary_gas"] = diff_gas
+        co2_mass[date][moving_key] = delta_gas
+        co2_mass[date][stationary_key] = diff_gas
 
         if print_debug:
             print(f"\nDate: {date}")
@@ -1038,14 +1048,22 @@ def _plot_co2_distribution_over_time(
     gas_type = "Free CO2" if use_free_gas else "Gas CO2"
     has_trapped = "trapped_gas" in co2_mass[dates[0]]
 
+    # Determine which keys to use based on use_free_gas
+    if use_free_gas:
+        moving_key = "moving_free_gas"
+        stationary_key = "stationary_free_gas"
+    else:
+        moving_key = "moving_gas"
+        stationary_key = "stationary_gas"
+
     for date in dates:
         phases = co2_mass[date]
         # Get dissolved CO2 (aqueous phase)
         dissolved = np.sum(phases["dis_water"]) / 1000000  # Convert to Mt (megatonnes)
 
         # Get pre-calculated moved and stationary
-        moved = np.sum(phases["moved_gas"]) / 1000000  # Convert to Mt
-        stationary = np.sum(phases["stationary_gas"]) / 1000000  # Convert to Mt
+        moved = np.sum(phases[moving_key]) / 1000000  # Convert to Mt
+        stationary = np.sum(phases[stationary_key]) / 1000000  # Convert to Mt
 
         dissolved_total.append(dissolved)
         moved_total.append(moved)
@@ -1956,6 +1974,9 @@ def _calc_co2_amount(
     oil_molar_mass: Optional[float],
     comp_molar_masses: Optional[Dict[str, Tuple[int, float]]],
 ) -> Co2Data:
+    # Control whether to calculate moving/stationary gas phases
+    find_stationary_gas = True
+    
     if source == "Cirrus":
         co2_mass_cell = _cirrus_co2mass(
             source_data,
@@ -1988,15 +2009,17 @@ def _calc_co2_amount(
             co2_position,
         )
 
-    # co2_mass_cell = _calculate_moved_stationary_co2(
-    #     co2_mass_cell,
-    #     source_data.DATES,
-    #     n_years=25,
-    #     use_free_gas=residual_trapping,  # Use free gas if residual trapping available
-    #     create_plot=True,
-    #     print_debug=True,
-    #     show_plot=True,
-    # )
+    # Calculate moving/stationary gas phases if requested
+    # if find_stationary_gas:
+    #     co2_mass_cell = _calculate_moved_stationary_co2(
+    #         co2_mass_cell,
+    #         source_data.DATES,
+    #         n_years=25,
+    #         use_free_gas=residual_trapping,  # Use free gas if residual trapping available
+    #         create_plot=True,
+    #         print_debug=True,
+    #         show_plot=True,
+    #     )
     # exit()
 
     co2_mass_output = Co2Data(
@@ -2205,6 +2228,7 @@ def _calculate_molar_vols_co2(
     return molar_vols_co2
 
 
+# NBNB-AS: COH-447, need to check/fix here, but should be simple
 def _calc_co2_amount_cell_volume(
     scenario: Scenario,
     source_data: SourceData,
