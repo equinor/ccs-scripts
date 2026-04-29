@@ -957,7 +957,7 @@ def _calculate_moved_stationary_co2(
 ) -> Dict[str, Dict[str, np.ndarray]]:
     """
     Calculate moved and stationary CO2 based on gas phase change over time.
-    
+
     Args:
         co2_mass: Dictionary of CO2 mass arrays by date
         dates: List of all available dates in chronological order
@@ -966,43 +966,49 @@ def _calculate_moved_stationary_co2(
         create_plot: If True, generate and save distribution plots
         show_plot: If True, display plots interactively (blocks execution)
         print_debug: If True, print debug information for each date
-    
+
     Returns:
         Updated co2_mass dictionary with moved and stationary CO2 appended
     """
     gas_key = "free_gas" if use_free_gas else "gas"
     gas_type_name = "Free" if use_free_gas else "Gas"
-    
+
     for date in dates:
         gas_current = co2_mass[date][gas_key]
         gas_past = _get_free_co2_10years_ago(date, co2_mass, dates, n_years, gas_key)
-        
+
         delta_gas = gas_current - gas_past
         delta_gas[delta_gas < 0] = 0
         diff_gas = gas_current - delta_gas
-        
+
         co2_mass[date]["moved_gas"] = delta_gas
         co2_mass[date]["stationary_gas"] = diff_gas
-        
+
         if print_debug:
             print(f"\nDate: {date}")
             phases = co2_mass[date]
             total_mass = (
-                np.sum(phases["dis_water"]) + 
-                np.sum(phases["gas"]) + 
-                np.sum(phases["dis_oil"])
+                np.sum(phases["dis_water"])
+                + np.sum(phases["gas"])
+                + np.sum(phases["dis_oil"])
             ) / 1000000
             print(f"Total CO2 mass: {total_mass:>10.2f} Mt")
             print(f"Dissolved     : {np.sum(phases['dis_water']) / 1000000:>10.2f} Mt")
             if "trapped_gas" in phases:
-                print(f"Trapped       : {np.sum(phases['trapped_gas']) / 1000000:>10.2f} Mt")
+                print(
+                    f"Trapped       : {np.sum(phases['trapped_gas']) / 1000000:>10.2f} Mt"
+                )
             print(f"{gas_type_name:14s}: {np.sum(phases[gas_key]) / 1000000:>10.2f} Mt")
-            print(f"Moved ({n_years}y)   : {np.sum(delta_gas) / 1000000:>10.2f} Mt   <------")
+            print(
+                f"Moved ({n_years}y)   : {np.sum(delta_gas) / 1000000:>10.2f} Mt   <------"
+            )
             print(f"Stationary    : {np.sum(diff_gas) / 1000000:>10.2f} Mt")
-    
+
     if create_plot:
-        _plot_co2_distribution_over_time(co2_mass, dates, n_years, use_free_gas, show_plot)
-    
+        _plot_co2_distribution_over_time(
+            co2_mass, dates, n_years, use_free_gas, show_plot
+        )
+
     return co2_mass
 
 
@@ -1015,7 +1021,7 @@ def _plot_co2_distribution_over_time(
 ) -> None:
     """
     Plot CO2 distribution over time showing dissolved, moved, and stationary CO2.
-    
+
     Args:
         co2_mass: Dictionary of CO2 mass arrays by date (must include moved/stationary indices)
         dates: List of all available dates in chronological order
@@ -1028,108 +1034,147 @@ def _plot_co2_distribution_over_time(
     moved_total = []
     stationary_total = []
     trapped_total = []
-    
+
     gas_type = "Free CO2" if use_free_gas else "Gas CO2"
     has_trapped = "trapped_gas" in co2_mass[dates[0]]
-    
+
     for date in dates:
         phases = co2_mass[date]
         # Get dissolved CO2 (aqueous phase)
         dissolved = np.sum(phases["dis_water"]) / 1000000  # Convert to Mt (megatonnes)
-        
+
         # Get pre-calculated moved and stationary
         moved = np.sum(phases["moved_gas"]) / 1000000  # Convert to Mt
         stationary = np.sum(phases["stationary_gas"]) / 1000000  # Convert to Mt
-        
+
         dissolved_total.append(dissolved)
         moved_total.append(moved)
         stationary_total.append(stationary)
         if has_trapped:
             trapped_total.append(np.sum(phases["trapped_gas"]) / 1000000)
-    
+
     # Create stacked area plot with dissolved at the top and moved at the bottom
     fig, ax = plt.subplots(figsize=(14, 6))
     if has_trapped:
-        ax.stackplot(date_objects, moved_total, stationary_total, trapped_total, dissolved_total,
-                     labels=[f'Moved {gas_type} ({n_years}y)', f'Stationary {gas_type}', 'Trapped CO2', 'Dissolved CO2'],
-                     colors=['red', 'green', 'saddlebrown', 'blue'],
-                     alpha=0.8)
+        ax.stackplot(
+            date_objects,
+            moved_total,
+            stationary_total,
+            trapped_total,
+            dissolved_total,
+            labels=[
+                f"Moved {gas_type} ({n_years}y)",
+                f"Stationary {gas_type}",
+                "Trapped CO2",
+                "Dissolved CO2",
+            ],
+            colors=["red", "green", "saddlebrown", "blue"],
+            alpha=0.8,
+        )
     else:
-        ax.stackplot(date_objects, moved_total, stationary_total, dissolved_total,
-                     labels=[f'Moved {gas_type} ({n_years}y)', f'Stationary {gas_type}', 'Dissolved CO2'],
-                     colors=['red', 'green', 'blue'],
-                     alpha=0.8)
-    
-    ax.set_xlabel('Date', fontsize=12)
-    ax.set_ylabel('CO2 Mass (Mt)', fontsize=12)
-    ax.set_title('CO2 Distribution Over Time (Detailed)', fontsize=14, fontweight='bold')
+        ax.stackplot(
+            date_objects,
+            moved_total,
+            stationary_total,
+            dissolved_total,
+            labels=[
+                f"Moved {gas_type} ({n_years}y)",
+                f"Stationary {gas_type}",
+                "Dissolved CO2",
+            ],
+            colors=["red", "green", "blue"],
+            alpha=0.8,
+        )
+
+    ax.set_xlabel("Date", fontsize=12)
+    ax.set_ylabel("CO2 Mass (Mt)", fontsize=12)
+    ax.set_title(
+        "CO2 Distribution Over Time (Detailed)", fontsize=14, fontweight="bold"
+    )
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles[::-1], labels[::-1], loc='upper left', fontsize=10)
+    ax.legend(handles[::-1], labels[::-1], loc="upper left", fontsize=10)
     ax.grid(True, alpha=0.3)
-    
+
     # Format x-axis to show dates nicely
     fig.autofmt_xdate()
-    
+
     plt.tight_layout()
-    filename1 = f'co2_distribution_detailed_{n_years}years.png'
-    plt.savefig(filename1, dpi=300, bbox_inches='tight')
+    filename1 = f"co2_distribution_detailed_{n_years}years.png"
+    plt.savefig(filename1, dpi=300, bbox_inches="tight")
     print(f"\nPlot saved as: {os.path.abspath(filename1)}")
     if show_plot:
         plt.show()
     plt.close(fig)
-    
+
     # Create second plot with gas (moved + stationary) combined
     gas_total = [m + s for m, s in zip(moved_total, stationary_total)]
-    
+
     fig2, ax2 = plt.subplots(figsize=(14, 6))
     if has_trapped:
-        ax2.stackplot(date_objects, gas_total, trapped_total, dissolved_total,
-                      labels=[gas_type, 'Trapped CO2', 'Dissolved CO2'],
-                      colors=['green', 'saddlebrown', 'blue'],
-                      alpha=0.8)
+        ax2.stackplot(
+            date_objects,
+            gas_total,
+            trapped_total,
+            dissolved_total,
+            labels=[gas_type, "Trapped CO2", "Dissolved CO2"],
+            colors=["green", "saddlebrown", "blue"],
+            alpha=0.8,
+        )
     else:
-        ax2.stackplot(date_objects, gas_total, dissolved_total,
-                      labels=[gas_type, 'Dissolved CO2'],
-                      colors=['green', 'blue'],
-                      alpha=0.8)
-    
-    ax2.set_xlabel('Date', fontsize=12)
-    ax2.set_ylabel('CO2 Mass (Mt)', fontsize=12)
-    ax2.set_title('CO2 Distribution Over Time (Simplified)', fontsize=14, fontweight='bold')
+        ax2.stackplot(
+            date_objects,
+            gas_total,
+            dissolved_total,
+            labels=[gas_type, "Dissolved CO2"],
+            colors=["green", "blue"],
+            alpha=0.8,
+        )
+
+    ax2.set_xlabel("Date", fontsize=12)
+    ax2.set_ylabel("CO2 Mass (Mt)", fontsize=12)
+    ax2.set_title(
+        "CO2 Distribution Over Time (Simplified)", fontsize=14, fontweight="bold"
+    )
     handles2, labels2 = ax2.get_legend_handles_labels()
-    ax2.legend(handles2[::-1], labels2[::-1], loc='upper left', fontsize=10)
+    ax2.legend(handles2[::-1], labels2[::-1], loc="upper left", fontsize=10)
     ax2.grid(True, alpha=0.3)
-    
+
     # Format x-axis to show dates nicely
     fig2.autofmt_xdate()
-    
+
     plt.tight_layout()
-    filename2 = 'co2_distribution_simplified.png'
-    plt.savefig(filename2, dpi=300, bbox_inches='tight')
+    filename2 = "co2_distribution_simplified.png"
+    plt.savefig(filename2, dpi=300, bbox_inches="tight")
     print(f"Plot saved as: {os.path.abspath(filename2)}")
     if show_plot:
         plt.show()
     plt.close(fig2)
-    
+
     # Create third plot with moved vs stationary gas only
     fig3, ax3 = plt.subplots(figsize=(14, 6))
-    ax3.stackplot(date_objects, moved_total, stationary_total,
-                  labels=[f'Moved {gas_type} ({n_years}y)', f'Stationary {gas_type}'],
-                  colors=['red', 'green'],
-                  alpha=0.8)
-    
-    ax3.set_xlabel('Date', fontsize=12)
-    ax3.set_ylabel('CO2 Mass (Mt)', fontsize=12)
-    ax3.set_title(f'{gas_type}: Moved vs Stationary ({n_years}y)', fontsize=14, fontweight='bold')
+    ax3.stackplot(
+        date_objects,
+        moved_total,
+        stationary_total,
+        labels=[f"Moved {gas_type} ({n_years}y)", f"Stationary {gas_type}"],
+        colors=["red", "green"],
+        alpha=0.8,
+    )
+
+    ax3.set_xlabel("Date", fontsize=12)
+    ax3.set_ylabel("CO2 Mass (Mt)", fontsize=12)
+    ax3.set_title(
+        f"{gas_type}: Moved vs Stationary ({n_years}y)", fontsize=14, fontweight="bold"
+    )
     handles3, labels3 = ax3.get_legend_handles_labels()
-    ax3.legend(handles3[::-1], labels3[::-1], loc='upper left', fontsize=10)
+    ax3.legend(handles3[::-1], labels3[::-1], loc="upper left", fontsize=10)
     ax3.grid(True, alpha=0.3)
-    
+
     fig3.autofmt_xdate()
-    
+
     plt.tight_layout()
-    filename3 = f'co2_distribution_moved_vs_stationary_{n_years}years.png'
-    plt.savefig(filename3, dpi=300, bbox_inches='tight')
+    filename3 = f"co2_distribution_moved_vs_stationary_{n_years}years.png"
+    plt.savefig(filename3, dpi=300, bbox_inches="tight")
     print(f"Plot saved as: {os.path.abspath(filename3)}")
     if show_plot:
         plt.show()
@@ -1322,7 +1367,7 @@ def _cirrus_co2mass(
             co2_mass[date]["free_gas"] = (
                 eff_vols[date] * (sgas[date] - sgstrand[date]) * dgas[date] * gas_mf
             )
-    
+
     return co2_mass
 
 
@@ -1556,12 +1601,9 @@ def _cirrus_co2_molar_volume(
                         )
                         / (1000 * oil_density[x])
                         + (
-                            co2_molar_mass
-                            * mole_fractions["Oil"]["CO2"][date][x]
-                            + water_molar_mass
-                            * mole_fractions["Oil"]["Water"][date][x]
-                            + gas_molar_mass
-                            * mole_fractions["Oil"]["Gas"][date][x]
+                            co2_molar_mass * mole_fractions["Oil"]["CO2"][date][x]
+                            + water_molar_mass * mole_fractions["Oil"]["Water"][date][x]
+                            + gas_molar_mass * mole_fractions["Oil"]["Gas"][date][x]
                             + oil_molar_mass
                             * (
                                 1
@@ -1579,7 +1621,7 @@ def _cirrus_co2_molar_volume(
             ]
         else:
             oil_vol = list(np.zeros_like(dis_water_vol))
-        
+
         # Clean up negative or invalid values
         dis_water_vol = [
             0 if x < 0 or y < THRESHOLD_DISSOLVED else x
@@ -1593,13 +1635,13 @@ def _cirrus_co2_molar_volume(
             0 if x < 0 or y == 0 else x
             for x, y in zip(oil_vol, mole_fractions["Oil"]["CO2"][date])
         ]
-        
+
         co2_molar_vol[date] = {
             "dis_water": dis_water_vol,
             "gas": gas_vol,
             "dis_oil": oil_vol,
         }
-        
+
         if source_data.SGSTRAND is not None:
             co2_molar_vol[date]["trapped_gas"] = gas_vol
             co2_molar_vol[date]["free_gas"] = gas_vol
@@ -1636,9 +1678,7 @@ def _eclipse_co2_molar_volume(
             (
                 (1 / xmf2[date][x])
                 * (
-                    -water_molar_mass
-                    * (1 - xmf2[date][x])
-                    / (1000 * water_density[x])
+                    -water_molar_mass * (1 - xmf2[date][x]) / (1000 * water_density[x])
                     + 1 / (1000 * bwat[date][x])  # type: ignore[index]
                 )
                 if xmf2[date][x] >= THRESHOLD_DISSOLVED
@@ -1650,9 +1690,7 @@ def _eclipse_co2_molar_volume(
             (
                 (1 / ymf2[date][x])
                 * (
-                    -water_molar_mass
-                    * (1 - ymf2[date][x])
-                    / (1000 * water_density[x])
+                    -water_molar_mass * (1 - ymf2[date][x]) / (1000 * water_density[x])
                     + 1 / (1000 * bgas[date][x])  # type: ignore[index]
                 )
                 if not ymf2[date][x] == 0
@@ -1660,23 +1698,20 @@ def _eclipse_co2_molar_volume(
             )
             for x in range(len(ymf2[date]))
         ]
-        
+
         # Clean up negative or invalid values
         dis_water_vol = [
             0 if x < 0 or y < THRESHOLD_DISSOLVED else x
             for x, y in zip(dis_water_vol, xmf2[date])
         ]
-        gas_vol = [
-            0 if x < 0 or y == 0 else x
-            for x, y in zip(gas_vol, ymf2[date])
-        ]
-        
+        gas_vol = [0 if x < 0 or y == 0 else x for x, y in zip(gas_vol, ymf2[date])]
+
         co2_molar_vol[date] = {
             "dis_water": dis_water_vol,
             "gas": gas_vol,
             "dis_oil": list(np.zeros_like(dis_water_vol)),
         }
-        
+
         if source_data.SGTRH is not None:
             co2_molar_vol[date]["trapped_gas"] = gas_vol
             co2_molar_vol[date]["free_gas"] = gas_vol
@@ -1952,7 +1987,7 @@ def _calc_co2_amount(
             co2_molar_mass,
             co2_position,
         )
-    
+
     # co2_mass_cell = _calculate_moved_stationary_co2(
     #     co2_mass_cell,
     #     source_data.DATES,
@@ -1960,10 +1995,10 @@ def _calc_co2_amount(
     #     use_free_gas=residual_trapping,  # Use free gas if residual trapping available
     #     create_plot=True,
     #     print_debug=True,
-    #     show_plot=True, 
+    #     show_plot=True,
     # )
     # exit()
-    
+
     co2_mass_output = Co2Data(
         source_data.x_coord,
         source_data.y_coord,
@@ -2012,16 +2047,22 @@ def _calc_co2_amount(
         vols_co2 = {}
         for date in co2_mass:
             vols_co2[date] = {
-                phase: molar_vols_co2[date][phase] * co2_mass[date][phase] / (co2_molar_mass / 1000)
+                phase: molar_vols_co2[date][phase]
+                * co2_mass[date][phase]
+                / (co2_molar_mass / 1000)
                 for phase in ["dis_water", "gas", "dis_oil"]
             }
             if residual_trapping:
                 # Use gas molar volume for both trapped and free gas
                 vols_co2[date]["trapped_gas"] = (
-                    molar_vols_co2[date]["gas"] * co2_mass[date]["trapped_gas"] / (co2_molar_mass / 1000)
+                    molar_vols_co2[date]["gas"]
+                    * co2_mass[date]["trapped_gas"]
+                    / (co2_molar_mass / 1000)
                 )
                 vols_co2[date]["free_gas"] = (
-                    molar_vols_co2[date]["gas"] * co2_mass[date]["free_gas"] / (co2_molar_mass / 1000)
+                    molar_vols_co2[date]["gas"]
+                    * co2_mass[date]["free_gas"]
+                    / (co2_molar_mass / 1000)
                 )
         co2_amount = Co2Data(
             source_data.x_coord,
@@ -2034,8 +2075,12 @@ def _calc_co2_amount(
                     np.array(phases["gas"]),
                     np.array(phases["dis_oil"]),
                     np.zeros_like(np.array(phases["dis_water"])),
-                    np.array(phases.get("trapped_gas", np.zeros_like(phases["dis_water"]))),
-                    np.array(phases.get("free_gas", np.zeros_like(phases["dis_water"]))),
+                    np.array(
+                        phases.get("trapped_gas", np.zeros_like(phases["dis_water"]))
+                    ),
+                    np.array(
+                        phases.get("free_gas", np.zeros_like(phases["dis_water"]))
+                    ),
                 )
                 for date, phases in vols_co2.items()
             ],
