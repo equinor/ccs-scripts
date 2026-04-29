@@ -25,7 +25,8 @@ class ContainedCo2:
     Args:
         date (str): A given time step
         amount (float): Numerical value with the computed amount at "date"
-        phase (Literal): One of gas (or trapped_gas/free_gas)/dissolved/undefined.
+        phase (Literal): One of gas (or trapped_gas/free_gas/moving_free_gas/
+            stationary_free_gas/moving_gas/stationary_gas)/dissolved/undefined.
             The phase of "amount".
         containment (Literal): One of contained/outside/nogo. The location
             that "amount" corresponds to.
@@ -233,7 +234,10 @@ def _lists_of_phases(
         phases = ["undefined"]
     else:
         phases = ["total", "dissolved_water"]
-        phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
+        if residual_trapping:
+            phases += ["trapped_gas", "free_gas", "moving_free_gas", "stationary_free_gas"]
+        else:
+            phases += ["gas", "moving_gas", "stationary_gas"]
         phases += (
             ["dissolved_oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
         )
@@ -253,11 +257,22 @@ def _lists_of_co2_for_each_phase(
         arrays = [co2_at_date.volume_coverage]
     else:
         arrays = [co2_at_date.total_mass(), co2_at_date.dis_water_phase]
-        arrays += (
-            [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
-            if residual_trapping
-            else [co2_at_date.gas_phase]
-        )
+        if residual_trapping:
+            arrays += [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
+            # Add moving/stationary free gas if available
+            if co2_at_date.moving_free_gas is not None:
+                arrays += [co2_at_date.moving_free_gas, co2_at_date.stationary_free_gas]
+            else:
+                # Use zeros as placeholder if not calculated
+                arrays += [np.zeros_like(co2_at_date.gas_phase), np.zeros_like(co2_at_date.gas_phase)]
+        else:
+            arrays += [co2_at_date.gas_phase]
+            # Add moving/stationary gas if available
+            if co2_at_date.moving_gas is not None:
+                arrays += [co2_at_date.moving_gas, co2_at_date.stationary_gas]
+            else:
+                # Use zeros as placeholder if not calculated
+                arrays += [np.zeros_like(co2_at_date.gas_phase), np.zeros_like(co2_at_date.gas_phase)]
         arrays += [co2_at_date.dis_oil_phase]
     return arrays
 

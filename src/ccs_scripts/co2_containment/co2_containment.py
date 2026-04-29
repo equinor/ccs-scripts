@@ -94,10 +94,11 @@ def calculate_out_of_bounds_co2(
         unrst_file,
         zone_info,
         region_info,
+        True,
         residual_trapping,
-        calc_type_input,
-        init_file,
-        cirrus_info_file,
+        calc_type_input=calc_type_input,
+        init_file=init_file,
+        cirrus_info_file=cirrus_info_file,
     )
 
     cont_polygon = _read_polygon(file_cont_polygon) if file_cont_polygon else None
@@ -1255,6 +1256,8 @@ def main() -> None:
         arguments_processed.nogo_polygon,
         arguments_processed.cirrus_info_file,
     )
+    print(data_frame)
+    exit()
     sort_and_replace_nones(data_frame)
     log_summary_of_results(data_frame, arguments_processed.calc_type_input)
     timer.start("export_results")

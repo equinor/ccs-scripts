@@ -198,6 +198,10 @@ class Co2DataAtTimeStep:
                                     calc_type_input = volume_extent)
       trapped_gas_phase (np.ndarray): The amount of CO2 in trapped/stranded gas phase
       free_gas_phase (np.ndarray): The amount of CO2 in free gas phase
+      moving_free_gas (Optional[np.ndarray]): The amount of CO2 in moving free gas phase
+      stationary_free_gas (Optional[np.ndarray]): The amount of CO2 in stationary free gas phase
+      moving_gas (Optional[np.ndarray]): The amount of CO2 in moving gas phase
+      stationary_gas (Optional[np.ndarray]): The amount of CO2 in stationary gas phase
     """
 
     date: str
@@ -207,6 +211,10 @@ class Co2DataAtTimeStep:
     volume_coverage: np.ndarray
     trapped_gas_phase: np.ndarray
     free_gas_phase: np.ndarray
+    moving_free_gas: Optional[np.ndarray] = None
+    stationary_free_gas: Optional[np.ndarray] = None
+    moving_gas: Optional[np.ndarray] = None
+    stationary_gas: Optional[np.ndarray] = None
 
     def total_mass(self) -> np.ndarray:
         """
@@ -1810,6 +1818,7 @@ def _calculate_co2_data_from_source_data(
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
     residual_trapping: bool = False,
+    find_stationary_gas: bool = True,
     cirrus_info_file: Optional[str] = None,
 ) -> Co2Data:
     """
@@ -1824,6 +1833,7 @@ def _calculate_co2_data_from_source_data(
         co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
         water_molar_mass (float): Water molar mass - Default is 18 g/mol
         residual_trapping (bool): Indicate if residual trapping should be calculated
+        find_stationary_gas (bool): Indicate if moving/stationary gas should be calculated
         cirrus_info_file (Optional[str]): Path to cirrus info file
 
     Returns:
@@ -1866,6 +1876,7 @@ def _calculate_co2_data_from_source_data(
             scenario,
             calc_type,
             residual_trapping,
+            find_stationary_gas,
             source_data,
             pore_volume_prop,
             co2_molar_mass,
@@ -1966,6 +1977,7 @@ def _calc_co2_amount(
     scenario: Scenario,
     calc_type: CalculationType,
     residual_trapping: bool,
+    find_stationary_gas: bool,
     source_data: SourceData,
     pore_volume_prop: str,
     co2_molar_mass: float,
@@ -1973,10 +1985,7 @@ def _calc_co2_amount(
     gas_molar_mass: Optional[float],
     oil_molar_mass: Optional[float],
     comp_molar_masses: Optional[Dict[str, Tuple[int, float]]],
-) -> Co2Data:
-    # Control whether to calculate moving/stationary gas phases
-    find_stationary_gas = True
-    
+) -> Co2Data:    
     if source == "Cirrus":
         co2_mass_cell = _cirrus_co2mass(
             source_data,
@@ -2010,17 +2019,16 @@ def _calc_co2_amount(
         )
 
     # Calculate moving/stationary gas phases if requested
-    # if find_stationary_gas:
-    #     co2_mass_cell = _calculate_moved_stationary_co2(
-    #         co2_mass_cell,
-    #         source_data.DATES,
-    #         n_years=25,
-    #         use_free_gas=residual_trapping,  # Use free gas if residual trapping available
-    #         create_plot=True,
-    #         print_debug=True,
-    #         show_plot=True,
-    #     )
-    # exit()
+    if find_stationary_gas:
+        co2_mass_cell = _calculate_moved_stationary_co2(
+            co2_mass_cell,
+            source_data.DATES,
+            n_years=25,
+            use_free_gas=residual_trapping,  # Use free gas if residual trapping available
+            create_plot=False,
+            print_debug=False,
+            show_plot=False,
+        )
 
     co2_mass_output = Co2Data(
         source_data.x_coord,
@@ -2035,6 +2043,10 @@ def _calc_co2_amount(
                 np.zeros_like(phases["dis_water"]),
                 phases.get("trapped_gas", np.zeros_like(phases["dis_water"])),
                 phases.get("free_gas", np.zeros_like(phases["dis_water"])),
+                phases.get("moving_free_gas"),
+                phases.get("stationary_free_gas"),
+                phases.get("moving_gas"),
+                phases.get("stationary_gas"),
             )
             for date, phases in co2_mass_cell.items()
         ],
@@ -2104,6 +2116,10 @@ def _calc_co2_amount(
                     np.array(
                         phases.get("free_gas", np.zeros_like(phases["dis_water"]))
                     ),
+                    np.array(phases["moving_free_gas"]) if "moving_free_gas" in phases else None,
+                    np.array(phases["stationary_free_gas"]) if "stationary_free_gas" in phases else None,
+                    np.array(phases["moving_gas"]) if "moving_gas" in phases else None,
+                    np.array(phases["stationary_gas"]) if "stationary_gas" in phases else None,
                 )
                 for date, phases in vols_co2.items()
             ],
@@ -2278,6 +2294,10 @@ def _calc_co2_amount_cell_volume(
                 np.array(vols_ext[t]),
                 np.zeros_like(np.array(vols_ext[t])),
                 np.zeros_like(np.array(vols_ext[t])),
+                None,
+                None,
+                None,
+                None,
             )
             for t in vols_ext
         ],
@@ -2335,6 +2355,7 @@ def calculate_co2(
     unrst_file: str,
     zone_info: ZoneInfo,
     region_info: RegionInfo,
+    find_stationary_gas: bool,
     residual_trapping: bool = False,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
@@ -2351,6 +2372,7 @@ def calculate_co2(
       zone_info (ZoneInfo): Zone information
       region_info (RegionInfo): Region information
       residual_trapping (bool): Calculate residual trapping or not
+      find_stationary_gas (bool): Calculate moving/stationary gas phases or not
       cirrus_info_file (str): Path to cirrus info file
 
     Returns:
@@ -2380,6 +2402,7 @@ def calculate_co2(
         source_data,
         calc_type=calc_type,
         residual_trapping=residual_trapping,
+        find_stationary_gas=find_stationary_gas,
         cirrus_info_file=cirrus_info_file,
     )
     timer.stop("calculate_co2")
