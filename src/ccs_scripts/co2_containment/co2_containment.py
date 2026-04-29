@@ -94,7 +94,7 @@ def calculate_out_of_bounds_co2(
         unrst_file,
         zone_info,
         region_info,
-        True,
+        False,
         residual_trapping,
         calc_type_input=calc_type_input,
         init_file=init_file,
