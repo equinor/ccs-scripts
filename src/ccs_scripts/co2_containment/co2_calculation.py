@@ -4,7 +4,7 @@
 import copy
 import logging
 import os
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
