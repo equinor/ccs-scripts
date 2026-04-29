@@ -273,7 +273,9 @@ def _merge_date_rows(
         # Add moving/stationary breakdown phases if they exist
         if residual_trapping:
             phases += ["moving_free_gas"] if "moving_free_gas" in df_phases else []
-            phases += ["stationary_free_gas"] if "stationary_free_gas" in df_phases else []
+            phases += (
+                ["stationary_free_gas"] if "stationary_free_gas" in df_phases else []
+            )
         else:
             phases += ["moving_gas"] if "moving_gas" in df_phases else []
             phases += ["stationary_gas"] if "stationary_gas" in df_phases else []
@@ -1125,11 +1127,23 @@ def prepare_writing_details(
     phase_names = ["Free gas", "Trapped gas"] if residual_trapping else ["Gas"]
     # Add moving/stationary breakdown phases if they exist
     if residual_trapping:
-        phase_names += ["Mov. fr. gas"] if any("moving_free_gas" in col for col in df.columns) else []
-        phase_names += ["Stat. fr. gas"] if any("stationary_free_gas" in col for col in df.columns) else []
+        phase_names += (
+            ["Mov. fr. gas"]
+            if any("moving_free_gas" in col for col in df.columns)
+            else []
+        )
+        phase_names += (
+            ["Stat. fr. gas"]
+            if any("stationary_free_gas" in col for col in df.columns)
+            else []
+        )
     else:
-        phase_names += ["Moving gas"] if any("moving_gas" in col for col in df.columns) else []
-        phase_names += ["Stat. gas"] if any("stationary_gas" in col for col in df.columns) else []
+        phase_names += (
+            ["Moving gas"] if any("moving_gas" in col for col in df.columns) else []
+        )
+        phase_names += (
+            ["Stat. gas"] if any("stationary_gas" in col for col in df.columns) else []
+        )
     phase_names += ["Dis. water"]
     phase_names += (
         ["Dis. oil"] if any("dissolved_oil" in col for col in df.columns) else []

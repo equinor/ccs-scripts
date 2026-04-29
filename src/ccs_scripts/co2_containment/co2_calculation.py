@@ -211,7 +211,9 @@ class Co2DataAtTimeStep:
     volume_coverage: np.ndarray
     trapped_gas_phase: np.ndarray
     free_gas_phase: np.ndarray
-    moving_free_gas: Optional[np.ndarray] = None  # NBNB-AS: CCS-447: OK that these are None?
+    moving_free_gas: Optional[np.ndarray] = (
+        None  # NBNB-AS: CCS-447: OK that these are None?
+    )
     stationary_free_gas: Optional[np.ndarray] = None
     moving_gas: Optional[np.ndarray] = None
     stationary_gas: Optional[np.ndarray] = None
@@ -1985,7 +1987,7 @@ def _calc_co2_amount(
     gas_molar_mass: Optional[float],
     oil_molar_mass: Optional[float],
     comp_molar_masses: Optional[Dict[str, Tuple[int, float]]],
-) -> Co2Data:    
+) -> Co2Data:
     if source == "Cirrus":
         co2_mass_cell = _cirrus_co2mass(
             source_data,
@@ -2116,10 +2118,22 @@ def _calc_co2_amount(
                     np.array(
                         phases.get("free_gas", np.zeros_like(phases["dis_water"]))
                     ),
-                    np.array(phases["moving_free_gas"]) if "moving_free_gas" in phases else None,
-                    np.array(phases["stationary_free_gas"]) if "stationary_free_gas" in phases else None,
+                    (
+                        np.array(phases["moving_free_gas"])
+                        if "moving_free_gas" in phases
+                        else None
+                    ),
+                    (
+                        np.array(phases["stationary_free_gas"])
+                        if "stationary_free_gas" in phases
+                        else None
+                    ),
                     np.array(phases["moving_gas"]) if "moving_gas" in phases else None,
-                    np.array(phases["stationary_gas"]) if "stationary_gas" in phases else None,
+                    (
+                        np.array(phases["stationary_gas"])
+                        if "stationary_gas" in phases
+                        else None
+                    ),
                 )
                 for date, phases in vols_co2.items()
             ],

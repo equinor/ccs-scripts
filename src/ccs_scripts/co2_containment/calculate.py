@@ -235,7 +235,12 @@ def _lists_of_phases(
     else:
         phases = ["total", "dissolved_water"]
         if residual_trapping:
-            phases += ["trapped_gas", "free_gas", "moving_free_gas", "stationary_free_gas"]
+            phases += [
+                "trapped_gas",
+                "free_gas",
+                "moving_free_gas",
+                "stationary_free_gas",
+            ]
         else:
             phases += ["gas", "moving_gas", "stationary_gas"]
         phases += (
@@ -264,7 +269,10 @@ def _lists_of_co2_for_each_phase(
                 arrays += [co2_at_date.moving_free_gas, co2_at_date.stationary_free_gas]
             else:
                 # Use zeros as placeholder if not calculated
-                arrays += [np.zeros_like(co2_at_date.gas_phase), np.zeros_like(co2_at_date.gas_phase)]
+                arrays += [
+                    np.zeros_like(co2_at_date.gas_phase),
+                    np.zeros_like(co2_at_date.gas_phase),
+                ]
         else:
             arrays += [co2_at_date.gas_phase]
             # Add moving/stationary gas if available
@@ -272,7 +280,10 @@ def _lists_of_co2_for_each_phase(
                 arrays += [co2_at_date.moving_gas, co2_at_date.stationary_gas]
             else:
                 # Use zeros as placeholder if not calculated
-                arrays += [np.zeros_like(co2_at_date.gas_phase), np.zeros_like(co2_at_date.gas_phase)]
+                arrays += [
+                    np.zeros_like(co2_at_date.gas_phase),
+                    np.zeros_like(co2_at_date.gas_phase),
+                ]
         arrays += [co2_at_date.dis_oil_phase]
     return arrays
 
