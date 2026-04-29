@@ -947,14 +947,14 @@ def _set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
 
 
 def _calculate_moved_stationary_co2(
-    co2_mass: Dict[str, List[np.ndarray]],
+    co2_mass: Dict[str, Dict[str, np.ndarray]],
     dates: List[str],
     n_years: int = 10,
     use_free_gas: bool = True,
     create_plot: bool = False,
     show_plot: bool = False,
     print_debug: bool = False,
-) -> Dict[str, List[np.ndarray]]:
+) -> Dict[str, Dict[str, np.ndarray]]:
     """
     Calculate moved and stationary CO2 based on gas phase change over time.
     
@@ -970,30 +970,33 @@ def _calculate_moved_stationary_co2(
     Returns:
         Updated co2_mass dictionary with moved and stationary CO2 appended
     """
-    gas_idx = 4 if use_free_gas else 1
+    gas_key = "free_gas" if use_free_gas else "gas"
     gas_type_name = "Free" if use_free_gas else "Gas"
     
     for date in dates:
-        gas_current = co2_mass[date][gas_idx]
-        gas_past = _get_free_co2_10years_ago(date, co2_mass, dates, n_years, not use_free_gas)
+        gas_current = co2_mass[date][gas_key]
+        gas_past = _get_free_co2_10years_ago(date, co2_mass, dates, n_years, gas_key)
         
         delta_gas = gas_current - gas_past
         delta_gas[delta_gas < 0] = 0
         diff_gas = gas_current - delta_gas
         
-        co2_mass[date].extend([delta_gas, diff_gas])
+        co2_mass[date]["moved_gas"] = delta_gas
+        co2_mass[date]["stationary_gas"] = diff_gas
         
         if print_debug:
             print(f"\nDate: {date}")
-            total_mass = sum(np.sum(co2_mass[date][i]) for i in range(3)) / 1000000
+            phases = co2_mass[date]
+            total_mass = (
+                np.sum(phases["dis_water"]) + 
+                np.sum(phases["gas"]) + 
+                np.sum(phases["dis_oil"])
+            ) / 1000000
             print(f"Total CO2 mass: {total_mass:>10.2f} Mt")
-            print(f"Dissolved     : {np.sum(co2_mass[date][0]) / 1000000:>10.2f} Mt")
-            if len(co2_mass[date]) > 3:
-                print(f"Trapped       : {np.sum(co2_mass[date][3]) / 1000000:>10.2f} Mt")
-            if use_free_gas and len(co2_mass[date]) > 4:
-                print(f"{gas_type_name:14s}: {np.sum(co2_mass[date][gas_idx]) / 1000000:>10.2f} Mt")
-            else:
-                print(f"{gas_type_name:14s}: {np.sum(co2_mass[date][gas_idx]) / 1000000:>10.2f} Mt")
+            print(f"Dissolved     : {np.sum(phases['dis_water']) / 1000000:>10.2f} Mt")
+            if "trapped_gas" in phases:
+                print(f"Trapped       : {np.sum(phases['trapped_gas']) / 1000000:>10.2f} Mt")
+            print(f"{gas_type_name:14s}: {np.sum(phases[gas_key]) / 1000000:>10.2f} Mt")
             print(f"Moved ({n_years}y)   : {np.sum(delta_gas) / 1000000:>10.2f} Mt   <------")
             print(f"Stationary    : {np.sum(diff_gas) / 1000000:>10.2f} Mt")
     
@@ -1004,7 +1007,7 @@ def _calculate_moved_stationary_co2(
 
 
 def _plot_co2_distribution_over_time(
-    co2_mass: Dict[str, List[np.ndarray]],
+    co2_mass: Dict[str, Dict[str, np.ndarray]],
     dates: List[str],
     n_years: int,
     use_free_gas: bool = True,
@@ -1026,25 +1029,23 @@ def _plot_co2_distribution_over_time(
     stationary_total = []
     trapped_total = []
     
-    # Find the indices for moved and stationary (should be last two elements)
-    moved_idx = len(co2_mass[dates[0]]) - 2
-    stationary_idx = len(co2_mass[dates[0]]) - 1
     gas_type = "Free CO2" if use_free_gas else "Gas CO2"
-    has_trapped = use_free_gas  # Trapped phase at index 3 when free gas is used
+    has_trapped = "trapped_gas" in co2_mass[dates[0]]
     
     for date in dates:
+        phases = co2_mass[date]
         # Get dissolved CO2 (aqueous phase)
-        dissolved = np.sum(co2_mass[date][0]) / 1000000  # Convert to Mt (megatonnes)
+        dissolved = np.sum(phases["dis_water"]) / 1000000  # Convert to Mt (megatonnes)
         
         # Get pre-calculated moved and stationary
-        moved = np.sum(co2_mass[date][moved_idx]) / 1000000  # Convert to Mt
-        stationary = np.sum(co2_mass[date][stationary_idx]) / 1000000  # Convert to Mt
+        moved = np.sum(phases["moved_gas"]) / 1000000  # Convert to Mt
+        stationary = np.sum(phases["stationary_gas"]) / 1000000  # Convert to Mt
         
         dissolved_total.append(dissolved)
         moved_total.append(moved)
         stationary_total.append(stationary)
         if has_trapped:
-            trapped_total.append(np.sum(co2_mass[date][3]) / 1000000)
+            trapped_total.append(np.sum(phases["trapped_gas"]) / 1000000)
     
     # Create stacked area plot with dissolved at the top and moved at the bottom
     fig, ax = plt.subplots(figsize=(14, 6))
@@ -1137,22 +1138,18 @@ def _plot_co2_distribution_over_time(
 
 def _get_free_co2_10years_ago(
     current_date_str: str,
-    co2_mass: Dict[str, List[np.ndarray]],
+    co2_mass: Dict[str, Dict[str, np.ndarray]],
     dates: List[str],
     years: int = 25,
-    gas_instead_of_free_gas: bool = False,
+    gas_key: str = "free_gas",
 ) -> np.ndarray:
     current_date = datetime.strptime(current_date_str, "%Y%m%d")
     target_date = current_date - timedelta(days=365.25 * years)
 
     date_objects = [datetime.strptime(d, "%Y%m%d") for d in dates]
 
-    if gas_instead_of_free_gas:
-        idx = 1
-    else:
-        idx = 4
     if target_date <= date_objects[0]:
-        return np.zeros_like(co2_mass[dates[0]][idx])
+        return np.zeros_like(co2_mass[dates[0]][gas_key])
 
     before_idx = None
     after_idx = None
@@ -1166,7 +1163,7 @@ def _get_free_co2_10years_ago(
 
     # If exact match found
     if before_idx is not None and date_objects[before_idx] == target_date:
-        return co2_mass[dates[before_idx]][idx]
+        return co2_mass[dates[before_idx]][gas_key]
 
     # Interpolate between before and after dates
     if before_idx is not None and after_idx is not None:
@@ -1178,13 +1175,13 @@ def _get_free_co2_10years_ago(
         days_from_before = (target_date - date_before).days
         weight = days_from_before / total_days if total_days > 0 else 0
 
-        free_before = co2_mass[dates[before_idx]][idx]
-        free_after = co2_mass[dates[after_idx]][idx]
+        free_before = co2_mass[dates[before_idx]][gas_key]
+        free_after = co2_mass[dates[after_idx]][gas_key]
 
         return free_before * (1 - weight) + free_after * weight
 
     # Fallback: return zeros if something unexpected happens
-    return np.zeros_like(co2_mass[dates[0]][idx])
+    return np.zeros_like(co2_mass[dates[0]][gas_key])
 
 
 def _cirrus_co2mass(
@@ -1195,7 +1192,7 @@ def _cirrus_co2mass(
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
     gas_molar_mass: Optional[float] = None,
     oil_molar_mass: Optional[float] = None,
-) -> Dict[str, List[np.ndarray]]:
+) -> Dict[str, Dict[str, np.ndarray]]:
     """
     Calculates CO2 mass based on the existing properties in Cirrus
 
@@ -1212,7 +1209,8 @@ def _cirrus_co2mass(
                               input required if more than 3 components
 
     Returns:
-      Dict
+      Dict[str, Dict[str, np.ndarray]]: Dictionary mapping dates to dicts with keys:
+          'dis_water', 'gas', 'dis_oil', and optionally 'trapped_gas', 'free_gas'
 
     """
     dates = source_data.DATES
@@ -1255,7 +1253,7 @@ def _cirrus_co2mass(
 
     co2_mass = {}
     for date in dates:
-        co2_mass[date] = [
+        dis_water = (
             eff_vols[date]
             * swat[date]
             * dwat[date]
@@ -1267,7 +1265,9 @@ def _cirrus_co2mass(
                 water_molar_mass,
                 gas_molar_mass,
                 oil_molar_mass,
-            ),
+            )
+        )
+        gas = (
             eff_vols[date]
             * sgas[date]
             * dgas[date]
@@ -1279,57 +1279,48 @@ def _cirrus_co2mass(
                 water_molar_mass,
                 gas_molar_mass,
                 oil_molar_mass,
-            ),
-        ]
+            )
+        )
+
+        co2_mass[date] = {
+            "dis_water": dis_water,
+            "gas": gas,
+        }
+
         if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
             assert doil is not None
-            co2_mass[date].extend(
-                [
-                    eff_vols[date]
-                    * (1 - sgas[date] - swat[date])
-                    * doil[date]
-                    * _mole_to_mass_fraction(
-                        mole_fractions["Oil"]["CO2"][date],
-                        mole_fractions["Oil"]["Gas"][date],
-                        mole_fractions["Oil"]["Water"][date],
-                        co2_molar_mass,
-                        water_molar_mass,
-                        gas_molar_mass,
-                        oil_molar_mass,
-                    ),
-                ]
+            co2_mass[date]["dis_oil"] = (
+                eff_vols[date]
+                * (1 - sgas[date] - swat[date])
+                * doil[date]
+                * _mole_to_mass_fraction(
+                    mole_fractions["Oil"]["CO2"][date],
+                    mole_fractions["Oil"]["Gas"][date],
+                    mole_fractions["Oil"]["Water"][date],
+                    co2_molar_mass,
+                    water_molar_mass,
+                    gas_molar_mass,
+                    oil_molar_mass,
+                )
             )
         else:
-            co2_mass[date].extend([np.zeros_like(co2_mass[date][0])])
+            co2_mass[date]["dis_oil"] = np.zeros_like(dis_water)
 
         if sgstrand:
-            co2_mass[date].extend(
-                [
-                    eff_vols[date]
-                    * sgstrand[date]
-                    * dgas[date]
-                    * _mole_to_mass_fraction(
-                        mole_fractions["Gas"]["CO2"][date],
-                        mole_fractions["Gas"]["Gas"][date],
-                        mole_fractions["Gas"]["Water"][date],
-                        co2_molar_mass,
-                        water_molar_mass,
-                        gas_molar_mass,
-                        oil_molar_mass,
-                    ),
-                    eff_vols[date]
-                    * (sgas[date] - sgstrand[date])
-                    * dgas[date]
-                    * _mole_to_mass_fraction(
-                        mole_fractions["Gas"]["CO2"][date],
-                        mole_fractions["Gas"]["Gas"][date],
-                        mole_fractions["Gas"]["Water"][date],
-                        co2_molar_mass,
-                        water_molar_mass,
-                        gas_molar_mass,
-                        oil_molar_mass,
-                    ),
-                ]
+            gas_mf = _mole_to_mass_fraction(
+                mole_fractions["Gas"]["CO2"][date],
+                mole_fractions["Gas"]["Gas"][date],
+                mole_fractions["Gas"]["Water"][date],
+                co2_molar_mass,
+                water_molar_mass,
+                gas_molar_mass,
+                oil_molar_mass,
+            )
+            co2_mass[date]["trapped_gas"] = (
+                eff_vols[date] * sgstrand[date] * dgas[date] * gas_mf
+            )
+            co2_mass[date]["free_gas"] = (
+                eff_vols[date] * (sgas[date] - sgstrand[date]) * dgas[date] * gas_mf
             )
     
     return co2_mass
@@ -1342,7 +1333,7 @@ def _compositional_co2mass(
     pore_volume_prop: str,
     co2_molar_mass: Optional[float] = None,
     co2_position: Optional[int] = None,
-) -> Dict[str, List[np.ndarray]]:
+) -> Dict[str, Dict[str, np.ndarray]]:
     """
     Calculates CO2 mass based on molar weight and mole fraction of the components
 
@@ -1354,7 +1345,8 @@ def _compositional_co2mass(
       co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
 
     Returns:
-      Dict
+      Dict[str, Dict[str, np.ndarray]]: Dictionary mapping dates to dicts with keys:
+          'dis_water', 'gas', 'dis_oil', and optionally 'trapped_gas', 'free_gas'
 
     """
     dates = source_data.DATES
@@ -1381,21 +1373,24 @@ def _compositional_co2mass(
     assert sgas is not None
     assert bwat is not None
     for date in dates:
-        phase_moles[date] = [
-            (
-                bwat[date] * swat[date] * eff_vols[date]  # type: ignore[index]
-                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
-                else bwat[date] * (1 - sgas[date]) * eff_vols[date]
-            ),
-            bgas[date] * sgas[date] * eff_vols[date],
-        ]
+        water_moles = (
+            bwat[date] * swat[date] * eff_vols[date]  # type: ignore[index]
+            if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
+            else bwat[date] * (1 - sgas[date]) * eff_vols[date]
+        )
+        gas_moles = bgas[date] * sgas[date] * eff_vols[date]
+
+        phase_moles[date] = {
+            "water": water_moles,
+            "gas": gas_moles,
+        }
+
         if scenario != Scenario.DEPLETED_OIL_GAS_FIELD:
-            phase_moles[date].extend([np.zeros_like(phase_moles[date][0])])
-            co2_mass[date] = [
-                conv_fact * phase_moles[date][0] * xmf_co2[date],
-                conv_fact * phase_moles[date][1] * ymf_co2[date],
-                phase_moles[date][2],
-            ]
+            co2_mass[date] = {
+                "dis_water": conv_fact * water_moles * xmf_co2[date],
+                "gas": conv_fact * gas_moles * ymf_co2[date],
+                "dis_oil": np.zeros_like(water_moles),
+            }
         else:
             zmf_co2 = (
                 source_data.zmfs[co2_position]
@@ -1404,35 +1399,33 @@ def _compositional_co2mass(
             )
             assert boil is not None
             assert soil is not None
-            phase_moles[date].extend([boil[date] * soil[date] * eff_vols[date]])
-            total_moles = (
-                phase_moles[date][0] + phase_moles[date][1] + phase_moles[date][2]
-            )
+            oil_moles = boil[date] * soil[date] * eff_vols[date]
+            phase_moles[date]["oil"] = oil_moles
+
+            total_moles = water_moles + gas_moles + oil_moles
             total_co2_mass = total_moles * zmf_co2[date] * conv_fact
-            co2_mass[date] = [
-                phase_moles[date][1] * ymf_co2[date] * conv_fact,
-                phase_moles[date][2] * xmf_co2[date] * conv_fact,
-            ]
-            co2_mass[date].insert(
-                0, total_co2_mass - co2_mass[date][0] - co2_mass[date][1]
-            )
+            gas_co2 = gas_moles * ymf_co2[date] * conv_fact
+            oil_co2 = oil_moles * xmf_co2[date] * conv_fact
+
+            co2_mass[date] = {
+                "dis_water": total_co2_mass - gas_co2 - oil_co2,
+                "gas": gas_co2,
+                "dis_oil": oil_co2,
+            }
+
         if any(x is not None for x in (sgstrand, sgtrh)):
             assert sgtrh is not None
-            co2_mass[date].extend(
-                [
-                    np.divide(
-                        co2_mass[date][1] * sgtrh[date],
-                        sgas[date],
-                        out=np.zeros_like(sgas[date]),
-                        where=sgas[date] != 0,
-                    ),
-                    np.divide(
-                        co2_mass[date][1] * (sgas[date] - sgtrh[date]),
-                        sgas[date],
-                        out=np.zeros_like(sgas[date]),
-                        where=sgas[date] != 0,
-                    ),
-                ]
+            co2_mass[date]["trapped_gas"] = np.divide(
+                co2_mass[date]["gas"] * sgtrh[date],
+                sgas[date],
+                out=np.zeros_like(sgas[date]),
+                where=sgas[date] != 0,
+            )
+            co2_mass[date]["free_gas"] = np.divide(
+                co2_mass[date]["gas"] * (sgas[date] - sgtrh[date]),
+                sgas[date],
+                out=np.zeros_like(sgas[date]),
+                where=sgas[date] != 0,
             )
     return co2_mass
 
@@ -1949,16 +1942,16 @@ def _calc_co2_amount(
             co2_position,
         )
     
-    co2_mass_cell = _calculate_moved_stationary_co2(
-        co2_mass_cell,
-        source_data.DATES,
-        n_years=25,
-        use_free_gas=residual_trapping,  # Use free gas if residual trapping available
-        create_plot=True,
-        print_debug=True,
-        show_plot=True, 
-    )
-    exit()
+    # co2_mass_cell = _calculate_moved_stationary_co2(
+    #     co2_mass_cell,
+    #     source_data.DATES,
+    #     n_years=25,
+    #     use_free_gas=residual_trapping,  # Use free gas if residual trapping available
+    #     create_plot=True,
+    #     print_debug=True,
+    #     show_plot=True, 
+    # )
+    # exit()
     
     co2_mass_output = Co2Data(
         source_data.x_coord,
@@ -1966,15 +1959,15 @@ def _calc_co2_amount(
         source_data.active_cells,
         [
             Co2DataAtTimeStep(
-                key,
-                value[0],
-                value[1],
-                value[2],
-                np.zeros_like(value[0]),
-                (value[3] if residual_trapping else np.zeros_like(value[0])),
-                (value[4] if residual_trapping else np.zeros_like(value[0])),
+                date,
+                phases["dis_water"],
+                phases["gas"],
+                phases["dis_oil"],
+                np.zeros_like(phases["dis_water"]),
+                phases.get("trapped_gas", np.zeros_like(phases["dis_water"])),
+                phases.get("free_gas", np.zeros_like(phases["dis_water"])),
             )
-            for key, value in co2_mass_cell.items()
+            for date, phases in co2_mass_cell.items()
         ],
         "kg",
         scenario,
@@ -1994,54 +1987,46 @@ def _calc_co2_amount(
             gas_molar_mass,
             oil_molar_mass,
         )
-        co2_mass = {
-            co2_mass_output.data_list[t].date: (
-                [
-                    co2_mass_output.data_list[t].dis_water_phase,
-                    co2_mass_output.data_list[t].gas_phase,
-                    co2_mass_output.data_list[t].dis_oil_phase,
-                ]
-                if not residual_trapping
-                else [
-                    co2_mass_output.data_list[t].dis_water_phase,
-                    co2_mass_output.data_list[t].gas_phase,
-                    co2_mass_output.data_list[t].dis_oil_phase,
-                    co2_mass_output.data_list[t].trapped_gas_phase,
-                    co2_mass_output.data_list[t].free_gas_phase,
-                ]
-            )
-            for t in range(0, len(co2_mass_output.data_list))
-        }
-        vols_co2 = {
-            t: [
-                a * b / (co2_molar_mass / 1000)
-                for a, b in zip(molar_vols_co2[t], co2_mass[t])
-            ]
-            for t in co2_mass
-        }
+        co2_mass = {}
+        for t in range(len(co2_mass_output.data_list)):
+            timestep = co2_mass_output.data_list[t]
+            co2_mass[timestep.date] = {
+                "dis_water": timestep.dis_water_phase,
+                "gas": timestep.gas_phase,
+                "dis_oil": timestep.dis_oil_phase,
+            }
+            if residual_trapping:
+                co2_mass[timestep.date]["trapped_gas"] = timestep.trapped_gas_phase
+                co2_mass[timestep.date]["free_gas"] = timestep.free_gas_phase
+        vols_co2 = {}
+        for date in co2_mass:
+            vols_co2[date] = {
+                phase: molar_vols_co2[date][i] * co2_mass[date][phase] / (co2_molar_mass / 1000)
+                for i, phase in enumerate(["dis_water", "gas", "dis_oil"])
+            }
+            if residual_trapping:
+                # Use gas molar volume (index 1) for both trapped and free gas
+                vols_co2[date]["trapped_gas"] = (
+                    molar_vols_co2[date][1] * co2_mass[date]["trapped_gas"] / (co2_molar_mass / 1000)
+                )
+                vols_co2[date]["free_gas"] = (
+                    molar_vols_co2[date][1] * co2_mass[date]["free_gas"] / (co2_molar_mass / 1000)
+                )
         co2_amount = Co2Data(
             source_data.x_coord,
             source_data.y_coord,
             source_data.active_cells,
             [
                 Co2DataAtTimeStep(
-                    t,
-                    np.array(vols_co2[t][0]),
-                    np.array(vols_co2[t][1]),
-                    np.array(vols_co2[t][2]),
-                    np.zeros_like(np.array(vols_co2[t][0])),
-                    (
-                        np.array(vols_co2[t][3])
-                        if residual_trapping
-                        else np.zeros_like(np.array(vols_co2[t][0]))
-                    ),
-                    (
-                        np.array(vols_co2[t][4])
-                        if residual_trapping
-                        else np.zeros_like(np.array(vols_co2[t][0]))
-                    ),
+                    date,
+                    np.array(phases["dis_water"]),
+                    np.array(phases["gas"]),
+                    np.array(phases["dis_oil"]),
+                    np.zeros_like(np.array(phases["dis_water"])),
+                    np.array(phases.get("trapped_gas", np.zeros_like(phases["dis_water"]))),
+                    np.array(phases.get("free_gas", np.zeros_like(phases["dis_water"]))),
                 )
-                for t in vols_co2
+                for date, phases in vols_co2.items()
             ],
             "m3",
             scenario,
