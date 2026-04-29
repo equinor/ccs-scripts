@@ -211,7 +211,7 @@ class Co2DataAtTimeStep:
     volume_coverage: np.ndarray
     trapped_gas_phase: np.ndarray
     free_gas_phase: np.ndarray
-    moving_free_gas: Optional[np.ndarray] = None
+    moving_free_gas: Optional[np.ndarray] = None  # NBNB-AS: CCS-447: OK that these are None?
     stationary_free_gas: Optional[np.ndarray] = None
     moving_gas: Optional[np.ndarray] = None
     stationary_gas: Optional[np.ndarray] = None
@@ -2348,6 +2348,15 @@ def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
             values.free_gas_phase,
         ]:
             x *= 0.001
+        # Convert the new moving/stationary phases if they exist
+        if values.moving_free_gas is not None:
+            values.moving_free_gas *= 0.001
+        if values.stationary_free_gas is not None:
+            values.stationary_free_gas *= 0.001
+        if values.moving_gas is not None:
+            values.moving_gas *= 0.001
+        if values.stationary_gas is not None:
+            values.stationary_gas *= 0.001
 
 
 def calculate_co2(

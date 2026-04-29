@@ -791,6 +791,21 @@ def log_summary_of_results(
                 f"{'End state gaseous':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
+            # Log moving/stationary breakdown if available
+            if "moving_gas" in list(df_subset["phase"]):
+                value = extract_amount(df_subset, "total", "moving_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'  - Moving gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
+            if "stationary_gas" in list(df_subset["phase"]):
+                value = extract_amount(df_subset, "total", "stationary_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'  - Stationary gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
         else:
             value = extract_amount(df_subset, "total", "free_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
@@ -798,6 +813,21 @@ def log_summary_of_results(
                 f"{'End state free gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
+            # Log moving/stationary breakdown if available
+            if "moving_free_gas" in list(df_subset["phase"]):
+                value = extract_amount(df_subset, "total", "moving_free_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'  - Moving free gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
+            if "stationary_free_gas" in list(df_subset["phase"]):
+                value = extract_amount(df_subset, "total", "stationary_free_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'  - Stationary free gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
             value = extract_amount(df_subset, "total", "trapped_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
@@ -1256,8 +1286,6 @@ def main() -> None:
         arguments_processed.nogo_polygon,
         arguments_processed.cirrus_info_file,
     )
-    print(data_frame)
-    exit()
     sort_and_replace_nones(data_frame)
     log_summary_of_results(data_frame, arguments_processed.calc_type_input)
     timer.start("export_results")
