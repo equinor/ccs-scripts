@@ -56,6 +56,7 @@ def calculate_out_of_bounds_co2(
     zone_info: ZoneInfo,
     region_info: RegionInfo,
     residual_trapping: bool,
+    find_stationary_gas: bool,
     inj_wells: List[InjectionWellData],
     file_cont_polygon: Optional[str] = None,
     file_nogo_polygon: Optional[str] = None,
@@ -82,6 +83,7 @@ def calculate_out_of_bounds_co2(
         region_info (RegionInfo): Containing path to potential region-file,
             and list connecting region-numbers to names, if available
         residual_trapping (bool): Indicate if residual trapping should be calculated
+        find_stationary_gas (bool): Calculate moving and stationary gas phases
         inj_wells (List): Injection wells used for plume tracking
         cirrus_info_file (str): Path to file with gas molar mass. (Applies for cases
             with more than two components)
@@ -94,7 +96,7 @@ def calculate_out_of_bounds_co2(
         unrst_file,
         zone_info,
         region_info,
-        True,
+        find_stationary_gas,
         residual_trapping,
         calc_type_input=calc_type_input,
         init_file=init_file,
@@ -449,6 +451,14 @@ def get_parser() -> argparse.ArgumentParser:
         metavar="<RESIDUAL_TRAPPING>",
     )
     parser.add_argument(
+        "--find_stationary_gas",
+        help="Calculate moving and stationary gas phases based on 25-year comparison.",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
+        metavar="<FIND_STATIONARY_GAS>",
+    )
+    parser.add_argument(
         "--readable_output",
         help="Generate output text-file that is easier to parse than the standard"
         " output.",
@@ -515,6 +525,8 @@ def _replace_default_dummies_from_ert(args):
         args.debug = False
     if args.residual_trapping == "-1":
         args.residual_trapping = False
+    if args.find_stationary_gas == "-1":
+        args.find_stationary_gas = False
     if args.readable_output == "-1":
         args.readable_output = False
     if args.cirrus_info_file == "-1":
@@ -752,6 +764,10 @@ def log_input_configuration(args: argparse.Namespace) -> None:
     logging.info(
         f"{'Residual trapping':<{col1}} : "
         f"{'yes' if args.residual_trapping else 'no'}"
+    )
+    logging.info(
+        f"{'Find stationary gas':<{col1}} : "
+        f"{'yes' if args.find_stationary_gas else 'no'}"
     )
     readable_output_str = (
         "yes" if args.readable_output is not None and args.readable_output else "no"
@@ -1309,6 +1325,7 @@ def main() -> None:
         zone_info,
         region_info,
         arguments_processed.residual_trapping,
+        arguments_processed.find_stationary_gas,
         injection_wells,
         arguments_processed.containment_polygon,
         arguments_processed.nogo_polygon,
