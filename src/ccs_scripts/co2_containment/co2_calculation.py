@@ -1961,14 +1961,14 @@ def _raise_missing_props_error(
     props_needed_cirrus: List[str],
     props_needed_eclipse: List[str],
 ):
-    if any(prop in props_needed_cirrus for prop in active_props):
+    if any(prop in props_needed_cirrus for prop in active_props if prop != "SGAS"):
         missing_props = [x for x in props_needed_cirrus if x not in active_props]
         error_text = "Lacking some required properties to compute CO2 mass/volume."
         error_text += "\nAssumed source: Cirrus"
         error_text += "\nMissing properties: "
         error_text += ", ".join(missing_props)
         raise ValueError(format_error(error_text))
-    if any(prop in props_needed_eclipse for prop in active_props):
+    if any(prop in props_needed_eclipse for prop in active_props if prop != "SGAS"):
         missing_props = [x for x in props_needed_eclipse if x not in active_props]
         error_text = "Lacking some required properties to compute CO2 mass/volume."
         error_text += "\nAssumed source: Eclipse"
