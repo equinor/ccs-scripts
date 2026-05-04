@@ -10,7 +10,7 @@ import xtgeo
 
 from ccs_scripts.aggregate._config import AggregationMethod
 from ccs_scripts.utils.timer import Timer
-from ccs_scripts.utils.utils import format_error
+from ccs_scripts.utils.utils import format_error, format_warning
 
 
 def aggregate_maps(
@@ -65,6 +65,11 @@ def aggregate_maps(
         method,
         conn_data,
     )
+
+    if method in [AggregationMethod.SUM, AggregationMethod.DISTRIBUTE]:
+        prop_names = [p.name for p in grid_props]
+        _check_cell_coverage(props, inclusion_filters, conn_data, prop_names)
+
     timer.stop("aggregate_maps")
     return conn_data.x_nodes, conn_data.y_nodes, results
 
@@ -107,6 +112,97 @@ class _ConnectionData:
     y_nodes: np.ndarray
     node_indices: np.ndarray
     grid_indices: np.ndarray
+
+
+def _check_cell_coverage(
+    props: List[np.ma.MaskedArray],
+    inclusion_filters: List[Optional[np.ndarray]],
+    conn_data: _ConnectionData,
+    prop_names: List[str],
+) -> None:
+    """
+    Check if all valid (non-masked) grid cells are included in the aggregation.
+    Warns if more than 1.0% of cells are not counted, and reports lost values per property.
+
+    Args:
+        props: List of properties (after filtering for active cells)
+        inclusion_filters: List of inclusion filters
+        conn_data: Connection data between grid and map nodes
+        prop_names: List of property names for better reporting
+    """
+    logging.info("\nChecking cell coverage for aggregation with SUM or DISTRIBUTE method.")
+    for filter_idx, incl in enumerate(inclusion_filters):
+        grd_ix = conn_data.grid_indices
+
+        if incl is not None:
+            to_remove = ~np.isin(grd_ix, np.argwhere(incl).flatten())
+            grd_ix = grd_ix[~to_remove]
+        unique_mapped_cells = np.unique(grd_ix)
+
+        # Find cells with ANY valid data across all properties
+        any_valid_cells = np.zeros(len(props[0]), dtype=bool)
+        for prop in props:
+            if hasattr(prop, 'mask'):
+                valid_cells = ~prop.mask
+            else:
+                valid_cells = np.ones(len(prop), dtype=bool)
+            if incl is not None:
+                valid_cells = valid_cells & incl
+            any_valid_cells |= valid_cells
+        total_cells_with_data = np.sum(any_valid_cells)
+
+        if total_cells_with_data == 0:
+            continue
+
+        # Find unmapped cells:
+        cell_indices_with_data = np.argwhere(any_valid_cells).flatten()
+        unmapped_cell_indices = np.setdiff1d(cell_indices_with_data, unique_mapped_cells)
+        num_unmapped = len(unmapped_cell_indices)
+        percentage_unmapped = (num_unmapped / total_cells_with_data) * 100.0
+
+        filter_name = f"zone/filter {filter_idx}" if len(inclusion_filters) > 1 else "all"
+
+        if percentage_unmapped < 1.0:
+            # Log as info if percentage is 1.0% or below
+            logging.info(
+                f"\nCell coverage for '{filter_name}': {percentage_unmapped:.2f}% of cells "
+                f"({num_unmapped}/{total_cells_with_data}) have no spatial overlap with map pixels"
+            )
+        else:
+            warning_text = (
+                f"\nWARNING: {percentage_unmapped:.2f}% of grid cells with data "
+                f"({num_unmapped}/{total_cells_with_data}) have no spatial overlap with "
+                f"map pixels for '{filter_name}'. These cells are not counted in aggregation."
+            )
+            logging.warning(format_warning(warning_text))
+
+            table_data = []
+            for prop_idx, prop in enumerate(props):
+                # Get valid data in unmapped cells for this specific property
+                if hasattr(prop, 'mask'):
+                    valid_in_unmapped = ~prop.mask[unmapped_cell_indices]
+                else:
+                    valid_in_unmapped = np.ones(len(unmapped_cell_indices), dtype=bool)
+
+                if np.any(valid_in_unmapped):
+                    lost_value = np.sum(prop[unmapped_cell_indices][valid_in_unmapped])
+                    total_value = np.sum(prop[~prop.mask]) if hasattr(prop, 'mask') else np.sum(prop)
+                    lost_percentage = (lost_value / total_value * 100.0) if total_value != 0 else 0.0
+
+                    prop_name = prop_names[prop_idx] if prop_idx < len(prop_names) else f"property_{prop_idx}"
+                    table_data.append((prop_name, lost_value, lost_percentage))
+
+            if table_data:
+                max_name_len = max(len(row[0]) for row in table_data)
+                header = f"{'Property':<{max_name_len}}   Lost Value   % of Total"
+                separator = f"{'-' * max_name_len}--------------------------"
+
+                logging.warning(header)
+                logging.warning(separator)
+                for prop_name, lost_val, lost_pct in table_data:
+                    logging.warning(
+                        f"{prop_name:<{max_name_len}}   {lost_val:>10.2f}   {lost_pct:>9.2f}%"
+                    )
 
 
 def _find_connections(
