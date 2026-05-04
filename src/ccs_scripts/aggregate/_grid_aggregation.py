@@ -196,7 +196,7 @@ def _check_cell_coverage(
 
             if table_data:
                 max_name_len = max(len(row[0]) for row in table_data)
-                header = f"{'Property':<{max_name_len}}    Lost Value   % of Total"
+                header = f"{'\nProperty':<{max_name_len}}    Lost Value   % of Total"
                 separator = f"{'-' * max_name_len}---------------------------"
 
                 logging.warning(header)
