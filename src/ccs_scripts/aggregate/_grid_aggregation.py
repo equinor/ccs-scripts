@@ -134,9 +134,10 @@ def _check_cell_coverage(
     active_cells: Optional[np.ndarray] = None,
 ) -> None:
     """
-    Check if all valid (non-masked) grid cells are included in the aggregation.
-    Warns if more than 1.0% of cells are not counted, and reports lost values per property.
-    Distinguishes between cells outside map extent vs cells within extent but unmapped.
+    Check if all valid (non-masked) grid cells are included in
+    the aggregation. Warns if significant values are lost, and
+    reports the worst affected property. Distinguishes between
+    cells outside map extent vs cells within extent but unmapped.
 
     Args:
         props: List of properties (after filtering for active cells)
@@ -277,9 +278,11 @@ def _check_cell_coverage(
 
         if worst_lost_pct < lost_value_threshold:
             logging.info(
-                f"Cell coverage for '{filter_name}': {percentage_unmapped:.2f}% of cells "
-                f"({num_unmapped}/{total_cells_with_data}) are unmapped, but worst lost "
-                f"value is only {worst_lost_pct:.3f}% of total"
+                f"Cell coverage for '{filter_name}': "
+                f"{percentage_unmapped:.2f}% of cells "
+                f"({num_unmapped}/{total_cells_with_data}) are "
+                f"unmapped, but worst lost value is only "
+                f"{worst_lost_pct:.3f}% of total"
             )
         else:
             warning_text = (
@@ -292,11 +295,20 @@ def _check_cell_coverage(
                 f"({num_unmapped_outside} cells outside the map boundaries)"
             )
             if num_unmapped_inside > 0 and num_unmapped_outside > 0:
-                warning_text += f"\n         Consider both finer resolution and extending map extent."
+                warning_text += (
+                    "\n         Consider both finer resolution"
+                    " and extending map extent."
+                )
             elif num_unmapped_inside > 0:
-                warning_text += f"\n         Consider using a finer map resolution (smaller pixel size)."
+                warning_text += (
+                    "\n         Consider using a finer map"
+                    " resolution (smaller pixel size)."
+                )
             elif num_unmapped_outside > 0:
-                warning_text += f"\n         Consider extending the map extent or using automatic bounds."
+                warning_text += (
+                    "\n         Consider extending the map"
+                    " extent or using automatic bounds."
+                )
             logging.warning(format_warning(warning_text))
 
             if worst_res is not None or worst_ext is not None:
