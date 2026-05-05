@@ -214,16 +214,52 @@ def _check_cell_coverage(
         else:
             filter_name = f"filter_{filter_idx}" if len(inclusion_filters) > 1 else "all"
 
-        if percentage_unmapped < 0.1:
-            # Log as info if percentage is 1.0% or below
+        if num_unmapped == 0:
+            logging.info(f"\nCell coverage for '{filter_name}': all cells mapped")
+            continue
+
+        percentage_inside = (num_unmapped_inside / total_cells_with_data) * 100.0
+        percentage_outside = (num_unmapped_outside / total_cells_with_data) * 100.0
+
+        # Find the property with the highest lost value for each category
+        def _find_worst_property(cell_indices):
+            if len(cell_indices) == 0:
+                return None
+            worst = None
+            for prop_idx, prop in enumerate(props):
+                if hasattr(prop, 'mask'):
+                    valid = ~prop.mask[cell_indices]
+                else:
+                    valid = np.ones(len(cell_indices), dtype=bool)
+                if not np.any(valid):
+                    continue
+                lost_val = np.sum(prop[cell_indices][valid])
+                total_val = np.sum(prop[~prop.mask]) if hasattr(prop, 'mask') else np.sum(prop)
+                lost_pct = (lost_val / total_val * 100.0) if total_val != 0 else 0.0
+                name = prop_names[prop_idx] if prop_idx < len(prop_names) else f"property_{prop_idx}"
+                if worst is None or abs(lost_val) > abs(worst[1]):
+                    worst = (name, lost_val, lost_pct)
+            return worst
+
+        worst_res = _find_worst_property(unmapped_inside)
+        worst_ext = _find_worst_property(unmapped_outside)
+
+        # Determine worst lost percentage across both categories
+        worst_lost_pct = 0.0
+        if worst_res is not None:
+            worst_lost_pct = max(worst_lost_pct, abs(worst_res[2]))
+        if worst_ext is not None:
+            worst_lost_pct = max(worst_lost_pct, abs(worst_ext[2]))
+
+        lost_value_threshold = 0.1  # percent of total value
+
+        if worst_lost_pct < lost_value_threshold:
             logging.info(
                 f"\nCell coverage for '{filter_name}': {percentage_unmapped:.2f}% of cells "
-                f"({num_unmapped}/{total_cells_with_data}) have no spatial overlap with map pixels"
+                f"({num_unmapped}/{total_cells_with_data}) are unmapped, but worst lost "
+                f"value is only {worst_lost_pct:.3f}% of total"
             )
         else:
-            percentage_inside = (num_unmapped_inside / total_cells_with_data) * 100.0
-            percentage_outside = (num_unmapped_outside / total_cells_with_data) * 100.0
-
             warning_text = (
                 f"\nWARNING: {percentage_unmapped:.2f}% of grid cells with data "
                 f"({num_unmapped}/{total_cells_with_data}) are not used in the "
@@ -246,29 +282,6 @@ def _check_cell_coverage(
                     f"\n         Consider extending the map extent or using automatic bounds."
                 )
             logging.warning(format_warning(warning_text))
-
-            # Find the property with the highest lost value for each category
-            def _find_worst_property(cell_indices):
-                if len(cell_indices) == 0:
-                    return None
-                worst = None
-                for prop_idx, prop in enumerate(props):
-                    if hasattr(prop, 'mask'):
-                        valid = ~prop.mask[cell_indices]
-                    else:
-                        valid = np.ones(len(cell_indices), dtype=bool)
-                    if not np.any(valid):
-                        continue
-                    lost_val = np.sum(prop[cell_indices][valid])
-                    total_val = np.sum(prop[~prop.mask]) if hasattr(prop, 'mask') else np.sum(prop)
-                    lost_pct = (lost_val / total_val * 100.0) if total_val != 0 else 0.0
-                    name = prop_names[prop_idx] if prop_idx < len(prop_names) else f"property_{prop_idx}"
-                    if worst is None or abs(lost_val) > abs(worst[1]):
-                        worst = (name, lost_val, lost_pct)
-                return worst
-
-            worst_res = _find_worst_property(unmapped_inside)
-            worst_ext = _find_worst_property(unmapped_outside)
 
             if worst_res is not None or worst_ext is not None:
                 logging.warning("         Worst affected property per category:")
