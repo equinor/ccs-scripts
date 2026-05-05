@@ -90,19 +90,28 @@ def _log_grid_info(grid: xtgeo.Grid) -> None:
 def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
     timer = Timer()
     timer.start("logging")
+
+    name_width = 4
+    if properties:
+        name_width = max(
+            len(p.name.split("--")[0] if "--" in p.name else p.name) for p in properties
+        )
+    name_width = max(name_width, len("Name"))
+
     logging.info("\nProperties read from file:")  # NBNB-AS: Not always from file
     logging.info(
-        f"\n{'Name':<21} {'Date':>10} {'Mean':>10} {'Max':>10} "
+        f"\n{'Name':<{name_width}} {'Date':>10} {'Mean':>10} {'Max':>10} "
         f"{'n_values':>10} {'n_masked':>10}"
     )
-    logging.info("-" * 76)
+    separator_length = name_width + 10 + 10 + 10 + 10 + 10 + 5  # 5 for spaces
+    logging.info("-" * separator_length)
     for p in properties:
         n_values = p.values.count()
         name_stripped = p.name.split("--")[0] if "--" in p.name else p.name
         mean_val = f"{p.values.mean():.3f}" if n_values > 0 else "-"
         max_val = f"{p.values.max():.3f}" if n_values > 0 else "-"
         logging.info(
-            f"{name_stripped:<21} "
+            f"{name_stripped:<{name_width}} "
             f"{p.date if p.date is not None else '-':>10} "
             f"{mean_val:>10} "
             f"{max_val:>10} "
@@ -175,7 +184,7 @@ def generate_maps(
         create_map_template(map_settings),
         grid,
         properties,
-        [f[1] for f in _filters],
+        _filters,
         computesettings.aggregation,
         computesettings.weight_by_dz,
     )
@@ -267,18 +276,22 @@ def _deduce_surface_name(filter_name, property_name, lowercase):
 
 
 def _log_surfaces(surfaces: List[xtgeo.RegularSurface]):
+    name_width = max(len(s.name) for s in surfaces) if surfaces else 4
+    name_width = max(name_width, len("Name"))
+
     logging.info("\nSummary of calculated 2D maps:")
     logging.info(
-        f"\n{'Name':<40} {'Mean':>10} {'Max':>10} "
+        f"\n{'Name':<{name_width}} {'Mean':>10} {'Max':>10} "
         f"{'n_values':>10} {'n_pos':>10} {'n_masked':>10}"
     )
-    logging.info("-" * 95)
+    separator_length = name_width + 10 + 10 + 10 + 10 + 10 + 5  # 5 for spaces
+    logging.info("-" * separator_length)
     for s in surfaces:
         n_values = s.values.count()
         n_pos = np.sum(s.values > 1e-10) if n_values != 0 else 0
         mean_val = f"{s.values.mean():.3f}" if n_values > 0 else "-"
         max_val = f"{s.values.max():.3f}" if n_values > 0 else "-"
-        txt = f"{s.name:<40} {mean_val:>10} {max_val:>10} "
+        txt = f"{s.name:<{name_width}} {mean_val:>10} {max_val:>10} "
         txt += f"{n_values:>10} {n_pos:>10} {np.ma.count_masked(s.values):>10}"
         if "all" in s.name:
             logging.info(txt)
