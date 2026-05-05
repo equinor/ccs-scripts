@@ -173,8 +173,8 @@ def _check_cell_coverage(
                 f"\nWARNING: {percentage_unmapped:.2f}% of grid cells with data "
                 f"({num_unmapped}/{total_cells_with_data}) have no spatial overlap with "
                 f"map pixels for '{filter_name}'."
-                f"\nThese cells will not be counted in the aggregation."
-                f"\nConsider using a finer map resolution (smaller pixel size)."
+                f"\n         These cells will not be counted in the aggregation."
+                f"\n         Consider using a finer map resolution (smaller pixel size)."
             )
             logging.warning(format_warning(warning_text))
 
