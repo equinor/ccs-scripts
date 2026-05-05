@@ -284,7 +284,6 @@ def main(arguments=None):
 
     config_ = _parser.process_arguments(arguments, map_type="co2_mass")
     config_.computesettings.aggregation = AggregationMethod.DISTRIBUTE
-    # config_.computesettings.aggregation = AggregationMethod.SUM
     config_.output.aggregation_tag = False
     _check_config(config_)
     log_input_configuration(config_, map_type="co2_mass")
