@@ -215,7 +215,7 @@ def _check_cell_coverage(
             filter_name = f"filter_{filter_idx}" if len(inclusion_filters) > 1 else "all"
 
         if num_unmapped == 0:
-            logging.info(f"\nCell coverage for '{filter_name}': all cells mapped")
+            logging.info(f"Cell coverage for '{filter_name}': all cells mapped")
             continue
 
         percentage_inside = (num_unmapped_inside / total_cells_with_data) * 100.0
@@ -251,11 +251,11 @@ def _check_cell_coverage(
         if worst_ext is not None:
             worst_lost_pct = max(worst_lost_pct, abs(worst_ext[2]))
 
-        lost_value_threshold = 0.1  # percent of total value
+        lost_value_threshold = 1.0  # percent of total value
 
         if worst_lost_pct < lost_value_threshold:
             logging.info(
-                f"\nCell coverage for '{filter_name}': {percentage_unmapped:.2f}% of cells "
+                f"Cell coverage for '{filter_name}': {percentage_unmapped:.2f}% of cells "
                 f"({num_unmapped}/{total_cells_with_data}) are unmapped, but worst lost "
                 f"value is only {worst_lost_pct:.3f}% of total"
             )
