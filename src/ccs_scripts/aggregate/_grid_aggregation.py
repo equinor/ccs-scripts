@@ -71,7 +71,13 @@ def aggregate_maps(
     if method in [AggregationMethod.SUM, AggregationMethod.DISTRIBUTE]:
         prop_names = [p.name for p in grid_props]
         _check_cell_coverage(
-            props, inclusion_filters, conn_data, prop_names, filter_names, grid, active_cells
+            props,
+            inclusion_filters,
+            conn_data,
+            prop_names,
+            filter_names,
+            grid,
+            active_cells,
         )
 
     timer.stop("aggregate_maps")
@@ -141,7 +147,9 @@ def _check_cell_coverage(
         grid: The 3D grid (for getting cell coordinates)
         active_cells: Boolean array of active cells
     """
-    logging.info("\nChecking cell coverage for aggregation with SUM or DISTRIBUTE method.")
+    logging.info(
+        "\nChecking cell coverage for aggregation with SUM or DISTRIBUTE method."
+    )
 
     # Get cell centers if grid is provided
     cell_centers_xy = None
@@ -155,8 +163,12 @@ def _check_cell_coverage(
     map_x_min, map_x_max = conn_data.x_nodes.min(), conn_data.x_nodes.max()
     map_y_min, map_y_max = conn_data.y_nodes.min(), conn_data.y_nodes.max()
     # Add half pixel buffer
-    x_inc = conn_data.x_nodes[1] - conn_data.x_nodes[0] if len(conn_data.x_nodes) > 1 else 0
-    y_inc = conn_data.y_nodes[1] - conn_data.y_nodes[0] if len(conn_data.y_nodes) > 1 else 0
+    x_inc = (
+        conn_data.x_nodes[1] - conn_data.x_nodes[0] if len(conn_data.x_nodes) > 1 else 0
+    )
+    y_inc = (
+        conn_data.y_nodes[1] - conn_data.y_nodes[0] if len(conn_data.y_nodes) > 1 else 0
+    )
     map_x_min -= x_inc / 2
     map_x_max += x_inc / 2
     map_y_min -= y_inc / 2
@@ -173,7 +185,7 @@ def _check_cell_coverage(
         # Find cells with ANY valid data across all properties
         any_valid_cells = np.zeros(len(props[0]), dtype=bool)
         for prop in props:
-            if hasattr(prop, 'mask'):
+            if hasattr(prop, "mask"):
                 valid_cells = ~prop.mask
             else:
                 valid_cells = np.ones(len(prop), dtype=bool)
@@ -187,7 +199,9 @@ def _check_cell_coverage(
 
         # Find unmapped cells:
         cell_indices_with_data = np.argwhere(any_valid_cells).flatten()
-        unmapped_cell_indices = np.setdiff1d(cell_indices_with_data, unique_mapped_cells)
+        unmapped_cell_indices = np.setdiff1d(
+            cell_indices_with_data, unique_mapped_cells
+        )
 
         # Split unmapped cells into those inside vs outside map extent
         unmapped_inside = unmapped_cell_indices
@@ -196,10 +210,10 @@ def _check_cell_coverage(
         if cell_centers_xy is not None and len(unmapped_cell_indices) > 0:
             unmapped_coords = cell_centers_xy[unmapped_cell_indices]
             inside_extent = (
-                (unmapped_coords[:, 0] >= map_x_min) &
-                (unmapped_coords[:, 0] <= map_x_max) &
-                (unmapped_coords[:, 1] >= map_y_min) &
-                (unmapped_coords[:, 1] <= map_y_max)
+                (unmapped_coords[:, 0] >= map_x_min)
+                & (unmapped_coords[:, 0] <= map_x_max)
+                & (unmapped_coords[:, 1] >= map_y_min)
+                & (unmapped_coords[:, 1] <= map_y_max)
             )
             unmapped_inside = unmapped_cell_indices[inside_extent]
             unmapped_outside = unmapped_cell_indices[~inside_extent]
@@ -212,7 +226,9 @@ def _check_cell_coverage(
         if filter_names is not None and filter_idx < len(filter_names):
             filter_name = filter_names[filter_idx]
         else:
-            filter_name = f"filter_{filter_idx}" if len(inclusion_filters) > 1 else "all"
+            filter_name = (
+                f"filter_{filter_idx}" if len(inclusion_filters) > 1 else "all"
+            )
 
         if num_unmapped == 0:
             logging.info(f"Cell coverage for '{filter_name}': all cells mapped")
@@ -227,16 +243,22 @@ def _check_cell_coverage(
                 return None
             worst = None
             for prop_idx, prop in enumerate(props):
-                if hasattr(prop, 'mask'):
+                if hasattr(prop, "mask"):
                     valid = ~prop.mask[cell_indices]
                 else:
                     valid = np.ones(len(cell_indices), dtype=bool)
                 if not np.any(valid):
                     continue
                 lost_val = np.sum(prop[cell_indices][valid])
-                total_val = np.sum(prop[~prop.mask]) if hasattr(prop, 'mask') else np.sum(prop)
+                total_val = (
+                    np.sum(prop[~prop.mask]) if hasattr(prop, "mask") else np.sum(prop)
+                )
                 lost_pct = (lost_val / total_val * 100.0) if total_val != 0 else 0.0
-                name = prop_names[prop_idx] if prop_idx < len(prop_names) else f"property_{prop_idx}"
+                name = (
+                    prop_names[prop_idx]
+                    if prop_idx < len(prop_names)
+                    else f"property_{prop_idx}"
+                )
                 if worst is None or abs(lost_val) > abs(worst[1]):
                     worst = (name, lost_val, lost_pct)
             return worst
@@ -270,17 +292,11 @@ def _check_cell_coverage(
                 f"({num_unmapped_outside} cells outside the map boundaries)"
             )
             if num_unmapped_inside > 0 and num_unmapped_outside > 0:
-                warning_text += (
-                    f"\n         Consider both finer resolution and extending map extent."
-                )
+                warning_text += f"\n         Consider both finer resolution and extending map extent."
             elif num_unmapped_inside > 0:
-                warning_text += (
-                    f"\n         Consider using a finer map resolution (smaller pixel size)."
-                )
+                warning_text += f"\n         Consider using a finer map resolution (smaller pixel size)."
             elif num_unmapped_outside > 0:
-                warning_text += (
-                    f"\n         Consider extending the map extent or using automatic bounds."
-                )
+                warning_text += f"\n         Consider extending the map extent or using automatic bounds."
             logging.warning(format_warning(warning_text))
 
             if worst_res is not None or worst_ext is not None:
