@@ -214,7 +214,7 @@ def _check_cell_coverage(
         else:
             filter_name = f"filter_{filter_idx}" if len(inclusion_filters) > 1 else "all"
 
-        if percentage_unmapped < 1.0:
+        if percentage_unmapped < 0.1:
             # Log as info if percentage is 1.0% or below
             logging.info(
                 f"\nCell coverage for '{filter_name}': {percentage_unmapped:.2f}% of cells "
@@ -247,46 +247,41 @@ def _check_cell_coverage(
                 )
             logging.warning(format_warning(warning_text))
 
-            # Build table with both resolution and extent columns
-            table_data = []
-            for prop_idx, prop in enumerate(props):
-                total_value = np.sum(prop[~prop.mask]) if hasattr(prop, 'mask') else np.sum(prop)
-                prop_name = prop_names[prop_idx] if prop_idx < len(prop_names) else f"property_{prop_idx}"
-
-                def _lost(cell_indices):
-                    if len(cell_indices) == 0:
-                        return 0.0, 0.0
+            # Find the property with the highest lost value for each category
+            def _find_worst_property(cell_indices):
+                if len(cell_indices) == 0:
+                    return None
+                worst = None
+                for prop_idx, prop in enumerate(props):
                     if hasattr(prop, 'mask'):
                         valid = ~prop.mask[cell_indices]
                     else:
                         valid = np.ones(len(cell_indices), dtype=bool)
                     if not np.any(valid):
-                        return 0.0, 0.0
-                    val = np.sum(prop[cell_indices][valid])
-                    pct = (val / total_value * 100.0) if total_value != 0 else 0.0
-                    return val, pct
+                        continue
+                    lost_val = np.sum(prop[cell_indices][valid])
+                    total_val = np.sum(prop[~prop.mask]) if hasattr(prop, 'mask') else np.sum(prop)
+                    lost_pct = (lost_val / total_val * 100.0) if total_val != 0 else 0.0
+                    name = prop_names[prop_idx] if prop_idx < len(prop_names) else f"property_{prop_idx}"
+                    if worst is None or abs(lost_val) > abs(worst[1]):
+                        worst = (name, lost_val, lost_pct)
+                return worst
 
-                lost_res_val, lost_res_pct = _lost(unmapped_inside)
-                lost_ext_val, lost_ext_pct = _lost(unmapped_outside)
-                table_data.append((prop_name, lost_res_val, lost_res_pct, lost_ext_val, lost_ext_pct))
+            worst_res = _find_worst_property(unmapped_inside)
+            worst_ext = _find_worst_property(unmapped_outside)
 
-            if table_data:
-                w = max(len(row[0]) for row in table_data)
-                w = max(w, len("Property"))
-                header = (
-                    f"\n{'Property':<{w}}   {'Resolution':>21}   {'Extent':>21}"
-                    f"\n{'':<{w}}   {'Lost Value':>10} {'% of Tot':>10}"
-                    f"   {'Lost Value':>10} {'% of Tot':>10}"
+            if worst_res is not None or worst_ext is not None:
+                logging.warning("         Worst affected property per category:")
+            if worst_res is not None:
+                logging.warning(
+                    f"           Resolution : {worst_res[0]} "
+                    f"(lost {worst_res[1]:.2f}, {worst_res[2]:.2f}% of total)"
                 )
-                separator = "-" * (w + 2 + 21 + 3 + 21)
-
-                logging.warning(header)
-                logging.warning(separator)
-                for pn, rv, rp, ev, ep in table_data:
-                    logging.warning(
-                        f"{pn:<{w}}   {rv:>10.2f} {rp:>9.2f}%"
-                        f"   {ev:>10.2f} {ep:>9.2f}%"
-                    )
+            if worst_ext is not None:
+                logging.warning(
+                    f"           Extent     : {worst_ext[0]} "
+                    f"(lost {worst_ext[1]:.2f}, {worst_ext[2]:.2f}% of total)"
+                )
 
 
 def _find_connections(
