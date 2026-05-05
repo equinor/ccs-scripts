@@ -17,7 +17,7 @@ def aggregate_maps(
     map_template: Union[xtgeo.RegularSurface, float],
     grid: xtgeo.Grid,
     grid_props: List[xtgeo.GridProperty],
-    inclusion_filters: List[Optional[np.ndarray]],
+    filters: List[Tuple[str, Optional[np.ndarray]]],
     method: AggregationMethod,
     weight_by_dz: bool,
 ) -> Tuple[np.ndarray, np.ndarray, List[List[np.ndarray]]]:
@@ -30,8 +30,8 @@ def aggregate_maps(
             map bounds and resolution from the grid.
         grid: The 3D grid
         grid_props: List of the grid properties to be aggregated
-        inclusion_filters: List containing the grid cell filters. A filter is defined by
-            either a numpy array or `None`. If a numpy array is used, it must be a
+        filters: List of tuples (filter_name, inclusion_filter). Each inclusion_filter
+            is either a numpy array or `None`. If a numpy array is used, it must be a
             boolean 1D array representing which cells (among the active cells) that are
             to be included. A `1` indicates inclusion. If `None` is provided, all of the
             grid cells are included.
@@ -41,12 +41,14 @@ def aggregate_maps(
             method is MIN or MAX
 
     Returns:
-        Doubly nested list of maps. The first index corresponds to `ìnclusion_filters`,
+        Doubly nested list of maps. The first index corresponds to `filters`,
         and the second index to `grid_props`.
     """
     # pylint: disable=too-many-arguments
     timer = Timer()
     timer.start("aggregate_maps")
+    filter_names = [f[0] for f in filters]
+    inclusion_filters = [f[1] for f in filters]
     props, active_cells, inclusion_filters = _read_properties_and_find_active_cells(
         grid, grid_props, inclusion_filters
     )
@@ -68,7 +70,7 @@ def aggregate_maps(
 
     if method in [AggregationMethod.SUM, AggregationMethod.DISTRIBUTE]:
         prop_names = [p.name for p in grid_props]
-        _check_cell_coverage(props, inclusion_filters, conn_data, prop_names)
+        _check_cell_coverage(props, inclusion_filters, conn_data, prop_names, filter_names)
 
     timer.stop("aggregate_maps")
     return conn_data.x_nodes, conn_data.y_nodes, results
@@ -119,6 +121,7 @@ def _check_cell_coverage(
     inclusion_filters: List[Optional[np.ndarray]],
     conn_data: _ConnectionData,
     prop_names: List[str],
+    filter_names: Optional[List[str]] = None,
 ) -> None:
     """
     Check if all valid (non-masked) grid cells are included in the aggregation.
@@ -129,6 +132,7 @@ def _check_cell_coverage(
         inclusion_filters: List of inclusion filters
         conn_data: Connection data between grid and map nodes
         prop_names: List of property names for better reporting
+        filter_names: Names of the filters (e.g., zone names) for better reporting
     """
     logging.info("\nChecking cell coverage for aggregation with SUM or DISTRIBUTE method.")
     for filter_idx, incl in enumerate(inclusion_filters):
@@ -160,7 +164,10 @@ def _check_cell_coverage(
         num_unmapped = len(unmapped_cell_indices)
         percentage_unmapped = (num_unmapped / total_cells_with_data) * 100.0
 
-        filter_name = f"zone/filter {filter_idx}" if len(inclusion_filters) > 1 else "all"
+        if filter_names is not None and filter_idx < len(filter_names):
+            filter_name = filter_names[filter_idx]
+        else:
+            filter_name = f"filter_{filter_idx}" if len(inclusion_filters) > 1 else "all"
 
         if percentage_unmapped < 1.0:
             # Log as info if percentage is 1.0% or below
@@ -173,7 +180,7 @@ def _check_cell_coverage(
                 f"\nWARNING: {percentage_unmapped:.2f}% of grid cells with data "
                 f"({num_unmapped}/{total_cells_with_data}) have no spatial overlap with "
                 f"map pixels for '{filter_name}'."
-                f"\n         These cells will not be counted in the aggregation."
+                f"\n         These cells will therefore not be used in the aggregation."
                 f"\n         Consider using a finer map resolution (smaller pixel size)."
             )
             logging.warning(format_warning(warning_text))
@@ -197,7 +204,7 @@ def _check_cell_coverage(
             if table_data:
                 max_name_len = max(len(row[0]) for row in table_data)
                 header = f"{'\nProperty':<{max_name_len}}    Lost Value   % of Total"
-                separator = f"{'-' * max_name_len}---------------------------"
+                separator = f"{'-' * max_name_len}--------------------------"
 
                 logging.warning(header)
                 logging.warning(separator)

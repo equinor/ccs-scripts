@@ -193,7 +193,7 @@ def generate_maps(
         create_map_template(map_settings),
         grid,
         properties,
-        [f[1] for f in _filters],
+        _filters,
         computesettings.aggregation,
         computesettings.weight_by_dz,
     )
