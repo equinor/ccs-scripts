@@ -70,7 +70,9 @@ def aggregate_maps(
 
     if method in [AggregationMethod.SUM, AggregationMethod.DISTRIBUTE]:
         prop_names = [p.name for p in grid_props]
-        _check_cell_coverage(props, inclusion_filters, conn_data, prop_names, filter_names)
+        _check_cell_coverage(
+            props, inclusion_filters, conn_data, prop_names, filter_names, grid, active_cells
+        )
 
     timer.stop("aggregate_maps")
     return conn_data.x_nodes, conn_data.y_nodes, results
@@ -122,10 +124,13 @@ def _check_cell_coverage(
     conn_data: _ConnectionData,
     prop_names: List[str],
     filter_names: Optional[List[str]] = None,
+    grid: Optional[xtgeo.Grid] = None,
+    active_cells: Optional[np.ndarray] = None,
 ) -> None:
     """
     Check if all valid (non-masked) grid cells are included in the aggregation.
     Warns if more than 1.0% of cells are not counted, and reports lost values per property.
+    Distinguishes between cells outside map extent vs cells within extent but unmapped.
 
     Args:
         props: List of properties (after filtering for active cells)
@@ -133,8 +138,30 @@ def _check_cell_coverage(
         conn_data: Connection data between grid and map nodes
         prop_names: List of property names for better reporting
         filter_names: Names of the filters (e.g., zone names) for better reporting
+        grid: The 3D grid (for getting cell coordinates)
+        active_cells: Boolean array of active cells
     """
     logging.info("\nChecking cell coverage for aggregation with SUM or DISTRIBUTE method.")
+
+    # Get cell centers if grid is provided
+    cell_centers_xy = None
+    if grid is not None and active_cells is not None:
+        cell_centers = grid.get_xyz()
+        cell_x = cell_centers[0].values1d[active_cells]
+        cell_y = cell_centers[1].values1d[active_cells]
+        cell_centers_xy = np.column_stack((cell_x, cell_y))
+
+    # Determine map extent
+    map_x_min, map_x_max = conn_data.x_nodes.min(), conn_data.x_nodes.max()
+    map_y_min, map_y_max = conn_data.y_nodes.min(), conn_data.y_nodes.max()
+    # Add half pixel buffer
+    x_inc = conn_data.x_nodes[1] - conn_data.x_nodes[0] if len(conn_data.x_nodes) > 1 else 0
+    y_inc = conn_data.y_nodes[1] - conn_data.y_nodes[0] if len(conn_data.y_nodes) > 1 else 0
+    map_x_min -= x_inc / 2
+    map_x_max += x_inc / 2
+    map_y_min -= y_inc / 2
+    map_y_max += y_inc / 2
+
     for filter_idx, incl in enumerate(inclusion_filters):
         grd_ix = conn_data.grid_indices
 
@@ -161,7 +188,25 @@ def _check_cell_coverage(
         # Find unmapped cells:
         cell_indices_with_data = np.argwhere(any_valid_cells).flatten()
         unmapped_cell_indices = np.setdiff1d(cell_indices_with_data, unique_mapped_cells)
+
+        # Split unmapped cells into those inside vs outside map extent
+        unmapped_inside = unmapped_cell_indices
+        unmapped_outside = np.array([], dtype=int)
+
+        if cell_centers_xy is not None and len(unmapped_cell_indices) > 0:
+            unmapped_coords = cell_centers_xy[unmapped_cell_indices]
+            inside_extent = (
+                (unmapped_coords[:, 0] >= map_x_min) &
+                (unmapped_coords[:, 0] <= map_x_max) &
+                (unmapped_coords[:, 1] >= map_y_min) &
+                (unmapped_coords[:, 1] <= map_y_max)
+            )
+            unmapped_inside = unmapped_cell_indices[inside_extent]
+            unmapped_outside = unmapped_cell_indices[~inside_extent]
+
         num_unmapped = len(unmapped_cell_indices)
+        num_unmapped_inside = len(unmapped_inside)
+        num_unmapped_outside = len(unmapped_outside)
         percentage_unmapped = (num_unmapped / total_cells_with_data) * 100.0
 
         if filter_names is not None and filter_idx < len(filter_names):
@@ -176,41 +221,71 @@ def _check_cell_coverage(
                 f"({num_unmapped}/{total_cells_with_data}) have no spatial overlap with map pixels"
             )
         else:
+            percentage_inside = (num_unmapped_inside / total_cells_with_data) * 100.0
+            percentage_outside = (num_unmapped_outside / total_cells_with_data) * 100.0
+
             warning_text = (
                 f"\nWARNING: {percentage_unmapped:.2f}% of grid cells with data "
-                f"({num_unmapped}/{total_cells_with_data}) have no spatial overlap with "
-                f"map pixels for '{filter_name}'."
-                f"\n         These cells will therefore not be used in the aggregation."
-                f"\n         Consider using a finer map resolution (smaller pixel size)."
+                f"({num_unmapped}/{total_cells_with_data}) are not used in the "
+                f"aggregation for '{filter_name}'."
+                f"\n         Due to map resolution : {percentage_inside:.2f}% "
+                f"({num_unmapped_inside} cells within extent but between pixels)"
+                f"\n         Due to map extent     : {percentage_outside:.2f}% "
+                f"({num_unmapped_outside} cells outside the map boundaries)"
             )
+            if num_unmapped_inside > 0 and num_unmapped_outside > 0:
+                warning_text += (
+                    f"\n         Consider both finer resolution and extending map extent."
+                )
+            elif num_unmapped_inside > 0:
+                warning_text += (
+                    f"\n         Consider using a finer map resolution (smaller pixel size)."
+                )
+            elif num_unmapped_outside > 0:
+                warning_text += (
+                    f"\n         Consider extending the map extent or using automatic bounds."
+                )
             logging.warning(format_warning(warning_text))
 
+            # Build table with both resolution and extent columns
             table_data = []
             for prop_idx, prop in enumerate(props):
-                # Get valid data in unmapped cells for this specific property
-                if hasattr(prop, 'mask'):
-                    valid_in_unmapped = ~prop.mask[unmapped_cell_indices]
-                else:
-                    valid_in_unmapped = np.ones(len(unmapped_cell_indices), dtype=bool)
+                total_value = np.sum(prop[~prop.mask]) if hasattr(prop, 'mask') else np.sum(prop)
+                prop_name = prop_names[prop_idx] if prop_idx < len(prop_names) else f"property_{prop_idx}"
 
-                if np.any(valid_in_unmapped):
-                    lost_value = np.sum(prop[unmapped_cell_indices][valid_in_unmapped])
-                    total_value = np.sum(prop[~prop.mask]) if hasattr(prop, 'mask') else np.sum(prop)
-                    lost_percentage = (lost_value / total_value * 100.0) if total_value != 0 else 0.0
+                def _lost(cell_indices):
+                    if len(cell_indices) == 0:
+                        return 0.0, 0.0
+                    if hasattr(prop, 'mask'):
+                        valid = ~prop.mask[cell_indices]
+                    else:
+                        valid = np.ones(len(cell_indices), dtype=bool)
+                    if not np.any(valid):
+                        return 0.0, 0.0
+                    val = np.sum(prop[cell_indices][valid])
+                    pct = (val / total_value * 100.0) if total_value != 0 else 0.0
+                    return val, pct
 
-                    prop_name = prop_names[prop_idx] if prop_idx < len(prop_names) else f"property_{prop_idx}"
-                    table_data.append((prop_name, lost_value, lost_percentage))
+                lost_res_val, lost_res_pct = _lost(unmapped_inside)
+                lost_ext_val, lost_ext_pct = _lost(unmapped_outside)
+                table_data.append((prop_name, lost_res_val, lost_res_pct, lost_ext_val, lost_ext_pct))
 
             if table_data:
-                max_name_len = max(len(row[0]) for row in table_data)
-                header = f"{'\nProperty':<{max_name_len}}    Lost Value   % of Total"
-                separator = f"{'-' * max_name_len}--------------------------"
+                w = max(len(row[0]) for row in table_data)
+                w = max(w, len("Property"))
+                header = (
+                    f"\n{'Property':<{w}}   {'Resolution':>21}   {'Extent':>21}"
+                    f"\n{'':<{w}}   {'Lost Value':>10} {'% of Tot':>10}"
+                    f"   {'Lost Value':>10} {'% of Tot':>10}"
+                )
+                separator = "-" * (w + 2 + 21 + 3 + 21)
 
                 logging.warning(header)
                 logging.warning(separator)
-                for prop_name, lost_val, lost_pct in table_data:
+                for pn, rv, rp, ev, ep in table_data:
                     logging.warning(
-                        f"{prop_name:<{max_name_len}}   {lost_val:>10.2f}   {lost_pct:>9.2f}%"
+                        f"{pn:<{w}}   {rv:>10.2f} {rp:>9.2f}%"
+                        f"   {ev:>10.2f} {ep:>9.2f}%"
                     )
 
 
