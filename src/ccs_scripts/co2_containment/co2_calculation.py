@@ -1539,8 +1539,8 @@ def _calculate_co2_data_from_source_data(
         if not is_subset([required_oil_dens], active_props):
             error_text = (
                 f"Source: {source}"
-                f"Scenario detected as DEPLETED_OIL_GAS_FIELD but "
-                f"{required_oil_dens} is missing.\n"
+                f"\nScenario detected as DEPLETED_OIL_GAS_FIELD but "
+                f"\n{required_oil_dens} is missing.\n"
             )
             raise ValueError(format_error(error_text))
     gas_molar_mass = None
