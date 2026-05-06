@@ -1534,15 +1534,6 @@ def _calculate_co2_data_from_source_data(
 
     pore_volume_prop = _find_pore_volume_prop(active_props)
     source, scenario = _find_source_and_scenario(residual_trapping, active_props)
-    if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
-        required_oil_dens = "BOIL" if source == "Eclipse" else "DOIL"
-        if not is_subset([required_oil_dens], active_props):
-            error_text = (
-                f"Source: {source}"
-                f"\nScenario detected as DEPLETED_OIL_GAS_FIELD but "
-                f"{required_oil_dens} is missing.\n"
-            )
-            raise ValueError(format_error(error_text))
     gas_molar_mass = None
     oil_molar_mass = None
     comp_molar_masses = None
@@ -1655,6 +1646,15 @@ def _find_source_and_scenario(
         _raise_missing_props_error(
             active_props, props_needed_cirrus, props_needed_eclipse
         )
+    if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
+        required_oil_dens = "BOIL" if source == "Eclipse" else "DOIL"
+        if not is_subset([required_oil_dens], active_props):
+            error_text = (
+                f"Source: {source}"
+                f"\nScenario detected as DEPLETED_OIL_GAS_FIELD but "
+                f"{required_oil_dens} is missing.\n"
+            )
+            raise ValueError(format_error(error_text))
     return source, scenario
 
 
