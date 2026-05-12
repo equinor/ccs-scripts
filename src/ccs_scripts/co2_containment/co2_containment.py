@@ -455,7 +455,7 @@ def get_parser() -> argparse.ArgumentParser:
         help="Calculate moving and stationary gas phases based on 25-year comparison.",
         type=str_to_bool,
         nargs="?",
-        const=True,
+        const=False,
         metavar="<FIND_STATIONARY_GAS>",
     )
     parser.add_argument(

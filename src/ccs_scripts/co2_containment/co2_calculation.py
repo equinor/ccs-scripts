@@ -1820,7 +1820,7 @@ def _calculate_co2_data_from_source_data(
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
     residual_trapping: bool = False,
-    find_stationary_gas: bool = True,
+    find_stationary_gas: bool = False,
     cirrus_info_file: Optional[str] = None,
 ) -> Co2Data:
     """
