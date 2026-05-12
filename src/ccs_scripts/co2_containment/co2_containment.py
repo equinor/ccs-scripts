@@ -460,7 +460,7 @@ def get_parser() -> argparse.ArgumentParser:
         "years to look back.",
         type=str_to_bool,
         nargs="?",
-        const=False,
+        const=True,
         metavar="<FIND_STATIONARY_GAS>",
     )
     parser.add_argument(
