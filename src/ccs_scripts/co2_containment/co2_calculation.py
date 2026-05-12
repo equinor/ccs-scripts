@@ -10,7 +10,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xtgeo
@@ -956,6 +955,13 @@ def _set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
     return CalculationType[calc_type_input]
 
 
+def _moving_stationary_keys(use_free_gas: bool) -> tuple[str, str, str]:
+    """Return (gas_key, moving_key, stationary_key) based on gas type."""
+    if use_free_gas:
+        return "free_gas", "moving_free_gas", "stationary_free_gas"
+    return "gas", "moving_gas", "stationary_gas"
+
+
 def _calculate_moved_stationary_co2(
     co2_mass: Dict[str, Dict[str, np.ndarray]],
     dates: List[str],
@@ -971,7 +977,7 @@ def _calculate_moved_stationary_co2(
     Args:
         co2_mass: Dictionary of CO2 mass arrays by date
         dates: List of all available dates in chronological order
-        n_years: Number of years to look back for comparison (default: 10)
+        n_years: Number of years to look back for comparison (default: 25)
         use_free_gas: If True, use free gas; if False, use total gas
         create_plot: If True, generate and save distribution plots
         show_plot: If True, display plots interactively (blocks execution)
@@ -982,20 +988,12 @@ def _calculate_moved_stationary_co2(
         Adds keys: 'moving_free_gas' and 'stationary_free_gas' if use_free_gas=True,
         or 'moving_gas' and 'stationary_gas' if use_free_gas=False
     """
-    gas_key = "free_gas" if use_free_gas else "gas"
+    gas_key, moving_key, stationary_key = _moving_stationary_keys(use_free_gas)
     gas_type_name = "Free" if use_free_gas else "Gas"
-
-    # Determine the output key names based on use_free_gas
-    if use_free_gas:
-        moving_key = "moving_free_gas"
-        stationary_key = "stationary_free_gas"
-    else:
-        moving_key = "moving_gas"
-        stationary_key = "stationary_gas"
 
     for date in dates:
         gas_current = co2_mass[date][gas_key]
-        gas_past = _get_free_co2_10years_ago(date, co2_mass, dates, n_years, gas_key)
+        gas_past = _get_free_co2_n_years_ago(date, co2_mass, dates, n_years, gas_key)
 
         delta_gas = gas_current - gas_past
         delta_gas[delta_gas < 0] = 0
@@ -1049,6 +1047,8 @@ def _plot_co2_distribution_over_time(
         use_free_gas: If True, use free gas; if False, use total gas
         show_plot: If True, display plots interactively (blocks execution)
     """
+    import matplotlib.pyplot as plt
+
     date_objects = [datetime.strptime(d, "%Y%m%d") for d in dates]
     dissolved_total = []
     moved_total = []
@@ -1058,13 +1058,7 @@ def _plot_co2_distribution_over_time(
     gas_type = "Free CO2" if use_free_gas else "Gas CO2"
     has_trapped = "trapped_gas" in co2_mass[dates[0]]
 
-    # Determine which keys to use based on use_free_gas
-    if use_free_gas:
-        moving_key = "moving_free_gas"
-        stationary_key = "stationary_free_gas"
-    else:
-        moving_key = "moving_gas"
-        stationary_key = "stationary_gas"
+    _, moving_key, stationary_key = _moving_stationary_keys(use_free_gas)
 
     for date in dates:
         phases = co2_mass[date]
@@ -1209,7 +1203,7 @@ def _plot_co2_distribution_over_time(
     plt.close(fig3)
 
 
-def _get_free_co2_10years_ago(
+def _get_free_co2_n_years_ago(
     current_date_str: str,
     co2_mass: Dict[str, Dict[str, np.ndarray]],
     dates: List[str],
