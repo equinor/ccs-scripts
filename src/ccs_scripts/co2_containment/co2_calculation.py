@@ -959,7 +959,7 @@ def _set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
 def _calculate_moved_stationary_co2(
     co2_mass: Dict[str, Dict[str, np.ndarray]],
     dates: List[str],
-    n_years: int = 10,
+    n_years: int = 25,
     use_free_gas: bool = True,
     create_plot: bool = False,
     show_plot: bool = False,
@@ -1821,6 +1821,7 @@ def _calculate_co2_data_from_source_data(
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
     residual_trapping: bool = False,
     find_stationary_gas: bool = False,
+    stationary_gas_n_years: int = 25,
     cirrus_info_file: Optional[str] = None,
 ) -> Co2Data:
     """
@@ -1879,6 +1880,7 @@ def _calculate_co2_data_from_source_data(
             calc_type,
             residual_trapping,
             find_stationary_gas,
+            stationary_gas_n_years,
             source_data,
             pore_volume_prop,
             co2_molar_mass,
@@ -1980,6 +1982,7 @@ def _calc_co2_amount(
     calc_type: CalculationType,
     residual_trapping: bool,
     find_stationary_gas: bool,
+    stationary_gas_n_years: int,
     source_data: SourceData,
     pore_volume_prop: str,
     co2_molar_mass: float,
@@ -2025,7 +2028,7 @@ def _calc_co2_amount(
         co2_mass_cell = _calculate_moved_stationary_co2(
             co2_mass_cell,
             source_data.DATES,
-            n_years=25,
+            n_years=stationary_gas_n_years,
             use_free_gas=residual_trapping,  # Use free gas if residual trapping available
             create_plot=False,
             print_debug=False,
@@ -2379,6 +2382,7 @@ def calculate_co2(
     zone_info: ZoneInfo,
     region_info: RegionInfo,
     find_stationary_gas: bool,
+    stationary_gas_n_years: int = 25,
     residual_trapping: bool = False,
     calc_type_input: str = "mass",
     init_file: Optional[str] = None,
@@ -2426,6 +2430,7 @@ def calculate_co2(
         calc_type=calc_type,
         residual_trapping=residual_trapping,
         find_stationary_gas=find_stationary_gas,
+        stationary_gas_n_years=stationary_gas_n_years,
         cirrus_info_file=cirrus_info_file,
     )
     timer.stop("calculate_co2")

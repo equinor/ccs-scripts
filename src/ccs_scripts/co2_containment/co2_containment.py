@@ -57,6 +57,7 @@ def calculate_out_of_bounds_co2(
     region_info: RegionInfo,
     residual_trapping: bool,
     find_stationary_gas: bool,
+    stationary_gas_n_years: int,
     inj_wells: List[InjectionWellData],
     file_cont_polygon: Optional[str] = None,
     file_nogo_polygon: Optional[str] = None,
@@ -84,6 +85,7 @@ def calculate_out_of_bounds_co2(
             and list connecting region-numbers to names, if available
         residual_trapping (bool): Indicate if residual trapping should be calculated
         find_stationary_gas (bool): Calculate moving and stationary gas phases
+        stationary_gas_n_years (int): Number of years to look back for comparison
         inj_wells (List): Injection wells used for plume tracking
         cirrus_info_file (str): Path to file with gas molar mass. (Applies for cases
             with more than two components)
@@ -97,6 +99,7 @@ def calculate_out_of_bounds_co2(
         zone_info,
         region_info,
         find_stationary_gas,
+        stationary_gas_n_years,
         residual_trapping,
         calc_type_input=calc_type_input,
         init_file=init_file,
@@ -452,11 +455,21 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--find_stationary_gas",
-        help="Calculate moving and stationary gas phases based on 25-year comparison.",
+        help="Calculate moving and stationary gas based on n-year "
+        "comparison. Use '--stationary_gas_n_years' to set the number of "
+        "years to look back.",
         type=str_to_bool,
         nargs="?",
         const=False,
         metavar="<FIND_STATIONARY_GAS>",
+    )
+    parser.add_argument(
+        "--stationary_gas_n_years",
+        help="Number of years to look back for stationary gas calculation. Default is 25."
+        " Only relevant if '--find_stationary_gas' is set to True.",
+        type=int,
+        default=25,
+        metavar="<STATIONARY_GAS_N_YEARS>",
     )
     parser.add_argument(
         "--readable_output",
@@ -527,6 +540,8 @@ def _replace_default_dummies_from_ert(args):
         args.residual_trapping = False
     if args.find_stationary_gas == "-1":
         args.find_stationary_gas = False
+    if args.stationary_gas_n_years == -1:
+        args.stationary_gas_n_years = 25
     if args.readable_output == "-1":
         args.readable_output = False
     if args.cirrus_info_file == "-1":
@@ -769,6 +784,8 @@ def log_input_configuration(args: argparse.Namespace) -> None:
         f"{'Find stationary gas':<{col1}} : "
         f"{'yes' if args.find_stationary_gas else 'no'}"
     )
+    if args.find_stationary_gas:
+        logging.info(f"{'Stationary gas N years':<{col1}} : {args.stationary_gas_n_years}")
     readable_output_str = (
         "yes" if args.readable_output is not None and args.readable_output else "no"
     )
@@ -1326,6 +1343,7 @@ def main() -> None:
         region_info,
         arguments_processed.residual_trapping,
         arguments_processed.find_stationary_gas,
+        arguments_processed.stationary_gas_n_years,
         injection_wells,
         arguments_processed.containment_polygon,
         arguments_processed.nogo_polygon,
