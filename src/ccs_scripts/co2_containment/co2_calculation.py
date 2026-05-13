@@ -4,7 +4,7 @@
 import copy
 import logging
 import os
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
@@ -198,7 +198,8 @@ class Co2DataAtTimeStep:
       trapped_gas_phase (np.ndarray): The amount of CO2 in trapped/stranded gas phase
       free_gas_phase (np.ndarray): The amount of CO2 in free gas phase
       moving_free_gas (Optional[np.ndarray]): The amount of CO2 in moving free gas phase
-      stationary_free_gas (Optional[np.ndarray]): The amount of CO2 in stationary free gas phase
+      stationary_free_gas (Optional[np.ndarray]): The amount of CO2 in
+                                                    stationary free gas phase
       moving_gas (Optional[np.ndarray]): The amount of CO2 in moving gas phase
       stationary_gas (Optional[np.ndarray]): The amount of CO2 in stationary gas phase
     """
@@ -1011,15 +1012,15 @@ def _calculate_moved_stationary_co2(
                 + np.sum(phases["dis_oil"])
             ) / 1000000
             print(f"Total CO2 mass: {total_mass:>10.2f} Mt")
-            print(f"Dissolved     : {np.sum(phases['dis_water']) / 1000000:>10.2f} Mt")
+            dis_w = np.sum(phases["dis_water"]) / 1000000
+            print(f"Dissolved     : {dis_w:>10.2f} Mt")
             if "trapped_gas" in phases:
-                print(
-                    f"Trapped       : {np.sum(phases['trapped_gas']) / 1000000:>10.2f} Mt"
-                )
-            print(f"{gas_type_name:14s}: {np.sum(phases[gas_key]) / 1000000:>10.2f} Mt")
-            print(
-                f"Moved ({n_years}y)   : {np.sum(delta_gas) / 1000000:>10.2f} Mt   <------"
-            )
+                trapped = np.sum(phases["trapped_gas"]) / 1e6
+                print(f"Trapped       : {trapped:>10.2f} Mt")
+            gas_sum = np.sum(phases[gas_key]) / 1000000
+            print(f"{gas_type_name:14s}: {gas_sum:>10.2f} Mt")
+            moved = np.sum(delta_gas) / 1000000
+            print(f"Moved ({n_years}y)   : {moved:>10.2f} Mt   <------")
             print(f"Stationary    : {np.sum(diff_gas) / 1000000:>10.2f} Mt")
 
     if create_plot:
@@ -1041,7 +1042,8 @@ def _plot_co2_distribution_over_time(
     Plot CO2 distribution over time showing dissolved, moved, and stationary CO2.
 
     Args:
-        co2_mass: Dictionary of CO2 mass arrays by date (must include moved/stationary indices)
+        co2_mass: Dictionary of CO2 mass arrays by date
+                  (must include moved/stationary indices)
         dates: List of all available dates in chronological order
         n_years: Number of years used for moved/stationary calculation
         use_free_gas: If True, use free gas; if False, use total gas
@@ -1830,7 +1832,8 @@ def _calculate_co2_data_from_source_data(
         co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
         water_molar_mass (float): Water molar mass - Default is 18 g/mol
         residual_trapping (bool): Indicate if residual trapping should be calculated
-        find_stationary_gas (bool): Indicate if moving/stationary gas should be calculated
+        find_stationary_gas (bool): Indicate if moving/stationary gas
+                                       should be calculated
         cirrus_info_file (Optional[str]): Path to cirrus info file
 
     Returns:
@@ -2023,7 +2026,8 @@ def _calc_co2_amount(
             co2_mass_cell,
             source_data.DATES,
             n_years=stationary_gas_n_years,
-            use_free_gas=residual_trapping,  # Use free gas if residual trapping available
+            # Use free gas if residual trapping available
+            use_free_gas=residual_trapping,
             create_plot=False,
             print_debug=False,
             show_plot=False,

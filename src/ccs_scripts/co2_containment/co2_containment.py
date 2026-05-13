@@ -465,7 +465,8 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--stationary_gas_n_years",
-        help="Number of years to look back for stationary gas calculation. Default is 25."
+        help="Number of years to look back for stationary gas"
+        " calculation. Default is 25."
         " Only relevant if '--find_stationary_gas' is set to True.",
         type=int,
         default=25,
