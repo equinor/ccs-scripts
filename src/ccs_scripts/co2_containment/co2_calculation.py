@@ -2255,7 +2255,6 @@ def _calculate_molar_vols_co2(
     return molar_vols_co2
 
 
-# NBNB-AS: COH-447, need to check/fix here, but should be simple
 def _calc_co2_amount_cell_volume(
     scenario: Scenario,
     source_data: SourceData,
