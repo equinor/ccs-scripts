@@ -785,7 +785,9 @@ def log_input_configuration(args: argparse.Namespace) -> None:
         f"{'yes' if args.find_stationary_gas else 'no'}"
     )
     if args.find_stationary_gas:
-        logging.info(f"{'Stationary gas N years':<{col1}} : {args.stationary_gas_n_years}")
+        logging.info(
+            f"{'Stationary gas N years':<{col1}} : {args.stationary_gas_n_years}"
+        )
     readable_output_str = (
         "yes" if args.readable_output is not None and args.readable_output else "no"
     )

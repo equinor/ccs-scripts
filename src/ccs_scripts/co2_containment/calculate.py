@@ -238,12 +238,18 @@ def _lists_of_phases(
         if residual_trapping:
             phases += ["trapped_gas", "free_gas"]
             # Only add moving/stationary phases if they were calculated
-            if len(co2_data.data_list) > 0 and co2_data.data_list[0].moving_free_gas is not None:
+            if (
+                len(co2_data.data_list) > 0
+                and co2_data.data_list[0].moving_free_gas is not None
+            ):
                 phases += ["moving_free_gas", "stationary_free_gas"]
         else:
             phases += ["gas"]
             # Only add moving/stationary phases if they were calculated
-            if len(co2_data.data_list) > 0 and co2_data.data_list[0].moving_gas is not None:
+            if (
+                len(co2_data.data_list) > 0
+                and co2_data.data_list[0].moving_gas is not None
+            ):
                 phases += ["moving_gas", "stationary_gas"]
         phases += (
             ["dissolved_oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
