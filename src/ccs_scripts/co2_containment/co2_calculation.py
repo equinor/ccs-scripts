@@ -1004,8 +1004,9 @@ def _calculate_moved_stationary_co2(
         co2_mass[date][stationary_key] = diff_gas
 
         if print_debug:
-            # NBNB-AS: CCS-447: Can remove this if we choose to keep the CCS-447-functionality
-            #          Or: Keep as logging.debug
+            # NBNB-AS: CCS-447: Can remove this if we choose to
+            #          keep the CCS-447-functionality.
+            #          Or: Keep as logging.debug.
             print(f"\nDate: {date}")
             phases = co2_mass[date]
             total_mass = (
@@ -1671,14 +1672,14 @@ def _cirrus_co2_molar_volume(
         ]
 
         co2_molar_vol[date] = {
-            "dis_water": dis_water_vol,
-            "gas": gas_vol,
-            "dis_oil": oil_vol,
+            "dis_water": np.array(dis_water_vol),
+            "gas": np.array(gas_vol),
+            "dis_oil": np.array(oil_vol),
         }
 
         if source_data.SGSTRAND is not None:
-            co2_molar_vol[date]["trapped_gas"] = gas_vol
-            co2_molar_vol[date]["free_gas"] = gas_vol
+            co2_molar_vol[date]["trapped_gas"] = np.array(gas_vol)
+            co2_molar_vol[date]["free_gas"] = np.array(gas_vol)
     return co2_molar_vol
 
 
@@ -1741,14 +1742,14 @@ def _eclipse_co2_molar_volume(
         gas_vol = [0 if x < 0 or y == 0 else x for x, y in zip(gas_vol, ymf2[date])]
 
         co2_molar_vol[date] = {
-            "dis_water": dis_water_vol,
-            "gas": gas_vol,
-            "dis_oil": list(np.zeros_like(dis_water_vol)),
+            "dis_water": np.array(dis_water_vol),
+            "gas": np.array(gas_vol),
+            "dis_oil": np.zeros_like(np.array(dis_water_vol)),
         }
 
         if source_data.SGTRH is not None:
-            co2_molar_vol[date]["trapped_gas"] = gas_vol
-            co2_molar_vol[date]["free_gas"] = gas_vol
+            co2_molar_vol[date]["trapped_gas"] = np.array(gas_vol)
+            co2_molar_vol[date]["free_gas"] = np.array(gas_vol)
     return co2_molar_vol
 
 
