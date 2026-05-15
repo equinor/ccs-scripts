@@ -1004,6 +1004,8 @@ def _calculate_moved_stationary_co2(
         co2_mass[date][stationary_key] = diff_gas
 
         if print_debug:
+            # NBNB-AS: CCS-447: Can remove this if we choose to keep the CCS-447-functionality
+            #          Or: Keep as logging.debug
             print(f"\nDate: {date}")
             phases = co2_mass[date]
             total_mass = (
@@ -1049,12 +1051,14 @@ def _plot_co2_distribution_over_time(
         use_free_gas: If True, use free gas; if False, use total gas
         show_plot: If True, display plots interactively (blocks execution)
     """
+
+    # This is just a temp method to plot the results directly.
+    # Can remove whole method if we choose to keep the CCS-447-functionality
+
     import matplotlib.dates as mdates  # noqa: F811
     import matplotlib.pyplot as plt
 
-    date_objects = mdates.date2num(
-        [datetime.strptime(d, "%Y%m%d") for d in dates]
-    )
+    date_objects = mdates.date2num([datetime.strptime(d, "%Y%m%d") for d in dates])
     dissolved_total = []
     moved_total = []
     stationary_total = []

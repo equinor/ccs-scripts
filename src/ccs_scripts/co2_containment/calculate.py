@@ -273,12 +273,18 @@ def _lists_of_co2_for_each_phase(
         if residual_trapping:
             arrays += [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
             # Only add moving/stationary free gas if they were calculated
-            if co2_at_date.moving_free_gas is not None and co2_at_date.stationary_free_gas is not None:
+            if (
+                co2_at_date.moving_free_gas is not None
+                and co2_at_date.stationary_free_gas is not None
+            ):
                 arrays += [co2_at_date.moving_free_gas, co2_at_date.stationary_free_gas]
         else:
             arrays += [co2_at_date.gas_phase]
             # Only add moving/stationary gas if they were calculated
-            if co2_at_date.moving_gas is not None and co2_at_date.stationary_gas is not None:
+            if (
+                co2_at_date.moving_gas is not None
+                and co2_at_date.stationary_gas is not None
+            ):
                 arrays += [co2_at_date.moving_gas, co2_at_date.stationary_gas]
         arrays += [co2_at_date.dis_oil_phase]
     return arrays
