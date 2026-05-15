@@ -1049,9 +1049,12 @@ def _plot_co2_distribution_over_time(
         use_free_gas: If True, use free gas; if False, use total gas
         show_plot: If True, display plots interactively (blocks execution)
     """
+    import matplotlib.dates as mdates  # noqa: F811
     import matplotlib.pyplot as plt
 
-    date_objects = [datetime.strptime(d, "%Y%m%d") for d in dates]
+    date_objects = mdates.date2num(
+        [datetime.strptime(d, "%Y%m%d") for d in dates]
+    )
     dissolved_total = []
     moved_total = []
     stationary_total = []
@@ -1120,6 +1123,7 @@ def _plot_co2_distribution_over_time(
     ax.grid(True, alpha=0.3)
 
     # Format x-axis to show dates nicely
+    ax.xaxis_date()
     fig.autofmt_xdate()
 
     plt.tight_layout()
@@ -1164,6 +1168,7 @@ def _plot_co2_distribution_over_time(
     ax2.grid(True, alpha=0.3)
 
     # Format x-axis to show dates nicely
+    ax2.xaxis_date()
     fig2.autofmt_xdate()
 
     plt.tight_layout()
@@ -1194,6 +1199,7 @@ def _plot_co2_distribution_over_time(
     ax3.legend(handles3[::-1], labels3[::-1], loc="upper left", fontsize=10)
     ax3.grid(True, alpha=0.3)
 
+    ax3.xaxis_date()
     fig3.autofmt_xdate()
 
     plt.tight_layout()
