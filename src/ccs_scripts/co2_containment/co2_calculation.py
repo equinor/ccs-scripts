@@ -637,6 +637,7 @@ def _extract_source_data(
                 poro_vals = poro.values[active_cells].data
                 porv_vals = porv.values[active_cells].data
                 porv_proxy = np.where(porv_vals == 1.0, poro_vals * vol, porv_vals)
+                _log_porv_proxy_diagnostics(poro_vals, porv_vals, vol, porv_proxy)
                 props_reduced["PORV"] = {d: porv_proxy for d in dates}
     # Infer SOIL from SGAS and SWAT if not stored in the file.
     # Some simulators (e.g. Eclipse compositional with 3 phases) store SGAS and
@@ -731,6 +732,46 @@ def _log_grid_cell_dimensions(
             f"{values.mean():>12.1f} "
             f"{np.percentile(values, 90):>12.1f} "
             f"{values.max():>12.1f}"
+        )
+        logging.info(row)
+
+
+def _log_porv_proxy_diagnostics(
+    poro_vals: np.ndarray,
+    porv_vals: np.ndarray,
+    vol: np.ndarray,
+    porv_proxy: np.ndarray,
+) -> None:
+    n_total = len(porv_vals)
+    n_exact = int(np.sum(porv_vals == 1.0))
+    n_near = int(np.sum(np.abs(porv_vals - 1.0) < 1e-4)) - n_exact
+
+    logging.info(
+        f"\nLGR detected — PORV proxy diagnostics ({n_total} active cells):"
+    )
+    logging.info(f"  Cells with PORV == 1.0 (exact, proxy applied)      : {n_exact}")
+    logging.info(f"  Cells with |PORV - 1.0| < 1e-4 (NOT replaced)      : {n_near}")
+
+    header = (
+        f"\n{'Property':<22} {'Min':>12} {'P10':>12} "
+        f"{'Median':>12} {'Mean':>12} {'P90':>12} {'Max':>12}"
+    )
+    logging.info(header)
+    logging.info(f"{'-' * 106}")
+
+    for label, values in [
+        ("PORV (raw)", porv_vals),
+        ("PORV (proxy)", porv_proxy),
+        ("PORO*vol (formula)", poro_vals * vol),
+    ]:
+        row = (
+            f"{label:<22} "
+            f"{values.min():>12.4g} "
+            f"{np.percentile(values, 10):>12.4g} "
+            f"{np.median(values):>12.4g} "
+            f"{values.mean():>12.4g} "
+            f"{np.percentile(values, 90):>12.4g} "
+            f"{values.max():>12.4g}"
         )
         logging.info(row)
 
