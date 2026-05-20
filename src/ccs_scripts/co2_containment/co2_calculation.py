@@ -762,7 +762,7 @@ def _log_porv_proxy_diagnostics(
     for label, values in [
         ("PORV (raw)", porv_vals),
         ("PORV (proxy)", porv_proxy),
-        ("PORO*vol (formula)", poro_vals * vol),
+        ("PORO*vol (formula)", np.asarray(poro_vals * vol)),
     ]:
         row = (
             f"{label:<22} "
