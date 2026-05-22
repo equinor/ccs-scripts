@@ -26,8 +26,7 @@ from ccs_scripts.aggregate._config import (
     Zonation,
     ZProperty,
 )
-from ccs_scripts.co2_containment.co2_containment import str_to_bool
-from ccs_scripts.utils.utils import format_error, format_warning
+from ccs_scripts.utils.utils import format_error, format_warning, str_to_bool
 from ccs_scripts.utils.xtgeo_logging import (
     setup_xtgeo_logging,
     suppress_xtgeo_warning_by_message,

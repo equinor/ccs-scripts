@@ -22,7 +22,6 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from ccs_scripts.co2_containment.co2_containment import str_to_bool
 from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
     calculate_plume_groups,
     load_plume_tracking_data,
@@ -38,6 +37,7 @@ from ccs_scripts.utils.utils import (
     format_error,
     format_warning,
     read_yaml_file,
+    str_to_bool,
 )
 
 DEFAULT_THRESHOLD_GAS = 0.2

@@ -28,8 +28,7 @@ import numpy as np
 import pandas as pd
 import xtgeo
 
-from ccs_scripts.co2_containment.co2_containment import str_to_bool
-from ccs_scripts.utils.utils import format_error
+from ccs_scripts.utils.utils import format_error, str_to_bool
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)

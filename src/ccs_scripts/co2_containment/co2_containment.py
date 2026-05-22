@@ -44,7 +44,11 @@ from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
 )
 from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
 from ccs_scripts.utils.timer import Timer
-from ccs_scripts.utils.utils import format_error, format_warning
+from ccs_scripts.utils.utils import (
+    format_error,
+    format_warning,
+    str_to_bool,
+)
 
 
 # pylint: disable=too-many-arguments
@@ -306,18 +310,6 @@ def _merge_date_rows(
                 )
                 total_df = total_df.merge(_df, on="date", how="left")
     return total_df.reset_index(drop=True)
-
-
-def str_to_bool(value):
-    if isinstance(value, bool):
-        return value
-    if value.lower() in {"false", "no", "0"}:
-        return False
-    elif value.lower() in {"true", "yes", "1"}:
-        return True
-    elif value == "-1":
-        return "-1"
-    raise ValueError(format_error(f"{value} is not a valid boolean value"))
 
 
 def get_parser() -> argparse.ArgumentParser:

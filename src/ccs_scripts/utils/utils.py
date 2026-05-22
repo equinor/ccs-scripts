@@ -18,6 +18,18 @@ def format_error(txt: Union[str, Exception]) -> str:
     return f"\x1b[37;41m\x1b[1m{txt}\x1b[0m"
 
 
+def str_to_bool(value):
+    if isinstance(value, bool):
+        return value
+    if value.lower() in {"false", "no", "0"}:
+        return False
+    elif value.lower() in {"true", "yes", "1"}:
+        return True
+    elif value == "-1":
+        return "-1"
+    raise ValueError(format_error(f"{value} is not a valid boolean value"))
+
+
 def log_saturation_summaries(props: Dict) -> None:
     sgas = props["SGAS"]
     swat = props["SWAT"]
