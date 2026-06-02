@@ -828,9 +828,10 @@ def _read_lgr_hosts_and_actnum(
 
 def _lgr_porv_values(
     init_data: bytes, egrid_data: bytes, lgr_hosts: List[Tuple[np.ndarray, np.ndarray]]
-) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray]]:
+) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray], np.ndarray]:
     porv_records = _find_eclipse_binary_records(init_data, "PORV")
     poro_records = _find_eclipse_binary_records(init_data, "PORO")
+    actnum_records = _find_eclipse_binary_records(egrid_data, "ACTNUM")
     gridhead_records = _find_eclipse_binary_records(egrid_data, "GRIDHEAD")
     coord_records = _find_eclipse_binary_records(egrid_data, "COORD")
     zcorn_records = _find_eclipse_binary_records(egrid_data, "ZCORN")
@@ -840,6 +841,7 @@ def _lgr_porv_values(
 
     global_porv_raw = _read_eclipse_binary_record(init_data, *porv_records[0])
     global_porv = global_porv_raw.copy()
+    global_property_lookup = np.arange(len(global_porv), dtype=int)
     if len(poro_records) > 0:
         global_poro = _read_eclipse_binary_record(init_data, *poro_records[0])
         gridhead = _read_eclipse_binary_record(egrid_data, *gridhead_records[0])
@@ -851,6 +853,31 @@ def _lgr_porv_values(
             _read_eclipse_binary_record(egrid_data, *coord_records[0]),
             _read_eclipse_binary_record(egrid_data, *zcorn_records[0]),
         )
+        if len(global_vol) != len(global_porv):
+            if not actnum_records:
+                raise ValueError(
+                    "global PORV and grid volume have different lengths, and "
+                    "no ACTNUM record is available to align them"
+                )
+            global_actnum = _read_eclipse_binary_record(
+                egrid_data, *actnum_records[0]
+            ).astype(bool)
+            if int(global_actnum.sum()) != len(global_porv):
+                raise ValueError(
+                    "global PORV and grid volume have different lengths, and "
+                    "ACTNUM does not match the active-only PORV length"
+                )
+            global_property_lookup = np.full(len(global_vol), -1, dtype=int)
+            global_property_lookup[np.flatnonzero(global_actnum)] = np.arange(
+                len(global_porv)
+            )
+            global_vol = global_vol[global_actnum]
+
+        if len(global_poro) != len(global_porv):
+            raise ValueError(
+                "global PORO and PORV records have different lengths; cannot "
+                "build PORV proxy diagnostics"
+            )
         global_porv = np.where(
             global_porv == 1.0, global_poro * global_vol, global_porv
         )
@@ -858,8 +885,15 @@ def _lgr_porv_values(
     lgr_porv = []
     for index, (_, active) in enumerate(lgr_hosts, start=1):
         porv = _read_eclipse_binary_record(init_data, *porv_records[index])
-        lgr_porv.append(porv[active])
-    return global_porv, global_porv_raw, lgr_porv
+        if len(porv) == len(active):
+            lgr_porv.append(porv[active])
+        elif len(porv) == int(active.sum()):
+            lgr_porv.append(porv)
+        else:
+            raise ValueError(
+                f"LGR {index} PORV length does not match its ACTNUM length"
+            )
+    return global_porv, global_porv_raw, lgr_porv, global_property_lookup
 
 
 def _co2_mass_from_cirrus_depleted_gas(
@@ -1019,9 +1053,6 @@ def _log_lgr_host_proxy_summary(
             _active_host_indices(host_numbers, active_cells)
             for host_numbers, _ in lgr_hosts
         ]
-        global_host_indices_per_lgr = [
-            np.unique(host_numbers) - 1 for host_numbers, _ in lgr_hosts
-        ]
         lgr_host_global_indices = np.unique(
             np.concatenate([host_numbers for host_numbers, _ in lgr_hosts]) - 1
         )
@@ -1052,13 +1083,23 @@ def _log_lgr_host_proxy_summary(
                 f"{np.median(counts):>8.1f} {counts.max():>8}"
             )
 
-        global_porv, global_porv_raw, lgr_porv = _lgr_porv_values(
-            Path(init_file or Path(grid_file).with_suffix(".INIT")).read_bytes(),
-            egrid_data,
-            lgr_hosts,
+        global_porv, global_porv_raw, lgr_porv, global_property_lookup = (
+            _lgr_porv_values(
+                Path(init_file or Path(grid_file).with_suffix(".INIT")).read_bytes(),
+                egrid_data,
+                lgr_hosts,
+            )
         )
+        lgr_host_property_indices = global_property_lookup[lgr_host_global_indices]
+        lgr_host_property_indices = lgr_host_property_indices[
+            lgr_host_property_indices >= 0
+        ]
+        global_host_indices_per_lgr = []
+        for host_numbers, _ in lgr_hosts:
+            host_indices = global_property_lookup[np.unique(host_numbers) - 1]
+            global_host_indices_per_lgr.append(host_indices[host_indices >= 0])
         non_lgr_global_mask = np.ones(len(global_porv), dtype=bool)
-        non_lgr_global_mask[lgr_host_global_indices] = False
+        non_lgr_global_mask[lgr_host_property_indices] = False
 
         logging.info("\nPORV diagnostics by grid subset")
         logging.info(
@@ -1071,10 +1112,10 @@ def _log_lgr_host_proxy_summary(
             "main grid, non-LGR parents", global_porv[non_lgr_global_mask]
         )
         _log_lgr_porv_row(
-            "main grid, LGR parents raw", global_porv_raw[lgr_host_global_indices]
+            "main grid, LGR parents raw", global_porv_raw[lgr_host_property_indices]
         )
         _log_lgr_porv_row(
-            "main grid, LGR parents proxy", global_porv[lgr_host_global_indices]
+            "main grid, LGR parents proxy", global_porv[lgr_host_property_indices]
         )
         for index, host_numbers in enumerate(global_host_indices_per_lgr, start=1):
             _log_lgr_porv_row(f"LGR {index} parents", global_porv[host_numbers])
