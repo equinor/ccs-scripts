@@ -809,6 +809,24 @@ def _cell_volumes_from_coord_zcorn(
     return volumes.ravel()
 
 
+def _align_global_values_with_porv(
+    values: np.ndarray,
+    porv_length: int,
+    global_actnum: np.ndarray,
+    value_name: str,
+) -> np.ndarray:
+    if len(values) == porv_length:
+        return values
+    if len(values) == len(global_actnum):
+        active_values = values[global_actnum]
+        if len(active_values) == porv_length:
+            return active_values
+    raise ValueError(
+        f"global {value_name} length ({len(values)}) is incompatible with "
+        f"global PORV length ({porv_length})"
+    )
+
+
 def _read_lgr_hosts_and_actnum(
     egrid_data: bytes,
 ) -> List[Tuple[np.ndarray, np.ndarray]]:
@@ -842,6 +860,7 @@ def _lgr_porv_values(
     global_porv_raw = _read_eclipse_binary_record(init_data, *porv_records[0])
     global_porv = global_porv_raw.copy()
     global_property_lookup = np.arange(len(global_porv), dtype=int)
+    global_actnum = None
     if len(poro_records) > 0:
         global_poro = _read_eclipse_binary_record(init_data, *poro_records[0])
         gridhead = _read_eclipse_binary_record(egrid_data, *gridhead_records[0])
@@ -853,30 +872,27 @@ def _lgr_porv_values(
             _read_eclipse_binary_record(egrid_data, *coord_records[0]),
             _read_eclipse_binary_record(egrid_data, *zcorn_records[0]),
         )
-        if len(global_vol) != len(global_porv):
+        if (
+            len(global_vol) != len(global_porv)
+            or len(global_poro) != len(global_porv)
+        ):
             if not actnum_records:
                 raise ValueError(
-                    "global PORV and grid volume have different lengths, and "
-                    "no ACTNUM record is available to align them"
+                    "global PORV, PORO and grid volume have different lengths, "
+                    "and no ACTNUM record is available to align them"
                 )
             global_actnum = _read_eclipse_binary_record(
                 egrid_data, *actnum_records[0]
             ).astype(bool)
-            if int(global_actnum.sum()) != len(global_porv):
-                raise ValueError(
-                    "global PORV and grid volume have different lengths, and "
-                    "ACTNUM does not match the active-only PORV length"
-                )
-            global_property_lookup = np.full(len(global_vol), -1, dtype=int)
+            global_poro = _align_global_values_with_porv(
+                global_poro, len(global_porv), global_actnum, "PORO"
+            )
+            global_vol = _align_global_values_with_porv(
+                global_vol, len(global_porv), global_actnum, "volume"
+            )
+            global_property_lookup = np.full(len(global_actnum), -1, dtype=int)
             global_property_lookup[np.flatnonzero(global_actnum)] = np.arange(
                 len(global_porv)
-            )
-            global_vol = global_vol[global_actnum]
-
-        if len(global_poro) != len(global_porv):
-            raise ValueError(
-                "global PORO and PORV records have different lengths; cannot "
-                "build PORV proxy diagnostics"
             )
         global_porv = np.where(
             global_porv == 1.0, global_poro * global_vol, global_porv
