@@ -17,9 +17,9 @@ from ccs_scripts.aggregate import (
 from ccs_scripts.aggregate._co2_mass import MapName, translate_co2data_to_property
 from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
+from ccs_scripts.co2_containment.input import RegionInfo, ZoneInfo, CalculationType
+from ccs_scripts.co2_containment.source_data import extract_source_data
 from ccs_scripts.co2_containment.co2_calculation import (
-    RegionInfo,
-    ZoneInfo,
     calculate_co2,
 )
 from ccs_scripts.utils.timer import Timer
@@ -47,15 +47,20 @@ def generate_co2_mass_maps(config_: RootConfig):
         property_name=None,
     )
     logging.info("\nCalculate CO2 mass 3D grid")
+    source_data = extract_source_data(
+        grid_file,
+        co2_mass_settings.unrst_source,
+        zone_info,
+        region_info,
+        CalculationType.MASS,
+        co2_mass_settings.residual_trapping,
+        co2_mass_settings.init_source,
+    )
     co2_data = calculate_co2(
-        grid_file=grid_file,
-        unrst_file=co2_mass_settings.unrst_source,
-        calc_type_input="mass",
-        init_file=co2_mass_settings.init_source,
-        zone_info=zone_info,
-        region_info=region_info,
-        residual_trapping=co2_mass_settings.residual_trapping,
-        cirrus_info_file=co2_mass_settings.cirrus_info_file,
+        source_data,
+        CalculationType.MASS,
+        co2_mass_settings.residual_trapping,
+        co2_mass_settings.cirrus_info_file,
     )
 
     dates = config_.input.dates

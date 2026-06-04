@@ -1,10 +1,11 @@
 """CO2 calculation methods"""
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Set, Union
 
 import numpy as np
+import pandas as pd
 from shapely.geometry import MultiPolygon, Point, Polygon
 
 from ccs_scripts.co2_containment.co2_calculation import (
@@ -54,15 +55,32 @@ class ContainedCo2:
             self.date = f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
 
+def _construct_containment_table(
+    contained_co2: List[ContainedCo2],
+) -> pd.DataFrame:
+    """
+    Creates a data frame from calculated CO2 data.
+
+    Args:
+        contained_co2 (list of ContainedCo2): CO2 data divided into phases/locations
+
+    Returns:
+        pd.DataFrame
+    """
+    records = [asdict(c) for c in contained_co2]
+    return pd.DataFrame.from_records(records)
+
+
+
 # pylint: disable = too-many-arguments, too-many-locals
 def calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
-    nogo_polygon: Union[Polygon, MultiPolygon, None],
+    nogo_polygon: Optional[Union[Polygon, MultiPolygon]],
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
     calc_type: CalculationType,
-    residual_trapping: bool,
+    residual_trapping: Optional[bool] = False,
     plume_groups: Optional[List[List[str]]] = None,
 ) -> List[ContainedCo2]:
     """
@@ -81,8 +99,8 @@ def calculate_co2_containment(
         int_to_region (List): List of region names
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
-        residual_trapping (bool): Indicate if residual trapping should be calculated
-        plume_groups (List): For each time step, list of plume group for each grid cell
+        residual_trapping (Optional[bool]): Indicate if residual trapping should be calculated
+        plume_groups (Optional[List[List[str]]]): For each time step, list of plume group for each grid cell
 
     Returns:
         List[ContainedCo2]
@@ -341,3 +359,48 @@ def _calculate_containment(
         np.ndarray
     """
     return np.array([poly.contains(Point(_x, _y)) for _x, _y in zip(x_coord, y_coord)])
+
+
+def calculate_containment(
+    co2_data: Co2Data,
+    cont_polygon: Polygon,
+    nogo_polygon: Optional[Polygon],
+    calc_type: CalculationType,
+    int_to_zone: Optional[List[Optional[str]]],
+    int_to_region: Optional[List[Optional[str]]],
+    residual_trapping: Optional[bool] = False,
+    plume_groups: Optional[List[List[str]]] = None,
+) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
+    """
+    Use polygons (inside / outside / nogo) and/or regions and/or zones
+    and/or plume groups to divide co2 mass or volume into different categories.
+    Result is a data frame.
+
+    Args:
+        co2_data (Co2Data): Mass/volume of CO2 at each time step
+        cont_polygon (Polygon): Polygon defining the containment area
+        nogo_polygon (Optional[Polygon]): Polygon defining the nogo area
+        calc_type (CalculationType): Choose mass / cell_volume / actual_volume
+        int_to_zone (Optional[List[Optional[str]]]): List of zone names
+        int_to_region (Optional[List[Optional[str]]]): List of region names
+        residual_trapping (Optional[bool]): Indicate if residual trapping should be calculated
+        plume_groups (Optional[List[List[str]]]): For each time step, list of plume group for each grid cell
+
+    Returns:
+        Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]
+    """
+    timer = Timer()
+    timer.start("calculate_co2_containment")
+    contained_co2 = calculate_co2_containment(
+        co2_data,
+        cont_polygon,
+        nogo_polygon,
+        int_to_zone,
+        int_to_region,
+        calc_type,
+        residual_trapping,
+        plume_groups,
+    )
+    containment_table = _construct_containment_table(contained_co2)
+    timer.stop("calculate_co2_containment")
+    return containment_table

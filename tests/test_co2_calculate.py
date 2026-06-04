@@ -8,19 +8,12 @@ import shapely.geometry
 import xtgeo
 
 from ccs_scripts.co2_containment.co2_calculation import (
-    RELEVANT_PROPERTIES,
-    CalculationType,
-    RegionInfo,
-    SourceData,
-    ZoneInfo,
     _calculate_co2_data_from_source_data,
-    _extract_source_data,
 )
-from ccs_scripts.co2_containment.co2_containment import (
-    calculate_from_co2_data,
-    extract_amount,
-    sort_and_replace_nones,
-)
+from ccs_scripts.co2_containment.input import CalculationType
+from ccs_scripts.co2_containment.source_data import RELEVANT_PROPERTIES, SourceData, RegionInfo, ZoneInfo, _extract_source_data
+from ccs_scripts.co2_containment.calculate import calculate_containment
+from ccs_scripts.co2_containment.output import sort_and_replace_nones, extract_amount
 
 zone_info = ZoneInfo(
     source=None,
@@ -91,11 +84,11 @@ def _get_dummy_co2_masses():
 
 def _calc_and_compare(poly, masses, poly_nogo=None):
     totals = {m.date: np.sum(m.total_mass()) for m in masses.data_list}
-    contained = calculate_from_co2_data(
+    contained = calculate_containment(
         co2_data=masses,
         cont_polygon=poly,
         nogo_polygon=poly_nogo,
-        calc_type_input="mass",
+        calc_type=CalculationType.MASS,
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
     )
@@ -282,11 +275,11 @@ def test_reek_grid():
         YMFG={"2042": np.ones_like(poro) * 0.1},
     )
     masses = _calculate_co2_data_from_source_data(source_data, CalculationType.MASS)
-    table = calculate_from_co2_data(
+    table = calculate_containment(
         co2_data=masses,
         cont_polygon=reek_poly,
         nogo_polygon=reek_poly_nogo,
-        calc_type_input="mass",
+        calc_type=CalculationType.MASS,
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
     )
@@ -308,11 +301,11 @@ def test_reek_grid():
         source_data,
         CalculationType.ACTUAL_VOLUME,
     )
-    table2 = calculate_from_co2_data(
+    table2 = calculate_containment(
         co2_data=volumes,
         cont_polygon=reek_poly,
         nogo_polygon=reek_poly_nogo,
-        calc_type_input="actual_volume",
+        calc_type=CalculationType.ACTUAL_VOLUME,
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
     )
@@ -347,11 +340,11 @@ def test_reek_grid():
     masses_with_trapping = _calculate_co2_data_from_source_data(
         source_data_with_trapping, CalculationType.MASS, residual_trapping=True
     )
-    table3 = calculate_from_co2_data(
+    table3 = calculate_containment(
         co2_data=masses_with_trapping,
         cont_polygon=reek_poly,
         nogo_polygon=reek_poly_nogo,
-        calc_type_input="mass",
+        calc_type=CalculationType.MASS,
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
         residual_trapping=True,
@@ -377,11 +370,11 @@ def test_reek_grid():
     volumes_with_trapping = _calculate_co2_data_from_source_data(
         source_data_with_trapping, CalculationType.ACTUAL_VOLUME, residual_trapping=True
     )
-    table4 = calculate_from_co2_data(
+    table4 = calculate_containment(
         co2_data=volumes_with_trapping,
         cont_polygon=reek_poly,
         nogo_polygon=reek_poly_nogo,
-        calc_type_input="actual_volume",
+        calc_type=CalculationType.ACTUAL_VOLUME,
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
         residual_trapping=True,
