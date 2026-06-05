@@ -7,10 +7,10 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 from ccs_scripts.co2_plume_extent.config import (
-    Calculation,
-    CalculationType,
     DEFAULT_THRESHOLD_DISSOLVED,
     DEFAULT_THRESHOLD_GAS,
+    Calculation,
+    CalculationType,
     LineDirection,
 )
 from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (

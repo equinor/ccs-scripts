@@ -5,11 +5,11 @@ and separates the result per formation and phase (gas/dissolved).
 Output is a table in CSV format.
 """
 
-from ccs_scripts.co2_containment.input import init_timer, process_input
-from ccs_scripts.co2_containment.source_data import extract_source_data
 from ccs_scripts.co2_containment.co2_calculation import calculate_co2
 from ccs_scripts.co2_containment.containment_calculation import calculate_containment
+from ccs_scripts.co2_containment.input import init_timer, process_input
 from ccs_scripts.co2_containment.output import export_results
+from ccs_scripts.co2_containment.source_data import extract_source_data
 from ccs_scripts.utils.timer import Timer
 
 

@@ -1,8 +1,6 @@
 """CLI parsing, validation, and logging setup for CO2 containment."""
 
 import argparse
-from dataclasses import dataclass
-from enum import Enum
 import getpass
 import logging
 import os
@@ -12,25 +10,27 @@ import socket
 import subprocess
 import sys
 import warnings
+from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from typing import Dict, List, Optional, Tuple
-import shapely.geometry
-import numpy as np
 
+import numpy as np
+import shapely.geometry
 import yaml
 
+from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
+    DEFAULT_THRESHOLD_DISSOLVED,
+    Configuration,
+    calculate_plume_groups,
+    load_plume_tracking_data,
+)
 from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     format_error,
     format_warning,
     str_to_bool,
-)
-from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
-    Configuration,
-    DEFAULT_THRESHOLD_DISSOLVED,
-    calculate_plume_groups,
-    load_plume_tracking_data,
 )
 
 

@@ -1,14 +1,16 @@
-import logging
 import copy
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 import xtgeo
 
-from ccs_scripts.utils.timer import Timer
+from ccs_scripts.co2_containment.input import RegionInfo, ZoneInfo
 from ccs_scripts.utils.gridproperty_tools import GridHandler
+from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     format_error,
     format_warning,
@@ -16,9 +18,6 @@ from ccs_scripts.utils.utils import (
     log_saturation_summaries,
 )
 from ccs_scripts.utils.xtgeo_logging import suppress_xtgeo_warning_by_message
-
-from ccs_scripts.co2_containment.input import ZoneInfo, RegionInfo
-
 
 PROPERTIES_NEEDED_CIRRUS = ["SGAS", "DGAS", "DWAT"]
 PROPERTIES_NEEDED_ECLIPSE = ["SGAS", "BGAS", "BWAT", "XMF2", "YMF2"]

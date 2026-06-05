@@ -7,7 +7,11 @@ from typing import List, Optional, Tuple
 
 import pandas as pd
 
-from ccs_scripts.co2_plume_extent.config import Calculation, CalculationType, Configuration
+from ccs_scripts.co2_plume_extent.config import (
+    Calculation,
+    CalculationType,
+    Configuration,
+)
 from ccs_scripts.co2_plume_tracking.utils import InjectionWellData, sort_well_names
 
 

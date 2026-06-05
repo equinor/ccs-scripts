@@ -11,9 +11,9 @@ import sys
 from datetime import datetime
 
 from ccs_scripts.co2_plume_extent.config import (
-    Configuration,
     DEFAULT_THRESHOLD_DISSOLVED,
     DEFAULT_THRESHOLD_GAS,
+    Configuration,
 )
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import str_to_bool

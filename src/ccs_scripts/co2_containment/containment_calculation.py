@@ -1,19 +1,19 @@
 """CO2 calculation methods"""
 
 import logging
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional, Set, Union
 
 import numpy as np
 import pandas as pd
 from shapely.geometry import MultiPolygon, Point, Polygon
 
-from ccs_scripts.co2_containment.input import CalculationType
-from ccs_scripts.co2_containment.source_data import Scenario
 from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
     Co2DataAtTimeStep,
 )
+from ccs_scripts.co2_containment.input import CalculationType
+from ccs_scripts.co2_containment.source_data import Scenario
 from ccs_scripts.utils.timer import Timer
 
 

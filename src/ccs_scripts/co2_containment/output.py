@@ -11,8 +11,8 @@ from ccs_scripts.co2_containment.input import (
     CalculationType,
     _set_calc_type_from_input_string,
 )
-from ccs_scripts.utils.utils import format_warning
 from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import format_warning
 
 
 def _merge_date_rows(

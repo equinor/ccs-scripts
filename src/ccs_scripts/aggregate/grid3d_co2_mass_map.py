@@ -17,11 +17,11 @@ from ccs_scripts.aggregate import (
 from ccs_scripts.aggregate._co2_mass import MapName, translate_co2data_to_property
 from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
-from ccs_scripts.co2_containment.input import RegionInfo, ZoneInfo, CalculationType
-from ccs_scripts.co2_containment.source_data import extract_source_data
 from ccs_scripts.co2_containment.co2_calculation import (
     calculate_co2,
 )
+from ccs_scripts.co2_containment.input import CalculationType, RegionInfo, ZoneInfo
+from ccs_scripts.co2_containment.source_data import extract_source_data
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, format_warning
 

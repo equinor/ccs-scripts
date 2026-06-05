@@ -5,10 +5,10 @@ using SGAS and the dissolved property (AMFG/XMF2).
 """
 
 import logging
-import sys
 import os
+import sys
 
-from ccs_scripts.co2_plume_extent.cli import (
+from ccs_scripts.co2_plume_extent.input import (
     init_timer,
     log_distance_calculation_configurations,
     log_input_configuration,
@@ -16,20 +16,18 @@ from ccs_scripts.co2_plume_extent.cli import (
     replace_default_dummies_from_ert,
     setup_log_configuration,
 )
+from ccs_scripts.co2_plume_extent.compute import calculate_distances
 from ccs_scripts.co2_plume_extent.config import (
     Configuration,
     find_input_line,
     find_input_point,
 )
-from ccs_scripts.co2_plume_extent.compute import calculate_distances
 from ccs_scripts.co2_plume_extent.output import (
     collect_results_into_dataframe,
     find_output_file,
     log_results,
     log_results_detailed,
 )
-
-
 from ccs_scripts.utils.timer import Timer
 
 

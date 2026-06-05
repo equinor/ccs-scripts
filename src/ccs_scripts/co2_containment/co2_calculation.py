@@ -8,6 +8,13 @@ from typing import Dict, List, Literal, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+from ccs_scripts.co2_containment.input import CalculationType
+from ccs_scripts.co2_containment.source_data import (
+    PROPERTIES_NEEDED_CIRRUS,
+    PROPERTIES_NEEDED_ECLIPSE,
+    Scenario,
+    SourceData,
+)
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     THRESHOLD_DISSOLVED,
@@ -15,14 +22,6 @@ from ccs_scripts.utils.utils import (
     format_warning,
     identify_gas_less_cells,
     is_subset,
-)
-
-from ccs_scripts.co2_containment.input import CalculationType
-from ccs_scripts.co2_containment.source_data import (
-    Scenario,
-    SourceData,
-    PROPERTIES_NEEDED_CIRRUS,
-    PROPERTIES_NEEDED_ECLIPSE,
 )
 
 DEFAULT_CO2_MOLAR_MASS = 44.0
