@@ -9,7 +9,7 @@ import pandas as pd
 
 from ccs_scripts.co2_containment.input import (
     CalculationType,
-    _set_calc_type_from_input_string,
+    set_calc_type_from_input_string,
 )
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_warning
@@ -99,7 +99,7 @@ def _merge_date_rows(
 
 
 # pylint: disable = too-many-statements
-def log_summary_of_results(
+def _log_summary_of_results(
     df: pd.DataFrame,
     calc_type_input: str,
 ) -> None:
@@ -233,7 +233,7 @@ def sort_and_replace_nones(
     data_frame.replace(to_replace=["AAAAAll"], value="all", inplace=True)
 
 
-def convert_data_frame(
+def _convert_data_frame(
     data_frame: pd.DataFrame,
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
@@ -243,7 +243,7 @@ def convert_data_frame(
     """
     Convert output format to human-/Excel-readable state.
     """
-    calc_type = _set_calc_type_from_input_string(calc_type_input)
+    calc_type = set_calc_type_from_input_string(calc_type_input)
     logging.info("\nMerge data rows for data frame")
     total_df = _merge_date_rows(
         data_frame[
@@ -313,7 +313,7 @@ def convert_data_frame(
     return combined_df
 
 
-def export_output_to_csv(
+def _export_output_to_csv(
     out_dir: str,
     calc_type_input: str,
     data_frame: pd.DataFrame,
@@ -335,7 +335,7 @@ def export_output_to_csv(
     data_frame.to_csv(file_path, index=False)
 
 
-def export_readable_output(
+def _export_readable_output(
     df: pd.DataFrame,
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
@@ -353,7 +353,7 @@ def export_readable_output(
     file_path = os.path.join(out_dir, file_name)
     if os.path.isfile(file_path):
         logging.info(f"Output text file already exists. Overwriting: {file_path}")
-    df, details = prepare_writing_details(df, calc_type_input, residual_trapping)
+    df, details = _prepare_writing_details(df, calc_type_input, residual_trapping)
 
     zones = []
     regions = []
@@ -376,38 +376,38 @@ def export_readable_output(
         file.write(details["type"])
         file.write(details["unit"])
         file.write(details["empty"])
-        write_lines(file, df, "all", "all", "all", details)
+        _write_lines(file, df, "all", "all", "all", details)
         if len(zones) > 0:
             file.write(
                 f"\n{'Filtered by zone:,':<{11 + details['width']}}"
                 + details["blank"] * (details["num_cols"] - 2)
             )
             for zone in zones:
-                write_lines(file, df, zone, "all", "all", details)
+                _write_lines(file, df, zone, "all", "all", details)
         if len(regions) > 0:
             file.write(
                 f"\n{'Filtered by region:,':<{11 + details['width']}}"
                 + details["blank"] * (details["num_cols"] - 2)
             )
             for region in regions:
-                write_lines(file, df, "all", region, "all", details)
+                _write_lines(file, df, "all", region, "all", details)
         if len(plume_groups) > 0:
             file.write(
                 f"\n{'Filtered by plume gr.:,':<{11 + details['width']}}"
                 + details["blank"] * (details["num_cols"] - 2)
             )
             for plume_group in plume_groups:
-                write_lines(file, df, "all", "all", plume_group, details)
+                _write_lines(file, df, "all", "all", plume_group, details)
 
 
-def find_width(num_decimals: int, max_value: Union[int, float]) -> int:
+def _find_width(num_decimals: int, max_value: Union[int, float]) -> int:
     """
     Use wider columns in the summary format if the numbers are large.
     """
     return int(max((12, num_decimals + 3 + np.floor(np.log(max_value) / np.log(10)))))
 
 
-def prepare_writing_details(
+def _prepare_writing_details(
     df: pd.DataFrame,
     calc_type: str,
     residual_trapping: bool,
@@ -425,7 +425,7 @@ def prepare_writing_details(
     }
     for column in details["numeric"]:
         df[column] /= 1e6
-    width = find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
+    width = _find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     # Keep length of column names below <= 11 to be sure of no alignment issues
     phase_names = ["Free gas", "Trapped gas"] if residual_trapping else ["Gas"]
     phase_names += ["Dis. water"]
@@ -469,7 +469,7 @@ def prepare_writing_details(
     return df, details
 
 
-def write_lines(
+def _write_lines(
     file: TextIO,
     data_frame: pd.DataFrame,
     zone: str,
@@ -546,22 +546,22 @@ def export_results(
     """
     timer = Timer()
     sort_and_replace_nones(containment_data)
-    log_summary_of_results(containment_data, calc_type_input)
+    _log_summary_of_results(containment_data, calc_type_input)
     timer.start("export_results")
-    export_output_to_csv(
+    _export_output_to_csv(
         out_dir,
         calc_type_input,
         containment_data,
     )
     if readable_output:
-        df_old_output = convert_data_frame(
+        df_old_output = _convert_data_frame(
             containment_data,
             int_to_zone,
             int_to_region,
             calc_type_input,
             residual_trapping,
         )
-        export_readable_output(
+        _export_readable_output(
             df_old_output,
             int_to_zone,
             int_to_region,

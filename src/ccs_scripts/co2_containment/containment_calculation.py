@@ -72,7 +72,7 @@ def _construct_containment_table(
 
 
 # pylint: disable = too-many-arguments, too-many-locals
-def calculate_co2_containment(
+def _calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
     nogo_polygon: Optional[Union[Polygon, MultiPolygon]],
@@ -390,7 +390,7 @@ def calculate_containment(
     """
     timer = Timer()
     timer.start("calculate_co2_containment")
-    contained_co2 = calculate_co2_containment(
+    contained_co2 = _calculate_co2_containment(
         co2_data,
         cont_polygon,
         nogo_polygon,

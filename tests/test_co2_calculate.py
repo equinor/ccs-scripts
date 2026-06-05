@@ -11,7 +11,11 @@ from ccs_scripts.co2_containment.co2_calculation import (
     _calculate_co2_data_from_source_data,
 )
 from ccs_scripts.co2_containment.input import CalculationType, RegionInfo, ZoneInfo
-from ccs_scripts.co2_containment.source_data import RELEVANT_PROPERTIES, SourceData, _extract_source_data
+from ccs_scripts.co2_containment.source_data import (
+    RELEVANT_PROPERTIES,
+    SourceData,
+    _extract_source_data_from_properties,
+)
 from ccs_scripts.co2_containment.containment_calculation import calculate_containment
 from ccs_scripts.co2_containment.output import sort_and_replace_nones, extract_amount
 
@@ -429,7 +433,7 @@ def test_reek_grid_extract_source_data():
         / "2_R001_REEK-0.INIT"
     )
     with pytest.raises(RuntimeError):
-        _extract_source_data(
+        _extract_source_data_from_properties(
             str(reek_gridfile),
             str(reek_unrstfile),
             [],

@@ -92,8 +92,8 @@ def process_input() -> Tuple[
 
     Returns the processed arguments, and additional data used for CO2 and containment calculations.
     """
-    args = process_args()
-    check_input(args)
+    args = _process_args()
+    _check_input(args)
 
     zone_info = ZoneInfo(
         source=args.zonefile,
@@ -106,11 +106,11 @@ def process_input() -> Tuple[
         property_name=args.region_property,
     )
     if zone_info.source is not None:
-        zone_info.zranges = process_zonefile_if_yaml(zone_info.source)
+        zone_info.zranges = _process_zonefile_if_yaml(zone_info.source)
 
-    calc_type = _set_calc_type_from_input_string(args.calc_type_input)
+    calc_type = set_calc_type_from_input_string(args.calc_type_input)
 
-    log_input_configuration(args)
+    _log_input_configuration(args)
 
     if args.config_plume_tracking == "":
         plume_groups = None
@@ -133,7 +133,7 @@ def process_input() -> Tuple[
     )
 
 
-def get_parser() -> argparse.ArgumentParser:
+def _get_parser() -> argparse.ArgumentParser:
     """
     Make parser and define arguments
 
@@ -329,7 +329,7 @@ class InputError(Exception):
 
 
 # pylint: disable-msg=too-many-branches
-def process_args() -> argparse.Namespace:
+def _process_args() -> argparse.Namespace:
     """
     Process arguments and do some minor conversions.
     Create absolute paths if relative paths are provided.
@@ -337,7 +337,7 @@ def process_args() -> argparse.Namespace:
     Returns:
         argparse.Namespace
     """
-    args = get_parser().parse_args()
+    args = _get_parser().parse_args()
 
     if args.debug:
         logging.basicConfig(format="%(message)s", level=logging.DEBUG)
@@ -405,7 +405,7 @@ def process_args() -> argparse.Namespace:
     return args
 
 
-def check_input(arguments: argparse.Namespace):
+def _check_input(arguments: argparse.Namespace):
     """
     Checks that input arguments are valid. Checks if files exist etc.
 
@@ -457,7 +457,7 @@ def check_input(arguments: argparse.Namespace):
         logging.info(f"The INIT-file {arguments.init} was not found\n")
 
 
-def _set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
+def set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
     """
     Creates a CalculationType object from an input string
 
@@ -473,7 +473,7 @@ def _set_calc_type_from_input_string(calc_type_input: str) -> CalculationType:
     return CalculationType[calc_type_input]
 
 
-def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
+def _process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
     """
     Processes zone_file if it is provided as a yaml file, ex:
     zranges:
@@ -510,7 +510,7 @@ def process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
     return None
 
 
-def log_input_configuration(args: argparse.Namespace) -> None:
+def _log_input_configuration(args: argparse.Namespace) -> None:
     """
     Log the provided input
     """

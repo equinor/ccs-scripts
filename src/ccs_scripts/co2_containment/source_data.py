@@ -212,7 +212,7 @@ def _find_props_to_extract(
 
 
 # pylint: disable=too-many-arguments
-def _extract_source_data(
+def _extract_source_data_from_properties(
     grid_file: str,
     unrst_file: str,
     component_indices: List[int],
@@ -629,7 +629,7 @@ def extract_source_data(
     props_to_extract, component_indices, has_zmf = _find_props_to_extract(
         unrst_file, residual_trapping
     )
-    source_data = _extract_source_data(
+    source_data = _extract_source_data_from_properties(
         grid_file,
         unrst_file,
         component_indices,
