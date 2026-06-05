@@ -10,9 +10,9 @@ import xtgeo
 from ccs_scripts.co2_containment.co2_calculation import (
     _calculate_co2_data_from_source_data,
 )
-from ccs_scripts.co2_containment.input import CalculationType
-from ccs_scripts.co2_containment.source_data import RELEVANT_PROPERTIES, SourceData, RegionInfo, ZoneInfo, _extract_source_data
-from ccs_scripts.co2_containment.calculate import calculate_containment
+from ccs_scripts.co2_containment.input import CalculationType, RegionInfo, ZoneInfo
+from ccs_scripts.co2_containment.source_data import RELEVANT_PROPERTIES, SourceData, _extract_source_data
+from ccs_scripts.co2_containment.containment_calculation import calculate_containment
 from ccs_scripts.co2_containment.output import sort_and_replace_nones, extract_amount
 
 zone_info = ZoneInfo(

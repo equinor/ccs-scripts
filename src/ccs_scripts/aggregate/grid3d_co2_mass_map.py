@@ -52,7 +52,6 @@ def generate_co2_mass_maps(config_: RootConfig):
         co2_mass_settings.unrst_source,
         zone_info,
         region_info,
-        CalculationType.MASS,
         co2_mass_settings.residual_trapping,
         co2_mass_settings.init_source,
     )

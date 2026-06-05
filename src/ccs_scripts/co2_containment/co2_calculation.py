@@ -17,8 +17,8 @@ from ccs_scripts.utils.utils import (
     is_subset,
 )
 
+from ccs_scripts.co2_containment.input import CalculationType
 from ccs_scripts.co2_containment.source_data import (
-    CalculationType,
     Scenario,
     SourceData,
     PROPERTIES_NEEDED_CIRRUS,
@@ -1386,7 +1386,9 @@ def calculate_co2(
 
     Args:
       source_data (SourceData): Extracted source data
-      cell_size (Tuple[float, float]): Size of each cell
+      calc_type (CalculationType): Which amount is calculated (mass / cell_volume /
+                                   actual_volume)
+      residual_trapping (bool): Indicate if residual trapping should be calculated
       cirrus_info_file (Optional[str]): Path to cirrus info file
 
     Returns:

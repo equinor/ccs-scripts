@@ -1,4 +1,3 @@
-
 import logging
 import copy
 from pathlib import Path
@@ -18,7 +17,7 @@ from ccs_scripts.utils.utils import (
 )
 from ccs_scripts.utils.xtgeo_logging import suppress_xtgeo_warning_by_message
 
-from ccs_scripts.co2_containment.input import ZoneInfo, RegionInfo, CalculationType
+from ccs_scripts.co2_containment.input import ZoneInfo, RegionInfo
 
 
 PROPERTIES_NEEDED_CIRRUS = ["SGAS", "DGAS", "DWAT"]
@@ -49,6 +48,7 @@ RELEVANT_PROPERTIES = [
     "YMFO",
 ]
 
+
 @dataclass
 class SourceData:
     """Dataclass holding all grid properties needed for CO2 calculations.
@@ -56,11 +56,12 @@ class SourceData:
     The XMF/YMF/ZMF per-component mole fractions (Eclipse compositional) are stored
     in typed dicts keyed by component index (1-based), e.g. ``xmfs[2]`` for XMF2.
     """
+
     x_coord: np.ndarray
     y_coord: np.ndarray
     active_cells: np.ndarray  # 3D array with True where calculations are performed
     DATES: List[str]
-    cell_size: Optional[Tuple[float, float]] = None
+    cell_size: Optional[float] = None
     VOL: Optional[Dict[str, np.ndarray]] = None
     SOIL: Optional[Dict[str, np.ndarray]] = None
     SWAT: Optional[Dict[str, np.ndarray]] = None
@@ -176,7 +177,7 @@ def _detect_eclipse_mole_fraction_props(
             # Neither XMFi nor YMFi found, assume no more components
             break
         if has_zmf:
-            if not (tmp_x == tmp_y == tmp_z):
+            if not tmp_x == tmp_y == tmp_z:
                 error_text = (
                     "Error: Number of components with XMF property differ from "
                     "the number of components with YMF or ZMF"
@@ -186,7 +187,7 @@ def _detect_eclipse_mole_fraction_props(
                 [name + str(suffix_count) for name in ["XMF", "YMF", "ZMF"]]
             )
         else:
-            if not (tmp_x == tmp_y):
+            if not tmp_x == tmp_y:
                 error_text = (
                     "Error: Number of components with XMF property differ from "
                     "the number of components with YMF"
@@ -220,8 +221,6 @@ def _extract_source_data(
     props_to_extract: List[str],
     zone_info: ZoneInfo,
     region_info: RegionInfo,
-    calc_type: CalculationType,
-    residual_trapping: bool = False,
     init_file: Optional[str] = None,
 ) -> SourceData:
     # pylint: disable=too-many-locals, too-many-statements
@@ -454,9 +453,6 @@ def _log_grid_cell_dimensions(
         logging.info(row)
 
 
-
-
-
 def _check_grid_dimensions(
     roff_file: str,
     grid: xtgeo.Grid,
@@ -491,38 +487,37 @@ def _process_zones(
             zone_array[:, :, zr[0] - 1 : zr[1]] = zv
             zone_info.int_to_zone[zv] = zn
         return zone_array[active_cells]
-    else:
-        _check_grid_dimensions(zone_info.source, grid)
-        zone = xtgeo.gridproperty_from_file(zone_info.source, grid=grid)
-        try:
-            zone_name_dict = zone.codes
-            zone_values = list(zone_name_dict.keys())
-        except AttributeError:
-            zone_name_dict = {}
-            zone_values = []
-        zonevals = list(np.unique(zone.values[~zone.values.mask]))
-        intvals = np.array(zonevals, dtype=int)
-        if np.sum(intvals == zonevals) != len(zonevals):
-            warning_text = (
-                "Warning: Grid provided in zone file contains non-integer values. "
-                "This might cause problems with the calculations for "
-                "containment in different zones."
-            )
-            logging.info(format_warning(warning_text))
-        zone_info.int_to_zone = [None] * (np.max(intvals) + 1)
-        for zv in intvals:
-            if zv >= 0:
-                if zv in zone_values:
-                    zone_info.int_to_zone[zv] = zone_name_dict[zv]
-                else:
-                    zone_info.int_to_zone[zv] = f"Zone_{zv}"
-                    logging.info(
-                        f"Value {zv} in roff-grid not found in Codes."
-                        f" Using generic zone name Zone_{zv}."
-                    )
+    _check_grid_dimensions(zone_info.source, grid)
+    zone = xtgeo.gridproperty_from_file(zone_info.source, grid=grid)
+    try:
+        zone_name_dict = zone.codes
+        zone_values = list(zone_name_dict.keys())
+    except AttributeError:
+        zone_name_dict = {}
+        zone_values = []
+    zonevals = list(np.unique(zone.values[~zone.values.mask]))
+    intvals = np.array(zonevals, dtype=int)
+    if np.sum(intvals == zonevals) != len(zonevals):
+        warning_text = (
+            "Warning: Grid provided in zone file contains non-integer values. "
+            "This might cause problems with the calculations for "
+            "containment in different zones."
+        )
+        logging.info(format_warning(warning_text))
+    zone_info.int_to_zone = [None] * (np.max(intvals) + 1)
+    for zv in intvals:
+        if zv >= 0:
+            if zv in zone_values:
+                zone_info.int_to_zone[zv] = zone_name_dict[zv]
             else:
-                logging.info("Ignoring negative value in grid from zone file.")
-        return zone.values.data[active_cells]
+                zone_info.int_to_zone[zv] = f"Zone_{zv}"
+                logging.info(
+                    f"Value {zv} in roff-grid not found in Codes."
+                    f" Using generic zone name Zone_{zv}."
+                )
+        else:
+            logging.info("Ignoring negative value in grid from zone file.")
+    return zone.values.data[active_cells]
 
 
 def _process_regions(
@@ -568,7 +563,7 @@ def _process_regions(
             else:
                 logging.info("Ignoring negative value in grid from region file.")
         return np.array(region[active], dtype=int)
-    elif region_info.property_name is not None:
+    if region_info.property_name is not None:
         if init is None:
             logging.info("No INIT-file to use for region information.")
             region = None
@@ -613,7 +608,6 @@ def extract_source_data(
     unrst_file: str,
     zone_info: ZoneInfo,
     region_info: RegionInfo,
-    calc_type: CalculationType,
     residual_trapping: bool = False,
     init_file: Optional[str] = None,
 ) -> SourceData:
@@ -644,8 +638,6 @@ def extract_source_data(
         props_to_extract,
         zone_info,
         region_info,
-        calc_type,
-        residual_trapping,
         init_file,
     )
     timer.stop("extract_source_data")

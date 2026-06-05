@@ -8,11 +8,11 @@ import numpy as np
 import pandas as pd
 from shapely.geometry import MultiPolygon, Point, Polygon
 
+from ccs_scripts.co2_containment.input import CalculationType
+from ccs_scripts.co2_containment.source_data import Scenario
 from ccs_scripts.co2_containment.co2_calculation import (
-    CalculationType,
     Co2Data,
     Co2DataAtTimeStep,
-    Scenario,
 )
 from ccs_scripts.utils.timer import Timer
 
@@ -71,7 +71,6 @@ def _construct_containment_table(
     return pd.DataFrame.from_records(records)
 
 
-
 # pylint: disable = too-many-arguments, too-many-locals
 def calculate_co2_containment(
     co2_data: Co2Data,
@@ -100,7 +99,7 @@ def calculate_co2_containment(
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
         residual_trapping (Optional[bool]): Indicate if residual trapping should be calculated
-        plume_groups (Optional[List[List[str]]]): For each time step, list of plume group for each grid cell
+        plume_groups (Optional[List[List[str]]]): For each time step, plume group for each grid cell
 
     Returns:
         List[ContainedCo2]
@@ -119,7 +118,7 @@ def calculate_co2_containment(
     )
     timer.stop("make_location_filters")
     _log_summary_of_grid_node_location(locations)
-    phases = _lists_of_phases(calc_type, residual_trapping, co2_data.scenario)
+    phases = _lists_of_phases(calc_type, co2_data.scenario, residual_trapping)
 
     # List of tuple with (zone/None, None/region, boolean array over grid)
     zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, int_to_region)
@@ -240,8 +239,8 @@ def _log_summary_of_grid_node_location(locations: Dict) -> None:
 
 def _lists_of_phases(
     calc_type: CalculationType,
-    residual_trapping: bool,
     scenario: Scenario,
+    residual_trapping: Optional[bool] = False,
 ) -> List[str]:
     """
     Returns a list of the relevant phases depending on calculation type and whether
@@ -261,7 +260,7 @@ def _lists_of_phases(
 def _lists_of_co2_for_each_phase(
     co2_at_date: Co2DataAtTimeStep,
     calc_type: CalculationType,
-    residual_trapping: bool,
+    residual_trapping: Optional[bool] = False,
 ) -> List[np.ndarray]:
     """
     Returns a list of the relevant arrays of different phases of co2 depending on
@@ -384,7 +383,7 @@ def calculate_containment(
         int_to_zone (Optional[List[Optional[str]]]): List of zone names
         int_to_region (Optional[List[Optional[str]]]): List of region names
         residual_trapping (Optional[bool]): Indicate if residual trapping should be calculated
-        plume_groups (Optional[List[List[str]]]): For each time step, list of plume group for each grid cell
+        plume_groups (Optional[List[List[str]]]): For each time step, plume group for each grid cell
 
     Returns:
         Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]

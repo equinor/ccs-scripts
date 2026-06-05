@@ -5,10 +5,10 @@ and separates the result per formation and phase (gas/dissolved).
 Output is a table in CSV format.
 """
 
-from ccs_scripts.co2_containment.calculate import calculate_containment
 from ccs_scripts.co2_containment.input import init_timer, process_input
 from ccs_scripts.co2_containment.source_data import extract_source_data
 from ccs_scripts.co2_containment.co2_calculation import calculate_co2
+from ccs_scripts.co2_containment.containment_calculation import calculate_containment
 from ccs_scripts.co2_containment.output import export_results
 from ccs_scripts.utils.timer import Timer
 
@@ -23,14 +23,21 @@ def main() -> None:
     timer = Timer()
     timer.start("total")
 
-    args, zone_info, region_info, calc_type, cont_polygon, nogo_polygon, plume_groups = process_input()
+    (
+        args,
+        zone_info,
+        region_info,
+        calc_type,
+        cont_polygon,
+        nogo_polygon,
+        plume_groups,
+    ) = process_input()
 
     source_data = extract_source_data(
         args.egrid,
         args.unrst,
         zone_info,
         region_info,
-        calc_type,
         args.residual_trapping,
         args.init,
     )

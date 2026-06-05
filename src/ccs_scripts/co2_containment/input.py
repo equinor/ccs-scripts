@@ -36,6 +36,9 @@ from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
 
 @dataclass
 class ZoneInfo:
+    """
+    Dataclass holding information about zones.
+    """
     source: Optional[str]
     zranges: Optional[Dict[str, List[int]]]
     int_to_zone: Optional[List[Optional[str]]]
@@ -43,6 +46,9 @@ class ZoneInfo:
 
 @dataclass
 class RegionInfo:
+    """
+    Dataclass holding information about regions.
+    """
     source: Optional[str]
     int_to_region: Optional[List[Optional[str]]]
     property_name: Optional[str]
@@ -71,14 +77,20 @@ class CalculationType(Enum):
             raise ValueError(format_error(error_text))
 
 
-def process_input() -> Tuple[argparse.Namespace, ZoneInfo, RegionInfo, CalculationType, Optional[shapely.geometry.Polygon], Optional[shapely.geometry.Polygon], Optional[List[List[str]]]]:
+def process_input() -> Tuple[
+    argparse.Namespace,
+    ZoneInfo,
+    RegionInfo,
+    CalculationType,
+    Optional[shapely.geometry.Polygon],
+    Optional[shapely.geometry.Polygon],
+    Optional[List[List[str]]],
+]:
     """
     Process input arguments, check that they are valid, and log the provided
     input.
 
-    Returns:
-        Tuple[argparse.Namespace, ZoneInfo, RegionInfo, CalculationType, Optional[shapely.geometry.Polygon], Optional[shapely.geometry.Polygon], Optional[List[List[str]]]]: The
-        processed arguments, zone info, region info, calculation type, containment polygon, nogo polygon, and plume groups.
+    Returns the processed arguments, and additional data used for CO2 and containment calculations.
     """
     args = process_args()
     check_input(args)
@@ -640,4 +652,3 @@ def init_timer():
 
 
 # pylint: disable = too-many-statements
-
