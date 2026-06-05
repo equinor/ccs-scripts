@@ -11,7 +11,7 @@ from ccs_scripts.co2_plume_extent.config import (
     Configuration,
     LineDirection,
 )
-from ccs_scripts.co2_plume_extent.output import collect_results_into_dataframe
+from ccs_scripts.co2_plume_extent.output import _collect_results_into_dataframe
 from ccs_scripts.co2_plume_extent.compute import calculate_distances
 
 
@@ -190,7 +190,7 @@ def test_export_to_csv():
     )
 
     out_file = "temp.csv"
-    df = collect_results_into_dataframe(all_results, config)
+    df = _collect_results_into_dataframe(all_results, config)
     df.to_csv(out_file, index=False)
 
     df = pandas.read_csv(out_file)

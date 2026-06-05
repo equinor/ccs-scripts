@@ -1,3 +1,4 @@
+import argparse
 import logging
 import sys
 from collections.abc import Iterable
@@ -28,6 +29,15 @@ def str_to_bool(value):
     elif value == "-1":
         return "-1"
     raise ValueError(format_error(f"{value} is not a valid boolean value"))
+
+
+def setup_log_configuration(arguments: argparse.Namespace) -> None:
+    if arguments.debug:
+        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+    elif arguments.no_logging:
+        logging.basicConfig(format="%(message)s", level=logging.WARNING)
+    else:
+        logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 
 def log_saturation_summaries(props: Dict) -> None:

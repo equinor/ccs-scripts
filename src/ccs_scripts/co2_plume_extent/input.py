@@ -9,6 +9,7 @@ import socket
 import subprocess
 import sys
 from datetime import datetime
+from typing import Tuple
 
 from ccs_scripts.co2_plume_extent.config import (
     DEFAULT_THRESHOLD_DISSOLVED,
@@ -16,10 +17,10 @@ from ccs_scripts.co2_plume_extent.config import (
     Configuration,
 )
 from ccs_scripts.utils.timer import Timer
-from ccs_scripts.utils.utils import str_to_bool
+from ccs_scripts.utils.utils import setup_log_configuration, str_to_bool
 
 
-def make_parser() -> argparse.ArgumentParser:
+def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Calculate plume extent (distance)")
     parser.add_argument("case", help="Name of Eclipse case", metavar="<CASE>")
     parser.add_argument(
@@ -100,23 +101,14 @@ def make_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def replace_default_dummies_from_ert(args):
+def _replace_default_dummies_from_ert(args):
     if args.no_logging == "-1":
         args.no_logging = False
     if args.debug == "-1":
         args.debug = False
 
 
-def setup_log_configuration(arguments: argparse.Namespace) -> None:
-    if arguments.debug:
-        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif arguments.no_logging:
-        logging.basicConfig(format="%(message)s", level=logging.WARNING)
-    else:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
-
-
-def log_input_configuration(args: argparse.Namespace) -> None:
+def _log_input_configuration(args: argparse.Namespace) -> None:
     version = "v0.16.0"
     is_dev_version = True
     if is_dev_version:
@@ -176,7 +168,7 @@ def log_input_configuration(args: argparse.Namespace) -> None:
     logging.info(f"Threshold dissolved     : {args.threshold_dissolved}\n")
 
 
-def log_distance_calculation_configurations(config: Configuration) -> None:
+def _log_distance_calculation_configurations(config: Configuration) -> None:
     logging.info("\nDistance calculation configurations:")
     logging.info(
         f"\n{'Number':<8} {'Type':<14} {'Name':<15} {'Direction':<12} "
@@ -221,3 +213,23 @@ def init_timer() -> None:
         "export_results": "Export results",
         "logging": "Various logging",
     }
+
+
+def process_input() -> Tuple[argparse.Namespace, Configuration]:
+    args = _make_parser().parse_args()
+    _replace_default_dummies_from_ert(args)
+    args.column_name = (
+        args.column_name.upper() if args.column_name is not None else None
+    )
+    setup_log_configuration(args)
+    _log_input_configuration(args)
+
+    config = Configuration(
+        args.config_plume_extent,
+        args.calc_type,
+        args.inj_point,
+        args.column_name,
+        args.case,
+    )
+    _log_distance_calculation_configurations(config)
+    return args, config

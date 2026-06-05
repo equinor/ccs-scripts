@@ -1,6 +1,7 @@
 """Output assembly and reporting for plume extent calculations."""
 
 import logging
+import os
 import string
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -13,18 +14,18 @@ from ccs_scripts.co2_plume_extent.config import (
     Configuration,
 )
 from ccs_scripts.co2_plume_tracking.utils import InjectionWellData, sort_well_names
+from ccs_scripts.utils.timer import Timer
 
 
-def find_output_file(output: str, case: str):
+def _find_output_file(output: Optional[str], case: str):
     if output is None:
         p = Path(case).parents[2]
         p2 = p / "share" / "results" / "tables" / "plume_extent.csv"
         return str(p2)
-    else:
-        return output
+    return output
 
 
-def log_results(df: pd.DataFrame) -> None:
+def _log_results(df: pd.DataFrame) -> None:
     dfs = df.sort_values("date")
     col_width = 1 + max(31, max([len(c) for c in df]))
     logging.info("\nSummary of results:")
@@ -39,7 +40,7 @@ def log_results(df: pd.DataFrame) -> None:
         logging.info(f"End state {col:<{col_width}} : {dfs[col].iloc[-1]:>11.1f}")
 
 
-def log_results_detailed(df: pd.DataFrame):
+def _log_results_detailed(df: pd.DataFrame):
     dist_cols = [col for col in df.columns if col != "date"]
     letter_names = list(string.ascii_uppercase)[: len(dist_cols)]
     col_mapping = dict(zip(dist_cols, letter_names))
@@ -58,10 +59,7 @@ def log_results_detailed(df: pd.DataFrame):
             logging.info(f"  {value}: {key}")
 
     def custom_format(x):
-        if x == 0.0:
-            return "-"
-        else:
-            return f"{x:.1f}"
+        return "-" if x == 0.0 else f"{x:.1f}"
 
     formatters = {
         col: custom_format if col != "date" else "{: >10}".format for col in df.columns
@@ -99,7 +97,7 @@ def _find_column_name(
     return col
 
 
-def collect_results_into_dataframe(
+def _collect_results_into_dataframe(
     all_results: List[Tuple[dict, Optional[dict], Optional[str]]],
     config: Configuration,
     injection_wells: Optional[List[InjectionWellData]] = None,
@@ -121,7 +119,7 @@ def collect_results_into_dataframe(
                 full_col_name = col + "_GAS"
                 if group_str != "ALL":
                     full_col_name += "_PLUME_" + group_str
-                if well_name != "ALL" and well_name != "WELL":
+                if well_name not in ("ALL", "WELL"):
                     full_col_name += "_FROM_INJ_" + well_name
                 gas_df = pd.DataFrame.from_records(
                     result2, columns=["date", full_col_name]
@@ -140,10 +138,35 @@ def collect_results_into_dataframe(
                         full_col_name = col + "_DISSOLVED"
                         if group_str != "ALL":
                             full_col_name += "_PLUME_" + group_str
-                        if well_name != "ALL" and well_name != "WELL":
+                        if well_name not in ("ALL", "WELL"):
                             full_col_name += "_FROM_INJ_" + well_name
                         dissolved_df = pd.DataFrame.from_records(
                             result2, columns=["date", full_col_name]
                         )
                         df = pd.merge(df, dissolved_df, on="date")
     return df
+
+
+def export_results(
+    all_results: List[Tuple[dict, Optional[dict], Optional[str]]],
+    config: Configuration,
+    output_csv: Optional[str],
+    case: str,
+):
+    timer = Timer()
+    timer.start("export_results")
+    df = _collect_results_into_dataframe(
+        all_results,
+        config,
+        config.injection_wells,
+    )
+    _log_results(df)
+    _log_results_detailed(df)
+
+    output_file = _find_output_file(output_csv, case)
+    logging.info("\nExport results to CSV file")
+    logging.info(f"    - File path: {output_file}")
+    if os.path.isfile(output_file):
+        logging.info("Output CSV file already exists => Will overwrite existing file")
+    df.to_csv(output_file, index=False, na_rep="0.0")
+    timer.stop("export_results")

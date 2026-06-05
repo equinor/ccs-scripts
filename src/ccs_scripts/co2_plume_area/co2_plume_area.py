@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 import xtgeo
 
-from ccs_scripts.utils.utils import format_error, str_to_bool
+from ccs_scripts.utils.utils import format_error, setup_log_configuration, str_to_bool
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
@@ -66,15 +66,6 @@ def _make_parser():
     )
 
     return parser
-
-
-def _setup_log_configuration(arguments: argparse.Namespace) -> None:
-    if arguments.debug:
-        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif arguments.no_logging:
-        logging.basicConfig(format="%(message)s", level=logging.WARNING)
-    else:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 
 def _find_formations(search_path: str, rskey: str) -> Optional[Tuple[np.ndarray, str]]:
@@ -181,7 +172,7 @@ def _replace_default_dummies_from_ert(args):
 def _read_args() -> Tuple[str, str]:
     args = _make_parser().parse_args()
     _replace_default_dummies_from_ert(args)
-    _setup_log_configuration(args)
+    setup_log_configuration(args)
 
     input_path = args.input
     output_path = args.output_csv

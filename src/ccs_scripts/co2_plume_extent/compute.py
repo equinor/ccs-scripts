@@ -13,7 +13,7 @@ from ccs_scripts.co2_plume_extent.config import (
     CalculationType,
     LineDirection,
 )
-from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
+from ccs_scripts.co2_plume_tracking.compute import (
     calculate_plume_groups,
     load_plume_tracking_data,
 )

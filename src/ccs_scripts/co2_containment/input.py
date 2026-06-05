@@ -19,13 +19,15 @@ import numpy as np
 import shapely.geometry
 import yaml
 
-from ccs_scripts.co2_plume_tracking.co2_plume_tracking import (
-    DEFAULT_THRESHOLD_DISSOLVED,
-    Configuration,
+from ccs_scripts.co2_plume_tracking.compute import (
     calculate_plume_groups,
     load_plume_tracking_data,
 )
-from ccs_scripts.co2_plume_tracking.utils import InjectionWellData
+from ccs_scripts.co2_plume_tracking.utils import (
+    DEFAULT_THRESHOLD_DISSOLVED,
+    Configuration,
+    InjectionWellData,
+)
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     format_error,
@@ -39,6 +41,7 @@ class ZoneInfo:
     """
     Dataclass holding information about zones.
     """
+
     source: Optional[str]
     zranges: Optional[Dict[str, List[int]]]
     int_to_zone: Optional[List[Optional[str]]]
@@ -49,6 +52,7 @@ class RegionInfo:
     """
     Dataclass holding information about regions.
     """
+
     source: Optional[str]
     int_to_region: Optional[List[Optional[str]]]
     property_name: Optional[str]

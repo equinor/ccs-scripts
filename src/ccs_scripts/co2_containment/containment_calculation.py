@@ -286,14 +286,13 @@ def _zone_map(co2_data: Co2Data, int_to_zone: Optional[List[Optional[str]]]) -> 
     """
     if co2_data.zone is None:
         return {}
-    elif int_to_zone is None:
+    if int_to_zone is None:
         return {z: np.array(co2_data.zone == z) for z in np.unique(co2_data.zone)}
-    else:
-        return {
-            int_to_zone[z]: np.array(co2_data.zone == z)
-            for z in range(len(int_to_zone))
-            if int_to_zone[z] is not None
-        }
+    return {
+        int_to_zone[z]: np.array(co2_data.zone == z)
+        for z in range(len(int_to_zone))
+        if int_to_zone[z] is not None
+    }
 
 
 def _region_map(
@@ -305,14 +304,13 @@ def _region_map(
     """
     if co2_data.region is None:
         return {}
-    elif int_to_region is None:
+    if int_to_region is None:
         return {r: np.array(co2_data.region == r) for r in np.unique(co2_data.region)}
-    else:
-        return {
-            int_to_region[r]: np.array(co2_data.region == r)
-            for r in range(len(int_to_region))
-            if int_to_region[r] is not None
-        }
+    return {
+        int_to_region[r]: np.array(co2_data.region == r)
+        for r in range(len(int_to_region))
+        if int_to_region[r] is not None
+    }
 
 
 def _plume_group_mapping(plume_names: Set[str], plume_groups: List[str]):
