@@ -1,14 +1,8 @@
 """CLI and runtime setup for CO2 plume tracking calculations."""
 
 import argparse
-import getpass
 import logging
 import os
-import platform
-import socket
-import subprocess
-import sys
-from datetime import datetime
 from typing import Tuple
 
 from ccs_scripts.co2_plume_tracking.utils import (
@@ -16,7 +10,7 @@ from ccs_scripts.co2_plume_tracking.utils import (
     DEFAULT_THRESHOLD_GAS,
     Configuration,
 )
-from ccs_scripts.utils.utils import setup_log_configuration
+from ccs_scripts.utils.utils import log_input_banner, setup_log_configuration
 
 
 def _make_parser() -> argparse.ArgumentParser:
@@ -62,36 +56,11 @@ def _make_parser() -> argparse.ArgumentParser:
 
 
 def _log_input_configuration(arguments: argparse.Namespace) -> None:
-    version = "v0.16.0"
-    is_dev_version = True
-    if is_dev_version:
-        version += "_dev"
-        try:
-            source_dir = os.path.dirname(os.path.abspath(__file__))
-            short_hash = (
-                subprocess.check_output(
-                    ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
-                )
-                .decode("ascii")
-                .strip()
-            )
-        except subprocess.CalledProcessError:
-            short_hash = "-"
-        version += " (latest git commit: " + short_hash + ")"
-
-    now = datetime.now()
-    date_time = now.strftime("%B %d, %Y %H:%M:%S")
-    logging.info("CCS-scripts - Plume tracking calculations")
-    logging.info("=========================================")
-    logging.info(f"Version             : {version}")
-    logging.info(f"Date and time       : {date_time}")
-    logging.info(f"User                : {getpass.getuser()}")
-    logging.info(f"Host                : {socket.gethostname()}")
-    logging.info(f"Platform            : {platform.system()} ({platform.release()})")
-    py_version = (
-        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    log_input_banner(
+        __file__,
+        "Plume tracking calculations",
+        is_dev_version=True,
     )
-    logging.info(f"Python version      : {py_version}")
 
     logging.info(f"\nCase                    : {arguments.case}")
     if not os.path.isabs(arguments.case):

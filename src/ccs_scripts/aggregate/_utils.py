@@ -1,57 +1,25 @@
-import getpass
 import logging
 import os
-import platform
-import socket
-import subprocess
-import sys
-from datetime import datetime
 
 from ccs_scripts.aggregate._config import RootConfig
+from ccs_scripts.utils.utils import log_input_banner
 
 
 def log_input_configuration(config_: RootConfig, map_type: str = "aggregate") -> None:
-    """
-    Log the provided input
-    """
-    version = "v0.16.0"
-    is_dev_version = True
-    if is_dev_version:
-        version += "_dev"
-        try:
-            source_dir = os.path.dirname(os.path.abspath(__file__))
-            short_hash = (
-                subprocess.check_output(
-                    ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
-                )
-                .decode("ascii")
-                .strip()
-            )
-        except subprocess.CalledProcessError:
-            short_hash = "-"
-        version += " (latest git commit: " + short_hash + ")"
-
     col1 = 37
-    now = datetime.now()
-    date_time = now.strftime("%B %d, %Y %H:%M:%S")
+    map_name = ""
     if map_type == "aggregate":
-        logging.info("CCS-scripts - Aggregate maps")
-        logging.info("============================")
+        map_name = "Aggregate maps"
     elif map_type == "migration_time":
-        logging.info("CCS-scripts - Migration time maps")
-        logging.info("=================================")
+        map_name = "Migration time maps"
     elif map_type == "co2_mass":
-        logging.info("CCS-scripts - CO2 mass maps")
-        logging.info("===========================")
-    logging.info(f"{'Version':<{col1}} : {version}")
-    logging.info(f"{'Date and time':<{col1}} : {date_time}")
-    logging.info(f"{'User':<{col1}} : {getpass.getuser()}")
-    logging.info(f"{'Host':<{col1}} : {socket.gethostname()}")
-    logging.info(f"{'Platform':<{col1}} : {platform.system()} ({platform.release()})")
-    py_version = (
-        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        map_name = "CO2 mass maps"
+    log_input_banner(
+        script=__file__,
+        calculation=map_name,
+        is_dev_version=True,
+        col_width=col1,
     )
-    logging.info(f"{'Python version':<{col1}} : {py_version}")
 
     if map_type == "co2_mass":
         logging.info(f"\n{'Unit':<{col1}} : tons")

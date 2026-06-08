@@ -1,17 +1,12 @@
 """CLI parsing, validation, and logging setup for CO2 containment."""
 
 import argparse
-import getpass
 import logging
 import os
 import pathlib
-import platform
-import socket
-import subprocess
 import sys
 import warnings
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
@@ -32,6 +27,8 @@ from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     format_error,
     format_warning,
+    log_input_banner,
+    setup_log_configuration,
     str_to_bool,
 )
 
@@ -114,6 +111,7 @@ def process_input() -> Tuple[
 
     calc_type = set_calc_type_from_input_string(args.calc_type_input)
 
+    setup_log_configuration(args)
     _log_input_configuration(args)
 
     if args.config_plume_tracking == "":
@@ -343,13 +341,6 @@ def _process_args() -> argparse.Namespace:
     """
     args = _get_parser().parse_args()
 
-    if args.debug:
-        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif args.no_logging:
-        logging.basicConfig(format="%(message)s", level=logging.WARNING)
-    else:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
-
     _replace_default_dummies_from_ert(args)
 
     _handle_deprecated_args(args)
@@ -515,40 +506,13 @@ def _process_zonefile_if_yaml(zonefile: str) -> Optional[Dict[str, List[int]]]:
 
 
 def _log_input_configuration(args: argparse.Namespace) -> None:
-    """
-    Log the provided input
-    """
-    version = "v0.16.0"
-    is_dev_version = True
-    if is_dev_version:
-        version += "_dev"
-        try:
-            source_dir = os.path.dirname(os.path.abspath(__file__))
-            short_hash = (
-                subprocess.check_output(
-                    ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
-                )
-                .decode("ascii")
-                .strip()
-            )
-        except subprocess.CalledProcessError:
-            short_hash = "-"
-        version += " (latest git commit: " + short_hash + ")"
-
     col1 = 24
-    now = datetime.now()
-    date_time = now.strftime("%B %d, %Y %H:%M:%S")
-    logging.info("CCS-scripts - Containment calculations")
-    logging.info("======================================")
-    logging.info(f"{'Version':<{col1}} : {version}")
-    logging.info(f"{'Date and time':<{col1}} : {date_time}")
-    logging.info(f"{'User':<{col1}} : {getpass.getuser()}")
-    logging.info(f"{'Host':<{col1}} : {socket.gethostname()}")
-    logging.info(f"{'Platform':<{col1}} : {platform.system()} ({platform.release()})")
-    py_version = (
-        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    log_input_banner(
+        __file__,
+        "Containment calculations",
+        is_dev_version=True,
+        col_width=col1,
     )
-    logging.info(f"{'Python version':<{col1}} : {py_version}")
 
     logging.info(f"\n{'Case':<{col1}} : {args.case}")
     if not os.path.isabs(args.case):

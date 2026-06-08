@@ -1,7 +1,13 @@
 import argparse
+import getpass
 import logging
+import os
+import platform
+import socket
+import subprocess
 import sys
 from collections.abc import Iterable
+from datetime import datetime
 from typing import Dict, List, Optional, Union
 
 import numpy as np
@@ -38,6 +44,46 @@ def setup_log_configuration(arguments: argparse.Namespace) -> None:
         logging.basicConfig(format="%(message)s", level=logging.WARNING)
     else:
         logging.basicConfig(format="%(message)s", level=logging.INFO)
+
+
+def log_input_banner(
+    script: str,
+    calculation: str,
+    is_dev_version: bool = True,
+    col_width: int = 24,
+) -> None:
+    version = "v0.16.0"  # NBNB: Fetch from version.py?
+    if is_dev_version:
+        version += "_dev"
+        try:
+            source_dir = os.path.dirname(os.path.abspath(script))
+            short_hash = (
+                subprocess.check_output(
+                    ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
+                )
+                .decode("ascii")
+                .strip()
+            )
+        except subprocess.CalledProcessError:
+            short_hash = "-"
+        version += " (latest git commit: " + short_hash + ")"
+
+    now = datetime.now()
+    date_time = now.strftime("%B %d, %Y %H:%M:%S")
+    calc_header = f"CCS-scripts - {calculation}"
+    logging.info(calc_header)
+    logging.info("=" * len(calc_header))
+    logging.info(f"{'Version':<{col_width}} : {version}")
+    logging.info(f"{'Date and time':<{col_width}} : {date_time}")
+    logging.info(f"{'User':<{col_width}} : {getpass.getuser()}")
+    logging.info(f"{'Host':<{col_width}} : {socket.gethostname()}")
+    logging.info(
+        f"{'Platform':<{col_width}} : {platform.system()} ({platform.release()})"
+    )
+    py_version = (
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
+    logging.info(f"{'Python version':<{col_width}} : {py_version}")
 
 
 def log_saturation_summaries(props: Dict) -> None:

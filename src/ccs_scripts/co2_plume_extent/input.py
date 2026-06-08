@@ -1,14 +1,8 @@
 """CLI and runtime setup for CO2 plume extent calculations."""
 
 import argparse
-import getpass
 import logging
 import os
-import platform
-import socket
-import subprocess
-import sys
-from datetime import datetime
 from typing import Tuple
 
 from ccs_scripts.co2_plume_extent.config import (
@@ -17,7 +11,11 @@ from ccs_scripts.co2_plume_extent.config import (
     Configuration,
 )
 from ccs_scripts.utils.timer import Timer
-from ccs_scripts.utils.utils import setup_log_configuration, str_to_bool
+from ccs_scripts.utils.utils import (
+    log_input_banner,
+    setup_log_configuration,
+    str_to_bool,
+)
 
 
 def _make_parser() -> argparse.ArgumentParser:
@@ -109,36 +107,11 @@ def _replace_default_dummies_from_ert(args):
 
 
 def _log_input_configuration(args: argparse.Namespace) -> None:
-    version = "v0.16.0"
-    is_dev_version = True
-    if is_dev_version:
-        version += "_dev"
-        try:
-            source_dir = os.path.dirname(os.path.abspath(__file__))
-            short_hash = (
-                subprocess.check_output(
-                    ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
-                )
-                .decode("ascii")
-                .strip()
-            )
-        except subprocess.CalledProcessError:
-            short_hash = "-"
-        version += " (latest git commit: " + short_hash + ")"
-
-    now = datetime.now()
-    date_time = now.strftime("%B %d, %Y %H:%M:%S")
-    logging.info("CCS-scripts - Plume extent calculations")
-    logging.info("=======================================")
-    logging.info(f"Version             : {version}")
-    logging.info(f"Date and time       : {date_time}")
-    logging.info(f"User                : {getpass.getuser()}")
-    logging.info(f"Host                : {socket.gethostname()}")
-    logging.info(f"Platform            : {platform.system()} ({platform.release()})")
-    py_version = (
-        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    log_input_banner(
+        __file__,
+        "Plume extent calculations",
+        is_dev_version=True,
     )
-    logging.info(f"Python version      : {py_version}")
 
     logging.info(f"\nCase                    : {args.case}")
     if not os.path.isabs(args.case):

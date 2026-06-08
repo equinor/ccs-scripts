@@ -38,8 +38,7 @@ def _find_output_file(output: Optional[str], case: str):
         p = Path(case).parents[2]
         p2 = p / "share" / "results" / "tables" / "plume_tracking.csv"
         return str(p2)
-    else:
-        return output
+    return output
 
 
 def _collect_results_into_dataframe(

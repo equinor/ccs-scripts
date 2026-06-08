@@ -170,8 +170,7 @@ class PlumeGroups:
                     ind_to_resolve = updated_ind_to_resolve
                     counter += 1
                     continue
-                else:
-                    break
+                break
             ind_to_resolve = updated_ind_to_resolve
             counter += 1
 

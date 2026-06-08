@@ -26,7 +26,12 @@ from ccs_scripts.aggregate._config import (
     Zonation,
     ZProperty,
 )
-from ccs_scripts.utils.utils import format_error, format_warning, str_to_bool
+from ccs_scripts.utils.utils import (
+    format_error,
+    format_warning,
+    setup_log_configuration,
+    str_to_bool,
+)
 from ccs_scripts.utils.xtgeo_logging import (
     setup_xtgeo_logging,
     suppress_xtgeo_warning_by_message,
@@ -153,12 +158,7 @@ def process_arguments(arguments, map_type: str) -> RootConfig:
     if parsed_args.folderroot is not None:
         replacements["folderroot"] = parsed_args.folderroot
 
-    if parsed_args.debug:
-        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif parsed_args.no_logging:
-        logging.basicConfig(format="%(message)s", level=logging.WARNING)
-    else:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
+    setup_log_configuration(parsed_args)
 
     if map_type == "aggregate":
         config_file = getattr(parsed_args, "config_aggregate")

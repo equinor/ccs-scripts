@@ -109,10 +109,9 @@ def _process_grid_dir(grid_folder: Optional[str]) -> Tuple[str, bool]:
                     )
                 raise FileNotFoundError(format_error(error_text))
         return grid_folder, False
-    else:
-        grid_folder = tempfile.mkdtemp()
-        logging.info(f"\nMaking temporary directory for 3D grids: {grid_folder}")
-        return grid_folder, True
+    grid_folder = tempfile.mkdtemp()
+    logging.info(f"\nMaking temporary directory for 3D grids: {grid_folder}")
+    return grid_folder, True
 
 
 def clean_tmp(grid_folder: str):
