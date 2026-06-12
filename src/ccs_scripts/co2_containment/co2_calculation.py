@@ -3,7 +3,6 @@
 
 import copy
 import logging
-import struct
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -11,7 +10,9 @@ from typing import Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import resfo
 import xtgeo
+from xtgeo.grid3d._egrid import EGrid
 
 from ccs_scripts.utils.gridproperty_tools import GridHandler
 from ccs_scripts.utils.timer import Timer
@@ -628,27 +629,37 @@ def _extract_source_data(
             # Grids with LGRs will not have valid PORV values for the cells
             # affected by LGR. For Cirrus, these cells will have a value of 1.0
             # (we believe), but other simulators are unclear. In any case,
-            # we override these values with PORV calculated from PORO and
-            # bulk. The exception is if RPORV is already present, in which case
-            # we don't need PORV.
-            # TODO: inform users that LGR porv values have been inferred.
+            # we override these values with the sum of the active child-cell PORV
+            # values from the LGR. The exception is if RPORV is already present,
+            # in which case we don't need PORV.
             poro = init.get_prop_by_name("PORO")
             porv = init.get_prop_by_name("PORV")
-            if poro is not None and porv is not None:
-                poro_vals = poro.values[active_cells].data
+            if porv is not None:
+                assert init_file is not None
                 porv_vals = porv.values[active_cells].data
-                poro_times_vol = poro_vals * vol
-                porv_proxy = np.where(porv_vals == 1.0, poro_times_vol, porv_vals)
-                _log_porv_proxy_diagnostics(porv_vals, porv_proxy, poro_times_vol)
-                props_reduced["PORV"] = {d: porv_proxy for d in dates}
-                _log_lgr_host_proxy_summary(
-                    grid_file,
-                    init_file,
-                    active_cells,
-                    dates,
-                    props_reduced,
-                    porv_proxy,
-                )
+                try:
+                    porv_lgr_parent, _ = _aggregate_lgr_porv_to_active_parent_cells(
+                        grid_file,
+                        init_file,
+                        active_cells,
+                        porv_vals,
+                    )
+                except Exception as e:
+                    if poro is None:
+                        raise
+                    logging.info(
+                        format_warning(
+                            "WARNING: Could not aggregate LGR child PORV to "
+                            f"parent cells: {e}. Falling back to PORO*bulk volume "
+                            "for PORV == 1.0 parent cells."
+                        )
+                    )
+                    poro_vals = poro.values[active_cells].data
+                    poro_times_vol = poro_vals * vol
+                    porv_lgr_parent = np.where(
+                        porv_vals == 1.0, poro_times_vol, porv_vals
+                    )
+                props_reduced["PORV"] = {d: porv_lgr_parent for d in dates}
     # Infer SOIL from SGAS and SWAT if not stored in the file.
     # Some simulators (e.g. Eclipse compositional with 3 phases) store SGAS and
     # SWAT but not SOIL. SOIL = 1 - SGAS - SWAT in those cases, and its presence
@@ -746,161 +757,33 @@ def _log_grid_cell_dimensions(
         logging.info(row)
 
 
-def _find_eclipse_binary_records(
-    data: bytes, keyword: str
-) -> List[Tuple[int, int, str]]:
-    key = keyword.encode().ljust(8, b" ")
-    records = []
-    start = 0
-    while True:
-        pos = data.find(key, start)
-        if pos < 0:
-            break
-        count = struct.unpack(">i", data[pos + 8 : pos + 12])[0]
-        dtype = data[pos + 12 : pos + 16].decode(errors="replace")
-        records.append((pos, count, dtype))
-        start = pos + 1
-    return records
-
-
-def _read_eclipse_binary_record(
-    data: bytes, pos: int, count: int, dtype: str
-) -> np.ndarray:
-    sizes = {"INTE": 4, "REAL": 4, "DOUB": 8, "LOGI": 4}
-    fmts = {"INTE": "i", "REAL": "f", "DOUB": "d", "LOGI": "i"}
-    if dtype not in sizes:
-        raise ValueError(f"Unsupported Eclipse binary dtype {dtype}")
-
-    idx = pos + 20
-    values = []
-    while len(values) < count:
-        nbytes = struct.unpack(">i", data[idx : idx + 4])[0]
-        idx += 4
-        raw = data[idx : idx + nbytes]
-        nitems = nbytes // sizes[dtype]
-        values.extend(struct.unpack(">" + fmts[dtype] * nitems, raw))
-        idx += nbytes + 4
-
-    return np.asarray(values[:count])
-
-
-def _cell_volumes_from_coord_zcorn(
-    nx: int, ny: int, nz: int, coord: np.ndarray, zcorn: np.ndarray
-) -> np.ndarray:
-    coord = coord.reshape((ny + 1, nx + 1, 6))
-    top = coord[:, :, :3]
-    xy_area = np.empty((ny, nx))
-    for j in range(ny):
-        for i in range(nx):
-            p00 = top[j, i, :2]
-            p10 = top[j, i + 1, :2]
-            p01 = top[j + 1, i, :2]
-            p11 = top[j + 1, i + 1, :2]
-            dx = (np.linalg.norm(p10 - p00) + np.linalg.norm(p11 - p01)) / 2
-            dy = (np.linalg.norm(p01 - p00) + np.linalg.norm(p11 - p10)) / 2
-            xy_area[j, i] = dx * dy
-
-    zcorn = zcorn.reshape((nz, 2, ny, 2, nx, 2))
-    volumes = np.empty((nz, ny, nx))
-    for k in range(nz):
-        top_z = zcorn[k, 0, :, :, :, :].mean(axis=(1, 3))
-        base_z = zcorn[k, 1, :, :, :, :].mean(axis=(1, 3))
-        volumes[k, :, :] = xy_area * np.abs(base_z - top_z)
-    return volumes.ravel()
-
-
-def _align_global_values_with_porv(
-    values: np.ndarray,
-    porv_length: int,
-    global_actnum: np.ndarray,
-    value_name: str,
-) -> np.ndarray:
-    if len(values) == porv_length:
-        return values
-    if len(values) == len(global_actnum):
-        active_values = values[global_actnum]
-        if len(active_values) == porv_length:
-            return active_values
-    raise ValueError(
-        f"global {value_name} length ({len(values)}) is incompatible with "
-        f"global PORV length ({porv_length})"
-    )
-
-
-def _read_lgr_hosts_and_actnum(
-    egrid_data: bytes,
-) -> List[Tuple[np.ndarray, np.ndarray]]:
-    hostnum_records = _find_eclipse_binary_records(egrid_data, "HOSTNUM")
-    actnum_records = _find_eclipse_binary_records(egrid_data, "ACTNUM")
+def _read_lgr_hosts_and_actnum(grid_file: str) -> List[Tuple[np.ndarray, np.ndarray]]:
+    egrid = EGrid.from_file(grid_file)
     lgr_hosts = []
-    for index, hostnum_record in enumerate(hostnum_records, start=1):
-        hosts = _read_eclipse_binary_record(egrid_data, *hostnum_record).astype(int)
+    for section in egrid.lgr_sections:
+        hosts = np.asarray(section.hostnum, dtype=int).reshape(-1)
         active = np.ones(len(hosts), dtype=bool)
-        if index < len(actnum_records):
-            active = _read_eclipse_binary_record(
-                egrid_data, *actnum_records[index]
-            ).astype(bool)
+        if section.actnum is not None:
+            active = np.asarray(section.actnum, dtype=int).reshape(-1).astype(bool)
         lgr_hosts.append((hosts[active], active))
     return lgr_hosts
 
 
 def _lgr_porv_values(
-    init_data: bytes, egrid_data: bytes, lgr_hosts: List[Tuple[np.ndarray, np.ndarray]]
-) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray], np.ndarray]:
-    porv_records = _find_eclipse_binary_records(init_data, "PORV")
-    poro_records = _find_eclipse_binary_records(init_data, "PORO")
-    actnum_records = _find_eclipse_binary_records(egrid_data, "ACTNUM")
-    gridhead_records = _find_eclipse_binary_records(egrid_data, "GRIDHEAD")
-    coord_records = _find_eclipse_binary_records(egrid_data, "COORD")
-    zcorn_records = _find_eclipse_binary_records(egrid_data, "ZCORN")
+    init_file: str, lgr_hosts: List[Tuple[np.ndarray, np.ndarray]]
+) -> List[np.ndarray]:
+    porv_records = [
+        np.asarray(entry.read_array(), dtype=float).reshape(-1)
+        for entry in resfo.lazy_read(init_file)
+        if entry.read_keyword().strip() == "PORV"
+    ]
     lgr_count = len(lgr_hosts)
     if len(porv_records) < lgr_count + 1:
         raise ValueError("not enough PORV records")
 
-    global_porv_raw = _read_eclipse_binary_record(init_data, *porv_records[0])
-    global_porv = global_porv_raw.copy()
-    global_property_lookup = np.arange(len(global_porv), dtype=int)
-    global_actnum = None
-    if len(poro_records) > 0:
-        global_poro = _read_eclipse_binary_record(init_data, *poro_records[0])
-        gridhead = _read_eclipse_binary_record(egrid_data, *gridhead_records[0])
-        nx, ny, nz = (int(gridhead[1]), int(gridhead[2]), int(gridhead[3]))
-        global_vol = _cell_volumes_from_coord_zcorn(
-            nx,
-            ny,
-            nz,
-            _read_eclipse_binary_record(egrid_data, *coord_records[0]),
-            _read_eclipse_binary_record(egrid_data, *zcorn_records[0]),
-        )
-        if (
-            len(global_vol) != len(global_porv)
-            or len(global_poro) != len(global_porv)
-        ):
-            if not actnum_records:
-                raise ValueError(
-                    "global PORV, PORO and grid volume have different lengths, "
-                    "and no ACTNUM record is available to align them"
-                )
-            global_actnum = _read_eclipse_binary_record(
-                egrid_data, *actnum_records[0]
-            ).astype(bool)
-            global_poro = _align_global_values_with_porv(
-                global_poro, len(global_porv), global_actnum, "PORO"
-            )
-            global_vol = _align_global_values_with_porv(
-                global_vol, len(global_porv), global_actnum, "volume"
-            )
-            global_property_lookup = np.full(len(global_actnum), -1, dtype=int)
-            global_property_lookup[np.flatnonzero(global_actnum)] = np.arange(
-                len(global_porv)
-            )
-        global_porv = np.where(
-            global_porv == 1.0, global_poro * global_vol, global_porv
-        )
-
     lgr_porv = []
     for index, (_, active) in enumerate(lgr_hosts, start=1):
-        porv = _read_eclipse_binary_record(init_data, *porv_records[index])
+        porv = porv_records[index]
         if len(porv) == len(active):
             lgr_porv.append(porv[active])
         elif len(porv) == int(active.sum()):
@@ -909,355 +792,59 @@ def _lgr_porv_values(
             raise ValueError(
                 f"LGR {index} PORV length does not match its ACTNUM length"
             )
-    return global_porv, global_porv_raw, lgr_porv, global_property_lookup
+    return lgr_porv
 
 
-def _co2_mass_from_cirrus_depleted_gas(
-    porv: np.ndarray,
-    swat: np.ndarray,
-    sgas: np.ndarray,
-    dwat: np.ndarray,
-    dgas: np.ndarray,
-    amfs: np.ndarray,
-    amfg: np.ndarray,
-    amfw: np.ndarray,
-    ymfs: np.ndarray,
-    ymfg: np.ndarray,
-    ymfw: np.ndarray,
-    gas_molar_mass: Optional[float],
-) -> Tuple[np.ndarray, np.ndarray]:
-    dis_water = (
-        porv
-        * swat
-        * dwat
-        * _mole_to_mass_fraction(
-            amfs,
-            amfg,
-            amfw,
-            DEFAULT_CO2_MOLAR_MASS,
-            DEFAULT_WATER_MOLAR_MASS,
-            gas_molar_mass,
-            None,
-        )
+def _active_lookup_by_egrid_index(active_cells: np.ndarray) -> np.ndarray:
+    """Map EGRID global cell numbers to the active-array order used by xtgeo."""
+
+    lookup = np.full(active_cells.size, -1, dtype=int)
+    active_ijk = np.argwhere(active_cells)
+    nx, ny, _ = active_cells.shape
+    egrid_indices = (
+        active_ijk[:, 0] + nx * active_ijk[:, 1] + nx * ny * active_ijk[:, 2]
     )
-    gas = (
-        porv
-        * sgas
-        * dgas
-        * _mole_to_mass_fraction(
-            ymfs,
-            ymfg,
-            ymfw,
-            DEFAULT_CO2_MOLAR_MASS,
-            DEFAULT_WATER_MOLAR_MASS,
-            gas_molar_mass,
-            None,
-        )
-    )
-    return dis_water * 0.001, gas * 0.001
+    lookup[egrid_indices] = np.arange(len(active_ijk))
+    return lookup
 
 
-def _summary_values(
-    values: np.ndarray,
-) -> Tuple[float, float, float, float, float, float, float]:
-    values = np.asarray(values, dtype=float)
-    return (
-        float(values.min()),
-        float(np.percentile(values, 10)),
-        float(np.median(values)),
-        float(values.mean()),
-        float(np.percentile(values, 90)),
-        float(values.max()),
-        float(values.sum()),
-    )
-
-
-def _log_lgr_porv_row(label: str, values: np.ndarray) -> None:
-    min_, p10, median, mean, p90, max_, total = _summary_values(values)
-    logging.info(
-        f"{label:<30} {len(values):>10} {min_:>12.4g} {p10:>12.4g} "
-        f"{median:>12.4g} {mean:>12.4g} {p90:>12.4g} "
-        f"{max_:>12.4g} {total:>14.4g}"
-    )
-
-
-def _log_lgr_property_row(prop_name: str, label: str, values: np.ndarray) -> None:
-    if len(values) == 0:
-        logging.info(
-            f"{prop_name:<10} {label:<30} {0:>10} "
-            f"{'n/a':>12} {'n/a':>12} {'n/a':>12} {'n/a':>12} "
-            f"{'n/a':>12} {'n/a':>12}"
-        )
-        return
-
-    min_, p10, median, mean, p90, max_, _ = _summary_values(values)
-    logging.info(
-        f"{prop_name:<10} {label:<30} {len(values):>10} {min_:>12.4g} "
-        f"{p10:>12.4g} {median:>12.4g} {mean:>12.4g} "
-        f"{p90:>12.4g} {max_:>12.4g}"
-    )
-
-
-def _log_lgr_co2_mass_row(label: str, dis_water: np.ndarray, gas: np.ndarray) -> None:
-    logging.info(
-        f"{label:<30} {len(dis_water):>10} {dis_water.sum():>18.2f} "
-        f"{gas.sum():>18.2f} {(dis_water + gas).sum():>18.2f}"
-    )
-
-
-def _active_host_indices(
-    host_numbers: np.ndarray, active_cells: np.ndarray
-) -> np.ndarray:
-    active_lookup = np.full(active_cells.size, -1, dtype=int)
-    active_lookup[np.flatnonzero(active_cells.ravel())] = np.arange(active_cells.sum())
-    host_indices = active_lookup[host_numbers - 1]  # HOSTNUM is 1-based
-    return np.unique(host_indices[host_indices >= 0])
-
-
-def _cirrus_mass_arrays_from_reduced_props(
-    dates: List[str],
-    props: Dict[str, Dict[str, np.ndarray]],
-    porv: np.ndarray,
-) -> Optional[Tuple[np.ndarray, np.ndarray]]:
-    date = dates[-1]
-    required = {"SWAT", "SGAS", "DWAT", "DGAS"}
-    if not required.issubset(props):
-        return None
-
-    if {"AMFG", "YMFG"}.issubset(props):
-        aqueous_co2 = props["AMFG"][date]
-        aqueous_gas = np.zeros_like(aqueous_co2)
-        aqueous_water = props["AMFW"][date] if "AMFW" in props else 1 - aqueous_co2
-        gas_co2 = props["YMFG"][date]
-        gas_gas = np.zeros_like(gas_co2)
-        gas_water = props["YMFW"][date] if "YMFW" in props else 1 - gas_co2
-        gas_molar_mass = None
-    else:
-        return None
-
-    return _co2_mass_from_cirrus_depleted_gas(
-        porv,
-        swat=props["SWAT"][date],
-        sgas=props["SGAS"][date],
-        dwat=props["DWAT"][date],
-        dgas=props["DGAS"][date],
-        amfs=aqueous_co2,
-        amfg=aqueous_gas,
-        amfw=aqueous_water,
-        ymfs=gas_co2,
-        ymfg=gas_gas,
-        ymfw=gas_water,
-        gas_molar_mass=gas_molar_mass,
-    )
-
-
-def _log_lgr_host_proxy_summary(
+def _aggregate_lgr_porv_to_active_parent_cells(
     grid_file: str,
-    init_file: Optional[str],
+    init_file: str,
     active_cells: np.ndarray,
-    dates: List[str],
-    props_reduced: Dict[str, Dict[str, np.ndarray]],
-    porv_proxy: np.ndarray,
-) -> None:
-    try:
-        egrid_data = Path(grid_file).read_bytes()
-        lgr_hosts = _read_lgr_hosts_and_actnum(egrid_data)
-        if not lgr_hosts:
-            return
+    parent_porv: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Replace parent-cell PORV by the sum of active child LGR PORV values."""
 
-        host_indices_per_lgr = [
-            _active_host_indices(host_numbers, active_cells)
-            for host_numbers, _ in lgr_hosts
-        ]
-        lgr_host_global_indices = np.unique(
-            np.concatenate([host_numbers for host_numbers, _ in lgr_hosts]) - 1
-        )
-        lgr_host_indices = (
-            np.unique(np.concatenate(host_indices_per_lgr))
-            if host_indices_per_lgr
-            else np.array([], dtype=int)
-        )
-        non_lgr_mask = np.ones(len(porv_proxy), dtype=bool)
-        non_lgr_mask[lgr_host_indices] = False
+    lgr_hosts = _read_lgr_hosts_and_actnum(grid_file)
+    if not lgr_hosts:
+        raise ValueError("no LGR HOSTNUM records were found")
 
-        logging.info("\nLGR host-cell proxy diagnostics")
-        logging.info(
-            "HOSTNUM maps active LGR cells back to their parent/main-grid cells. "
-            "CO2 mass below uses the current host-cell proxy, not true refined "
-            "LGR dynamic properties."
-        )
-        logging.info(
-            f"{'LGR':<8} {'Active LGR cells':>18} {'Parent cells':>14} "
-            f"{'Avg LGR/parent':>16} {'Min':>8} {'P50':>8} {'Max':>8}"
-        )
-        logging.info(f"{'-' * 86}")
-        for index, (host_numbers, _) in enumerate(lgr_hosts, start=1):
-            counts = np.unique(host_numbers, return_counts=True)[1]
-            logging.info(
-                f"{index:<8} {len(host_numbers):>18} {len(counts):>14} "
-                f"{counts.mean():>16.2f} {counts.min():>8} "
-                f"{np.median(counts):>8.1f} {counts.max():>8}"
+    lgr_porv = _lgr_porv_values(init_file, lgr_hosts)
+    active_lookup = _active_lookup_by_egrid_index(active_cells)
+
+    effective_porv = parent_porv.copy()
+    child_porv_by_parent = np.zeros_like(parent_porv, dtype=float)
+    for (host_numbers, _), child_porv in zip(lgr_hosts, lgr_porv):
+        if len(host_numbers) != len(child_porv):
+            raise ValueError(
+                "LGR HOSTNUM and PORV arrays do not have matching active-cell lengths"
             )
+        parent_indices = active_lookup[host_numbers - 1]
+        valid = parent_indices >= 0
+        np.add.at(child_porv_by_parent, parent_indices[valid], child_porv[valid])
 
-        global_porv, global_porv_raw, lgr_porv, global_property_lookup = (
-            _lgr_porv_values(
-                Path(init_file or Path(grid_file).with_suffix(".INIT")).read_bytes(),
-                egrid_data,
-                lgr_hosts,
-            )
-        )
-        lgr_host_property_indices = global_property_lookup[lgr_host_global_indices]
-        lgr_host_property_indices = lgr_host_property_indices[
-            lgr_host_property_indices >= 0
-        ]
-        global_host_indices_per_lgr = []
-        for host_numbers, _ in lgr_hosts:
-            host_indices = global_property_lookup[np.unique(host_numbers) - 1]
-            global_host_indices_per_lgr.append(host_indices[host_indices >= 0])
-        non_lgr_global_mask = np.ones(len(global_porv), dtype=bool)
-        non_lgr_global_mask[lgr_host_property_indices] = False
+    lgr_parent_indices = np.flatnonzero(child_porv_by_parent > 0.0)
+    if len(lgr_parent_indices) == 0:
+        raise ValueError("no active parent cells received LGR child PORV")
 
-        logging.info("\nPORV diagnostics by grid subset")
-        logging.info(
-            f"{'Subset':<30} {'Cells':>10} {'Min':>12} {'P10':>12} "
-            f"{'Median':>12} {'Mean':>12} {'P90':>12} {'Max':>12} {'Sum':>14}"
-        )
-        logging.info(f"{'-' * 132}")
-        _log_lgr_porv_row("main grid, all cells", global_porv)
-        _log_lgr_porv_row(
-            "main grid, non-LGR parents", global_porv[non_lgr_global_mask]
-        )
-        _log_lgr_porv_row(
-            "main grid, LGR parents raw", global_porv_raw[lgr_host_property_indices]
-        )
-        _log_lgr_porv_row(
-            "main grid, LGR parents proxy", global_porv[lgr_host_property_indices]
-        )
-        for index, host_numbers in enumerate(global_host_indices_per_lgr, start=1):
-            _log_lgr_porv_row(f"LGR {index} parents", global_porv[host_numbers])
-        if lgr_porv:
-            _log_lgr_porv_row("true LGR cells from INIT", np.concatenate(lgr_porv))
-
-        mass_arrays = _cirrus_mass_arrays_from_reduced_props(
-            dates, props_reduced, porv_proxy
-        )
-        if mass_arrays is None:
-            logging.info(
-                format_warning(
-                    "WARNING: LGR CO2 mass proxy diagnostics only support Cirrus "
-                    "AQUIFER-style AMFG/YMFG property sets."
-                )
-            )
-            return
-
-        dis_water, gas = mass_arrays
-        logging.info(
-            "\nCO2 mass proxy diagnostics by calculation-active main-grid subset "
-            "- Last date (tons)"
-        )
-        logging.info(
-            f"{'Subset':<30} {'Cells':>10} {'Dissolved water':>18} "
-            f"{'Gas':>18} {'Total':>18}"
-        )
-        logging.info(f"{'-' * 98}")
-        _log_lgr_co2_mass_row("main grid, all calc-active", dis_water, gas)
-        _log_lgr_co2_mass_row(
-            "main grid, non-LGR hosts", dis_water[non_lgr_mask], gas[non_lgr_mask]
-        )
-        _log_lgr_co2_mass_row(
-            "main grid, LGR parents", dis_water[lgr_host_indices], gas[lgr_host_indices]
-        )
-        for index, host_numbers in enumerate(host_indices_per_lgr, start=1):
-            _log_lgr_co2_mass_row(
-                f"LGR {index} active parents",
-                dis_water[host_numbers],
-                gas[host_numbers],
-            )
-
-        last_date = dates[-1]
-        dynamic_props = [
-            prop_name
-            for prop_name in ("SGAS", "AMFG", "AMFS", "DGAS")
-            if prop_name in props_reduced and last_date in props_reduced[prop_name]
-        ]
-        if dynamic_props:
-            logging.info(
-                "\nLGR dynamic-property proxy diagnostics by calculation-active "
-                f"main-grid subset - Last date ({last_date})"
-            )
-            logging.info(
-                f"{'Property':<10} {'Subset':<30} {'Cells':>10} "
-                f"{'Min':>12} {'P10':>12} {'Median':>12} {'Mean':>12} "
-                f"{'P90':>12} {'Max':>12}"
-            )
-            logging.info(f"{'-' * 124}")
-            for prop_name in dynamic_props:
-                prop_values = props_reduced[prop_name][last_date]
-                _log_lgr_property_row(
-                    prop_name, "main grid, all calc-active", prop_values
-                )
-                _log_lgr_property_row(
-                    prop_name,
-                    "main grid, non-LGR hosts",
-                    prop_values[non_lgr_mask],
-                )
-                _log_lgr_property_row(
-                    prop_name,
-                    "main grid, LGR parents",
-                    prop_values[lgr_host_indices],
-                )
-                for index, host_numbers in enumerate(host_indices_per_lgr, start=1):
-                    _log_lgr_property_row(
-                        prop_name,
-                        f"LGR {index} active parents",
-                        prop_values[host_numbers],
-                    )
-    except Exception as exc:
-        logging.info(
-            format_warning(f"WARNING: Could not summarize LGR proxy diagnostics: {exc}")
-        )
-
-
-def _format_porv_proxy_summary_row(label: str, values: np.ndarray) -> str:
-    values = np.asarray(values, dtype=float)
-    return (
-        f"{label:<28} "
-        f"{values.min():>12.4g} "
-        f"{np.percentile(values, 10):>12.4g} "
-        f"{np.median(values):>12.4g} "
-        f"{values.mean():>12.4g} "
-        f"{np.percentile(values, 90):>12.4g} "
-        f"{values.max():>12.4g}"
-    )
-
-
-def _log_porv_proxy_diagnostics(
-    porv_vals: np.ndarray, porv_proxy: np.ndarray, poro_times_vol: np.ndarray
-) -> None:
-    proxy_mask = porv_vals == 1.0
-    near_proxy_mask = (np.abs(porv_vals - 1.0) < 1e-4) & ~proxy_mask
-
+    effective_porv[lgr_parent_indices] = child_porv_by_parent[lgr_parent_indices]
     logging.info(
-        "\nLGR detected - PORV proxy diagnostics "
-        f"({len(porv_vals)} active cells):"
+        "LGR detected - replacing PORV in %s parent cells with sum(PORV) "
+        "from active LGR child cells.",
+        len(lgr_parent_indices),
     )
-    logging.info(
-        f"  Cells with PORV == 1.0 (exact, proxy applied)        : "
-        f"{int(proxy_mask.sum())}"
-    )
-    logging.info(
-        f"  Cells with |PORV - 1.0| < 1e-4 (NOT replaced)        : "
-        f"{int(near_proxy_mask.sum())}"
-    )
-    logging.info("")
-    logging.info(
-        f"{'Property':<28} {'Min':>12} {'P10':>12} {'Median':>12} "
-        f"{'Mean':>12} {'P90':>12} {'Max':>12}"
-    )
-    logging.info(f"{'-' * 101}")
-    logging.info(_format_porv_proxy_summary_row("PORV (raw)", porv_vals))
-    logging.info(_format_porv_proxy_summary_row("PORV (proxy)", porv_proxy))
-    logging.info(_format_porv_proxy_summary_row("PORO*vol (formula)", poro_times_vol))
+    return effective_porv, lgr_parent_indices
 
 
 def _check_grid_dimensions(
