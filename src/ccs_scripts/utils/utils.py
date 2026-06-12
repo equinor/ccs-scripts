@@ -37,6 +37,25 @@ def str_to_bool(value):
     raise ValueError(format_error(f"{value} is not a valid boolean value"))
 
 
+def replace_default_ert_dummies(
+    args: argparse.Namespace,
+    false_list: List[str],
+    none_list: List[str],
+    placeholder: str = "-1",
+) -> argparse.Namespace:
+    data = vars(args)
+
+    for key in false_list:
+        if key in data and data[key] == placeholder:
+            setattr(args, key, False)
+
+    for key in none_list:
+        if key in data and data[key] == placeholder:
+            setattr(args, key, None)
+
+    return args
+
+
 def setup_log_configuration(arguments: argparse.Namespace) -> None:
     if arguments.debug:
         logging.basicConfig(format="%(message)s", level=logging.DEBUG)

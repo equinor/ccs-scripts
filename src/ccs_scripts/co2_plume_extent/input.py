@@ -13,6 +13,7 @@ from ccs_scripts.co2_plume_extent.config import (
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     log_input_banner,
+    replace_default_ert_dummies,
     setup_log_configuration,
     str_to_bool,
 )
@@ -99,13 +100,6 @@ def _make_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _replace_default_dummies_from_ert(args):
-    if args.no_logging == "-1":
-        args.no_logging = False
-    if args.debug == "-1":
-        args.debug = False
-
-
 def _log_input_configuration(args: argparse.Namespace) -> None:
     log_input_banner(
         __file__,
@@ -190,7 +184,7 @@ def init_timer() -> None:
 
 def process_input() -> Tuple[argparse.Namespace, Configuration]:
     args = _make_parser().parse_args()
-    _replace_default_dummies_from_ert(args)
+    replace_default_ert_dummies(args, false_list=["no_logging", "debug"], none_list=[])
     args.column_name = (
         args.column_name.upper() if args.column_name is not None else None
     )

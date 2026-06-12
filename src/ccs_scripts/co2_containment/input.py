@@ -28,6 +28,7 @@ from ccs_scripts.utils.utils import (
     format_error,
     format_warning,
     log_input_banner,
+    replace_default_ert_dummies,
     setup_log_configuration,
     str_to_bool,
 )
@@ -291,41 +292,6 @@ def _handle_deprecated_args(args):
             args.nogo_polygon = args.hazardous_polygon
 
 
-def _replace_default_dummies_from_ert(args):
-    if args.root_dir == "-1":
-        args.root_dir = None
-    if args.egrid == "-1":
-        args.egrid = None
-    if args.unrst == "-1":
-        args.unrst = None
-    if args.init == "-1":
-        args.init = None
-    if args.out_dir == "-1":
-        args.out_dir = None
-    if args.zonefile == "-1":
-        args.zonefile = None
-    if args.regionfile == "-1":
-        args.regionfile = None
-    if args.region_property == "-1":
-        args.region_property = None
-    if args.containment_polygon == "-1":
-        args.containment_polygon = None
-    if args.nogo_polygon == "-1":
-        args.nogo_polygon = None
-    if args.hazardous_polygon == "-1":
-        args.hazardous_polygon = None
-    if args.no_logging == "-1":
-        args.no_logging = False
-    if args.debug == "-1":
-        args.debug = False
-    if args.residual_trapping == "-1":
-        args.residual_trapping = False
-    if args.readable_output == "-1":
-        args.readable_output = False
-    if args.cirrus_info_file == "-1":
-        args.cirrus_info_file = None
-
-
 class InputError(Exception):
     """Raised for various mistakes in the provided input."""
 
@@ -341,7 +307,24 @@ def _process_args() -> argparse.Namespace:
     """
     args = _get_parser().parse_args()
 
-    _replace_default_dummies_from_ert(args)
+    replace_default_ert_dummies(
+        args,
+        false_list=["no_logging", "debug", "residual_trapping", "readable_output"],
+        none_list=[
+            "root_dir",
+            "egrid",
+            "unrst",
+            "init",
+            "out_dir",
+            "zonefile",
+            "regionfile",
+            "region_property",
+            "containment_polygon",
+            "nogo_polygon",
+            "hazardous_polygon",
+            "cirrus_info_file",
+        ],
+    )
 
     _handle_deprecated_args(args)
 
