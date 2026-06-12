@@ -412,6 +412,7 @@ def _n_components(active_props: List):
 def _compute_phases_avg_mol_weight(
     source_data: SourceData,
     comp_molar_masses: Optional[Dict[str, Tuple[int, float]]],
+    scenario: Scenario,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ):
     if comp_molar_masses is None:
@@ -431,34 +432,36 @@ def _compute_phases_avg_mol_weight(
             ymf_tmp_date = source_data.ymfs[idx][date]
             xmf_tmp_date = source_data.xmfs[idx][date]
             gas_avg_mol_weight_at_date[idx] = molar_mass * ymf_tmp_date
-            oil_avg_mol_weight_at_date[idx] = (
-                molar_mass * xmf_tmp_date if Scenario.DEPLETED_OIL_GAS_FIELD else None
-            )
-            water_avg_mol_weight_at_date[idx] = (
-                molar_mass * xmf_tmp_date
-                if not Scenario.DEPLETED_OIL_GAS_FIELD
-                else (water_molar_mass / len(comp_molar_masses))
-                * np.ones_like(xmf_tmp_date)
-            )
+            if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
+                oil_avg_mol_weight_at_date[idx] = molar_mass * xmf_tmp_date
+                water_avg_mol_weight_at_date[idx] = (
+                    water_molar_mass / len(comp_molar_masses)
+                ) * np.ones_like(xmf_tmp_date)
+            else:
+                water_avg_mol_weight_at_date[idx] = molar_mass * xmf_tmp_date
         gas_avg_mol_weight[date] = np.sum(
             list(gas_avg_mol_weight_at_date.values()), axis=0
-        )
-        oil_avg_mol_weight[date] = np.sum(
-            list(oil_avg_mol_weight_at_date.values()), axis=0
         )
         water_avg_mol_weight[date] = np.sum(
             list(water_avg_mol_weight_at_date.values()), axis=0
         )
+        if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
+            oil_avg_mol_weight[date] = np.sum(
+                list(oil_avg_mol_weight_at_date.values()), axis=0
+            )
     return water_avg_mol_weight, gas_avg_mol_weight, oil_avg_mol_weight
 
 
 def _convert_phase_density_from_mass_to_mole(
     source_data: SourceData,
     comp_molar_masses: Optional[Dict[str, Tuple[int, float]]],
+    scenario: Scenario,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ):
     water_avg_mol_weight, gas_avg_mol_weight, oil_avg_mol_weight = (
-        _compute_phases_avg_mol_weight(source_data, comp_molar_masses, water_molar_mass)
+        _compute_phases_avg_mol_weight(
+            source_data, comp_molar_masses, scenario, water_molar_mass
+        )
     )
     dates = source_data.DATES
     dwat = source_data.DWAT
@@ -466,18 +469,17 @@ def _convert_phase_density_from_mass_to_mole(
     doil = source_data.DOIL
     assert dwat is not None
     assert dgas is not None
-    assert doil is not None
     bwat = {}
     bgas = {}
     boil = {}
     for date in dates:
         bwat[date] = dwat[date] / water_avg_mol_weight[date]
         bgas[date] = dgas[date] / gas_avg_mol_weight[date]
-        boil[date] = (
-            doil[date] / oil_avg_mol_weight[date]
-            if Scenario.DEPLETED_OIL_GAS_FIELD
-            else np.zeros_like(bgas[date])
-        )
+        if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
+            assert doil is not None
+            boil[date] = doil[date] / oil_avg_mol_weight[date]
+        else:
+            boil[date] = np.zeros_like(bgas[date])
     return bwat, bgas, boil
 
 
@@ -1687,6 +1689,7 @@ def _calc_co2_amount(
             bwat, bgas, boil = _convert_phase_density_from_mass_to_mole(
                 source_data,
                 comp_molar_masses,
+                scenario,
                 water_molar_mass,
             )
             source_data.BWAT = bwat
