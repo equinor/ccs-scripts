@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 import logging
-import os
-import shutil
 import sys
-import tempfile
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import xtgeo
@@ -111,7 +108,7 @@ def calculate_migration_time_property(
     grid_file: Optional[str],
     dates: List[str],
     first_injection_year: Optional[int],
-) -> xtgeo.GridProperty:
+) -> Tuple[xtgeo.GridProperty, Optional[xtgeo.Grid]]:
     """
     Calculates a 3D migration time property from the provided grid and grid property
     files
@@ -137,26 +134,32 @@ def calculate_migration_time_property(
     timer.stop("generate_migration_time_property")
     _log_t_prop(t_prop, property_name)
 
-    return t_prop
+    return t_prop, grid
 
 
-def migration_time_property_to_map(
+def migration_time_property_to_map_in_memory(
     config_: RootConfig,
     prop: xtgeo.GridProperty,
-    temp_path: str,
+    grid: Optional[xtgeo.Grid] = None,
 ):
     """
-    Aggregates and writes a migration time property to file using `grid3d_aggregate_map`
-    The migration time property is written to a temporary file while performing the
-    aggregation.
+    Aggregates a migration time property to a 2D map without writing to disk.
+    Passes the property directly in-memory to the aggregation step.
     """
     logging.info(
-        "\nStart aggregating time migration property from "
-        "temporary 3D grid file to 2D map"
+        "\nStart aggregating time migration property in-memory to 2D map"
     )
-    config_.input.properties = [_config.Property(temp_path, None, 0)]
-    prop.to_file(temp_path)
-    grid3d_aggregate_map.generate_from_config(config_)
+    prop.date = None
+    config_.input.properties = [_config.Property("in_memory", None, 0)]
+    grid3d_aggregate_map.generate_maps(
+        config_.input,
+        config_.zonation,
+        config_.computesettings,
+        config_.mapsettings,
+        config_.output,
+        preloaded_properties=[prop],
+        preloaded_grid=grid,
+    )
 
 
 def _init_timer():
@@ -212,31 +215,23 @@ def generate_from_config(config_: _config.RootConfig):
         raise ValueError(format_error(error_text))
 
     config_.input.properties = p_spec
-    temp_dir = tempfile.mkdtemp()
-    logging.info(f"\nMaking temporary directory for 3D grids: {temp_dir}")
-    try:
+
+    assert (
+        config_.migration_time_settings is not None
+    ), "Migration time settings must be defined"
+    for prop in config_.input.properties:
         assert (
-            config_.migration_time_settings is not None
-        ), "Migration time settings must be defined"
-        for prop in config_.input.properties:
-            # NBNB-AS: Better handling than assert here...:
-            assert (
-                prop.lower_threshold is not None
-            ), "Lower threshold must be defined for migration time maps"
-            t_prop = calculate_migration_time_property(
-                prop.source,
-                prop.name,
-                prop.lower_threshold,
-                config_.input.grid,
-                config_.input.dates,
-                config_.migration_time_settings.first_injection_year,
-            )
-            tmp_subdir = prop.name if prop.name is not None else "co2_total_mass"
-            temp_path = os.path.join(temp_dir, tmp_subdir)
-            migration_time_property_to_map(config_, t_prop, temp_path)
-    finally:
-        logging.info(f"\nDeleting temporary directory for 3D grids: {temp_dir}")
-        shutil.rmtree(temp_dir)
+            prop.lower_threshold is not None
+        ), "Lower threshold must be defined for migration time maps"
+        t_prop, grid = calculate_migration_time_property(
+            prop.source,
+            prop.name,
+            prop.lower_threshold,
+            config_.input.grid,
+            config_.input.dates,
+            config_.migration_time_settings.first_injection_year,
+        )
+        migration_time_property_to_map_in_memory(config_, t_prop, grid)
 
 
 def main(arguments=None):

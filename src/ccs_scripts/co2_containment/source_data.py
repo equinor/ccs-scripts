@@ -221,7 +221,7 @@ def _extract_source_data_from_properties(
     zone_info: ZoneInfo,
     region_info: RegionInfo,
     init_file: Optional[str] = None,
-) -> SourceData:
+) -> Tuple[SourceData, xtgeo.Grid]:
     # pylint: disable=too-many-locals, too-many-statements
     """Extracts the properties in props_to_extract from Grid files
 
@@ -236,11 +236,12 @@ def _extract_source_data_from_properties(
       region_info (RegionInfo): Region information
 
     Returns:
-      SourceData
+      Tuple[SourceData, xtgeo.Grid]
 
     """
     logging.info("Start extracting source data\n")
     grid_handler = GridHandler(Path(grid_file), Path(unrst_file))
+    grid = grid_handler.grid
     unrst_names = [p for p in props_to_extract if p in grid_handler.property_names]
 
     init: xtgeo.GridProperties | None = None
@@ -250,7 +251,7 @@ def _extract_source_data_from_properties(
             # amounts of data compared to the dynamic part
             with suppress_xtgeo_warning_by_message("Unknown simulator code"):
                 init = xtgeo.gridproperties_from_file(
-                    init_file, grid=grid_handler.grid, names="all"
+                    init_file, grid=grid, names="all"
                 )
         except Exception:
             init = None
@@ -275,7 +276,7 @@ def _extract_source_data_from_properties(
     # sure that they are bool in type, otherwise, unexpected
     # bugs can occur due to numpy treating non-bool arrays as
     # indices. Add assertions everywhere?
-    active_cells = grid_handler.grid.actnum_array.astype(bool) & ~gasless
+    active_cells = grid.actnum_array.astype(bool) & ~gasless
 
     dates = list(
         dict.fromkeys(unrst_props.dates)
@@ -314,18 +315,18 @@ def _extract_source_data_from_properties(
 
     log_saturation_summaries(props_reduced)
     # Tuple with (x,y,z) for each cell:
-    xp, yp, _ = grid_handler.grid.get_xyz()
+    xp, yp, _ = grid.get_xyz()
     cells_x = xp.values[active_cells].data
     cells_y = yp.values[active_cells].data
 
-    zone = _process_zones(zone_info, grid_handler.grid, active_cells)
-    region = _process_regions(region_info, grid_handler.grid, init, active_cells)
-    vol = grid_handler.grid.get_bulk_volume().values[active_cells]
+    zone = _process_zones(zone_info, grid, active_cells)
+    region = _process_regions(region_info, grid, init, active_cells)
+    vol = grid.get_bulk_volume().values[active_cells]
     try:
         cell_size = np.median(vol)
-        dx = grid_handler.grid.get_dx().values[active_cells].data
-        dy = grid_handler.grid.get_dy().values[active_cells].data
-        dz = grid_handler.grid.get_dz().values[active_cells].data
+        dx = grid.get_dx().values[active_cells].data
+        dy = grid.get_dy().values[active_cells].data
+        dz = grid.get_dz().values[active_cells].data
         _log_grid_cell_dimensions(vol, dx, dy, dz)
     except Exception as e:
         logging.info(format_warning(f"WARNING: Could not compute grid cell size: {e}"))
@@ -417,7 +418,7 @@ def _extract_source_data_from_properties(
         zmfs=zmfs,
     )
     logging.info("\nDone extracting source data\n")
-    return source_data
+    return source_data, grid
 
 
 def _log_grid_cell_dimensions(
@@ -609,7 +610,8 @@ def extract_source_data(
     region_info: RegionInfo,
     residual_trapping: bool = False,
     init_file: Optional[str] = None,
-) -> SourceData:
+    return_grid: bool = False,
+) -> Tuple[SourceData, Optional[xtgeo.Grid]]:
     """Extracts the properties needed for CO2 containment calculations from EGRID and UNRST files.
 
     Args:
@@ -622,14 +624,14 @@ def extract_source_data(
         init_file (Optional[str]): Path to INIT-file
 
     Returns:
-        SourceData: Extracted source data
+        Tuple[SourceData, Optional[xtgeo.Grid]]: Extracted source data and optionally the grid
     """
     timer = Timer()
     timer.start("extract_source_data")
     props_to_extract, component_indices, has_zmf = _find_props_to_extract(
         unrst_file, residual_trapping
     )
-    source_data = _extract_source_data_from_properties(
+    source_data, grid = _extract_source_data_from_properties(
         grid_file,
         unrst_file,
         component_indices,
@@ -640,4 +642,6 @@ def extract_source_data(
         init_file,
     )
     timer.stop("extract_source_data")
-    return source_data
+    if return_grid:
+        return source_data, grid
+    return source_data, None

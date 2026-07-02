@@ -33,7 +33,7 @@ def main() -> None:
         plume_groups,
     ) = process_input()
 
-    source_data = extract_source_data(
+    source_data, _ = extract_source_data(
         args.egrid,
         args.unrst,
         zone_info,

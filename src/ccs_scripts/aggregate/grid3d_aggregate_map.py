@@ -146,6 +146,8 @@ def generate_maps(
     computesettings: ComputeSettings,
     map_settings: MapSettings,
     output: Output,
+    preloaded_properties: Optional[List[xtgeo.GridProperty]] = None,
+    preloaded_grid: Optional[xtgeo.Grid] = None,
 ):
     """
     Calculate and write aggregated property maps to file
@@ -154,13 +156,20 @@ def generate_maps(
     _check_input(computesettings)
     logging.info("\nReading grid, properties and zone(s)")
     timer.start("read_xtgeo_grid")
-    grid = xtgeo.grid_from_file(input_.grid)
+    if preloaded_grid is None:
+        grid = xtgeo.grid_from_file(input_.grid)
+    else:
+        grid = preloaded_grid
     timer.stop("read_xtgeo_grid")
     _log_grid_info(grid)
 
-    timer.start("extract_properties")
-    properties = extract_properties(input_.properties, grid, input_.dates)
-    timer.stop("extract_properties")
+    if preloaded_properties is None:
+        timer.start("extract_properties")
+        properties = extract_properties(input_.properties, grid, input_.dates)
+        timer.stop("extract_properties")
+    else:
+        properties = preloaded_properties
+        _apply_lower_thresholds(properties, input_.properties)
     _log_properties_info(properties)
 
     _filters: List[Tuple[str, Optional[Union[np.ndarray, None]]]] = []
@@ -189,10 +198,22 @@ def generate_maps(
         computesettings.weight_by_dz,
     )
     logging.info("\nDone calculating properties")
-    prop_tags = [
-        _property_tag(p.name, computesettings.aggregation, output.aggregation_tag)
-        for p in properties
-    ]
+    if preloaded_properties is None:
+        # Preserve legacy naming for standard aggregate flow
+        prop_tags = [
+            _property_tag(
+                p.name,
+                computesettings.aggregation,
+                output.aggregation_tag,
+            )
+            for p in properties
+        ]
+    else:
+        # In-memory CO2 mass path needs date in name to avoid overwriting
+        prop_tags = [
+            _property_tag(_name_with_date(p), computesettings.aggregation, output.aggregation_tag)
+            for p in properties
+        ]
     if computesettings.aggregate_map:
         surfs = _ndarray_to_regsurfs(
             [f[0] for f in _filters],
@@ -237,6 +258,18 @@ def generate_maps(
 def _property_tag(prop: str, agg_method: AggregationMethod, agg_tag: bool):
     agg = f"{agg_method.value}_" if agg_tag else ""
     return f"{agg}{prop}"
+
+
+def _name_with_date(prop: xtgeo.GridProperty) -> str:
+    """
+    Ensure date is part of property tag used for output map names.
+    File-based extraction often embeds date in prop.name already, while
+    preloaded properties may carry date only in prop.date.
+    """
+    name = prop.name if prop.name is not None else "property"
+    if prop.date is not None and "--" not in name:
+        return f"{name}--{prop.date}"
+    return name
 
 
 # pylint: disable=too-many-arguments
@@ -353,6 +386,24 @@ def generate_from_config(config: _config.RootConfig):
         config.mapsettings,
         config.output,
     )
+
+
+def _apply_lower_thresholds(
+    properties: List[xtgeo.GridProperty],
+    property_spec: Optional[List[_config.Property]],
+) -> None:
+    """
+    Apply lower-threshold masking on already-loaded properties.
+    Mirrors logic in _parser.extract_properties.
+    """
+    if property_spec is None:
+        return
+    for spec, prop in zip(property_spec, properties):
+        if spec.lower_threshold is None:
+            continue
+        if not isinstance(prop.values.mask, np.ndarray):
+            prop.values.mask = np.asarray(prop.values.mask)
+        prop.values.mask[np.abs(prop.values) < spec.lower_threshold] = True
 
 
 def _distribute_config_property(

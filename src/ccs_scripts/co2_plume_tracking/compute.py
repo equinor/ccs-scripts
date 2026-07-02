@@ -582,16 +582,18 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                     break
             if not found:
                 groups.status[index] = Status.UNDETERMINED
-    _update_inj_z_coordinates(inj_wells, new_z_coords)
-    _find_inj_wells_grid_indices(
-        inj_wells_grid_indices, grid_data, inj_wells
-    )  # Might need an update
+    z_coords_changed = _update_inj_z_coordinates(inj_wells, new_z_coords)
+    if z_coords_changed:
+        _find_inj_wells_grid_indices(
+            inj_wells_grid_indices, grid_data, inj_wells
+        )
 
 
 def _update_inj_z_coordinates(
     inj_wells: List[InjectionWellData],
     new_z_coords: Dict[str, List[float]],
 ):
+    changed = False
     for well in inj_wells:
         if well.name in new_z_coords:
             for z in new_z_coords[well.name]:
@@ -603,3 +605,5 @@ def _update_inj_z_coordinates(
                         well.z = [z]
                     else:
                         well.z.append(z)
+                    changed = True
+    return changed

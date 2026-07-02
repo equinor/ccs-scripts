@@ -6,7 +6,9 @@ from typing import Dict, List, Optional, Set, Union
 
 import numpy as np
 import pandas as pd
+import shapely
 from shapely.geometry import MultiPolygon, Point, Polygon
+from shapely.prepared import prep
 
 from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
@@ -131,7 +133,11 @@ def _calculate_co2_containment(
     else:
         plume_names = set()
 
+    group_entries, group_masks = _build_group_masks(zone_region_info, locations)
+
     containment = []
+    dtype = np.int64 if calc_type == CalculationType.CELL_VOLUME else np.float64
+    n_cells = len(co2_data.x_coord)
     for i, co2_at_timestep in enumerate(co2_data.data_list):
         co2_amounts_for_each_phase = _lists_of_co2_for_each_phase(
             co2_at_timestep,
@@ -141,37 +147,77 @@ def _calculate_co2_containment(
         if plume_groups is not None:
             timer.start("plume_group_mapping", "calculate_co2_containment")
             plume_group_info = _plume_group_mapping(plume_names, plume_groups[i])
+            plume_names_at_t, plume_mask_matrix = _plume_masks_as_matrix(
+                plume_group_info
+            )
             timer.stop("plume_group_mapping")
         else:
-            plume_group_info = {"all": np.ones(len(co2_data.x_coord), dtype=bool)}
-        for zone, region, is_in_section in zone_region_info:
-            for location, is_in_location in locations.items():
-                for plume_name, is_in_plume in plume_group_info.items():
-                    for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
-                        dtype = (
-                            np.int64
-                            if calc_type == CalculationType.CELL_VOLUME
-                            else np.float64
+            plume_names_at_t = ["all"]
+            plume_mask_matrix = np.ones((1, n_cells), dtype=bool)
+        # Stack phase arrays once (n_phases x n_cells).
+        phase_matrix = np.vstack(
+            [np.asarray(arr, dtype=dtype) for arr in co2_amounts_for_each_phase]
+        )
+        timer.start("sum_and_store", "calculate_co2_containment")
+        # Vectorized grouped reductions:
+        # (n_phases x n_cells) @ (n_cells x n_groups) -> (n_phases x n_groups)
+        for plume_idx, plume_name in enumerate(plume_names_at_t):
+            combined_masks = group_masks & plume_mask_matrix[plume_idx]
+            sums = phase_matrix @ combined_masks.T
+            for group_idx, (zone, region, location) in enumerate(group_entries):
+                for phase_idx, phase in enumerate(phases):
+                    containment.append(
+                        ContainedCo2(
+                            co2_at_timestep.date,
+                            np.float64(sums[phase_idx, group_idx]),
+                            phase,
+                            location,
+                            zone,
+                            region,
+                            plume_name,
                         )
-                        timer.start("sum_and_store", "calculate_co2_containment")
-                        amount = np.sum(
-                            co2_amount[is_in_section & is_in_location & is_in_plume],
-                            dtype=dtype,
-                        )
-                        containment += [
-                            ContainedCo2(
-                                co2_at_timestep.date,
-                                np.float64(amount),
-                                phase,
-                                location,
-                                zone,
-                                region,
-                                plume_name,
-                            )
-                        ]
-                        timer.stop("sum_and_store")
+                    )
+        timer.stop("sum_and_store")
     logging.info(f"Done calculating contained CO2 {calc_type.name.lower()}")
     return containment
+
+
+def _build_group_masks(
+    zone_region_info: List,
+    locations: Dict[str, np.ndarray],
+) -> tuple[List[tuple[Optional[str], Optional[str], str]], np.ndarray]:
+    """
+    Build static (zone/region x location) masks
+
+    Returns:
+      - group entries with labels
+      - stacked bool mask matrix with shape (n_groups, n_cells)
+    """
+    group_entries: List[tuple[Optional[str], Optional[str], str]] = []
+    group_masks: List[np.ndarray] = []
+    for zone, region, is_in_section in zone_region_info:
+        section_mask = np.asarray(is_in_section, dtype=bool)
+        for location, is_in_location in locations.items():
+            group_entries.append((zone, region, location))
+            group_masks.append(section_mask & np.asarray(is_in_location, dtype=bool))
+
+    if not group_masks:
+        return group_entries, np.zeros((0, 0), dtype=bool)
+
+    return group_entries, np.vstack(group_masks)
+
+
+def _plume_masks_as_matrix(
+    plume_group_info: Dict[str, np.ndarray],
+) -> tuple[List[str], np.ndarray]:
+    """
+    Convert plume mapping dictionary to deterministic name list and stacked masks.
+    """
+    names = list(plume_group_info.keys())
+    if not names:
+        return ["all"], np.ones((1, 0), dtype=bool)
+    masks = np.vstack([np.asarray(plume_group_info[name], dtype=bool) for name in names])
+    return names, masks
 
 
 def _make_location_filters(
@@ -203,15 +249,10 @@ def _make_location_filters(
         locations["nogo"] = np.zeros(len(co2_data.x_coord), dtype=bool)
         logging.info("No-go polygon not specified.")
 
-    # Count as nogo if the two boundaries overlap:
-    locations["contained"] = np.array(
-        [
-            x if not y else False
-            for x, y in zip(locations["contained"], locations["nogo"])
-        ]
-    )
-    locations["outside"] = np.array(
-        [not x and not y for x, y in zip(locations["contained"], locations["nogo"])]
+    # Count as no-go if the two boundaries overlap.
+    locations["contained"] = np.logical_and(locations["contained"], ~locations["nogo"])
+    locations["outside"] = np.logical_not(
+        np.logical_or(locations["contained"], locations["nogo"])
     )
     locations["total"] = np.ones(len(co2_data.x_coord), dtype=bool)
     return locations
@@ -314,10 +355,9 @@ def _region_map(
 
 
 def _plume_group_mapping(plume_names: Set[str], plume_groups: List[str]):
+    np_plume_groups = np.asarray(plume_groups)
     out = {"all": np.ones(len(plume_groups), dtype=bool)}
-    out.update(
-        {plume: np.array([x == plume for x in plume_groups]) for plume in plume_names}
-    )
+    out.update({plume: np_plume_groups == plume for plume in plume_names})
     return out
 
 
@@ -355,7 +395,18 @@ def _calculate_containment(
     Returns:
         np.ndarray
     """
-    return np.array([poly.contains(Point(_x, _y)) for _x, _y in zip(x_coord, y_coord)])
+    # Prefer vectorized operations when available (shapely>=2).
+    # Fall back to prepared geometry for compatibility and lower overhead.
+    try:
+        points = shapely.points(x_coord, y_coord)
+        return np.asarray(shapely.contains(poly, points), dtype=bool)
+    except Exception:
+        prepared = prep(poly)
+        return np.fromiter(
+            (prepared.contains(Point(_x, _y)) for _x, _y in zip(x_coord, y_coord)),
+            dtype=bool,
+            count=len(x_coord),
+        )
 
 
 def calculate_containment(
