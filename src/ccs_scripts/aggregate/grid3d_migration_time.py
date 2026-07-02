@@ -146,9 +146,7 @@ def migration_time_property_to_map_in_memory(
     Aggregates a migration time property to a 2D map without writing to disk.
     Passes the property directly in-memory to the aggregation step.
     """
-    logging.info(
-        "\nStart aggregating time migration property in-memory to 2D map"
-    )
+    logging.info("\nStart aggregating time migration property in-memory to 2D map")
     prop.date = None
     config_.input.properties = [_config.Property("in_memory", None, 0)]
     grid3d_aggregate_map.generate_maps(

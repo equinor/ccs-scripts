@@ -250,9 +250,7 @@ def _extract_source_data_from_properties(
             # Extract everything from the init file. This is (probably) small
             # amounts of data compared to the dynamic part
             with suppress_xtgeo_warning_by_message("Unknown simulator code"):
-                init = xtgeo.gridproperties_from_file(
-                    init_file, grid=grid, names="all"
-                )
+                init = xtgeo.gridproperties_from_file(init_file, grid=grid, names="all")
         except Exception:
             init = None
     if init is None:

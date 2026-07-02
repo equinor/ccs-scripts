@@ -584,9 +584,7 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                 groups.status[index] = Status.UNDETERMINED
     z_coords_changed = _update_inj_z_coordinates(inj_wells, new_z_coords)
     if z_coords_changed:
-        _find_inj_wells_grid_indices(
-            inj_wells_grid_indices, grid_data, inj_wells
-        )
+        _find_inj_wells_grid_indices(inj_wells_grid_indices, grid_data, inj_wells)
 
 
 def _update_inj_z_coordinates(

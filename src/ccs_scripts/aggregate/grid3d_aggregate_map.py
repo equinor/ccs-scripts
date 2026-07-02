@@ -211,7 +211,9 @@ def generate_maps(
     else:
         # In-memory CO2 mass path needs date in name to avoid overwriting
         prop_tags = [
-            _property_tag(_name_with_date(p), computesettings.aggregation, output.aggregation_tag)
+            _property_tag(
+                _name_with_date(p), computesettings.aggregation, output.aggregation_tag
+            )
             for p in properties
         ]
     if computesettings.aggregate_map:

@@ -216,7 +216,9 @@ def _plume_masks_as_matrix(
     names = list(plume_group_info.keys())
     if not names:
         return ["all"], np.ones((1, 0), dtype=bool)
-    masks = np.vstack([np.asarray(plume_group_info[name], dtype=bool) for name in names])
+    masks = np.vstack(
+        [np.asarray(plume_group_info[name], dtype=bool) for name in names]
+    )
     return names, masks
 
 

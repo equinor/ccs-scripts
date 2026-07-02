@@ -76,7 +76,7 @@ def generate_co2_mass_maps(config_: RootConfig):
     )
     co2_mass_property_to_map_in_memory(config_, in_memory_properties, grid)
 
-     # Migration time maps from the same in-memory properties
+    # Migration time maps from the same in-memory properties
     if co2_mass_settings.calculate_migration_time_map:
         _co2_mass_migration_time_in_memory(
             config_, in_memory_properties, co2_mass_settings, co2_data.cell_size
@@ -107,9 +107,7 @@ def _co2_mass_migration_time_in_memory(
     )
 
     # Filter for total mass properties only
-    mass_tot_props = [
-        p for p in properties if MapName.MASS_TOT.value in (p.name or "")
-    ]
+    mass_tot_props = [p for p in properties if MapName.MASS_TOT.value in (p.name or "")]
     if not mass_tot_props:
         logging.info("No total mass properties found for migration time calculation")
         return
