@@ -10,9 +10,9 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
     _calculate_co2_data_from_source_data,
 )
+from ccs_scripts.co2_containment.co2_containment import main
 from ccs_scripts.co2_containment.input import CalculationType
 from ccs_scripts.co2_containment.source_data import SourceData
-from ccs_scripts.co2_containment.co2_containment import main
 
 REGION_PROPERTY = "FIPREG"
 

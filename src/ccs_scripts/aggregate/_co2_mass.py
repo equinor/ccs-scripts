@@ -1,5 +1,4 @@
 from enum import Enum
-from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
@@ -11,7 +10,6 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Co2DataAtTimeStep,
 )
 from ccs_scripts.co2_containment.source_data import Scenario
-from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
 
 setup_xtgeo_logging()

@@ -6,13 +6,13 @@ import pandas
 import pytest
 
 from ccs_scripts.co2_plume_extent.co2_plume_extent import main
+from ccs_scripts.co2_plume_extent.compute import calculate_distances
 from ccs_scripts.co2_plume_extent.config import (
-    calculate_well_coordinates,
     Configuration,
     LineDirection,
+    calculate_well_coordinates,
 )
 from ccs_scripts.co2_plume_extent.output import _collect_results_into_dataframe
-from ccs_scripts.co2_plume_extent.compute import calculate_distances
 
 
 def test_calculate_well_coordinates():

@@ -610,19 +610,19 @@ def extract_source_data(
     init_file: Optional[str] = None,
     return_grid: bool = False,
 ) -> Tuple[SourceData, Optional[xtgeo.Grid]]:
-    """Extracts the properties needed for CO2 containment calculations from EGRID and UNRST files.
+    """Extracts the properties needed for CO2 calculations from EGRID and UNRST files.
 
     Args:
         grid_file (str): Path to EGRID-file
         unrst_file (str): Path to UNRST-file
         zone_info (ZoneInfo): Zone information
         region_info (RegionInfo): Region information
-        calc_type (CalculationType): Type of CO2 calculation
         residual_trapping (bool): Whether to consider residual trapping
         init_file (Optional[str]): Path to INIT-file
+        return_grid (bool): Whether to return the grid along with the source data
 
     Returns:
-        Tuple[SourceData, Optional[xtgeo.Grid]]: Extracted source data and optionally the grid
+        Tuple[SourceData, Optional[xtgeo.Grid]]: Source data and optionally the grid
     """
     timer = Timer()
     timer.start("extract_source_data")

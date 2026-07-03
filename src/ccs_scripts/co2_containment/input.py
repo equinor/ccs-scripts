@@ -92,7 +92,7 @@ def process_input() -> Tuple[
     Process input arguments, check that they are valid, and log the provided
     input.
 
-    Returns the processed arguments, and additional data used for CO2 and containment calculations.
+    Returns the processed arguments, and data used for CO2 and containment calculations.
     """
     args = _process_args()
     _check_input(args)

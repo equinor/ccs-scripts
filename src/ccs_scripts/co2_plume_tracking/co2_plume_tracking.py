@@ -7,7 +7,6 @@ plume group at each time step, and merges plumes if they meet.
 """
 
 import logging
-import os
 import sys
 import time
 
