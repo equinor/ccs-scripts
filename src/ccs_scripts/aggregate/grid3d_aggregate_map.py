@@ -168,7 +168,11 @@ def generate_maps(
         properties = extract_properties(input_.properties, grid, input_.dates)
         timer.stop("extract_properties")
     else:
-        properties = preloaded_properties
+        properties = []
+        for _p in preloaded_properties:
+            _c = _p.copy()
+            _c.date, _c.name = _p.date, _p.name
+            properties.append(_c)
         _apply_lower_thresholds(properties, input_.properties)
     _log_properties_info(properties)
 
