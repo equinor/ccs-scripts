@@ -26,8 +26,13 @@ from ccs_scripts.aggregate._config import (
     Zonation,
     ZProperty,
 )
-from ccs_scripts.co2_containment.co2_containment import str_to_bool
-from ccs_scripts.utils.utils import format_error, format_warning
+from ccs_scripts.utils.utils import (
+    format_error,
+    format_warning,
+    replace_default_ert_dummies,
+    setup_log_configuration,
+    str_to_bool,
+)
 from ccs_scripts.utils.xtgeo_logging import (
     setup_xtgeo_logging,
     suppress_xtgeo_warning_by_message,
@@ -121,45 +126,27 @@ def parse_arguments(arguments, map_type: str):
     return parser.parse_args(arguments)
 
 
-def _replace_default_dummies_from_ert(args, map_type: str):
-    if args.eclroot == "-1":
-        args.eclroot = None
-    if args.mapfolder == "-1":
-        args.mapfolder = None
-    if args.plotfolder == "-1":
-        args.plotfolder = None
-    if args.folderroot == "-1":
-        args.folderroot = None
-    if args.no_logging == "-1":
-        args.no_logging = False
-    if args.debug == "-1":
-        args.debug = False
-    if map_type == "co2_mass":
-        if args.gridfolder == "-1":
-            args.gridfolder = None
-        if args.cirrus_info_file == "-1":
-            args.cirrus_info_file = None
-
-
 def process_arguments(arguments, map_type: str) -> RootConfig:
     """
     Interprets and parses the provided arguments to an internal representation of input
     in the `RootConfig` class
     """
     parsed_args = parse_arguments(arguments, map_type)
-    _replace_default_dummies_from_ert(parsed_args, map_type)
+    none_list = ["eclroot", "mapfolder", "plotfolder", "folderroot"]
+    if map_type == "co2_mass":
+        none_list += ["gridfolder", "cirrus_info_file"]
+    replace_default_ert_dummies(
+        parsed_args,
+        false_list=["no_logging", "debug"],
+        none_list=none_list,
+    )
     replacements = {}
     if parsed_args.eclroot is not None:
         replacements["eclroot"] = parsed_args.eclroot
     if parsed_args.folderroot is not None:
         replacements["folderroot"] = parsed_args.folderroot
 
-    if parsed_args.debug:
-        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif parsed_args.no_logging:
-        logging.basicConfig(format="%(message)s", level=logging.WARNING)
-    else:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
+    setup_log_configuration(parsed_args)
 
     if map_type == "aggregate":
         config_file = getattr(parsed_args, "config_aggregate")

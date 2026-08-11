@@ -1,6 +1,5 @@
 from enum import Enum
-from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import xtgeo
@@ -9,9 +8,8 @@ from ccs_scripts.aggregate._config import CO2MassSettings
 from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
     Co2DataAtTimeStep,
-    Scenario,
 )
-from ccs_scripts.utils.timer import Timer
+from ccs_scripts.co2_containment.source_data import Scenario
 from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
 
 setup_xtgeo_logging()
@@ -31,29 +29,15 @@ class MapName(Enum):
     MigrationTime_MASS_TOT = "co2_mass_migration_time_total"
 
 
-def translate_co2data_to_property(
+def translate_co2data_to_gridproperties(
     co2_data: Co2Data,
     grid_file: str,
     co2_mass_settings: CO2MassSettings,
-    grid_out_dir: str,
-) -> List[str]:
+    grid: Optional[xtgeo.Grid] = None,
+) -> List[xtgeo.GridProperty]:
     """
-    Convert CO2 data into 3D GridProperty
-
-    Args:
-        co2_data (Co2Data): Information of the amount of CO2 at each cell in
-                            each time step
-        grid_file (str): Path to EGRID-file
-        co2_mass_settings (CO2MassSettings): Settings from config file for calculation
-                                             of CO2 mass maps.
-        grid_out_dir (str): Path to store the produced 3D GridProperties.
-
-    Returns:
-        List[str]: List of paths to the produced 3D GridProperties.
-
+    Convert CO2 data into in-memory 3D GridProperty objects.
     """
-    timer = Timer()
-    timer.start("translate_co2data_to_property")
     maps = co2_mass_settings.maps
     if maps is None:
         maps = []
@@ -61,45 +45,32 @@ def translate_co2data_to_property(
         maps = [maps]
     maps = [map_name.lower() for map_name in maps]
 
-    grid = xtgeo.grid_from_file(grid_file)
     store_all = "all" in maps or len(maps) == 0
-
-    final_props: list[xtgeo.GridProperty] = []
+    if grid is None:
+        grid = xtgeo.grid_from_file(grid_file)
     property_template = xtgeo.GridProperty(grid)
+
+    out: List[xtgeo.GridProperty] = []
     for co2_at_date in co2_data.data_list:
-        # TODO: memory-intensive? Could also write to file directly
         tmp_props: dict[MapName, xtgeo.GridProperty] = _convert_to_grid(
             co2_at_date, property_template, co2_data.active_cells
         )
         if store_all or "total_co2" in maps:
-            final_props.append(tmp_props[MapName.MASS_TOT])
+            out.append(tmp_props[MapName.MASS_TOT])
         if store_all or "dissolved_water_co2" in maps:
-            final_props.append(tmp_props[MapName.MASSDISW])
+            out.append(tmp_props[MapName.MASSDISW])
         if (
             store_all or "dissolved_oil_co2" in maps
         ) and co2_data.scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
-            final_props.append(tmp_props[MapName.MASSDISO])
+            out.append(tmp_props[MapName.MASSDISO])
         if (
             store_all or "free_co2" in maps
         ) and not co2_mass_settings.residual_trapping:
-            final_props.append(tmp_props[MapName.MASS_GAS])
+            out.append(tmp_props[MapName.MASS_GAS])
         if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
-            final_props.append(tmp_props[MapName.MASSFGAS])
-            final_props.append(tmp_props[MapName.MASSTGAS])
-
-    # Write properties to files
-    prop_paths: list[str] = []
-    for p in final_props:
-        file_path = Path(grid_out_dir) / f"{p.name}--{p.date}.grd"
-        i = 0
-        while file_path.exists() and i < 100000:
-            file_path = Path(grid_out_dir) / f"{p.name}_{i}--{p.date}_.grd"
-            i += 1
-        p.to_file(file_path)
-        prop_paths.append(str(file_path))
-
-    timer.stop("translate_co2data_to_property")
-    return prop_paths
+            out.append(tmp_props[MapName.MASSFGAS])
+            out.append(tmp_props[MapName.MASSTGAS])
+    return out
 
 
 def _convert_to_grid(

@@ -12,24 +12,24 @@ are present in the share/results/maps folder
 ################################################################################
 
 import argparse
-import getpass
 import glob
 import logging
 import os
 import pathlib
-import platform
-import socket
-import subprocess
 import sys
-from datetime import datetime
 from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import xtgeo
 
-from ccs_scripts.co2_containment.co2_containment import str_to_bool
-from ccs_scripts.utils.utils import format_error
+from ccs_scripts.utils.utils import (
+    format_error,
+    log_input_banner,
+    replace_default_ert_dummies,
+    setup_log_configuration,
+    str_to_bool,
+)
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
@@ -67,15 +67,6 @@ def _make_parser():
     )
 
     return parser
-
-
-def _setup_log_configuration(arguments: argparse.Namespace) -> None:
-    if arguments.debug:
-        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif arguments.no_logging:
-        logging.basicConfig(format="%(message)s", level=logging.WARNING)
-    else:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
 
 
 def _find_formations(search_path: str, rskey: str) -> Optional[Tuple[np.ndarray, str]]:
@@ -172,17 +163,10 @@ def calculate_plume_area(path: str, rskey: str) -> Optional[List[List[float]]]:
     return list_out
 
 
-def _replace_default_dummies_from_ert(args):
-    if args.no_logging == "-1":
-        args.no_logging = False
-    if args.debug == "-1":
-        args.debug = False
-
-
 def _read_args() -> Tuple[str, str]:
     args = _make_parser().parse_args()
-    _replace_default_dummies_from_ert(args)
-    _setup_log_configuration(args)
+    replace_default_ert_dummies(args, false_list=["no_logging", "debug"], none_list=[])
+    setup_log_configuration(args)
 
     input_path = args.input
     output_path = args.output_csv
@@ -195,36 +179,11 @@ def _read_args() -> Tuple[str, str]:
 
 
 def _log_input_configuration(input_path: str, output_path: str) -> None:
-    version = "v0.16.0"
-    is_dev_version = True
-    if is_dev_version:
-        version += "_dev"
-        try:
-            source_dir = os.path.dirname(os.path.abspath(__file__))
-            short_hash = (
-                subprocess.check_output(
-                    ["git", "rev-parse", "--short", "HEAD"], cwd=source_dir
-                )
-                .decode("ascii")
-                .strip()
-            )
-        except subprocess.CalledProcessError:
-            short_hash = "-"
-        version += " (latest git commit: " + short_hash + ")"
-
-    now = datetime.now()
-    date_time = now.strftime("%B %d, %Y %H:%M:%S")
-    logging.info("CCS-scripts - Plume area calculations")
-    logging.info("=====================================")
-    logging.info(f"Version             : {version}")
-    logging.info(f"Date and time       : {date_time}")
-    logging.info(f"User                : {getpass.getuser()}")
-    logging.info(f"Host                : {socket.gethostname()}")
-    logging.info(f"Platform            : {platform.system()} ({platform.release()})")
-    py_version = (
-        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    log_input_banner(
+        __file__,
+        "Plume area calculations",
+        is_dev_version=True,
     )
-    logging.info(f"Python version      : {py_version}")
 
     logging.info(f"\nInput path  : {input_path}")
     logging.info(f"Output path : {output_path}\n")

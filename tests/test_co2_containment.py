@@ -7,12 +7,12 @@ import pytest
 import shapely.geometry
 
 from ccs_scripts.co2_containment.co2_calculation import (
-    CalculationType,
     Co2Data,
-    SourceData,
     _calculate_co2_data_from_source_data,
 )
 from ccs_scripts.co2_containment.co2_containment import main
+from ccs_scripts.co2_containment.input import CalculationType
+from ccs_scripts.co2_containment.source_data import SourceData
 
 REGION_PROPERTY = "FIPREG"
 

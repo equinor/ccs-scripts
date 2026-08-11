@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 import logging
-import os
-import shutil
 import sys
-import tempfile
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import yaml
+from xtgeo import Grid, GridProperty
 
 from ccs_scripts.aggregate import (
     _config,
@@ -14,14 +12,17 @@ from ccs_scripts.aggregate import (
     grid3d_aggregate_map,
     grid3d_migration_time,
 )
-from ccs_scripts.aggregate._co2_mass import MapName, translate_co2data_to_property
+from ccs_scripts.aggregate._co2_mass import (
+    MapName,
+    translate_co2data_to_gridproperties,
+)
 from ccs_scripts.aggregate._config import AggregationMethod, RootConfig
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.co2_containment.co2_calculation import (
-    RegionInfo,
-    ZoneInfo,
     calculate_co2,
 )
+from ccs_scripts.co2_containment.input import CalculationType, RegionInfo, ZoneInfo
+from ccs_scripts.co2_containment.source_data import extract_source_data
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, format_warning
 
@@ -47,155 +48,117 @@ def generate_co2_mass_maps(config_: RootConfig):
         property_name=None,
     )
     logging.info("\nCalculate CO2 mass 3D grid")
+    source_data, grid = extract_source_data(
+        grid_file,
+        co2_mass_settings.unrst_source,
+        zone_info,
+        region_info,
+        co2_mass_settings.residual_trapping,
+        co2_mass_settings.init_source,
+        return_grid=True,
+    )
     co2_data = calculate_co2(
-        grid_file=grid_file,
-        unrst_file=co2_mass_settings.unrst_source,
-        calc_type_input="mass",
-        init_file=co2_mass_settings.init_source,
-        zone_info=zone_info,
-        region_info=region_info,
-        residual_trapping=co2_mass_settings.residual_trapping,
-        cirrus_info_file=co2_mass_settings.cirrus_info_file,
+        source_data,
+        CalculationType.MASS,
+        co2_mass_settings.residual_trapping,
+        co2_mass_settings.cirrus_info_file,
     )
 
     dates = config_.input.dates
     if len(dates) > 0:
         co2_data.data_list = [x for x in co2_data.data_list if x.date in dates]
-    grid_folder, delete_tmp_grid_folder = _process_grid_dir(config_.output.gridfolder)
-    try:
-        out_property_list = translate_co2data_to_property(
-            co2_data,
-            grid_file,
-            co2_mass_settings,
-            grid_folder,
-        )
-
-        co2_mass_property_to_map(
-            config_, out_property_list, co2_mass_settings, co2_data.cell_size
-        )
-    finally:
-        # Make sure temp directory is deleted even if exception is thrown above
-        if delete_tmp_grid_folder:
-            clean_tmp(grid_folder)
-
-
-def _process_grid_dir(grid_folder: Optional[str]) -> Tuple[str, bool]:
-    """
-    Setting up the grid folder to store the gridproperties
-    """
-    if grid_folder is not None:
-        if not os.path.exists(grid_folder):
-            parent_dir = os.path.dirname(grid_folder)
-            if os.path.exists(parent_dir):
-                os.mkdir(grid_folder)
-                logging.info(f"\nCreated new grid folder: {grid_folder}")
-            else:
-                error_text = (
-                    "\nERROR: Specified grid folder is invalid (no parent folder):"
-                )
-                error_text += f"\n    Path            : {grid_folder}"
-                if not os.path.isabs(grid_folder):
-                    error_text += (
-                        f"\n    -> Absolute path: {os.path.abspath(grid_folder)}"
-                    )
-                error_text += f"\n    Parent folder   : {parent_dir}"
-                if not os.path.isabs(parent_dir):
-                    error_text += (
-                        f"\n    -> Absolute path: {os.path.abspath(parent_dir)}"
-                    )
-                raise FileNotFoundError(format_error(error_text))
-        return grid_folder, False
-    else:
-        grid_folder = tempfile.mkdtemp()
-        logging.info(f"\nMaking temporary directory for 3D grids: {grid_folder}")
-        return grid_folder, True
-
-
-def clean_tmp(grid_folder: str):
-    """
-    Removes the 3d grids produced if not specific output folder is provided
-
-    Args:
-        grid_folder: Path to directory of files for 3d GridProperties
-    """
-    logging.info(
-        f'\nDeleting temp grid folder "{grid_folder}"'
-        f" containing {len(os.listdir(grid_folder))} files"
+    # Keep 3D properties in memory for aggregation.
+    in_memory_properties = translate_co2data_to_gridproperties(
+        co2_data,
+        grid_file,
+        co2_mass_settings,
+        grid=grid,
     )
-    for file_name in os.listdir(grid_folder):
-        if file_name.endswith(".EGRID") or file_name.endswith(".UNRST"):
-            os.remove(os.path.join(grid_folder, file_name))
-    if len(os.listdir(grid_folder)) == 0:
-        shutil.rmtree(grid_folder)
+    co2_mass_property_to_map_in_memory(config_, in_memory_properties, grid)
+
+    # Migration time maps from the same in-memory properties
+    if co2_mass_settings.calculate_migration_time_map:
+        _co2_mass_migration_time_in_memory(
+            config_, in_memory_properties, co2_mass_settings, co2_data.cell_size
+        )
 
 
-def co2_mass_property_to_map(
+def _co2_mass_migration_time_in_memory(
     config_: RootConfig,
-    out_property_list: List[str],
+    properties: List[GridProperty],
     co2_mass_settings: _config.CO2MassSettings,
     cell_size: Optional[float] = None,
 ):
     """
-    Aggregates with SUM and writes a list of CO2 mass property to files
-    using `grid3d_aggregate_map`.
-
-    Args:
-        config_:           Arguments in the config file
-        out_property_list: List with paths of the GridProperties objects
-                           to be aggregated
-        co2_mass_settings: CO2 mass calculation settings
-        cell_size:         Grid cell size for threshold calculation
-
+    Compute migration time maps directly from in-memory CO2 mass properties.
     """
-    # Aggregate maps:
+    from ccs_scripts.aggregate._migration_time import generate_migration_time_property
+
+    if co2_mass_settings.migration_time_threshold is not None:
+        threshold = co2_mass_settings.migration_time_threshold
+    elif cell_size is not None:
+        factor = 0.1
+        threshold = factor * cell_size * 0.001  # From kg to tons
+    else:
+        threshold = 0.01
+
+    logging.info(
+        f"\nThreshold for co2 total mass migration time maps: {threshold:.2f} tons"
+    )
+
+    # Filter for total mass properties only
+    mass_tot_props = [p for p in properties if MapName.MASS_TOT.value in (p.name or "")]
+    if not mass_tot_props:
+        logging.info("No total mass properties found for migration time calculation")
+        return
+
+    first_injection_year = (
+        config_.migration_time_settings.first_injection_year
+        if config_.migration_time_settings is not None
+        else None
+    )
+
+    t_prop = generate_migration_time_property(
+        mass_tot_props, threshold, first_injection_year
+    )
+
+    # Set up config for migration time aggregation
+    config_.computesettings.aggregation = _config.AggregationMethod.MIN
+    config_.output.aggregation_tag = False
+    config_.output.replace_masked_with_zero = False
+    config_.computesettings.aggregate_map = True
+    config_.computesettings.indicator_map = False
+
+    grid3d_migration_time.migration_time_property_to_map_in_memory(config_, t_prop)
+
+
+def co2_mass_property_to_map_in_memory(
+    config_: RootConfig,
+    properties: List[GridProperty],
+    grid: Grid,
+):
+    """
+    Aggregate already loaded CO2 mass 3D properties without writing temp .grd files.
+    """
     config_.input.properties = []
-    for props in out_property_list:
+    for _ in properties:
         config_.input.properties.append(
             _config.Property(
-                props,
-                None,
-                1e-6,  # 0.001 kg
+                source="in_memory",
+                name=None,
+                lower_threshold=1e-6,  # 0.001 kg
             )
         )
-    grid3d_aggregate_map.generate_from_config(config_)
 
-    # Migration time maps:
-    if co2_mass_settings.calculate_migration_time_map:
-        if co2_mass_settings.migration_time_threshold is not None:
-            threshold = co2_mass_settings.migration_time_threshold
-        elif cell_size is not None:
-            # A factor of 0.5 will roughlycorrepond to
-            # dissolved co2 mass for AMFG threshold of 0.0005
-            factor = 0.1
-            threshold = factor * cell_size * 0.001  # From kg to tons
-        else:
-            threshold = 0.01
-
-        logging.info(
-            f"\nThreshold for co2 total mass migration time maps: {threshold:.2f} tons"
-        )
-
-        config_.input.properties = []
-        for props in out_property_list:
-            if isinstance(props, str):
-                # We currently only calculate migration time maps for total co2 mass
-                if MapName.MASS_TOT.value in props:
-                    config_.input.properties.append(
-                        _config.Property(
-                            props,
-                            None,
-                            # The unit is tons. We calculate co2 mass for
-                            # each grid cell, so the threshold will depend
-                            # a lot on the grid cell size.
-                            threshold,
-                        )
-                    )
-        grid3d_migration_time.generate_from_config(config_)
-    else:
-        logging.info(
-            "\nSkipping migration time map calculation "
-            "(calculate_migration_time_map is False)"
-        )
+    grid3d_aggregate_map.generate_maps(
+        config_.input,
+        config_.zonation,
+        config_.computesettings,
+        config_.mapsettings,
+        config_.output,
+        preloaded_properties=properties,
+        preloaded_grid=grid,
+    )
 
 
 def read_yml_file(file_path: str) -> Dict[str, List]:
@@ -246,7 +209,6 @@ def _init_timer():
     timer.code_parts = {
         "extract_source_data": "Extract source data",
         "calculate_co2": "Calculate CO2 mass per grid cell from source data",
-        "translate_co2data_to_property": "Create 3D properties for CO2 mass",
         "read_xtgeo_grid": "Aggregate: Read grid using xtgeo",
         "extract_properties": "Aggregate: Extract properties from files",
         "aggregate_maps": "Aggregate: Aggregate 3D grid to 2D maps",

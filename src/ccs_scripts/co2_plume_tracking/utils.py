@@ -1,5 +1,6 @@
 import itertools
 import logging
+import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
@@ -10,7 +11,10 @@ import resdata.grid
 import xtgeo
 
 from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import format_error, read_yaml_file
 
+DEFAULT_THRESHOLD_GAS = 0.2
+DEFAULT_THRESHOLD_DISSOLVED = 0.0005
 MAX_STEPS_RESOLVE_CELLS = 20
 MAX_NEAREST_GROUPS_SEARCH_DISTANCE = 3
 
@@ -166,8 +170,7 @@ class PlumeGroups:
                     ind_to_resolve = updated_ind_to_resolve
                     counter += 1
                     continue
-                else:
-                    break
+                break
             ind_to_resolve = updated_ind_to_resolve
             counter += 1
 
@@ -302,3 +305,52 @@ def sort_well_names(input_dict: Dict, inj_wells: List[InjectionWellData]):
     for col in sorted_cols:
         dict_sorted[col] = input_dict[col]
     return dict_sorted
+
+
+class Configuration:
+    """Holds the configuration for plume tracking calculations."""
+
+    def __init__(
+        self,
+        config_file: str,
+    ):
+        self.injection_wells: List[InjectionWellData] = []
+
+        input_dict = read_yaml_file(config_file)
+        self.make_config_from_input_dict(input_dict)
+
+    def make_config_from_input_dict(self, input_dict: Dict):
+        if "injection_wells" not in input_dict:
+            logging.error("\nERROR: No injection wells specified.")
+        else:
+            if not isinstance(input_dict["injection_wells"], list):
+                error_text = (
+                    '\nERROR: Specification under "injection_wells" in '
+                    "input YAML file is not a list."
+                )
+                logging.error(format_error(error_text))
+                sys.exit(1)
+            for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
+                args_required = ["name", "x", "y"]
+                for arg in args_required:
+                    if arg not in injection_well_info:
+                        error_text = (
+                            f'\nERROR: Missing "{arg}" under "injection_wells" '
+                            f"for injection well number {i}."
+                        )
+                        logging.error(format_error(error_text))
+                        sys.exit(1)
+
+                self.injection_wells.append(
+                    InjectionWellData(
+                        name=injection_well_info["name"],
+                        x=injection_well_info["x"],
+                        y=injection_well_info["y"],
+                        z=(
+                            [injection_well_info["z"]]
+                            if "z" in injection_well_info
+                            else None
+                        ),
+                        number=len(self.injection_wells) + 1,
+                    )
+                )

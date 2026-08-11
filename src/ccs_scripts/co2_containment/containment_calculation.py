@@ -1,18 +1,21 @@
 """CO2 calculation methods"""
 
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional, Set, Union
 
 import numpy as np
+import pandas as pd
+import shapely
 from shapely.geometry import MultiPolygon, Point, Polygon
+from shapely.prepared import prep
 
 from ccs_scripts.co2_containment.co2_calculation import (
-    CalculationType,
     Co2Data,
     Co2DataAtTimeStep,
-    Scenario,
 )
+from ccs_scripts.co2_containment.input import CalculationType
+from ccs_scripts.co2_containment.source_data import Scenario
 from ccs_scripts.utils.timer import Timer
 
 
@@ -54,15 +57,31 @@ class ContainedCo2:
             self.date = f"{date[:4]}-{date[4:6]}-{date[6:]}"
 
 
+def _construct_containment_table(
+    contained_co2: List[ContainedCo2],
+) -> pd.DataFrame:
+    """
+    Creates a data frame from calculated CO2 data.
+
+    Args:
+        contained_co2 (list of ContainedCo2): CO2 data divided into phases/locations
+
+    Returns:
+        pd.DataFrame
+    """
+    records = [asdict(c) for c in contained_co2]
+    return pd.DataFrame.from_records(records)
+
+
 # pylint: disable = too-many-arguments, too-many-locals
-def calculate_co2_containment(
+def _calculate_co2_containment(
     co2_data: Co2Data,
     containment_polygon: Union[Polygon, MultiPolygon],
-    nogo_polygon: Union[Polygon, MultiPolygon, None],
+    nogo_polygon: Optional[Union[Polygon, MultiPolygon]],
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
     calc_type: CalculationType,
-    residual_trapping: bool,
+    residual_trapping: Optional[bool] = False,
     plume_groups: Optional[List[List[str]]] = None,
 ) -> List[ContainedCo2]:
     """
@@ -81,8 +100,8 @@ def calculate_co2_containment(
         int_to_region (List): List of region names
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
-        residual_trapping (bool): Indicate if residual trapping should be calculated
-        plume_groups (List): For each time step, list of plume group for each grid cell
+        residual_trapping (Optional[bool]): Should residual trapping be calculated
+        plume_groups (Optional[List[List[str]]]): Plume group per grid cell per date
 
     Returns:
         List[ContainedCo2]
@@ -101,7 +120,7 @@ def calculate_co2_containment(
     )
     timer.stop("make_location_filters")
     _log_summary_of_grid_node_location(locations)
-    phases = _lists_of_phases(calc_type, residual_trapping, co2_data.scenario)
+    phases = _lists_of_phases(calc_type, co2_data.scenario, residual_trapping)
 
     # List of tuple with (zone/None, None/region, boolean array over grid)
     zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, int_to_region)
@@ -114,7 +133,11 @@ def calculate_co2_containment(
     else:
         plume_names = set()
 
+    group_entries, group_masks = _build_group_masks(zone_region_info, locations)
+
     containment = []
+    dtype = np.int64 if calc_type == CalculationType.CELL_VOLUME else np.float64
+    n_cells = len(co2_data.x_coord)
     for i, co2_at_timestep in enumerate(co2_data.data_list):
         co2_amounts_for_each_phase = _lists_of_co2_for_each_phase(
             co2_at_timestep,
@@ -124,37 +147,79 @@ def calculate_co2_containment(
         if plume_groups is not None:
             timer.start("plume_group_mapping", "calculate_co2_containment")
             plume_group_info = _plume_group_mapping(plume_names, plume_groups[i])
+            plume_names_at_t, plume_mask_matrix = _plume_masks_as_matrix(
+                plume_group_info
+            )
             timer.stop("plume_group_mapping")
         else:
-            plume_group_info = {"all": np.ones(len(co2_data.x_coord), dtype=bool)}
-        for zone, region, is_in_section in zone_region_info:
-            for location, is_in_location in locations.items():
-                for plume_name, is_in_plume in plume_group_info.items():
-                    for co2_amount, phase in zip(co2_amounts_for_each_phase, phases):
-                        dtype = (
-                            np.int64
-                            if calc_type == CalculationType.CELL_VOLUME
-                            else np.float64
+            plume_names_at_t = ["all"]
+            plume_mask_matrix = np.ones((1, n_cells), dtype=bool)
+        # Stack phase arrays once (n_phases x n_cells).
+        phase_matrix = np.vstack(
+            [np.asarray(arr, dtype=dtype) for arr in co2_amounts_for_each_phase]
+        )
+        timer.start("sum_and_store", "calculate_co2_containment")
+        # Vectorized grouped reductions:
+        # (n_phases x n_cells) @ (n_cells x n_groups) -> (n_phases x n_groups)
+        for plume_idx, plume_name in enumerate(plume_names_at_t):
+            combined_masks = group_masks & plume_mask_matrix[plume_idx]
+            sums = phase_matrix @ combined_masks.T
+            for group_idx, (zone, region, location) in enumerate(group_entries):
+                for phase_idx, phase in enumerate(phases):
+                    containment.append(
+                        ContainedCo2(
+                            co2_at_timestep.date,
+                            np.float64(sums[phase_idx, group_idx]),
+                            phase,
+                            location,
+                            zone,
+                            region,
+                            plume_name,
                         )
-                        timer.start("sum_and_store", "calculate_co2_containment")
-                        amount = np.sum(
-                            co2_amount[is_in_section & is_in_location & is_in_plume],
-                            dtype=dtype,
-                        )
-                        containment += [
-                            ContainedCo2(
-                                co2_at_timestep.date,
-                                np.float64(amount),
-                                phase,
-                                location,
-                                zone,
-                                region,
-                                plume_name,
-                            )
-                        ]
-                        timer.stop("sum_and_store")
+                    )
+        timer.stop("sum_and_store")
     logging.info(f"Done calculating contained CO2 {calc_type.name.lower()}")
     return containment
+
+
+def _build_group_masks(
+    zone_region_info: List,
+    locations: Dict[str, np.ndarray],
+) -> tuple[List[tuple[Optional[str], Optional[str], str]], np.ndarray]:
+    """
+    Build static (zone/region x location) masks
+
+    Returns:
+      - group entries with labels
+      - stacked bool mask matrix with shape (n_groups, n_cells)
+    """
+    group_entries: List[tuple[Optional[str], Optional[str], str]] = []
+    group_masks: List[np.ndarray] = []
+    for zone, region, is_in_section in zone_region_info:
+        section_mask = np.asarray(is_in_section, dtype=bool)
+        for location, is_in_location in locations.items():
+            group_entries.append((zone, region, location))
+            group_masks.append(section_mask & np.asarray(is_in_location, dtype=bool))
+
+    if not group_masks:
+        return group_entries, np.zeros((0, 0), dtype=bool)
+
+    return group_entries, np.vstack(group_masks)
+
+
+def _plume_masks_as_matrix(
+    plume_group_info: Dict[str, np.ndarray],
+) -> tuple[List[str], np.ndarray]:
+    """
+    Convert plume mapping dictionary to deterministic name list and stacked masks.
+    """
+    names = list(plume_group_info.keys())
+    if not names:
+        return ["all"], np.ones((1, 0), dtype=bool)
+    masks = np.vstack(
+        [np.asarray(plume_group_info[name], dtype=bool) for name in names]
+    )
+    return names, masks
 
 
 def _make_location_filters(
@@ -186,15 +251,10 @@ def _make_location_filters(
         locations["nogo"] = np.zeros(len(co2_data.x_coord), dtype=bool)
         logging.info("No-go polygon not specified.")
 
-    # Count as nogo if the two boundaries overlap:
-    locations["contained"] = np.array(
-        [
-            x if not y else False
-            for x, y in zip(locations["contained"], locations["nogo"])
-        ]
-    )
-    locations["outside"] = np.array(
-        [not x and not y for x, y in zip(locations["contained"], locations["nogo"])]
+    # Count as no-go if the two boundaries overlap.
+    locations["contained"] = np.logical_and(locations["contained"], ~locations["nogo"])
+    locations["outside"] = np.logical_not(
+        np.logical_or(locations["contained"], locations["nogo"])
     )
     locations["total"] = np.ones(len(co2_data.x_coord), dtype=bool)
     return locations
@@ -222,8 +282,8 @@ def _log_summary_of_grid_node_location(locations: Dict) -> None:
 
 def _lists_of_phases(
     calc_type: CalculationType,
-    residual_trapping: bool,
     scenario: Scenario,
+    residual_trapping: Optional[bool] = False,
 ) -> List[str]:
     """
     Returns a list of the relevant phases depending on calculation type and whether
@@ -243,7 +303,7 @@ def _lists_of_phases(
 def _lists_of_co2_for_each_phase(
     co2_at_date: Co2DataAtTimeStep,
     calc_type: CalculationType,
-    residual_trapping: bool,
+    residual_trapping: Optional[bool] = False,
 ) -> List[np.ndarray]:
     """
     Returns a list of the relevant arrays of different phases of co2 depending on
@@ -269,14 +329,13 @@ def _zone_map(co2_data: Co2Data, int_to_zone: Optional[List[Optional[str]]]) -> 
     """
     if co2_data.zone is None:
         return {}
-    elif int_to_zone is None:
+    if int_to_zone is None:
         return {z: np.array(co2_data.zone == z) for z in np.unique(co2_data.zone)}
-    else:
-        return {
-            int_to_zone[z]: np.array(co2_data.zone == z)
-            for z in range(len(int_to_zone))
-            if int_to_zone[z] is not None
-        }
+    return {
+        int_to_zone[z]: np.array(co2_data.zone == z)
+        for z in range(len(int_to_zone))
+        if int_to_zone[z] is not None
+    }
 
 
 def _region_map(
@@ -288,21 +347,19 @@ def _region_map(
     """
     if co2_data.region is None:
         return {}
-    elif int_to_region is None:
+    if int_to_region is None:
         return {r: np.array(co2_data.region == r) for r in np.unique(co2_data.region)}
-    else:
-        return {
-            int_to_region[r]: np.array(co2_data.region == r)
-            for r in range(len(int_to_region))
-            if int_to_region[r] is not None
-        }
+    return {
+        int_to_region[r]: np.array(co2_data.region == r)
+        for r in range(len(int_to_region))
+        if int_to_region[r] is not None
+    }
 
 
 def _plume_group_mapping(plume_names: Set[str], plume_groups: List[str]):
+    np_plume_groups = np.asarray(plume_groups)
     out = {"all": np.ones(len(plume_groups), dtype=bool)}
-    out.update(
-        {plume: np.array([x == plume for x in plume_groups]) for plume in plume_names}
-    )
+    out.update({plume: np_plume_groups == plume for plume in plume_names})
     return out
 
 
@@ -340,4 +397,60 @@ def _calculate_containment(
     Returns:
         np.ndarray
     """
-    return np.array([poly.contains(Point(_x, _y)) for _x, _y in zip(x_coord, y_coord)])
+    # Prefer vectorized operations when available (shapely>=2).
+    # Fall back to prepared geometry for compatibility and lower overhead.
+    try:
+        points = shapely.points(x_coord, y_coord)
+        return np.asarray(shapely.contains(poly, points), dtype=bool)
+    except Exception:
+        prepared = prep(poly)
+        return np.fromiter(
+            (prepared.contains(Point(_x, _y)) for _x, _y in zip(x_coord, y_coord)),
+            dtype=bool,
+            count=len(x_coord),
+        )
+
+
+def calculate_containment(
+    co2_data: Co2Data,
+    cont_polygon: Polygon,
+    nogo_polygon: Optional[Polygon],
+    calc_type: CalculationType,
+    int_to_zone: Optional[List[Optional[str]]],
+    int_to_region: Optional[List[Optional[str]]],
+    residual_trapping: Optional[bool] = False,
+    plume_groups: Optional[List[List[str]]] = None,
+) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
+    """
+    Use polygons (inside / outside / nogo) and/or regions and/or zones
+    and/or plume groups to divide co2 mass or volume into different categories.
+    Result is a data frame.
+
+    Args:
+        co2_data (Co2Data): Mass/volume of CO2 at each time step
+        cont_polygon (Polygon): Polygon defining the containment area
+        nogo_polygon (Optional[Polygon]): Polygon defining the nogo area
+        calc_type (CalculationType): Choose mass / cell_volume / actual_volume
+        int_to_zone (Optional[List[Optional[str]]]): List of zone names
+        int_to_region (Optional[List[Optional[str]]]): List of region names
+        residual_trapping (Optional[bool]): Should residual trapping be calculated
+        plume_groups (Optional[List[List[str]]]): Plume group per grid cell per date
+
+    Returns:
+        Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]
+    """
+    timer = Timer()
+    timer.start("calculate_co2_containment")
+    contained_co2 = _calculate_co2_containment(
+        co2_data,
+        cont_polygon,
+        nogo_polygon,
+        int_to_zone,
+        int_to_region,
+        calc_type,
+        residual_trapping,
+        plume_groups,
+    )
+    containment_table = _construct_containment_table(contained_co2)
+    timer.stop("calculate_co2_containment")
+    return containment_table
