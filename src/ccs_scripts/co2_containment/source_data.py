@@ -6,7 +6,9 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+import resfo
 import xtgeo
+from xtgeo.grid3d._egrid import EGrid
 
 from ccs_scripts.co2_containment.input import RegionInfo, ZoneInfo
 from ccs_scripts.utils.gridproperty_tools import GridHandler
@@ -69,6 +71,7 @@ class SourceData:
     SGTRH: Optional[Dict[str, np.ndarray]] = None
     RPORV: Optional[Dict[str, np.ndarray]] = None
     PORV: Optional[Dict[str, np.ndarray]] = None
+    PORV_LGR_AGG: Optional[Dict[str, np.ndarray]] = None #NB: Remove
     AMFG: Optional[Dict[str, np.ndarray]] = None
     YMFG: Optional[Dict[str, np.ndarray]] = None
     XMFG: Optional[Dict[str, np.ndarray]] = None
@@ -211,6 +214,136 @@ def _find_props_to_extract(
     return props_to_extract, component_indices, has_zmf
 
 
+def _read_lgr_hosts_and_actnum(grid_file: str) -> List[Tuple[np.ndarray, np.ndarray]]:
+    egrid = EGrid.from_file(grid_file)
+    lgr_hosts = []
+    for section in egrid.lgr_sections:
+        hosts = np.asarray(section.hostnum, dtype=int).reshape(-1)
+        active = np.ones(len(hosts), dtype=bool)
+        if section.actnum is not None:
+            active = np.asarray(section.actnum, dtype=int).reshape(-1).astype(bool)
+        lgr_hosts.append((hosts[active], active))
+    return lgr_hosts
+
+
+def _lgr_porv_values(
+    init_file: str, lgr_hosts: List[Tuple[np.ndarray, np.ndarray]]
+) -> List[np.ndarray]:
+    porv_records = [
+        np.asarray(entry.read_array(), dtype=float).reshape(-1)
+        for entry in resfo.lazy_read(init_file)
+        if entry.read_keyword().strip() == "PORV"
+    ]
+    lgr_count = len(lgr_hosts)
+    if len(porv_records) < lgr_count + 1:
+        raise ValueError("not enough PORV records")
+
+    lgr_porv = []
+    for index, (_, active) in enumerate(lgr_hosts, start=1):
+        porv = porv_records[index]
+        if len(porv) == len(active):
+            lgr_porv.append(porv[active])
+        elif len(porv) == int(active.sum()):
+            lgr_porv.append(porv)
+        else:
+            raise ValueError(
+                f"LGR {index} PORV length does not match its ACTNUM length"
+            )
+    return lgr_porv
+
+
+def _active_lookup_by_egrid_index(active_cells: np.ndarray) -> np.ndarray:
+    """Map EGRID global cell numbers to the active-array order used by xtgeo."""
+    lookup = np.full(active_cells.size, -1, dtype=int)
+    active_ijk = np.argwhere(active_cells)
+    nx, ny, _ = active_cells.shape
+    egrid_indices = (
+        active_ijk[:, 0] + nx * active_ijk[:, 1] + nx * ny * active_ijk[:, 2]
+    )
+    lookup[egrid_indices] = np.arange(len(active_ijk))
+    return lookup
+
+
+def _aggregate_lgr_porv_to_active_parent_cells(
+    grid_file: str,
+    init_file: str,
+    active_cells: np.ndarray,
+    parent_porv: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Sum active child LGR PORV values per active parent cell."""
+    lgr_hosts = _read_lgr_hosts_and_actnum(grid_file)
+    if not lgr_hosts:
+        raise ValueError("no LGR HOSTNUM records were found")
+
+    lgr_porv = _lgr_porv_values(init_file, lgr_hosts)
+    active_lookup = _active_lookup_by_egrid_index(active_cells)
+
+    effective_porv = parent_porv.copy()
+    child_porv_by_parent = np.zeros_like(parent_porv, dtype=float)
+    for (host_numbers, _), child_porv in zip(lgr_hosts, lgr_porv):
+        if len(host_numbers) != len(child_porv):
+            raise ValueError(
+                "LGR HOSTNUM and PORV arrays do not have matching active-cell lengths"
+            )
+        parent_indices = active_lookup[host_numbers - 1]
+        valid = parent_indices >= 0
+        np.add.at(child_porv_by_parent, parent_indices[valid], child_porv[valid])
+
+    lgr_parent_indices = np.flatnonzero(child_porv_by_parent > 0.0)
+    if len(lgr_parent_indices) == 0:
+        raise ValueError("no active parent cells received LGR child PORV")
+
+    effective_porv[lgr_parent_indices] = child_porv_by_parent[lgr_parent_indices]
+    return effective_porv, lgr_parent_indices
+
+
+def _log_lgr_porv_proxy_comparison(
+    grid_file: str,
+    init_file: str,
+    active_cells: np.ndarray,
+    porv_vals: np.ndarray,
+    porv_proxy: np.ndarray,
+) -> Optional[np.ndarray]:
+    """Diagnostic-only printout comparing the exported PORO*vol proxy against
+    the alternative of summing actual LGR child-cell PORV per parent cell.
+
+    """
+    try:
+        porv_agg, lgr_parent_indices = _aggregate_lgr_porv_to_active_parent_cells(
+            grid_file, init_file, active_cells, porv_vals
+        )
+    except Exception as e:
+        logging.info(
+            format_warning(f"WARNING: Could not compute LGR PORV comparison: {e}")
+        )
+        return None
+
+    proxy_vals = porv_proxy[lgr_parent_indices]
+    agg_vals = porv_agg[lgr_parent_indices]
+    rel_diff = np.divide(
+        agg_vals - proxy_vals,
+        agg_vals,
+        out=np.zeros_like(agg_vals),
+        where=agg_vals != 0,
+    )
+    total_rel_diff = (
+        (agg_vals.sum() - proxy_vals.sum()) / agg_vals.sum() * 100
+        if agg_vals.sum() != 0
+        else 0.0
+    )
+    logging.info(
+        "\nLGR PORV proxy comparison (diagnostic only, exported PORV is unchanged):\n"
+        f"  Parent cells affected by LGR:        {len(lgr_parent_indices)}\n"
+        f"  Sum PORO*bulk proxy (exported):       {proxy_vals.sum():.4f}\n"
+        f"  Sum aggregated LGR child PORV:        {agg_vals.sum():.4f}\n"
+        f"  Total relative difference:            {total_rel_diff:.2f}%\n"
+        f"  Per-cell relative difference (abs):   "
+        f"mean={np.mean(np.abs(rel_diff)) * 100:.2f}%, "
+        f"max={np.max(np.abs(rel_diff)) * 100:.2f}%\n"
+    )
+    return porv_agg
+
+
 # pylint: disable=too-many-arguments
 def _extract_source_data_from_properties(
     grid_file: str,
@@ -331,6 +464,7 @@ def _extract_source_data_from_properties(
         cell_size = None
 
     props_reduced["VOL"] = {d: vol for d in dates}
+    porv_lgr_agg: Optional[np.ndarray] = None
     if init is not None:
         porv = init.get_prop_by_name("PORV")
         if not grid_handler.has_lgr:
@@ -353,6 +487,10 @@ def _extract_source_data_from_properties(
                 porv_vals = porv.values[active_cells].data
                 porv_proxy = np.where(porv_vals == 1.0, poro_vals * vol, porv_vals)
                 props_reduced["PORV"] = {d: porv_proxy for d in dates}
+                assert init_file is not None
+                porv_lgr_agg = _log_lgr_porv_proxy_comparison(
+                    grid_file, init_file, active_cells, porv_vals, porv_proxy
+                )
     # Infer SOIL from SGAS and SWAT if not stored in the file.
     # Some simulators (e.g. Eclipse compositional with 3 phases) store SGAS and
     # SWAT but not SOIL. SOIL = 1 - SGAS - SWAT in those cases, and its presence
@@ -415,6 +553,8 @@ def _extract_source_data_from_properties(
         ymfs=ymfs,
         zmfs=zmfs,
     )
+    if porv_lgr_agg is not None:
+        source_data.PORV_LGR_AGG = {d: porv_lgr_agg for d in dates}
     logging.info("\nDone extracting source data\n")
     return source_data, grid
 

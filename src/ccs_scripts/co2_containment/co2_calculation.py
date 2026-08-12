@@ -2,7 +2,7 @@
 """Methods for CO2 containment calculations"""
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Dict, List, Literal, Optional, Tuple
 
 import numpy as np
@@ -1377,6 +1377,87 @@ def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
             x *= 0.001
 
 
+def _log_lgr_co2_mass_proxy_comparison(
+    source_data: SourceData,
+    calc_type: CalculationType,
+    residual_trapping: bool,
+    cirrus_info_file: Optional[str],
+    co2_data: Co2Data,
+) -> None:
+    """Diagnostic-only printout comparing CO2 mass totals at the last date,
+    computed with the exported PORO*vol proxy
+    against the alternative of using aggregated LGR child-cell PORV.
+
+    """
+    if calc_type != CalculationType.MASS or source_data.PORV_LGR_AGG is None:
+        return
+    try:
+        alt_source_data = replace(source_data, PORV=source_data.PORV_LGR_AGG)
+        alt_co2_data = _calculate_co2_data_from_source_data(
+            alt_source_data,
+            calc_type=calc_type,
+            residual_trapping=residual_trapping,
+            cirrus_info_file=cirrus_info_file,
+        )
+    except Exception as e:
+        logging.info(
+            format_warning(f"WARNING: Could not compute LGR CO2 mass comparison: {e}")
+        )
+        return
+
+    proxy_step = co2_data.data_list[-1]
+    agg_step = alt_co2_data.data_list[-1]
+
+    def mton(values: np.ndarray) -> float:
+        # data_list values are already in tons (see _convert_from_kg_to_tons)
+        return float(values.sum()) / 1.0e6
+
+    rows: List[Tuple[str, float, float]] = [
+        (
+            "Total CO2",
+            mton(proxy_step.total_mass()),
+            mton(agg_step.total_mass()),
+        ),
+        (
+            "Aqueous phase (dissolved)",
+            mton(proxy_step.dis_water_phase),
+            mton(agg_step.dis_water_phase),
+        ),
+        (
+            "Gaseous phase (total)",
+            mton(proxy_step.gas_phase),
+            mton(agg_step.gas_phase),
+        ),
+    ]
+    if residual_trapping:
+        rows.extend(
+            [
+                (
+                    "  Free gas",
+                    mton(proxy_step.free_gas_phase),
+                    mton(agg_step.free_gas_phase),
+                ),
+                (
+                    "  Trapped gas",
+                    mton(proxy_step.trapped_gas_phase),
+                    mton(agg_step.trapped_gas_phase),
+                ),
+            ]
+        )
+
+    lines = [
+        f"\nLGR CO2 mass proxy comparison at last date ({proxy_step.date}), "
+        "diagnostic only, MTon (exported result is unchanged):",
+        f"  {'':28s}{'Original proxy':>14s}{'LGR aggregated':>16s}{'Diff':>9s}",
+    ]
+    for label, proxy_val, agg_val in rows:
+        lines.append(
+            f"  {label:28s}{proxy_val:14.1f}{agg_val:16.1f}"
+            f"{agg_val - proxy_val:9.1f}"
+        )
+    logging.info("\n".join(lines))
+
+
 def calculate_co2(
     source_data: SourceData,
     calc_type: CalculationType,
@@ -1407,6 +1488,9 @@ def calculate_co2(
         cirrus_info_file=cirrus_info_file,
     )
     timer.stop("calculate_co2")
+    _log_lgr_co2_mass_proxy_comparison(
+        source_data, calc_type, residual_trapping, cirrus_info_file, co2_data
+    )
     return co2_data
 
 
