@@ -155,14 +155,15 @@ class Scenario(Enum):
     DEPLETED_GAS_FIELD = 1
     DEPLETED_OIL_GAS_FIELD = 2
 
+
 @dataclass
 class _LGRSection:
     """Data class for LGR sections"""
 
     name: str
     parent: Optional[str]
-    local_cells: np.ndarray #Child cell numbers
-    host_cells: np.ndarray #Parent cell numbers
+    local_cells: np.ndarray  # Child cell numbers
+    host_cells: np.ndarray  # Parent cell numbers
     active_mask: np.ndarray
 
 
@@ -227,8 +228,6 @@ def _find_props_to_extract(
     return props_to_extract, component_indices, has_zmf
 
 
-
-
 def _build_parent_child_mapping(grid_file: str) -> List[_LGRSection]:
     """
     Parse LGR blocks of an EGRID file for their HOSTNUM (child-to-parent cell mapping) and ACTNUM.
@@ -247,16 +246,12 @@ def _build_parent_child_mapping(grid_file: str) -> List[_LGRSection]:
             continue
         if current is None:
             continue
-        if keyword == "LGRPARNT": #In case of nested LGRs
+        if keyword == "LGRPARNT":  # In case of nested LGRs
             current["parent"] = _first_resfo_string(entry.read_array())
         elif keyword == "HOSTNUM":
-            current["hostnum"] = np.asarray(
-                entry.read_array(), dtype=int
-            ).reshape(-1)
+            current["hostnum"] = np.asarray(entry.read_array(), dtype=int).reshape(-1)
         elif keyword == "ACTNUM":
-            current["actnum"] = np.asarray(
-                entry.read_array(), dtype=int
-            ).reshape(-1)
+            current["actnum"] = np.asarray(entry.read_array(), dtype=int).reshape(-1)
         elif keyword == "ENDLGR":
             hostnum = current["hostnum"]
             if hostnum is None:
@@ -272,7 +267,7 @@ def _build_parent_child_mapping(grid_file: str) -> List[_LGRSection]:
                     )
                 active_mask = actnum > 0
             parent = current["parent"]
-            if parent: #currently nested LGRs are not supported
+            if parent:  # currently nested LGRs are not supported
                 raise ValueError(
                     f"LGR {current['name']} is nested inside LGR '{parent}'."
                     "Nested LGRs are not supported"
@@ -293,7 +288,7 @@ def _build_parent_child_mapping(grid_file: str) -> List[_LGRSection]:
 
 def _first_resfo_string(values: Any) -> str:
     value = np.asarray(values).reshape(-1)[0]
-    #the start of the array is a bytes object, so we decode it
+    # the start of the array is a bytes object, so we decode it
     if isinstance(value, (bytes, np.bytes_)):
         return value.decode().strip()
     return str(value).strip()
@@ -347,7 +342,9 @@ def _aggregate_lgr_porv_to_active_parent_cells(
     lgr_sections = _build_parent_child_mapping(grid_file)
     if not lgr_sections:
         raise ValueError("no LGR HOSTNUM records were found")
-    lgr_porv = _lgr_porv_values(init_file, lgr_sections) #Extract PORV for parent and child cells
+    lgr_porv = _lgr_porv_values(
+        init_file, lgr_sections
+    )  # Extract PORV for parent and child cells
     active_lookup = _active_lookup_by_egrid_index(active_cells)
     effective_porv = parent_porv.copy()
     child_porv_by_parent = np.zeros_like(parent_porv, dtype=float)
@@ -358,7 +355,9 @@ def _aggregate_lgr_porv_to_active_parent_cells(
             )
         parent_indices = active_lookup[lgr.host_cells - 1]
         valid = parent_indices >= 0
-        np.add.at(child_porv_by_parent, parent_indices[valid], child_porv[valid])#porv aggregation
+        np.add.at(
+            child_porv_by_parent, parent_indices[valid], child_porv[valid]
+        )  # porv aggregation
     lgr_parent_indices = np.flatnonzero(child_porv_by_parent > 0.0)
     if len(lgr_parent_indices) == 0:
         raise ValueError("no active parent cells received LGR child PORV")
@@ -583,7 +582,7 @@ def _extract_source_data_from_properties(
             if porv is not None:
                 porv_vals = porv.values[active_cells].data
                 assert init_file is not None
-                #Fix for older Cirrus versions
+                # Fix for older Cirrus versions
                 if np.any(porv_vals == LGR_PORV_OLD_PARENT_VALUE):
                     porv_vals = _fix_lgr_parent_porv_cells(
                         grid_file, init_file, active_cells, porv_vals
