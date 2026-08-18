@@ -181,9 +181,7 @@ def _patch_init_porv_old_value_with_children_sum(
     """
 
     grid = xtgeo.grid_from_file(grid_file)
-    init = xtgeo.gridproperties_from_file(
-        init_file, grid=grid, names=["PORV"]
-    )
+    init = xtgeo.gridproperties_from_file(init_file, grid=grid, names=["PORV"])
     active_cells = grid.actnum_array.astype(bool)
     nx, ny, _ = active_cells.shape
 
@@ -252,14 +250,18 @@ def test_lgr_co2_amount_old_and_new_cirrus(mocker):
         "--cirrus_info_file",
         cirrus_info_file,
     ]
+    os.makedirs(out_dir, exist_ok=True)
+    try:
+        mocker.patch("sys.argv", args + ["--init", init_file])
+        main()
+        df_old = pandas.read_csv(Path(out_dir) / "plume_mass.csv")
 
-    mocker.patch("sys.argv", args + ["--init", init_file])
-    main()
-    df_old = pandas.read_csv(Path(out_dir) / "plume_mass.csv")
-
-    mocker.patch("sys.argv", args + ["--init", patched_init_file])
-    main()
-    df_new = pandas.read_csv(Path(out_dir) / "plume_mass.csv")
+        mocker.patch("sys.argv", args + ["--init", patched_init_file])
+        main()
+        df_new = pandas.read_csv(Path(out_dir) / "plume_mass.csv")
+    finally:
+        shutil.rmtree(main_path / "share", ignore_errors=True)
+        os.remove(patched_init_file)
 
     answer_file = str(
         Path(__file__).parents[0]
