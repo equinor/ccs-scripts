@@ -1,7 +1,9 @@
 from pathlib import Path
 
 import numpy as np
+import pandas
 import pytest
+import resfo
 import xtgeo
 from resdata.summary import Summary
 
@@ -14,6 +16,11 @@ from ccs_scripts.aggregate._config import (
     Output,
     Property,
     RootConfig,
+)
+from ccs_scripts.co2_containment.co2_containment import main
+from ccs_scripts.co2_containment.source_data import (
+    LGR_PORV_OLD_PARENT_VALUE,
+    _aggregate_lgr_porv_to_active_parent_cells,
 )
 
 
@@ -149,3 +156,121 @@ def test_aggregate_maps_sgas_smooth_with_lgr(lgr_aggregate_sgas_config):
             f"max adjacent cell difference = {max_adjacent_diff:.4f}. "
             "This likely means the LGR section is inactive during grid aggregation."
         )
+
+
+def _get_lgr_case_paths():
+    file_name = "DEP_GAS_4"
+    main_path = Path(__file__).parents[1] / "tests" / "lgr-model"
+    case_path = str(main_path / file_name)
+    root_dir = ""
+    output_dir = str(main_path / "share" / "results" / "tables")
+    return (
+        main_path,
+        case_path,
+        root_dir,
+        output_dir,
+    )
+
+
+def _patch_init_porv_old_value_with_children_sum(
+    grid_file: str, init_file: str, patched_init_file: str
+) -> None:
+    """
+    Write a copy of init_file where every LGR parent cell with PORV=1.0
+    is replaced by the sum of PORV of its active child cells
+    """
+
+    grid = xtgeo.grid_from_file(grid_file)
+    init = xtgeo.gridproperties_from_file(
+        init_file, grid=grid, names=["PORV"]
+    )
+    active_cells = grid.actnum_array.astype(bool)
+    nx, ny, _ = active_cells.shape
+
+    porv_prop = init.get_prop_by_name("PORV")
+    porv_vals = porv_prop.values[active_cells].data
+
+    fixed_active_porv, _ = _aggregate_lgr_porv_to_active_parent_cells(
+        grid_file, init_file, active_cells, porv_vals
+    )
+
+    # Mapping the fixed, active-cells-only PORV back to full EGRID cell order
+    # same as in source_data.py
+    active_ijk = np.argwhere(active_cells)
+    egrid_indices = (
+        active_ijk[:, 0] + nx * active_ijk[:, 1] + nx * ny * active_ijk[:, 2]
+    )
+
+    porv_seen = 0
+    patched_entries = []
+    for keyword, array in resfo.read(init_file):
+        if keyword.strip() == "PORV":
+            if porv_seen == 0:  # Only fix PORV in the main grid
+                fixed_full = np.asarray(array, dtype=array.dtype).copy()
+                fixed_full[egrid_indices] = fixed_active_porv.astype(array.dtype)
+                array = fixed_full
+            porv_seen += 1
+        patched_entries.append((keyword, array))
+
+    resfo.write(patched_init_file, patched_entries)
+
+    fixed_init = xtgeo.gridproperties_from_file(
+        patched_init_file, grid=grid, names=["PORV"]
+    )
+    fixed_porv = fixed_init.get_prop_by_name("PORV")
+    fixed_vals = fixed_porv.values[active_cells].data
+    assert not np.any(fixed_vals == LGR_PORV_OLD_PARENT_VALUE)
+
+
+def test_lgr_co2_amount_old_and_new_cirrus(mocker):
+    """
+    Test CO2 containment for cases with LGRs in two scenarios:
+    1 - Old Cirrus cases where PORV=1 is replaced by aggregation of child cells
+    2 - New Cirrus cases where PORV is assumed right, still verified internally
+    """
+    (
+        main_path,
+        case_path,
+        root_dir,
+        out_dir,
+    ) = _get_lgr_case_paths()
+    grid_file = str(case_path) + ".EGRID"
+    init_file = str(case_path) + ".INIT"
+    cirrus_info_file = str(case_path) + "_INFO.csv"
+    patched_init_file = str(case_path) + "_new_cirrus.INIT"
+    _patch_init_porv_old_value_with_children_sum(
+        grid_file, init_file, patched_init_file
+    )
+    args = [
+        "sys.argv",
+        case_path,
+        "mass",
+        "--root_dir",
+        root_dir,
+        "--out_dir",
+        out_dir,
+        "--cirrus_info_file",
+        cirrus_info_file,
+    ]
+
+    mocker.patch("sys.argv", args + ["--init", init_file])
+    main()
+    df_old = pandas.read_csv(Path(out_dir) / "plume_mass.csv")
+
+    mocker.patch("sys.argv", args + ["--init", patched_init_file])
+    main()
+    df_new = pandas.read_csv(Path(out_dir) / "plume_mass.csv")
+
+    answer_file = str(
+        Path(__file__).parents[0]
+        / "answers"
+        / "containment"
+        / "plume_mass_lgr_cirrus.csv"
+    )
+    df_answer = pandas.read_csv(answer_file)
+
+    df_old = df_old.sort_values("date").reset_index(drop=True)
+    df_new = df_new.sort_values("date").reset_index(drop=True)
+    df_answer = df_answer.sort_values("date").reset_index(drop=True)
+    pandas.testing.assert_frame_equal(df_old, df_answer)
+    pandas.testing.assert_frame_equal(df_new, df_answer)
