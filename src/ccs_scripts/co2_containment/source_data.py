@@ -430,7 +430,7 @@ def _fix_lgr_parent_porv_cells(
     unresolved = old_cirrus_porv_mask & ~agg_covered
     if unresolved.any():
         error_text = (
-            f"Detected mask PORV={LGR_PORV_SENTINEL} from previous Cirrus version "
+            f"Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous Cirrus version "
             f"for LGR parent cells  in {n_old_parent} parent cells, but {int(unresolved.sum())} "
             "of them have no matching LGR child-cell."
         )
@@ -439,7 +439,7 @@ def _fix_lgr_parent_porv_cells(
     fixed[old_cirrus_porv_mask] = porv_agg[old_cirrus_porv_mask]
     logging.warning(
         format_warning(
-            f"\nWARNING: Detected mask PORV={LGR_PORV_SENTINEL} from previous Cirrus version "
+            f"\nWARNING: Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous Cirrus version "
             " in {n_old_parent} parent cells. Fixed all of them using the sum of active LGR "
             "child-cell PORV."
         )
