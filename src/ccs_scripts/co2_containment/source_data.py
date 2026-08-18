@@ -230,7 +230,8 @@ def _find_props_to_extract(
 
 def _build_parent_child_mapping(grid_file: str) -> List[_LGRSection]:
     """
-    Parse LGR blocks of an EGRID file for their HOSTNUM (child-to-parent cell mapping) and ACTNUM.
+    Parse LGR blocks of an EGRID file for their HOSTNUM (child-to-parent cell mapping)
+    and ACTNUM.
     """
     sections: List[_LGRSection] = []
     current: Optional[Dict[str, Any]] = None
@@ -419,9 +420,9 @@ def _fix_lgr_parent_porv_cells(
         )
     except Exception as e:
         error_text = (
-            f"Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous Cirrus versions "
-            f"for LGR parent cells  in {n_old_parent} parent cells, and could not fix it by "
-            f"aggregating LGR child-cell PORV: {e}\n"
+            f"Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous Cirrus "
+            f"versions for LGR parent cells  in {n_old_parent} parent cells, and "
+            f"could not fix it by aggregating LGR child-cell PORV: {e}\n"
         )
         raise ValueError(format_error(error_text)) from e
     agg_covered = np.zeros_like(old_cirrus_porv_mask)
@@ -429,18 +430,18 @@ def _fix_lgr_parent_porv_cells(
     unresolved = old_cirrus_porv_mask & ~agg_covered
     if unresolved.any():
         error_text = (
-            f"Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous Cirrus version "
-            f"for LGR parent cells  in {n_old_parent} parent cells, but {int(unresolved.sum())} "
-            "of them have no matching LGR child-cell."
+            f"Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous Cirrus"
+            f" versions for LGR parent cells  in {n_old_parent} parent cells, but"
+            f" {int(unresolved.sum())} of them have no matching LGR child-cell."
         )
         raise ValueError(format_error(error_text))
     fixed = porv_vals.copy()
     fixed[old_cirrus_porv_mask] = porv_agg[old_cirrus_porv_mask]
     logging.warning(
         format_warning(
-            f"\nWARNING: Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous Cirrus version "
-            " in {n_old_parent} parent cells. Fixed all of them using the sum of active LGR "
-            "child-cell PORV."
+            f"\nWARNING: Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous"
+            f" Cirrus version in {n_old_parent} parent cells. Fixed all of them using"
+            f" the sum of active LGR child-cell PORV."
         )
     )
     return fixed
