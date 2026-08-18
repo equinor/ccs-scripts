@@ -585,7 +585,7 @@ def _extract_source_data_from_properties(
                 assert init_file is not None
                 #Fix for older Cirrus versions
                 if np.any(porv_vals == LGR_PORV_OLD_PARENT_VALUE):
-                    porv_vals = _fix_lgr_porv_sentinel_cells(
+                    porv_vals = _fix_lgr_parent_porv_cells(
                         grid_file, init_file, active_cells, porv_vals
                     )
                 else:
