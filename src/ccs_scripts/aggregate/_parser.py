@@ -170,7 +170,8 @@ def process_arguments(arguments, map_type: str) -> RootConfig:
         replacements,
         map_type,
     )
-    _check_directories(config.output.mapfolder)
+    if not config.output.use_fmu_dataio:
+        _check_directories(config.output.mapfolder)
     _check_thresholds(config)
     return config
 
