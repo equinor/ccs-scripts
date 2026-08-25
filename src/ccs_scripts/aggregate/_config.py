@@ -27,6 +27,16 @@ class AggregationMethod(Enum):
     DISTRIBUTE = "distribute"
 
 
+class MapOutputFormat(Enum):
+    """
+    Enum representing how maps produced by `grid3d_aggregate_map` are written:
+    as plain files on disk, or exported through fmu-dataio (with FMU metadata).
+    """
+
+    FILES = "files"
+    FMU_DATAIO = "fmu-dataio"
+
+
 @dataclass
 class Property:
     source: str
@@ -157,11 +167,16 @@ class Output:
     aggregation_tag: bool = True
     gridfolder: Optional[str] = None
     replace_masked_with_zero: bool = True
+    output_format: MapOutputFormat = MapOutputFormat.FILES
 
     def __post_init__(self):
-        if self.mapfolder == "fmu-dataio":
-            error_text = "Export via fmu-dataio is not implemented for this action"
-            raise NotImplementedError(format_error(error_text))
+        if isinstance(self.output_format, str):
+            # pylint: disable=no-member
+            self.output_format = MapOutputFormat(self.output_format)
+
+    @property
+    def use_fmu_dataio(self) -> bool:
+        return self.output_format == MapOutputFormat.FMU_DATAIO
 
 
 @dataclass

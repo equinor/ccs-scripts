@@ -45,6 +45,7 @@ dependencies = [
     "ert",
     "resfo",
     "pyarrow",
+    "fmu-dataio",
 ]
 
 [project.optional-dependencies]

@@ -15,6 +15,7 @@ from ccs_scripts.aggregate._config import (
     AggregationMethod,
     ComputeSettings,
     Input,
+    MapOutputFormat,
     MapSettings,
     Output,
     Zonation,
@@ -26,6 +27,10 @@ from ccs_scripts.aggregate._parser import (
     process_arguments,
 )
 from ccs_scripts.aggregate._utils import log_input_configuration
+from ccs_scripts.utils.fmu_export import (
+    export_surface,
+    filter_property_and_date_from_surface_name,
+)
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, format_warning
 from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
@@ -235,6 +240,7 @@ def generate_maps(
             output.plotfolder,
             output.use_plotly,
             output.replace_masked_with_zero,
+            output.output_format,
         )
         _log_surfaces(surfs)
         _log_surfaces_exported(surfs, [f[0] for f in _filters], "aggregate")
@@ -257,6 +263,7 @@ def generate_maps(
             output.plotfolder,
             output.use_plotly,
             output.replace_masked_with_zero,
+            output.output_format,
         )
         _log_surfaces_exported(surfs_indicator, [f[0] for f in _filters], "indicator")
 
@@ -344,14 +351,19 @@ def _write_surfaces(
     plot_folder: Optional[str],
     use_plotly: bool,
     replace_masked_with_zero: bool = True,
+    output_format: MapOutputFormat = MapOutputFormat.FILES,
 ):
     timer = Timer()
     timer.start("write_surfaces")
-    logging.info("\nWriting to map folder")
-    logging.info(f"     Path         : {map_folder}")
-    if not os.path.isabs(map_folder):
-        logging.info(f"     Absolute path: {os.path.abspath(map_folder)}")
-    # Note: Error handling of invalid map folder happens earlier
+
+    if output_format == MapOutputFormat.FMU_DATAIO:
+        logging.info("\nExporting surfaces through fmu-dataio")
+    else:
+        logging.info("\nWriting to map folder")
+        logging.info(f"     Path         : {map_folder}")
+        if not os.path.isabs(map_folder):
+            logging.info(f"     Absolute path: {os.path.abspath(map_folder)}")
+        # Note: Error handling of invalid map folder happens earlier
 
     if plot_folder:
         logging.info("\nWriting to plot folder")
@@ -369,9 +381,18 @@ def _write_surfaces(
             # Can ignore xtgeo-warning for few/zero active nodes
             # (can happen for first map, before injection)
             warnings.filterwarnings("ignore", message=r"Number of maps nodes are*")
-            surface.to_file(
-                (pathlib.Path(map_folder) / surface.name).with_suffix(".gri")
-            )
+            if output_format == MapOutputFormat.FMU_DATAIO:
+                filter_name, property_key, date = (
+                    filter_property_and_date_from_surface_name(surface.name)
+                )
+                exported_path = export_surface(
+                    surface, property_key, date, filter_name
+                )
+                logging.info(f"     Exported     : {exported_path}")
+            else:
+                surface.to_file(
+                    (pathlib.Path(map_folder) / surface.name).with_suffix(".gri")
+                )
         if plot_folder and os.path.exists(plot_folder):
             pn = pathlib.Path(plot_folder) / surface.name
             if use_plotly:
