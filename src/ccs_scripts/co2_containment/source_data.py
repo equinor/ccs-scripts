@@ -3,9 +3,10 @@ import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import resfo
 import xtgeo
 
 from ccs_scripts.co2_containment.input import RegionInfo, ZoneInfo
@@ -21,6 +22,11 @@ from ccs_scripts.utils.xtgeo_logging import suppress_xtgeo_warning_by_message
 
 PROPERTIES_NEEDED_CIRRUS = ["SGAS", "DGAS", "DWAT"]
 PROPERTIES_NEEDED_ECLIPSE = ["SGAS", "BGAS", "BWAT", "XMF2", "YMF2"]
+
+# Tolerance between parent and sum-of-child PORV
+LGR_PORV_VALIDATION_TOLERANCE = 0.01
+# Value to detect LGR parent cells from old Cirrus
+LGR_PORV_OLD_PARENT_VALUE = 1.0
 
 RELEVANT_PROPERTIES = [
     "RPORV",
@@ -150,6 +156,17 @@ class Scenario(Enum):
     DEPLETED_OIL_GAS_FIELD = 2
 
 
+@dataclass
+class _LGRSection:
+    """Data class for LGR sections"""
+
+    name: str
+    parent: Optional[str]
+    local_cells: np.ndarray  # Child cell numbers
+    host_cells: np.ndarray  # Parent cell numbers
+    active_mask: np.ndarray
+
+
 def _detect_eclipse_mole_fraction_props(
     unrst_file: str,
 ) -> tuple[list[str], list[int], bool]:
@@ -209,6 +226,225 @@ def _find_props_to_extract(
     if residual_trapping:
         props_to_extract.extend(["SGSTRAND", "SGTRH"])
     return props_to_extract, component_indices, has_zmf
+
+
+def _build_parent_child_mapping(grid_file: str) -> List[_LGRSection]:
+    """
+    Parse LGR blocks of an EGRID file for their HOSTNUM (child-to-parent cell mapping)
+    and ACTNUM.
+    """
+    sections: List[_LGRSection] = []
+    current: Optional[Dict[str, Any]] = None
+    for entry in resfo.lazy_read(grid_file):
+        keyword = entry.read_keyword().strip()
+        if keyword == "LGR":
+            current = {
+                "name": _first_resfo_string(entry.read_array()),
+                "parent": None,
+                "hostnum": None,
+                "actnum": None,
+            }
+            continue
+        if current is None:
+            continue
+        if keyword == "LGRPARNT":  # In case of nested LGRs
+            current["parent"] = _first_resfo_string(entry.read_array())
+        elif keyword == "HOSTNUM":
+            current["hostnum"] = np.asarray(entry.read_array(), dtype=int).reshape(-1)
+        elif keyword == "ACTNUM":
+            current["actnum"] = np.asarray(entry.read_array(), dtype=int).reshape(-1)
+        elif keyword == "ENDLGR":
+            hostnum = current["hostnum"]
+            if hostnum is None:
+                raise ValueError(f"LGR {current['name']} has no HOSTNUM")
+            actnum = current["actnum"]
+            if actnum is None:
+                active_mask = np.ones(hostnum.size, dtype=bool)
+            else:
+                if actnum.size != hostnum.size:
+                    raise ValueError(
+                        f"LGR {current['name']}: ACTNUM and HOSTNUM have "
+                        "different sizes"
+                    )
+                active_mask = actnum > 0
+            parent = current["parent"]
+            if parent:  # currently nested LGRs are not supported
+                raise ValueError(
+                    f"LGR {current['name']} is nested inside LGR '{parent}'."
+                    "Nested LGRs are not supported"
+                )
+            local_cells = np.arange(1, hostnum.size + 1, dtype=int)
+            sections.append(
+                _LGRSection(
+                    name=current["name"],
+                    parent=parent,
+                    local_cells=local_cells[active_mask],
+                    host_cells=hostnum[active_mask],
+                    active_mask=active_mask,
+                )
+            )
+            current = None
+    return sections
+
+
+def _first_resfo_string(values: Any) -> str:
+    value = np.asarray(values).reshape(-1)[0]
+    # the start of the array is a bytes object, so we decode it
+    if isinstance(value, (bytes, np.bytes_)):
+        return value.decode().strip()
+    return str(value).strip()
+
+
+def _lgr_porv_values(
+    init_file: str, lgr_sections: List[_LGRSection]
+) -> List[np.ndarray]:
+    porv_records = [
+        np.asarray(entry.read_array(), dtype=float).reshape(-1)
+        for entry in resfo.lazy_read(init_file)
+        if entry.read_keyword().strip() == "PORV"
+    ]
+    lgr_count = len(lgr_sections)
+    if len(porv_records) < lgr_count + 1:
+        raise ValueError("not enough PORV records")
+    lgr_porv = []
+    for index, lgr in enumerate(lgr_sections, start=1):
+        porv = porv_records[index]
+        active = lgr.active_mask
+        if len(porv) == len(active):
+            lgr_porv.append(porv[active])
+        elif len(porv) == int(active.sum()):
+            lgr_porv.append(porv)
+        else:
+            raise ValueError(
+                f"LGR {index} PORV length does not match its ACTNUM length"
+            )
+    return lgr_porv
+
+
+def _active_lookup_by_egrid_index(active_cells: np.ndarray) -> np.ndarray:
+    """Map EGRID global cell numbers to the active-array order used by xtgeo."""
+    lookup = np.full(active_cells.size, -1, dtype=int)
+    active_ijk = np.argwhere(active_cells)
+    nx, ny, _ = active_cells.shape
+    egrid_indices = (
+        active_ijk[:, 0] + nx * active_ijk[:, 1] + nx * ny * active_ijk[:, 2]
+    )
+    lookup[egrid_indices] = np.arange(len(active_ijk))
+    return lookup
+
+
+def _aggregate_lgr_porv_to_active_parent_cells(
+    grid_file: str,
+    init_file: str,
+    active_cells: np.ndarray,
+    parent_porv: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Sum active child LGR PORV values per active parent cell."""
+    lgr_sections = _build_parent_child_mapping(grid_file)
+    if not lgr_sections:
+        raise ValueError("no LGR HOSTNUM records were found")
+    lgr_porv = _lgr_porv_values(
+        init_file, lgr_sections
+    )  # Extract PORV for parent and child cells
+    active_lookup = _active_lookup_by_egrid_index(active_cells)
+    effective_porv = parent_porv.copy()
+    child_porv_by_parent = np.zeros_like(parent_porv, dtype=float)
+    for lgr, child_porv in zip(lgr_sections, lgr_porv):
+        if len(lgr.host_cells) != len(child_porv):
+            raise ValueError(
+                "LGR HOSTNUM and PORV arrays do not have matching active-cell lengths"
+            )
+        parent_indices = active_lookup[lgr.host_cells - 1]
+        valid = parent_indices >= 0
+        np.add.at(
+            child_porv_by_parent, parent_indices[valid], child_porv[valid]
+        )  # porv aggregation
+    lgr_parent_indices = np.flatnonzero(child_porv_by_parent > 0.0)
+    if len(lgr_parent_indices) == 0:
+        raise ValueError("no active parent cells received LGR child PORV")
+    effective_porv[lgr_parent_indices] = child_porv_by_parent[lgr_parent_indices]
+    return effective_porv, lgr_parent_indices
+
+
+def _validate_lgr_porv_against_children(
+    grid_file: str,
+    init_file: str,
+    active_cells: np.ndarray,
+    porv_vals: np.ndarray,
+) -> None:
+    """QC for LGR grids: verify that the PORV reported for each
+    active parent cell matches the sum of active LGR child-cell PORV
+    """
+    try:
+        porv_agg, lgr_parent_indices = _aggregate_lgr_porv_to_active_parent_cells(
+            grid_file, init_file, active_cells, porv_vals
+        )
+    except Exception as e:
+        logging.info(format_warning(f"WARNING: Could not validate LGR PORV: {e}"))
+        return
+    reported_vals = porv_vals[lgr_parent_indices]
+    agg_vals = porv_agg[lgr_parent_indices]
+    rel_diff = np.divide(
+        agg_vals - reported_vals,
+        agg_vals,
+        out=np.zeros_like(agg_vals),
+        where=agg_vals != 0,
+    )
+    max_abs_rel_diff = float(np.max(np.abs(rel_diff)))
+    if max_abs_rel_diff > LGR_PORV_VALIDATION_TOLERANCE:
+        logging.warning(
+            format_warning(
+                "\nWARNING: Reported PORV for one or more parent cells"
+                "deviates from the sum of active LGR child-cell PORV"
+                f"by more than {LGR_PORV_VALIDATION_TOLERANCE:.1%} \n"
+            )
+        )
+
+
+def _fix_lgr_parent_porv_cells(
+    grid_file: str,
+    init_file: str,
+    active_cells: np.ndarray,
+    porv_vals: np.ndarray,
+) -> np.ndarray:
+    """
+    Detect and fix the PORV=1.0 issue for parent LGR cells from older Cirrus versions
+    """
+    old_cirrus_porv_mask = porv_vals == LGR_PORV_OLD_PARENT_VALUE
+    n_old_parent = int(old_cirrus_porv_mask.sum())
+    if n_old_parent == 0:
+        return porv_vals
+    try:
+        porv_agg, lgr_parent_indices = _aggregate_lgr_porv_to_active_parent_cells(
+            grid_file, init_file, active_cells, porv_vals
+        )
+    except Exception as e:
+        error_text = (
+            f"Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous Cirrus "
+            f"versions for LGR parent cells  in {n_old_parent} parent cells, and "
+            f"could not fix it by aggregating LGR child-cell PORV: {e}\n"
+        )
+        raise ValueError(format_error(error_text)) from e
+    agg_covered = np.zeros_like(old_cirrus_porv_mask)
+    agg_covered[lgr_parent_indices] = True
+    unresolved = old_cirrus_porv_mask & ~agg_covered
+    if unresolved.any():
+        error_text = (
+            f"Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous Cirrus"
+            f" versions for LGR parent cells  in {n_old_parent} parent cells, but"
+            f" {int(unresolved.sum())} of them have no matching LGR child-cell."
+        )
+        raise ValueError(format_error(error_text))
+    fixed = porv_vals.copy()
+    fixed[old_cirrus_porv_mask] = porv_agg[old_cirrus_porv_mask]
+    logging.warning(
+        format_warning(
+            f"\nWARNING: Detected mask PORV={LGR_PORV_OLD_PARENT_VALUE} from previous"
+            f" Cirrus version in {n_old_parent} parent cells. Fixed all of them using"
+            f" the sum of active LGR child-cell PORV."
+        )
+    )
+    return fixed
 
 
 # pylint: disable=too-many-arguments
@@ -339,20 +575,24 @@ def _extract_source_data_from_properties(
                     d: porv.values[active_cells].data for d in dates
                 }
         elif "RPORV" not in props_reduced:
-            # Grids with LGRs will not have valid PORV values for the cells
-            # affected by LGR. For Cirrus, these cells will have a value of 1.0
-            # (we believe), but other simulators are unclear. In any case,
-            # we override these values with PORV calculated from PORO and
-            # bulk. The exception is if RPORV is already present, in which case
-            # we don't need PORV.
-            # TODO: inform users that LGR porv values have been inferred.
-            poro = init.get_prop_by_name("PORO")
-            porv = init.get_prop_by_name("PORV")
-            if poro is not None and porv is not None:
-                poro_vals = poro.values[active_cells].data
+            # Grids with LGRs report PORV for the parent cells directly.
+            # Older Cirrus versions used PORV=1.0 instead of the real value.
+            # If we detect that, we fix those cells using the LGR child-cell
+            # PORV aggregation. Otherwise, we use the reported value and only
+            # validate it against the sum of active LGR child-cell PORV
+            if porv is not None:
                 porv_vals = porv.values[active_cells].data
-                porv_proxy = np.where(porv_vals == 1.0, poro_vals * vol, porv_vals)
-                props_reduced["PORV"] = {d: porv_proxy for d in dates}
+                assert init_file is not None
+                # Fix for older Cirrus versions
+                if np.any(porv_vals == LGR_PORV_OLD_PARENT_VALUE):
+                    porv_vals = _fix_lgr_parent_porv_cells(
+                        grid_file, init_file, active_cells, porv_vals
+                    )
+                else:
+                    _validate_lgr_porv_against_children(
+                        grid_file, init_file, active_cells, porv_vals
+                    )
+                props_reduced["PORV"] = {d: porv_vals for d in dates}
     # Infer SOIL from SGAS and SWAT if not stored in the file.
     # Some simulators (e.g. Eclipse compositional with 3 phases) store SGAS and
     # SWAT but not SOIL. SOIL = 1 - SGAS - SWAT in those cases, and its presence
