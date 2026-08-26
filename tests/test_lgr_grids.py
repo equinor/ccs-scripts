@@ -7,6 +7,7 @@ import pandas
 import pytest
 import resfo
 import xtgeo
+from resdata.resfile import ResdataFile
 from resdata.summary import Summary
 
 from ccs_scripts.aggregate import grid3d_aggregate_map, grid3d_co2_mass_map
@@ -80,10 +81,33 @@ def lgr_aggregate_sgas_config(lgr_data_dir, tmp_path):
 
 def test_mass_maps_with_lgr(lgr_data_dir, lgr_co2_mass_config):
     output_dir = Path(lgr_co2_mass_config.output.mapfolder)
+    grid_output_dir = output_dir / "3d"
+    lgr_co2_mass_config.output.gridfolder = str(grid_output_dir)
 
     grid3d_co2_mass_map.generate_co2_mass_maps(lgr_co2_mass_config)
     # 9 time stamps, 3 maps per timestamp:
     assert len(list(Path(output_dir).glob("*.gri"))) == 9 * 3
+    expected_properties = {
+        "co2_mass_dissolved_water_phase": "MASSDISW",
+        "co2_mass_gas_phase": "MASS_GAS",
+        "co2_mass_total": "MASS_TOT",
+    }
+    assert sorted(path.stem for path in grid_output_dir.glob("*.EGRID")) == [
+        "co2_mass_dissolved_water_phase",
+        "co2_mass_gas_phase",
+        "co2_mass_total",
+    ]
+    assert sorted(path.stem for path in grid_output_dir.glob("*.UNRST")) == [
+        "co2_mass_dissolved_water_phase",
+        "co2_mass_gas_phase",
+        "co2_mass_total",
+    ]
+    for property_name, keyword in expected_properties.items():
+        egrid = ResdataFile(str(grid_output_dir / f"{property_name}.EGRID"))
+        restart = ResdataFile(str(grid_output_dir / f"{property_name}.UNRST"))
+        assert len(egrid["GRIDHEAD"]) > 0
+        assert len(restart["SEQNUM"]) == 9
+        assert len(restart[keyword]) == 9
 
     # In this Cirrus model, the following keywords are present:
     # - FSMDS (dissolved)

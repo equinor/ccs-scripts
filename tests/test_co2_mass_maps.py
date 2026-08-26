@@ -160,7 +160,7 @@ def test_co2_mass_map_residual_trapping_cirrus():
     total_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
-        / "mass_maps"
+        / "mass_map"
         / "all--co2_mass_total--23000101.gri"
     )
     assert free_gas_co2_file.exists()

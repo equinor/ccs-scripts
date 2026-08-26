@@ -65,14 +65,19 @@ def generate_co2_mass_maps(config_: RootConfig):
     )
 
     dates = config_.input.dates
+    all_dates = [co2_at_date.date for co2_at_date in co2_data.data_list]
+    date_indices = list(range(len(all_dates)))
     if len(dates) > 0:
         co2_data.data_list = [x for x in co2_data.data_list if x.date in dates]
+        date_indices = [index for index, date in enumerate(all_dates) if date in dates]
     # Keep 3D properties in memory for aggregation.
     in_memory_properties = translate_co2data_to_gridproperties(
         co2_data,
         grid_file,
         co2_mass_settings,
         grid=grid,
+        grid_out_dir=config_.output.gridfolder,
+        date_indices=date_indices,
     )
     co2_mass_property_to_map_in_memory(config_, in_memory_properties, grid)
 
