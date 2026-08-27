@@ -73,9 +73,8 @@ def generate_co2_mass_maps(config_: RootConfig):
     # Keep 3D properties in memory for aggregation.
     in_memory_properties = translate_co2data_to_gridproperties(
         co2_data,
-        grid_file,
         co2_mass_settings,
-        grid=grid,
+        grid,
         grid_out_dir=config_.output.gridfolder,
         date_indices=date_indices,
     )

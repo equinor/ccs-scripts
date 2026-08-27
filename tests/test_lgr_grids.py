@@ -92,20 +92,16 @@ def test_mass_maps_with_lgr(lgr_data_dir, lgr_co2_mass_config):
         "co2_mass_gas_phase": "MASS_GAS",
         "co2_mass_total": "MASS_TOT",
     }
-    assert sorted(path.stem for path in grid_output_dir.glob("*.EGRID")) == [
-        "co2_mass_dissolved_water_phase",
-        "co2_mass_gas_phase",
-        "co2_mass_total",
-    ]
+    assert sorted(path.stem for path in grid_output_dir.glob("*.EGRID")) == ["co2_mass"]
     assert sorted(path.stem for path in grid_output_dir.glob("*.UNRST")) == [
         "co2_mass_dissolved_water_phase",
         "co2_mass_gas_phase",
         "co2_mass_total",
     ]
+    egrid = ResdataFile(str(grid_output_dir / "co2_mass.EGRID"))
+    assert len(egrid["GRIDHEAD"]) > 0
     for property_name, keyword in expected_properties.items():
-        egrid = ResdataFile(str(grid_output_dir / f"{property_name}.EGRID"))
         restart = ResdataFile(str(grid_output_dir / f"{property_name}.UNRST"))
-        assert len(egrid["GRIDHEAD"]) > 0
         assert len(restart["SEQNUM"]) == 9
         assert len(restart[keyword]) == 9
 
