@@ -23,9 +23,7 @@ def adapt_reek_grid_for_co2_mass_map_test():
     )
     records = resfo.read(reek_unrstfile)
     sgas_values = [
-        np.asarray(values)
-        for keyword, values in records
-        if keyword.strip() == "SGAS"
+        np.asarray(values) for keyword, values in records if keyword.strip() == "SGAS"
     ]
 
     patched_records = []
