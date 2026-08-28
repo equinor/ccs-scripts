@@ -7,7 +7,6 @@ import pandas
 import pytest
 import resfo
 import xtgeo
-from resdata.resfile import ResdataFile
 from resdata.summary import Summary
 
 from ccs_scripts.aggregate import grid3d_aggregate_map, grid3d_co2_mass_map
@@ -94,12 +93,14 @@ def test_mass_maps_with_lgr(lgr_data_dir, lgr_co2_mass_config):
     }
     assert sorted(path.stem for path in grid_output_dir.glob("*.EGRID")) == ["co2_mass"]
     assert sorted(path.stem for path in grid_output_dir.glob("*.UNRST")) == ["co2_mass"]
-    egrid = ResdataFile(str(grid_output_dir / "co2_mass.EGRID"))
-    restart = ResdataFile(str(grid_output_dir / "co2_mass.UNRST"))
-    assert len(egrid["GRIDHEAD"]) > 0
-    assert len(restart["SEQNUM"]) == 9
+    keywords = [
+        entry.read_keyword().strip()
+        for entry in resfo.lazy_read(grid_output_dir / "co2_mass.UNRST")
+    ]
+
+    assert keywords.count("SEQNUM") == 9
     for keyword in expected_properties.values():
-        assert len(restart[keyword]) == 9
+        assert keywords.count(keyword) == 9
 
     output_grid = xtgeo.grid_from_file(str(grid_output_dir / "co2_mass.EGRID"))
     output_properties = xtgeo.gridproperties_from_file(
