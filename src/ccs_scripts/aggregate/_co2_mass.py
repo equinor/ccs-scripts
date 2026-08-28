@@ -45,8 +45,8 @@ def translate_co2data_to_gridproperties(
     """
     Convert CO2 data into in-memory 3D GridProperty objects.
 
-    When ``grid_out_dir`` is set, also write one shared EGRID file and one
-    UNRST file for each selected mass property. The returned properties are unchanged.
+    When ``grid_out_dir`` is set, also write one EGRID/UNRST pair containing
+    the selected mass properties. The returned properties are unchanged.
     """
     maps = co2_mass_settings.maps
     if maps is None:
@@ -114,27 +114,32 @@ def _write_gridproperties(
     restart_headers = _restart_headers_for_grid(unrst_file, date_indices, grid)
     grid_active = grid.actnum_array.astype(bool).ravel(order="F")
 
-    grouped_properties: dict[str, list[xtgeo.GridProperty]] = {}
+    properties_by_date: dict[str, list[xtgeo.GridProperty]] = {}
     for prop in properties:
-        grouped_properties.setdefault(prop.name, []).append(prop)
+        if prop.name is None or prop.date is None:
+            raise ValueError(
+                format_error("CO2 mass properties must have a name and date")
+            )
+        properties_by_date.setdefault(prop.date, []).append(prop)
 
-    for property_name, property_series in grouped_properties.items():
-        restart_keywords: list[tuple[str, Any]] = []
-        keyword_name = MapName(property_name).name
-        for prop in property_series:
-            date_index = source_index_by_date[prop.date]
-            intehead, logihead = restart_headers[date_index]
-            restart_keywords.extend(
-                [
-                    ("SEQNUM  ", [np.int32(date_index)]),
-                    ("INTEHEAD", intehead),
-                    ("LOGIHEAD", logihead),
-                    (keyword_name, prop.values.data.ravel(order="F")[grid_active]),
-                ]
+    restart_keywords: list[tuple[str, Any]] = []
+    for property_date, properties_at_date in properties_by_date.items():
+        date_index = source_index_by_date[property_date]
+        intehead, logihead = restart_headers[date_index]
+        restart_keywords.extend(
+            [
+                ("SEQNUM  ", [np.int32(date_index)]),
+                ("INTEHEAD", intehead),
+                ("LOGIHEAD", logihead),
+            ]
+        )
+        for prop in properties_at_date:
+            keyword_name = MapName(prop.name).name
+            restart_keywords.append(
+                (keyword_name, prop.values.data.ravel(order="F")[grid_active])
             )
 
-        resfo.write(output_dir / f"{property_name}.UNRST", restart_keywords)
-
+    resfo.write(output_dir / "co2_mass.UNRST", restart_keywords)
     grid.to_file(output_dir / "co2_mass.EGRID", fformat="egrid")
 
 

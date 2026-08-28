@@ -89,6 +89,8 @@ def test_co2_mass_map_reek_grid():
             ),
             "--mapfolder",
             str(result),
+            "--gridfolder",
+            f"{str(result)}/3d",
         ]
     )
     dissolved_co2_file = (
@@ -143,6 +145,8 @@ def test_co2_mass_map_residual_trapping_cirrus():
             ),
             "--mapfolder",
             str(result),
+            "--gridfolder",
+            f"{str(result)}/3d",
         ]
     )
     free_gas_co2_file = (

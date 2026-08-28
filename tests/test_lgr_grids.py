@@ -93,17 +93,22 @@ def test_mass_maps_with_lgr(lgr_data_dir, lgr_co2_mass_config):
         "co2_mass_total": "MASS_TOT",
     }
     assert sorted(path.stem for path in grid_output_dir.glob("*.EGRID")) == ["co2_mass"]
-    assert sorted(path.stem for path in grid_output_dir.glob("*.UNRST")) == [
-        "co2_mass_dissolved_water_phase",
-        "co2_mass_gas_phase",
-        "co2_mass_total",
-    ]
+    assert sorted(path.stem for path in grid_output_dir.glob("*.UNRST")) == ["co2_mass"]
     egrid = ResdataFile(str(grid_output_dir / "co2_mass.EGRID"))
+    restart = ResdataFile(str(grid_output_dir / "co2_mass.UNRST"))
     assert len(egrid["GRIDHEAD"]) > 0
-    for property_name, keyword in expected_properties.items():
-        restart = ResdataFile(str(grid_output_dir / f"{property_name}.UNRST"))
-        assert len(restart["SEQNUM"]) == 9
+    assert len(restart["SEQNUM"]) == 9
+    for keyword in expected_properties.values():
         assert len(restart[keyword]) == 9
+
+    output_grid = xtgeo.grid_from_file(str(grid_output_dir / "co2_mass.EGRID"))
+    output_properties = xtgeo.gridproperties_from_file(
+        str(grid_output_dir / "co2_mass.UNRST"),
+        names=list(expected_properties.values()),
+        dates="all",
+        grid=output_grid,
+    )
+    assert len(output_properties.props) == 9 * len(expected_properties)
 
     # In this Cirrus model, the following keywords are present:
     # - FSMDS (dissolved)
