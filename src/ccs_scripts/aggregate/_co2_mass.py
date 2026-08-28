@@ -39,6 +39,7 @@ def translate_co2data_to_gridproperties(
     co2_data: Co2Data,
     co2_mass_settings: CO2MassSettings,
     grid: xtgeo.Grid,
+    grid_file: str,
     grid_out_dir: str | None = None,
     date_indices: list[int] | None = None,
 ) -> list[xtgeo.GridProperty]:
@@ -83,6 +84,7 @@ def translate_co2data_to_gridproperties(
         _write_gridproperties(
             out,
             grid,
+            grid_file,
             co2_mass_settings.unrst_source,
             grid_out_dir,
             date_indices,
@@ -93,6 +95,7 @@ def translate_co2data_to_gridproperties(
 def _write_gridproperties(
     properties: list[xtgeo.GridProperty],
     grid: xtgeo.Grid,
+    grid_file: str,
     unrst_file: str,
     grid_out_dir: str,
     date_indices: list[int] | None,
@@ -140,7 +143,52 @@ def _write_gridproperties(
             )
 
     resfo.write(output_dir / "co2_mass.UNRST", restart_keywords)
-    grid.to_file(output_dir / "co2_mass.EGRID", fformat="egrid")
+    resfo.write(output_dir / "co2_mass.EGRID", _source_egrid_keywords(grid_file))
+
+
+def _source_egrid_keywords(grid_file: str) -> list[tuple[str, Any]]:
+    keyword_order = [
+        "FILEHEAD",
+        "GRIDUNIT",
+        "GDORIENT",
+        "GRIDHEAD",
+        "COORD",
+        "ZCORN",
+        "ACTNUM",
+        "ENDGRID",
+        "NNCHEAD",
+        "NNC1",
+        "NNC2",
+    ]
+    mandatory_keywords = {
+        "FILEHEAD",
+        "GRIDUNIT",
+        "GRIDHEAD",
+        "COORD",
+        "ZCORN",
+        "ENDGRID",
+    }
+    keyword_values: dict[str, Any] = {}
+
+    for entry in resfo.lazy_read(grid_file):
+        keyword = entry.read_keyword().strip()
+        if keyword in keyword_order and keyword not in keyword_values:
+            keyword_values[keyword] = entry.read_array()
+
+    missing_keywords = mandatory_keywords - keyword_values.keys()
+    if missing_keywords:
+        raise ValueError(
+            format_error(
+                f"Source EGRID is missing required keywords: "
+                f"{sorted(missing_keywords)}"
+            )
+        )
+
+    return [
+        (keyword.ljust(8), keyword_values[keyword])
+        for keyword in keyword_order
+        if keyword in keyword_values
+    ]
 
 
 def _prepare_grid_output_directory(grid_out_dir: str) -> Path:

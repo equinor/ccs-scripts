@@ -75,6 +75,7 @@ def generate_co2_mass_maps(config_: RootConfig):
         co2_data,
         co2_mass_settings,
         grid,
+        grid_file,
         grid_out_dir=config_.output.gridfolder,
         date_indices=date_indices,
     )
