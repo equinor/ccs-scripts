@@ -70,13 +70,11 @@ def export_surface(
     filter_name: Optional[str] = None,
 ) -> str:
     tag = _tag_for(property_key)
-    # "all" (no zone/region breakdown) isn't a meaningful tagname qualifier.
-    tagname = filter_name if filter_name and filter_name != "all" else ""
     exporter = ExportData(
         content=tag.content,
         content_metadata={"attribute": property_key, "is_discrete": False},
-        name=property_key.replace("_", "-"),
-        tagname=tagname,
+        name=filter_name or property_key,
+        tagname=property_key,
         unit=tag.unit,
         vertical_domain="depth",
         timedata=[[date]] if date else None,

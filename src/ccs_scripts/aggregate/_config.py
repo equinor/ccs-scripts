@@ -173,6 +173,8 @@ class Output:
         if isinstance(self.output_format, str):
             # pylint: disable=no-member
             self.output_format = MapOutputFormat(self.output_format)
+        if self.mapfolder == "fmu-dataio":
+            self.output_format = MapOutputFormat.FMU_DATAIO
 
     @property
     def use_fmu_dataio(self) -> bool:
