@@ -80,10 +80,36 @@ def lgr_aggregate_sgas_config(lgr_data_dir, tmp_path):
 
 def test_mass_maps_with_lgr(lgr_data_dir, lgr_co2_mass_config):
     output_dir = Path(lgr_co2_mass_config.output.mapfolder)
+    grid_output_dir = output_dir / "3d"
+    lgr_co2_mass_config.output.gridfolder = str(grid_output_dir)
 
     grid3d_co2_mass_map.generate_co2_mass_maps(lgr_co2_mass_config)
     # 9 time stamps, 3 maps per timestamp:
     assert len(list(Path(output_dir).glob("*.gri"))) == 9 * 3
+    expected_properties = {
+        "co2_mass_dissolved_water_phase": "MASSDISW",
+        "co2_mass_gas_phase": "MASS_GAS",
+        "co2_mass_total": "MASS_TOT",
+    }
+    assert sorted(path.stem for path in grid_output_dir.glob("*.EGRID")) == ["co2_mass"]
+    assert sorted(path.stem for path in grid_output_dir.glob("*.UNRST")) == ["co2_mass"]
+    keywords = [
+        entry.read_keyword().strip()
+        for entry in resfo.lazy_read(grid_output_dir / "co2_mass.UNRST")
+    ]
+
+    assert keywords.count("SEQNUM") == 9
+    for keyword in expected_properties.values():
+        assert keywords.count(keyword) == 9
+
+    output_grid = xtgeo.grid_from_file(str(grid_output_dir / "co2_mass.EGRID"))
+    output_properties = xtgeo.gridproperties_from_file(
+        str(grid_output_dir / "co2_mass.UNRST"),
+        names=list(expected_properties.values()),
+        dates="all",
+        grid=output_grid,
+    )
+    assert len(output_properties.props) == 9 * len(expected_properties)
 
     # In this Cirrus model, the following keywords are present:
     # - FSMDS (dissolved)

@@ -1,7 +1,10 @@
+import logging
 from enum import Enum
-from typing import List, Optional
+from pathlib import Path
+from typing import Any
 
 import numpy as np
+import resfo
 import xtgeo
 
 from ccs_scripts.aggregate._config import CO2MassSettings
@@ -10,9 +13,12 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Co2DataAtTimeStep,
 )
 from ccs_scripts.co2_containment.source_data import Scenario
+from ccs_scripts.utils.utils import format_error
 from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
 
 setup_xtgeo_logging()
+
+logger = logging.getLogger(__name__)
 
 CO2_MASS_PNAME = "CO2Mass"
 
@@ -31,12 +37,17 @@ class MapName(Enum):
 
 def translate_co2data_to_gridproperties(
     co2_data: Co2Data,
-    grid_file: str,
     co2_mass_settings: CO2MassSettings,
-    grid: Optional[xtgeo.Grid] = None,
-) -> List[xtgeo.GridProperty]:
+    grid: xtgeo.Grid,
+    grid_file: str,
+    grid_out_dir: str | None = None,
+    date_indices: list[int] | None = None,
+) -> list[xtgeo.GridProperty]:
     """
     Convert CO2 data into in-memory 3D GridProperty objects.
+
+    When ``grid_out_dir`` is set, also write one EGRID/UNRST pair containing
+    the selected mass properties. The returned properties are unchanged.
     """
     maps = co2_mass_settings.maps
     if maps is None:
@@ -46,11 +57,9 @@ def translate_co2data_to_gridproperties(
     maps = [map_name.lower() for map_name in maps]
 
     store_all = "all" in maps or len(maps) == 0
-    if grid is None:
-        grid = xtgeo.grid_from_file(grid_file)
     property_template = xtgeo.GridProperty(grid)
 
-    out: List[xtgeo.GridProperty] = []
+    out: list[xtgeo.GridProperty] = []
     for co2_at_date in co2_data.data_list:
         tmp_props: dict[MapName, xtgeo.GridProperty] = _convert_to_grid(
             co2_at_date, property_template, co2_data.active_cells
@@ -70,7 +79,177 @@ def translate_co2data_to_gridproperties(
         if (store_all or "free_co2" in maps) and co2_mass_settings.residual_trapping:
             out.append(tmp_props[MapName.MASSFGAS])
             out.append(tmp_props[MapName.MASSTGAS])
+
+    if grid_out_dir is not None:
+        _write_gridproperties(
+            out,
+            grid,
+            grid_file,
+            co2_mass_settings.unrst_source,
+            grid_out_dir,
+            date_indices,
+        )
     return out
+
+
+def _write_gridproperties(
+    properties: list[xtgeo.GridProperty],
+    grid: xtgeo.Grid,
+    grid_file: str,
+    unrst_file: str,
+    grid_out_dir: str,
+    date_indices: list[int] | None,
+) -> None:
+    """Write selected in-memory properties as EGRID/UNRST property series."""
+    output_dir = _prepare_grid_output_directory(grid_out_dir)
+    if date_indices is None:
+        date_indices = list(range(len({prop.date for prop in properties})))
+
+    property_dates = list(dict.fromkeys(prop.date for prop in properties))
+    if len(date_indices) != len(property_dates):
+        raise ValueError(
+            format_error(
+                "Unable to write CO2 mass grid files, problem with UNRST date values"
+            )
+        )
+    source_index_by_date = dict(zip(property_dates, date_indices))
+
+    restart_headers = _restart_headers_for_grid(unrst_file, date_indices, grid)
+    grid_active = grid.actnum_array.astype(bool).ravel(order="F")
+
+    properties_by_date: dict[str, list[xtgeo.GridProperty]] = {}
+    for prop in properties:
+        if prop.name is None or prop.date is None:
+            raise ValueError(
+                format_error("CO2 mass properties must have a name and date")
+            )
+        properties_by_date.setdefault(prop.date, []).append(prop)
+
+    restart_keywords: list[tuple[str, Any]] = []
+    for property_date, properties_at_date in properties_by_date.items():
+        date_index = source_index_by_date[property_date]
+        intehead, logihead = restart_headers[date_index]
+        restart_keywords.extend(
+            [
+                ("SEQNUM  ", [np.int32(date_index)]),
+                ("INTEHEAD", intehead),
+                ("LOGIHEAD", logihead),
+            ]
+        )
+        for prop in properties_at_date:
+            keyword_name = MapName(prop.name).name
+            restart_keywords.append(
+                (keyword_name, prop.values.data.ravel(order="F")[grid_active])
+            )
+
+    resfo.write(output_dir / "co2_mass.UNRST", restart_keywords)
+    resfo.write(output_dir / "co2_mass.EGRID", _source_egrid_keywords(grid_file))
+
+
+def _source_egrid_keywords(grid_file: str) -> list[tuple[str, Any]]:
+    keyword_order = [
+        "FILEHEAD",
+        "GRIDUNIT",
+        "GDORIENT",
+        "GRIDHEAD",
+        "COORD",
+        "ZCORN",
+        "ACTNUM",
+        "ENDGRID",
+        "NNCHEAD",
+        "NNC1",
+        "NNC2",
+    ]
+    mandatory_keywords = {
+        "FILEHEAD",
+        "GRIDUNIT",
+        "GRIDHEAD",
+        "COORD",
+        "ZCORN",
+        "ENDGRID",
+    }
+    keyword_values: dict[str, Any] = {}
+
+    for entry in resfo.lazy_read(grid_file):
+        keyword = entry.read_keyword().strip()
+        if keyword in keyword_order and keyword not in keyword_values:
+            keyword_values[keyword] = entry.read_array()
+
+    missing_keywords = mandatory_keywords - keyword_values.keys()
+    if missing_keywords:
+        raise ValueError(
+            format_error(
+                f"Source EGRID is missing required keywords: "
+                f"{sorted(missing_keywords)}"
+            )
+        )
+
+    return [
+        (keyword.ljust(8), keyword_values[keyword])
+        for keyword in keyword_order
+        if keyword in keyword_values
+    ]
+
+
+def _prepare_grid_output_directory(grid_out_dir: str) -> Path:
+    output_dir = Path(grid_out_dir)
+    if output_dir.exists():
+        if not output_dir.is_dir():
+            raise NotADirectoryError(
+                format_error(f"3D grid output path is not a directory: {output_dir}")
+            )
+        return output_dir
+
+    parent_dir = output_dir.parent
+    if not parent_dir.exists():
+        raise FileNotFoundError(
+            format_error(
+                f"Parent directory for 3D grid output does not exist: {parent_dir}"
+            )
+        )
+    output_dir.mkdir()
+    logger.info("\nCreated new grid folder: %s", output_dir)
+    return output_dir
+
+
+def _restart_headers_for_grid(
+    unrst_file: str,
+    date_indices: list[int],
+    grid: xtgeo.Grid,
+) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+    expected_dimensions = (grid.ncol, grid.nrow, grid.nlay)
+    expected_active = int(np.count_nonzero(grid.actnum_array))
+    requested_indices = set(date_indices)
+    headers: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+    report_index = -1
+    intehead: np.ndarray | None = None
+
+    for entry in resfo.lazy_read(unrst_file):
+        keyword = entry.read_keyword().strip()
+        if keyword == "SEQNUM":
+            report_index += 1
+            intehead = None
+        elif report_index not in requested_indices:
+            continue
+        elif keyword == "INTEHEAD":
+            intehead = np.asarray(entry.read_array())
+        elif keyword == "LOGIHEAD" and intehead is not None:
+            logihead = np.asarray(entry.read_array())
+            nx, ny, nz, active_count = map(int, intehead[8:12])
+            if (nx, ny, nz) == expected_dimensions and active_count == expected_active:
+                headers[report_index] = (intehead, logihead)
+            intehead = None
+
+    missing_indices = requested_indices - headers.keys()
+    if missing_indices:
+        raise ValueError(
+            format_error(
+                "Could not find restart headers matching grid "
+                f"{expected_dimensions} with {expected_active} active cells "
+                f"at restart indices {sorted(missing_indices)}"
+            )
+        )
+    return headers
 
 
 def _convert_to_grid(

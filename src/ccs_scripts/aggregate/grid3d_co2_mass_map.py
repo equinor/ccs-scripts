@@ -65,15 +65,49 @@ def generate_co2_mass_maps(config_: RootConfig):
     )
 
     dates = config_.input.dates
+    all_dates = [co2_at_date.date for co2_at_date in co2_data.data_list]
+    date_indices = list(range(len(all_dates)))
     if len(dates) > 0:
         co2_data.data_list = [x for x in co2_data.data_list if x.date in dates]
+        date_indices = [index for index, date in enumerate(all_dates) if date in dates]
     # Keep 3D properties in memory for aggregation.
     in_memory_properties = translate_co2data_to_gridproperties(
         co2_data,
-        grid_file,
         co2_mass_settings,
-        grid=grid,
+        grid,
+        grid_file,
+        grid_out_dir=config_.output.gridfolder,
+        date_indices=date_indices,
     )
+
+    # TODO: Add this as part of a pytest validation for the written UNRST file.
+    """
+    # TEMPORARY VALIDATION: reload properties from the written UNRST file.
+    from pathlib import Path
+
+    from xtgeo import gridproperty_from_file
+
+    if config_.output.gridfolder is None:
+        raise ValueError("UNRST validation requires output.gridfolder")
+
+    written_unrst = Path(config_.output.gridfolder) / "co2_mass.UNRST"
+    reloaded_properties: list[GridProperty] = []
+    for original_property in in_memory_properties:
+        if original_property.name is None or original_property.date is None:
+            raise ValueError("CO2 mass properties must have a name and date")
+        reloaded_property = gridproperty_from_file(
+            written_unrst,
+            name=MapName(original_property.name).name,
+            grid=grid,
+            date=original_property.date,
+        )
+        reloaded_property.name = original_property.name
+        reloaded_property.date = original_property.date
+        reloaded_properties.append(reloaded_property)
+    in_memory_properties = reloaded_properties
+    # END TEMPORARY VALIDATION
+    """
+
     co2_mass_property_to_map_in_memory(config_, in_memory_properties, grid)
 
     # Migration time maps from the same in-memory properties
