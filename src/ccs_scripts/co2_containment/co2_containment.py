@@ -46,6 +46,8 @@ def main() -> None:
         calc_type,
         args.residual_trapping,
         args.cirrus_info_file,
+        args.find_stationary_gas,
+        args.stationary_gas_n_years,
     )
     containment_data = calculate_containment(
         co2_data,
