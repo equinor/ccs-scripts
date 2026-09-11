@@ -1154,9 +1154,7 @@ def _calculate_moved_stationary_co2(
             logging.debug("%-14s: %10.2f Mt", gas_type_name, gas_sum)
             moved = np.sum(delta_gas) / 1000000
             logging.debug("Moved (%sy)   : %10.2f Mt   <------", n_years, moved)
-            logging.debug(
-                "Stationary    : %10.2f Mt", np.sum(diff_gas) / 1000000
-            )
+            logging.debug("Stationary    : %10.2f Mt", np.sum(diff_gas) / 1000000)
 
     return co2_mass
 
