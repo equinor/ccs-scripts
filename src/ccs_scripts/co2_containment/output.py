@@ -470,12 +470,12 @@ def _prepare_writing_details(
     # Add moving/stationary breakdown phases if they exist
     if residual_trapping:
         phase_names += (
-            ["Mov. fr. gas"]
+            ["Mov.fr.gas"]
             if any("moving_free_gas" in col for col in df.columns)
             else []
         )
         phase_names += (
-            ["Stat. fr. gas"]
+            ["Stat.fr.gas"]
             if any("stationary_free_gas" in col for col in df.columns)
             else []
         )
