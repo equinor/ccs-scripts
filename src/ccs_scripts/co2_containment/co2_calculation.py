@@ -3,6 +3,7 @@
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Dict, List, Literal, Optional, Tuple
 
 import numpy as np
@@ -43,6 +44,11 @@ class Co2DataAtTimeStep:
                                     calc_type_input = volume_extent)
       trapped_gas_phase (np.ndarray): The amount of CO2 in trapped/stranded gas phase
       free_gas_phase (np.ndarray): The amount of CO2 in free gas phase
+      moving_free_gas (Optional[np.ndarray]): The amount of CO2 in moving free gas phase
+      stationary_free_gas (Optional[np.ndarray]): The amount of CO2 in
+                                                    stationary free gas phase
+      moving_gas (Optional[np.ndarray]): The amount of CO2 in moving gas phase
+      stationary_gas (Optional[np.ndarray]): The amount of CO2 in stationary gas phase
     """
 
     date: str
@@ -52,6 +58,10 @@ class Co2DataAtTimeStep:
     volume_coverage: np.ndarray
     trapped_gas_phase: np.ndarray
     free_gas_phase: np.ndarray
+    moving_gas: Optional[np.ndarray] = None
+    stationary_gas: Optional[np.ndarray] = None
+    moving_free_gas: Optional[np.ndarray] = None
+    stationary_free_gas: Optional[np.ndarray] = None
 
     def total_mass(self) -> np.ndarray:
         """
@@ -876,6 +886,8 @@ def _calculate_co2_data_from_source_data(
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
     residual_trapping: bool = False,
     cirrus_info_file: Optional[str] = None,
+    find_stationary_gas: bool = False,
+    stationary_gas_n_years: int = 25,
 ) -> Co2Data:
     """
     Calculates a given calc_type (mass/cell_volume/actual_volume)
@@ -890,6 +902,10 @@ def _calculate_co2_data_from_source_data(
         water_molar_mass (float): Water molar mass - Default is 18 g/mol
         residual_trapping (bool): Indicate if residual trapping should be calculated
         cirrus_info_file (Optional[str]): Path to cirrus info file
+        find_stationary_gas (bool): Indicate if moving/stationary gas
+                                       should be calculated
+        stationary_gas_n_years (int): Number of years to look back for the
+                                      moving/stationary gas comparison
 
     Returns:
       Co2Data
@@ -938,6 +954,8 @@ def _calculate_co2_data_from_source_data(
             gas_molar_mass,
             oil_molar_mass,
             comp_molar_masses,
+            find_stationary_gas,
+            stationary_gas_n_years,
         )
     elif calc_type == CalculationType.CELL_VOLUME:
         co2_amount = _calc_co2_amount_cell_volume(scenario, source_data, active_props)
@@ -1027,6 +1045,120 @@ def _find_source_and_scenario(
     return source, scenario
 
 
+def _moving_stationary_keys(use_free_gas: bool) -> Tuple[str, str, str]:
+    """Return (gas_key, moving_key, stationary_key) based on gas type."""
+    if use_free_gas:
+        return "free_gas", "moving_free_gas", "stationary_free_gas"
+    return "gas", "moving_gas", "stationary_gas"
+
+
+def _get_free_co2_n_years_ago(
+    current_date_str: str,
+    co2_mass: Dict[str, Dict[str, np.ndarray]],
+    dates: List[str],
+    years: int = 25,
+    gas_key: str = "free_gas",
+) -> np.ndarray:
+    current_date = datetime.strptime(current_date_str, "%Y%m%d")
+    target_date = current_date - timedelta(days=365.25 * years)
+
+    date_objects = [datetime.strptime(d, "%Y%m%d") for d in dates]
+
+    if target_date <= date_objects[0]:
+        return np.zeros_like(co2_mass[dates[0]][gas_key])
+
+    before_idx = None
+    after_idx = None
+
+    for i, date_obj in enumerate(date_objects):
+        if date_obj <= target_date:
+            before_idx = i
+        if date_obj >= target_date and after_idx is None:
+            after_idx = i
+            break
+
+    # If exact match found
+    if before_idx is not None and date_objects[before_idx] == target_date:
+        return co2_mass[dates[before_idx]][gas_key]
+
+    # Interpolate between before and after dates
+    if before_idx is not None and after_idx is not None:
+        date_before = date_objects[before_idx]
+        date_after = date_objects[after_idx]
+
+        # Linear interpolation weight
+        total_days = (date_after - date_before).days
+        days_from_before = (target_date - date_before).days
+        weight = days_from_before / total_days if total_days > 0 else 0
+
+        free_before = co2_mass[dates[before_idx]][gas_key]
+        free_after = co2_mass[dates[after_idx]][gas_key]
+
+        return free_before * (1 - weight) + free_after * weight
+
+    # Fallback: return zeros if something unexpected happens
+    return np.zeros_like(co2_mass[dates[0]][gas_key])
+
+
+def _calculate_moved_stationary_co2(
+    co2_mass: Dict[str, Dict[str, np.ndarray]],
+    dates: List[str],
+    n_years: int = 25,
+    use_free_gas: bool = True,
+    print_debug: bool = False,
+) -> Dict[str, Dict[str, np.ndarray]]:
+    """
+    Calculate moved and stationary CO2 based on gas phase change over time.
+
+    Args:
+        co2_mass: Dictionary of CO2 mass arrays by date
+        dates: List of all available dates in chronological order
+        n_years: Number of years to look back for comparison (default: 25)
+        use_free_gas: If True, use free gas; if False, use total gas
+        print_debug: If True, print debug information for each date
+
+    Returns:
+        Updated co2_mass dictionary with moved and stationary CO2 added.
+        Adds keys: 'moving_free_gas' and 'stationary_free_gas' if use_free_gas=True,
+        or 'moving_gas' and 'stationary_gas' if use_free_gas=False
+    """
+    gas_key, moving_key, stationary_key = _moving_stationary_keys(use_free_gas)
+    gas_type_name = "Free" if use_free_gas else "Gas"
+
+    for date in dates:
+        gas_current = co2_mass[date][gas_key]
+        gas_past = _get_free_co2_n_years_ago(date, co2_mass, dates, n_years, gas_key)
+
+        delta_gas = gas_current - gas_past
+        delta_gas[delta_gas < 0] = 0
+        diff_gas = gas_current - delta_gas
+
+        co2_mass[date][moving_key] = delta_gas
+        co2_mass[date][stationary_key] = diff_gas
+
+        if print_debug:
+            logging.debug("\nDate: %s", date)
+            phases = co2_mass[date]
+            total_mass = (
+                np.sum(phases["dis_water"])
+                + np.sum(phases["gas"])
+                + np.sum(phases["dis_oil"])
+            ) / 1000000
+            logging.debug("Total CO2 mass: %10.2f Mt", total_mass)
+            dis_w = np.sum(phases["dis_water"]) / 1000000
+            logging.debug("Dissolved     : %10.2f Mt", dis_w)
+            if "trapped_gas" in phases:
+                trapped = np.sum(phases["trapped_gas"]) / 1e6
+                logging.debug("Trapped       : %10.2f Mt", trapped)
+            gas_sum = np.sum(phases[gas_key]) / 1000000
+            logging.debug("%-14s: %10.2f Mt", gas_type_name, gas_sum)
+            moved = np.sum(delta_gas) / 1000000
+            logging.debug("Moved (%sy)   : %10.2f Mt   <------", n_years, moved)
+            logging.debug("Stationary    : %10.2f Mt", np.sum(diff_gas) / 1000000)
+
+    return co2_mass
+
+
 def _calc_co2_amount(
     source: str,
     scenario: Scenario,
@@ -1039,6 +1171,8 @@ def _calc_co2_amount(
     gas_molar_mass: Optional[float],
     oil_molar_mass: Optional[float],
     comp_molar_masses: Optional[Dict[str, Tuple[int, float]]],
+    find_stationary_gas: bool = False,
+    stationary_gas_n_years: int = 25,
 ) -> Co2Data:
     if source == "Cirrus":
         co2_mass_cell = _cirrus_co2mass(
@@ -1094,6 +1228,29 @@ def _calc_co2_amount(
         source_data.region,
     )
     if calc_type == CalculationType.MASS:
+        # NB: only implemented for the MASS calculation type - the volume
+        # ("m3") branch below does not populate moving/stationary gas.
+        if find_stationary_gas:
+            phase_dict = {
+                ts.date: {
+                    "dis_water": ts.dis_water_phase,
+                    "gas": ts.gas_phase,
+                    "dis_oil": ts.dis_oil_phase,
+                    "trapped_gas": ts.trapped_gas_phase,
+                    "free_gas": ts.free_gas_phase,
+                }
+                for ts in co2_mass_output.data_list
+            }
+            phase_dict = _calculate_moved_stationary_co2(
+                phase_dict,
+                list(phase_dict.keys()),
+                stationary_gas_n_years,
+                use_free_gas=residual_trapping,
+            )
+            _, moving_key, stationary_key = _moving_stationary_keys(residual_trapping)
+            for ts in co2_mass_output.data_list:
+                setattr(ts, moving_key, phase_dict[ts.date][moving_key])
+                setattr(ts, stationary_key, phase_dict[ts.date][stationary_key])
         _convert_from_kg_to_tons(co2_mass_output)
         co2_amount = co2_mass_output
     else:
@@ -1373,8 +1530,13 @@ def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
             values.dis_oil_phase,
             values.trapped_gas_phase,
             values.free_gas_phase,
+            values.moving_gas,
+            values.stationary_gas,
+            values.moving_free_gas,
+            values.stationary_free_gas,
         ]:
-            x *= 0.001
+            if x is not None:
+                x *= 0.001
 
 
 def calculate_co2(
@@ -1382,6 +1544,8 @@ def calculate_co2(
     calc_type: CalculationType,
     residual_trapping: bool = False,
     cirrus_info_file: Optional[str] = None,
+    find_stationary_gas: bool = False,
+    stationary_gas_n_years: int = 25,
 ) -> Co2Data:
     """
     Calculates the desired amount (calc_type_input) of CO2
@@ -1392,6 +1556,9 @@ def calculate_co2(
                                    actual_volume)
       residual_trapping (bool): Indicate if residual trapping should be calculated
       cirrus_info_file (Optional[str]): Path to cirrus info file
+      find_stationary_gas (bool): Calculate moving and stationary gas phases.
+      stationary_gas_n_years (int): Number of years to look back for the
+                                    moving/stationary gas comparison
 
     Returns:
       CO2Data
@@ -1405,6 +1572,8 @@ def calculate_co2(
         calc_type=calc_type,
         residual_trapping=residual_trapping,
         cirrus_info_file=cirrus_info_file,
+        find_stationary_gas=find_stationary_gas,
+        stationary_gas_n_years=stationary_gas_n_years,
     )
     timer.stop("calculate_co2")
     return co2_data

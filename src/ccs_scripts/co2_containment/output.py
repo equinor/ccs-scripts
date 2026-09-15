@@ -59,6 +59,15 @@ def _merge_date_rows(
         df_phases = list(pd.unique(data_frame["phase"]))
         df_phases = [name for name in df_phases if name not in ["all"]]
         phases = ["free_gas", "trapped_gas"] if residual_trapping else ["gas"]
+        # Add moving/stationary breakdown phases if they exist
+        if residual_trapping:
+            phases += ["moving_free_gas"] if "moving_free_gas" in df_phases else []
+            phases += (
+                ["stationary_free_gas"] if "stationary_free_gas" in df_phases else []
+            )
+        else:
+            phases += ["moving_gas"] if "moving_gas" in df_phases else []
+            phases += ["stationary_gas"] if "stationary_gas" in df_phases else []
         phases += ["dissolved_water"]
         phases += ["dissolved_oil"] if "dissolved_oil" in df_phases else []
         # Total by phase
@@ -133,6 +142,21 @@ def _log_summary_of_results(
                 f"{'End state gaseous':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
+            # Log moving/stationary breakdown if available
+            if "moving_gas" in list(df_subset["phase"]):
+                value = extract_amount(df_subset, "total", "moving_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'  - Moving gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
+            if "stationary_gas" in list(df_subset["phase"]):
+                value = extract_amount(df_subset, "total", "stationary_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'  - Stationary gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
         else:
             value = extract_amount(df_subset, "total", "free_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
@@ -140,6 +164,21 @@ def _log_summary_of_results(
                 f"{'End state free gas':<{col1}} : "
                 f"{value:{n}.1f}  ={percent:>5.1f} %"
             )
+            # Log moving/stationary breakdown if available
+            if "moving_free_gas" in list(df_subset["phase"]):
+                value = extract_amount(df_subset, "total", "moving_free_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'  - Moving free gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
+            if "stationary_free_gas" in list(df_subset["phase"]):
+                value = extract_amount(df_subset, "total", "stationary_free_gas")
+                percent = 100.0 * value / total if total > 0.0 else 0.0
+                logging.info(
+                    f"{'  - Stationary free gas':<{col1}} : "
+                    f"{value:{n}.1f}  ={percent:>5.1f} %"
+                )
             value = extract_amount(df_subset, "total", "trapped_gas")
             percent = 100.0 * value / total if total > 0.0 else 0.0
             logging.info(
@@ -428,6 +467,25 @@ def _prepare_writing_details(
     width = _find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     # Keep length of column names below <= 11 to be sure of no alignment issues
     phase_names = ["Free gas", "Trapped gas"] if residual_trapping else ["Gas"]
+    # Add moving/stationary breakdown phases if they exist
+    if residual_trapping:
+        phase_names += (
+            ["Mov.fr.gas"]
+            if any("moving_free_gas" in col for col in df.columns)
+            else []
+        )
+        phase_names += (
+            ["Stat.fr.gas"]
+            if any("stationary_free_gas" in col for col in df.columns)
+            else []
+        )
+    else:
+        phase_names += (
+            ["Moving gas"] if any("moving_gas" in col for col in df.columns) else []
+        )
+        phase_names += (
+            ["Stat. gas"] if any("stationary_gas" in col for col in df.columns) else []
+        )
     phase_names += ["Dis. water"]
     phase_names += (
         ["Dis. oil"] if any("dissolved_oil" in col for col in df.columns) else []

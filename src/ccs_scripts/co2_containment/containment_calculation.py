@@ -120,7 +120,7 @@ def _calculate_co2_containment(
     )
     timer.stop("make_location_filters")
     _log_summary_of_grid_node_location(locations)
-    phases = _lists_of_phases(calc_type, co2_data.scenario, residual_trapping)
+    phases = _lists_of_phases(calc_type, co2_data.scenario, residual_trapping, co2_data)
 
     # List of tuple with (zone/None, None/region, boolean array over grid)
     zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, int_to_region)
@@ -284,6 +284,7 @@ def _lists_of_phases(
     calc_type: CalculationType,
     scenario: Scenario,
     residual_trapping: Optional[bool] = False,
+    co2_data: Optional[Co2Data] = None,
 ) -> List[str]:
     """
     Returns a list of the relevant phases depending on calculation type and whether
@@ -293,7 +294,26 @@ def _lists_of_phases(
         phases = ["undefined"]
     else:
         phases = ["total", "dissolved_water"]
-        phases += ["trapped_gas", "free_gas"] if residual_trapping else ["gas"]
+        has_stationary_data = (
+            co2_data is not None
+            and len(co2_data.data_list) > 0
+            and co2_data.data_list[0].moving_gas is not None
+        )
+        has_stationary_free_gas_data = (
+            co2_data is not None
+            and len(co2_data.data_list) > 0
+            and co2_data.data_list[0].moving_free_gas is not None
+        )
+        if residual_trapping:
+            phases += ["trapped_gas", "free_gas"]
+            # Only add moving/stationary phases if they were calculated
+            if has_stationary_free_gas_data:
+                phases += ["moving_free_gas", "stationary_free_gas"]
+        else:
+            phases += ["gas"]
+            # Only add moving/stationary phases if they were calculated
+            if has_stationary_data:
+                phases += ["moving_gas", "stationary_gas"]
         phases += (
             ["dissolved_oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
         )
@@ -313,11 +333,22 @@ def _lists_of_co2_for_each_phase(
         arrays = [co2_at_date.volume_coverage]
     else:
         arrays = [co2_at_date.total_mass(), co2_at_date.dis_water_phase]
-        arrays += (
-            [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
-            if residual_trapping
-            else [co2_at_date.gas_phase]
-        )
+        if residual_trapping:
+            arrays += [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
+            # Only add moving/stationary free gas if they were calculated
+            if (
+                co2_at_date.moving_free_gas is not None
+                and co2_at_date.stationary_free_gas is not None
+            ):
+                arrays += [co2_at_date.moving_free_gas, co2_at_date.stationary_free_gas]
+        else:
+            arrays += [co2_at_date.gas_phase]
+            # Only add moving/stationary gas if they were calculated
+            if (
+                co2_at_date.moving_gas is not None
+                and co2_at_date.stationary_gas is not None
+            ):
+                arrays += [co2_at_date.moving_gas, co2_at_date.stationary_gas]
         arrays += [co2_at_date.dis_oil_phase]
     return arrays
 
