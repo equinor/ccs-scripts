@@ -356,8 +356,15 @@ def _process_args() -> argparse.Namespace:
     args.calc_type_input = args.calc_type_input.lower()
     if args.residual_trapping and args.calc_type_input == "cell_volume":
         args.residual_trapping = False
+    args.find_stationary_gas_disabled = False
+    if args.find_stationary_gas and args.calc_type_input != "mass":
+        args.find_stationary_gas_disabled = True
+        args.find_stationary_gas = False
     if args.stationary_gas_n_years == -1:
         args.stationary_gas_n_years = 25
+    elif args.stationary_gas_n_years <= 0:
+        error_text = "'stationary_gas_n_years' must be greater than zero."
+        raise InputError(format_error(error_text))
 
     if args.root_dir is None:
         p = pathlib.Path(args.case).parents
@@ -550,6 +557,12 @@ def _log_input_configuration(args: argparse.Namespace) -> None:
         f"{'Residual trapping':<{col1}} : "
         f"{'yes' if args.residual_trapping else 'no'}"
     )
+    if args.find_stationary_gas_disabled:
+        warning_text = (
+            "'--find_stationary_gas' is only implemented for the 'mass' "
+            f"calculation type, not '{args.calc_type_input}'."
+        )
+        logging.warning(format_warning(warning_text))
     logging.info(
         f"{'Find stationary gas':<{col1}} : "
         f"{'yes' if args.find_stationary_gas else 'no'}"
