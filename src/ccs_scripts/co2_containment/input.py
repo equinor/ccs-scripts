@@ -101,18 +101,16 @@ class GasSplitInfo:
         return ["gas"]
 
 
-def process_input() -> (
-    Tuple[
-        argparse.Namespace,
-        ZoneInfo,
-        RegionInfo,
-        CalculationType,
-        GasSplitInfo,
-        Optional[shapely.geometry.Polygon],
-        Optional[shapely.geometry.Polygon],
-        Optional[List[List[str]]],
-    ]
-):
+def process_input() -> Tuple[
+    argparse.Namespace,
+    ZoneInfo,
+    RegionInfo,
+    CalculationType,
+    GasSplitInfo,
+    Optional[shapely.geometry.Polygon],
+    Optional[shapely.geometry.Polygon],
+    Optional[List[List[str]]],
+]:
     """
     Process input arguments, check that they are valid, and log the provided
     input.

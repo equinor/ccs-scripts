@@ -100,7 +100,8 @@ def _calculate_co2_containment(
         int_to_region (List): List of region names
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
-        gas_split_info (GasSplitInfo): Information about how the gas is split into different phases
+        gas_split_info (GasSplitInfo): Information about how the gas is split into
+             different phases
         plume_groups (Optional[List[List[str]]]): Plume group per grid cell per date
 
     Returns:
@@ -444,7 +445,8 @@ def calculate_containment(
         calc_type (CalculationType): Choose mass / cell_volume / actual_volume
         int_to_zone (Optional[List[Optional[str]]]): List of zone names
         int_to_region (Optional[List[Optional[str]]]): List of region names
-        gas_split_info (GasSplitInfo): Information about gas splitting (residual trapping, stationary gas, etc.)
+        gas_split_info (GasSplitInfo): Information about gas splitting (residual
+                                       trapping, stationary gas, etc.)
         plume_groups (Optional[List[List[str]]]): Plume group per grid cell per date
 
     Returns:

@@ -15,7 +15,6 @@ from ccs_scripts.co2_containment.input import (
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_warning
 
-
 _LOG_PHASE_NAMES = {
     "gas": "gaseous",
     "moving_gas": "moving gas",
@@ -64,7 +63,8 @@ def _merge_date_rows(
         data_frame (pd.DataFrame): Input data frame
         calc_type (CalculationType): Choose mass / cell_volume /
             actual_volume from enum CalculationType
-        gas_split_info (GasSplitInfo): Information about gas split, including residual trapping
+        gas_split_info (GasSplitInfo): Information about gas split, including
+            residual trapping
 
     Returns:
         pd.DataFrame: Output data frame

@@ -9,7 +9,7 @@ import numpy as np
 import resfo
 import xtgeo
 
-from ccs_scripts.co2_containment.input import RegionInfo, ZoneInfo, GasSplitInfo
+from ccs_scripts.co2_containment.input import GasSplitInfo, RegionInfo, ZoneInfo
 from ccs_scripts.utils.gridproperty_tools import GridHandler
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
@@ -857,7 +857,8 @@ def extract_source_data(
         unrst_file (str): Path to UNRST-file
         zone_info (ZoneInfo): Zone information
         region_info (RegionInfo): Region information
-        gas_split_info (GasSplitInfo): Information about gas splitting, including residual trapping
+        gas_split_info (GasSplitInfo): Information about gas splitting, including
+                                       residual trapping
         init_file (Optional[str]): Path to INIT-file
         return_grid (bool): Whether to return the grid along with the source data
 

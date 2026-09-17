@@ -23,9 +23,9 @@ from ccs_scripts.co2_containment.co2_calculation import (
 )
 from ccs_scripts.co2_containment.input import (
     CalculationType,
+    GasSplitInfo,
     RegionInfo,
     ZoneInfo,
-    GasSplitInfo,
 )
 from ccs_scripts.co2_containment.source_data import extract_source_data
 from ccs_scripts.utils.timer import Timer
