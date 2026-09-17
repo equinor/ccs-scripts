@@ -11,7 +11,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     _calculate_co2_data_from_source_data,
 )
 from ccs_scripts.co2_containment.containment_calculation import calculate_containment
-from ccs_scripts.co2_containment.input import CalculationType, RegionInfo, ZoneInfo
+from ccs_scripts.co2_containment.input import CalculationType, RegionInfo, ZoneInfo, GasSplitInfo
 from ccs_scripts.co2_containment.output import extract_amount, sort_and_replace_nones
 from ccs_scripts.co2_containment.source_data import (
     RELEVANT_PROPERTIES,
@@ -95,6 +95,7 @@ def _calc_and_compare(poly, masses, poly_nogo=None):
         calc_type=CalculationType.MASS,
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
+        gas_split_info=GasSplitInfo(),
     )
     sort_and_replace_nones(contained)
     total_values = contained[
@@ -286,6 +287,7 @@ def test_reek_grid():
         calc_type=CalculationType.MASS,
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
+        gas_split_info=GasSplitInfo(),
     )
     sort_and_replace_nones(table)
     cs = ["total"] * 3 + ["contained"] + ["nogo"] * 2
@@ -312,6 +314,7 @@ def test_reek_grid():
         calc_type=CalculationType.ACTUAL_VOLUME,
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
+        gas_split_info=GasSplitInfo(),
     )
     sort_and_replace_nones(table2)
     amounts2 = [
@@ -342,7 +345,7 @@ def test_reek_grid():
     )
 
     masses_with_trapping = _calculate_co2_data_from_source_data(
-        source_data_with_trapping, CalculationType.MASS, residual_trapping=True
+        source_data_with_trapping, CalculationType.MASS, gas_split_info=GasSplitInfo(residual_trapping=True)
     )
     table3 = calculate_containment(
         co2_data=masses_with_trapping,
@@ -351,7 +354,7 @@ def test_reek_grid():
         calc_type=CalculationType.MASS,
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
-        residual_trapping=True,
+        gas_split_info=GasSplitInfo(residual_trapping=True),
     )
     sort_and_replace_nones(table3)
     cs3 = ["total"] * 4 + ["contained"] * 2 + ["nogo"] * 3
@@ -372,7 +375,7 @@ def test_reek_grid():
         assert extract_amount(table3, c, p, 0) == pytest.approx(amount)
 
     volumes_with_trapping = _calculate_co2_data_from_source_data(
-        source_data_with_trapping, CalculationType.ACTUAL_VOLUME, residual_trapping=True
+        source_data_with_trapping, CalculationType.ACTUAL_VOLUME, gas_split_info=GasSplitInfo(residual_trapping=True)
     )
     table4 = calculate_containment(
         co2_data=volumes_with_trapping,
@@ -381,7 +384,7 @@ def test_reek_grid():
         calc_type=CalculationType.ACTUAL_VOLUME,
         int_to_zone=zone_info.int_to_zone,
         int_to_region=region_info.int_to_region,
-        residual_trapping=True,
+        gas_split_info=GasSplitInfo(residual_trapping=True),
     )
     sort_and_replace_nones(table4)
     cs4 = ["total"] * 4 + ["contained"] * 2 + ["nogo"] * 3

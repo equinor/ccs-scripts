@@ -28,6 +28,7 @@ def main() -> None:
         zone_info,
         region_info,
         calc_type,
+        gas_split_info,
         cont_polygon,
         nogo_polygon,
         plume_groups,
@@ -38,16 +39,14 @@ def main() -> None:
         args.unrst,
         zone_info,
         region_info,
-        args.residual_trapping,
+        gas_split_info,
         args.init,
     )
     co2_data = calculate_co2(
         source_data,
         calc_type,
-        args.residual_trapping,
+        gas_split_info,
         args.cirrus_info_file,
-        args.find_stationary_gas,
-        args.stationary_gas_n_years,
     )
     containment_data = calculate_containment(
         co2_data,
@@ -56,7 +55,7 @@ def main() -> None:
         calc_type,
         zone_info.int_to_zone,
         region_info.int_to_region,
-        args.residual_trapping,
+        gas_split_info,
         plume_groups,
     )
     export_results(
@@ -65,7 +64,7 @@ def main() -> None:
         args.out_dir,
         zone_info.int_to_zone,
         region_info.int_to_region,
-        args.residual_trapping,
+        gas_split_info,
         args.readable_output,
     )
 

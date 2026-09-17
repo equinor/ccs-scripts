@@ -14,7 +14,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
     Co2DataAtTimeStep,
 )
-from ccs_scripts.co2_containment.input import CalculationType
+from ccs_scripts.co2_containment.input import CalculationType, GasSplitInfo
 from ccs_scripts.co2_containment.source_data import Scenario
 from ccs_scripts.utils.timer import Timer
 
@@ -81,7 +81,7 @@ def _calculate_co2_containment(
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
     calc_type: CalculationType,
-    residual_trapping: Optional[bool] = False,
+    gas_split_info: GasSplitInfo = GasSplitInfo(),
     plume_groups: Optional[List[List[str]]] = None,
 ) -> List[ContainedCo2]:
     """
@@ -100,7 +100,7 @@ def _calculate_co2_containment(
         int_to_region (List): List of region names
         calc_type (CalculationType): Which calculation is to be performed
              (mass / cell_volume / actual_volume)
-        residual_trapping (Optional[bool]): Should residual trapping be calculated
+        gas_split_info (GasSplitInfo): Information about how the gas is split into different phases
         plume_groups (Optional[List[List[str]]]): Plume group per grid cell per date
 
     Returns:
@@ -120,7 +120,7 @@ def _calculate_co2_containment(
     )
     timer.stop("make_location_filters")
     _log_summary_of_grid_node_location(locations)
-    phases = _lists_of_phases(calc_type, co2_data.scenario, residual_trapping, co2_data)
+    phases = _lists_of_phases(calc_type, co2_data.scenario, gas_split_info)
 
     # List of tuple with (zone/None, None/region, boolean array over grid)
     zone_region_info = _zone_and_region_mapping(co2_data, int_to_zone, int_to_region)
@@ -142,7 +142,7 @@ def _calculate_co2_containment(
         co2_amounts_for_each_phase = _lists_of_co2_for_each_phase(
             co2_at_timestep,
             calc_type,
-            residual_trapping,
+            gas_split_info,
         )
         if plume_groups is not None:
             timer.start("plume_group_mapping", "calculate_co2_containment")
@@ -283,8 +283,7 @@ def _log_summary_of_grid_node_location(locations: Dict) -> None:
 def _lists_of_phases(
     calc_type: CalculationType,
     scenario: Scenario,
-    residual_trapping: Optional[bool] = False,
-    co2_data: Optional[Co2Data] = None,
+    gas_split_info: GasSplitInfo,
 ) -> List[str]:
     """
     Returns a list of the relevant phases depending on calculation type and whether
@@ -293,27 +292,7 @@ def _lists_of_phases(
     if calc_type == CalculationType.CELL_VOLUME:
         phases = ["undefined"]
     else:
-        phases = ["total", "dissolved_water"]
-        has_stationary_data = (
-            co2_data is not None
-            and len(co2_data.data_list) > 0
-            and co2_data.data_list[0].moving_gas is not None
-        )
-        has_stationary_free_gas_data = (
-            co2_data is not None
-            and len(co2_data.data_list) > 0
-            and co2_data.data_list[0].moving_free_gas is not None
-        )
-        if residual_trapping:
-            phases += ["trapped_gas", "free_gas"]
-            # Only add moving/stationary phases if they were calculated
-            if has_stationary_free_gas_data:
-                phases += ["moving_free_gas", "stationary_free_gas"]
-        else:
-            phases += ["gas"]
-            # Only add moving/stationary phases if they were calculated
-            if has_stationary_data:
-                phases += ["moving_gas", "stationary_gas"]
+        phases = ["total", "dissolved_water"] + gas_split_info.gas_phases()
         phases += (
             ["dissolved_oil"] if scenario == Scenario.DEPLETED_OIL_GAS_FIELD else []
         )
@@ -323,7 +302,7 @@ def _lists_of_phases(
 def _lists_of_co2_for_each_phase(
     co2_at_date: Co2DataAtTimeStep,
     calc_type: CalculationType,
-    residual_trapping: Optional[bool] = False,
+    gas_split_info: GasSplitInfo,
 ) -> List[np.ndarray]:
     """
     Returns a list of the relevant arrays of different phases of co2 depending on
@@ -333,23 +312,24 @@ def _lists_of_co2_for_each_phase(
         arrays = [co2_at_date.volume_coverage]
     else:
         arrays = [co2_at_date.total_mass(), co2_at_date.dis_water_phase]
-        if residual_trapping:
-            arrays += [co2_at_date.trapped_gas_phase, co2_at_date.free_gas_phase]
-            # Only add moving/stationary free gas if they were calculated
-            if (
-                co2_at_date.moving_free_gas is not None
-                and co2_at_date.stationary_free_gas is not None
-            ):
-                arrays += [co2_at_date.moving_free_gas, co2_at_date.stationary_free_gas]
-        else:
-            arrays += [co2_at_date.gas_phase]
-            # Only add moving/stationary gas if they were calculated
-            if (
-                co2_at_date.moving_gas is not None
-                and co2_at_date.stationary_gas is not None
-            ):
-                arrays += [co2_at_date.moving_gas, co2_at_date.stationary_gas]
-        arrays += [co2_at_date.dis_oil_phase]
+        gas_arrays = {
+            "gas": co2_at_date.gas_phase,
+            "trapped_gas": co2_at_date.trapped_gas_phase,
+            "free_gas": co2_at_date.free_gas_phase,
+            "moving_gas": co2_at_date.moving_gas,
+            "stationary_gas": co2_at_date.stationary_gas,
+            "moving_free_gas": co2_at_date.moving_free_gas,
+            "stationary_free_gas": co2_at_date.stationary_free_gas,
+        }
+
+        for phase in gas_split_info.gas_phases():
+            phase_array = gas_arrays[phase]
+            if phase_array is None:
+                raise ValueError(
+                    f"Gas phase {phase!r} was requested but not calculated"
+                )
+            arrays.append(phase_array)
+        arrays.append(co2_at_date.dis_oil_phase)
     return arrays
 
 
@@ -449,7 +429,7 @@ def calculate_containment(
     calc_type: CalculationType,
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
-    residual_trapping: Optional[bool] = False,
+    gas_split_info: GasSplitInfo = GasSplitInfo(),
     plume_groups: Optional[List[List[str]]] = None,
 ) -> Union[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]]]:
     """
@@ -464,7 +444,7 @@ def calculate_containment(
         calc_type (CalculationType): Choose mass / cell_volume / actual_volume
         int_to_zone (Optional[List[Optional[str]]]): List of zone names
         int_to_region (Optional[List[Optional[str]]]): List of region names
-        residual_trapping (Optional[bool]): Should residual trapping be calculated
+        gas_split_info (GasSplitInfo): Information about gas splitting (residual trapping, stationary gas, etc.)
         plume_groups (Optional[List[List[str]]]): Plume group per grid cell per date
 
     Returns:
@@ -479,7 +459,7 @@ def calculate_containment(
         int_to_zone,
         int_to_region,
         calc_type,
-        residual_trapping,
+        gas_split_info,
         plume_groups,
     )
     containment_table = _construct_containment_table(contained_co2)

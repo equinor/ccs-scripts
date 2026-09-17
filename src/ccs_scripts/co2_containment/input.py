@@ -79,15 +79,40 @@ class CalculationType(Enum):
             raise ValueError(format_error(error_text))
 
 
-def process_input() -> Tuple[
-    argparse.Namespace,
-    ZoneInfo,
-    RegionInfo,
-    CalculationType,
-    Optional[shapely.geometry.Polygon],
-    Optional[shapely.geometry.Polygon],
-    Optional[List[List[str]]],
-]:
+@dataclass(frozen=True)
+class GasSplitInfo:
+    residual_trapping: bool = False
+    find_stationary_gas: bool = False
+    stationary_gas_n_years: int = 25
+
+    def gas_phases(self) -> List[str]:
+        if self.residual_trapping:
+            if self.find_stationary_gas:
+                return [
+                    "trapped_gas",
+                    "moving_free_gas",
+                    "stationary_free_gas",
+                ]
+            return ["trapped_gas", "free_gas"]
+
+        if self.find_stationary_gas:
+            return ["moving_gas", "stationary_gas"]
+
+        return ["gas"]
+
+
+def process_input() -> (
+    Tuple[
+        argparse.Namespace,
+        ZoneInfo,
+        RegionInfo,
+        CalculationType,
+        GasSplitInfo,
+        Optional[shapely.geometry.Polygon],
+        Optional[shapely.geometry.Polygon],
+        Optional[List[List[str]]],
+    ]
+):
     """
     Process input arguments, check that they are valid, and log the provided
     input.
@@ -111,6 +136,11 @@ def process_input() -> Tuple[
         zone_info.zranges = _process_zonefile_if_yaml(zone_info.source)
 
     calc_type = set_calc_type_from_input_string(args.calc_type_input)
+    gas_split_info = GasSplitInfo(
+        residual_trapping=args.residual_trapping,
+        find_stationary_gas=args.find_stationary_gas,
+        stationary_gas_n_years=args.stationary_gas_n_years,
+    )
 
     setup_log_configuration(args)
     _log_input_configuration(args)
@@ -130,6 +160,7 @@ def process_input() -> Tuple[
         zone_info,
         region_info,
         calc_type,
+        gas_split_info,
         cont_polygon,
         nogo_polygon,
         plume_groups,

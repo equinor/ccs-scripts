@@ -21,7 +21,12 @@ from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.co2_containment.co2_calculation import (
     calculate_co2,
 )
-from ccs_scripts.co2_containment.input import CalculationType, RegionInfo, ZoneInfo
+from ccs_scripts.co2_containment.input import (
+    CalculationType,
+    RegionInfo,
+    ZoneInfo,
+    GasSplitInfo,
+)
 from ccs_scripts.co2_containment.source_data import extract_source_data
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, format_warning
@@ -48,19 +53,20 @@ def generate_co2_mass_maps(config_: RootConfig):
         property_name=None,
     )
     logging.info("\nCalculate CO2 mass 3D grid")
+    gas_split_info = GasSplitInfo(residual_trapping=co2_mass_settings.residual_trapping)
     source_data, grid = extract_source_data(
         grid_file,
         co2_mass_settings.unrst_source,
         zone_info,
         region_info,
-        co2_mass_settings.residual_trapping,
+        gas_split_info,
         co2_mass_settings.init_source,
         return_grid=True,
     )
     co2_data = calculate_co2(
         source_data,
         CalculationType.MASS,
-        co2_mass_settings.residual_trapping,
+        gas_split_info,
         co2_mass_settings.cirrus_info_file,
     )
 

@@ -351,7 +351,9 @@ def extract_properties(
             names = (
                 "all"
                 if spec.name is None
-                else [spec.name] if isinstance(spec.name, str) else spec.name
+                else [spec.name]
+                if isinstance(spec.name, str)
+                else spec.name
             )
             with suppress_xtgeo_warning_by_message("Unknown simulator code"):
                 props = xtgeo.gridproperties_from_file(

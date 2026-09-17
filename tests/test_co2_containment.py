@@ -8,11 +8,14 @@ import shapely.geometry
 
 from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
+    Co2DataAtTimeStep,
     _calculate_co2_data_from_source_data,
 )
 from ccs_scripts.co2_containment.co2_containment import main
-from ccs_scripts.co2_containment.input import CalculationType
-from ccs_scripts.co2_containment.source_data import SourceData
+from ccs_scripts.co2_containment.containment_calculation import calculate_containment
+from ccs_scripts.co2_containment.input import CalculationType, GasSplitInfo
+from ccs_scripts.co2_containment.output import export_results
+from ccs_scripts.co2_containment.source_data import Scenario, SourceData
 
 REGION_PROPERTY = "FIPREG"
 
@@ -110,6 +113,101 @@ def _simple_poly():
             ]
         )
     )
+
+
+def _co2_data_with_all_gas_splits() -> Co2Data:
+    zero = np.zeros(1)
+    gas = np.full(1, 5.0)
+
+    timestep = Co2DataAtTimeStep(
+        date="20300101",
+        dis_water_phase=np.ones(1),
+        gas_phase=gas,
+        dis_oil_phase=zero,
+        volume_coverage=zero,
+        trapped_gas_phase=zero,
+        free_gas_phase=gas,
+        moving_gas=gas,
+        stationary_gas=zero,
+        moving_free_gas=gas,
+        stationary_free_gas=zero,
+    )
+    return Co2Data(
+        x_coord=zero,
+        y_coord=zero,
+        active_cells=np.ones((1, 1, 1), dtype=bool),
+        data_list=[timestep],
+        units="tons",
+        scenario=Scenario.AQUIFER,
+    )
+
+
+@pytest.mark.parametrize(
+    ("gas_split_info", "gas_phases", "zero_phases"),
+    [
+        (GasSplitInfo(), {"gas"}, set()),
+        (
+            GasSplitInfo(find_stationary_gas=True),
+            {"moving_gas", "stationary_gas"},
+            {"stationary_gas"},
+        ),
+        (
+            GasSplitInfo(residual_trapping=True),
+            {"trapped_gas", "free_gas"},
+            {"trapped_gas"},
+        ),
+        (
+            GasSplitInfo(residual_trapping=True, find_stationary_gas=True),
+            {"trapped_gas", "moving_free_gas", "stationary_free_gas"},
+            {"trapped_gas", "stationary_free_gas"},
+        ),
+    ],
+    ids=[
+        "gas",
+        "moving-stationary-gas",
+        "free-trapped-gas",
+        "moving-stationary-free-trapped-gas",
+    ],
+)
+def test_exported_mass_csv_has_disjoint_phases(
+    tmp_path: Path,
+    gas_split_info: GasSplitInfo,
+    gas_phases: set[str],
+    zero_phases: set[str],
+):
+    containment_data = calculate_containment(
+        co2_data=_co2_data_with_all_gas_splits(),
+        cont_polygon=shapely.geometry.box(-1, -1, 1, 1),
+        nogo_polygon=None,
+        calc_type=CalculationType.MASS,
+        int_to_zone=None,
+        int_to_region=None,
+        gas_split_info=gas_split_info,
+    )
+    export_results(
+        containment_data,
+        "mass",
+        str(tmp_path),
+        None,
+        None,
+        gas_split_info,
+        readable_output=False,
+    )
+
+    result = pandas.read_csv(tmp_path / "plume_mass.csv")
+
+    assert set(result["phase"]) == {
+        "total",
+        "dissolved_water",
+        *gas_phases,
+    }
+
+    # Every applicable phase is emitted for all four containment categories.
+    assert result.groupby("phase").size().eq(4).all()
+
+    # Applicable zero-valued phases are retained in the CSV.
+    for phase in zero_phases:
+        assert np.allclose(result.loc[result["phase"] == phase, "amount"], 0.0)
 
 
 def test_simple_cube_grid():

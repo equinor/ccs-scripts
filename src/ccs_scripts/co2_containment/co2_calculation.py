@@ -9,7 +9,7 @@ from typing import Dict, List, Literal, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from ccs_scripts.co2_containment.input import CalculationType
+from ccs_scripts.co2_containment.input import CalculationType, GasSplitInfo
 from ccs_scripts.co2_containment.source_data import (
     PROPERTIES_NEEDED_CIRRUS,
     PROPERTIES_NEEDED_ECLIPSE,
@@ -255,10 +255,12 @@ def _convert_phase_density_from_mass_to_mole(
     scenario: Scenario,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
 ):
-    water_avg_mol_weight, gas_avg_mol_weight, oil_avg_mol_weight = (
-        _compute_phases_avg_mol_weight(
-            source_data, comp_molar_masses, scenario, water_molar_mass
-        )
+    (
+        water_avg_mol_weight,
+        gas_avg_mol_weight,
+        oil_avg_mol_weight,
+    ) = _compute_phases_avg_mol_weight(
+        source_data, comp_molar_masses, scenario, water_molar_mass
     )
     dates = source_data.DATES
     dwat = source_data.DWAT
@@ -884,10 +886,8 @@ def _calculate_co2_data_from_source_data(
     calc_type: CalculationType,
     co2_molar_mass: float = DEFAULT_CO2_MOLAR_MASS,
     water_molar_mass: float = DEFAULT_WATER_MOLAR_MASS,
-    residual_trapping: bool = False,
+    gas_split_info: GasSplitInfo = GasSplitInfo(),
     cirrus_info_file: Optional[str] = None,
-    find_stationary_gas: bool = False,
-    stationary_gas_n_years: int = 25,
 ) -> Co2Data:
     """
     Calculates a given calc_type (mass/cell_volume/actual_volume)
@@ -900,12 +900,8 @@ def _calculate_co2_data_from_source_data(
                                      actual_volume)
         co2_molar_mass (float): CO2 molar mass - Default is 44 g/mol
         water_molar_mass (float): Water molar mass - Default is 18 g/mol
-        residual_trapping (bool): Indicate if residual trapping should be calculated
+        gas_split_info (GasSplitInfo): Information about gas splitting, including residual trapping
         cirrus_info_file (Optional[str]): Path to cirrus info file
-        find_stationary_gas (bool): Indicate if moving/stationary gas
-                                       should be calculated
-        stationary_gas_n_years (int): Number of years to look back for the
-                                      moving/stationary gas comparison
 
     Returns:
       Co2Data
@@ -917,7 +913,9 @@ def _calculate_co2_data_from_source_data(
         raise ValueError(format_error(error_text))
 
     pore_volume_prop = _find_pore_volume_prop(active_props)
-    source, scenario = _find_source_and_scenario(residual_trapping, active_props)
+    source, scenario = _find_source_and_scenario(
+        gas_split_info.residual_trapping, active_props
+    )
     gas_molar_mass = None
     oil_molar_mass = None
     comp_molar_masses = None
@@ -946,7 +944,7 @@ def _calculate_co2_data_from_source_data(
             source,
             scenario,
             calc_type,
-            residual_trapping,
+            gas_split_info,
             source_data,
             pore_volume_prop,
             co2_molar_mass,
@@ -954,8 +952,6 @@ def _calculate_co2_data_from_source_data(
             gas_molar_mass,
             oil_molar_mass,
             comp_molar_masses,
-            find_stationary_gas,
-            stationary_gas_n_years,
         )
     elif calc_type == CalculationType.CELL_VOLUME:
         co2_amount = _calc_co2_amount_cell_volume(scenario, source_data, active_props)
@@ -1163,7 +1159,7 @@ def _calc_co2_amount(
     source: str,
     scenario: Scenario,
     calc_type: CalculationType,
-    residual_trapping: bool,
+    gas_split_info: GasSplitInfo,
     source_data: SourceData,
     pore_volume_prop: str,
     co2_molar_mass: float,
@@ -1171,8 +1167,6 @@ def _calc_co2_amount(
     gas_molar_mass: Optional[float],
     oil_molar_mass: Optional[float],
     comp_molar_masses: Optional[Dict[str, Tuple[int, float]]],
-    find_stationary_gas: bool = False,
-    stationary_gas_n_years: int = 25,
 ) -> Co2Data:
     if source == "Cirrus":
         co2_mass_cell = _cirrus_co2mass(
@@ -1217,8 +1211,16 @@ def _calc_co2_amount(
                 value[1],
                 value[2],
                 np.zeros_like(value[0]),
-                (value[3] if residual_trapping else np.zeros_like(value[0])),
-                (value[4] if residual_trapping else np.zeros_like(value[0])),
+                (
+                    value[3]
+                    if gas_split_info.residual_trapping
+                    else np.zeros_like(value[0])
+                ),
+                (
+                    value[4]
+                    if gas_split_info.residual_trapping
+                    else np.zeros_like(value[0])
+                ),
             )
             for key, value in co2_mass_cell.items()
         ],
@@ -1230,7 +1232,7 @@ def _calc_co2_amount(
     if calc_type == CalculationType.MASS:
         # NB: only implemented for the MASS calculation type - the volume
         # ("m3") branch below does not populate moving/stationary gas.
-        if find_stationary_gas:
+        if gas_split_info.find_stationary_gas:
             phase_dict = {
                 ts.date: {
                     "dis_water": ts.dis_water_phase,
@@ -1244,10 +1246,12 @@ def _calc_co2_amount(
             phase_dict = _calculate_moved_stationary_co2(
                 phase_dict,
                 list(phase_dict.keys()),
-                stationary_gas_n_years,
-                use_free_gas=residual_trapping,
+                gas_split_info.stationary_gas_n_years,
+                use_free_gas=gas_split_info.residual_trapping,
             )
-            _, moving_key, stationary_key = _moving_stationary_keys(residual_trapping)
+            _, moving_key, stationary_key = _moving_stationary_keys(
+                gas_split_info.residual_trapping
+            )
             for ts in co2_mass_output.data_list:
                 setattr(ts, moving_key, phase_dict[ts.date][moving_key])
                 setattr(ts, stationary_key, phase_dict[ts.date][stationary_key])
@@ -1270,7 +1274,7 @@ def _calc_co2_amount(
                     co2_mass_output.data_list[t].gas_phase,
                     co2_mass_output.data_list[t].dis_oil_phase,
                 ]
-                if not residual_trapping
+                if not gas_split_info.residual_trapping
                 else [
                     co2_mass_output.data_list[t].dis_water_phase,
                     co2_mass_output.data_list[t].gas_phase,
@@ -1301,12 +1305,12 @@ def _calc_co2_amount(
                     np.zeros_like(np.array(vols_co2[t][0])),
                     (
                         np.array(vols_co2[t][3])
-                        if residual_trapping
+                        if gas_split_info.residual_trapping
                         else np.zeros_like(np.array(vols_co2[t][0]))
                     ),
                     (
                         np.array(vols_co2[t][4])
-                        if residual_trapping
+                        if gas_split_info.residual_trapping
                         else np.zeros_like(np.array(vols_co2[t][0]))
                     ),
                 )
@@ -1542,10 +1546,8 @@ def _convert_from_kg_to_tons(co2_mass_output: Co2Data):
 def calculate_co2(
     source_data: SourceData,
     calc_type: CalculationType,
-    residual_trapping: bool = False,
+    gas_split_info: GasSplitInfo = GasSplitInfo(),
     cirrus_info_file: Optional[str] = None,
-    find_stationary_gas: bool = False,
-    stationary_gas_n_years: int = 25,
 ) -> Co2Data:
     """
     Calculates the desired amount (calc_type_input) of CO2
@@ -1554,11 +1556,8 @@ def calculate_co2(
       source_data (SourceData): Extracted source data
       calc_type (CalculationType): Which amount is calculated (mass / cell_volume /
                                    actual_volume)
-      residual_trapping (bool): Indicate if residual trapping should be calculated
+      gas_split_info (GasSplitInfo): Information about gas splitting, including residual trapping
       cirrus_info_file (Optional[str]): Path to cirrus info file
-      find_stationary_gas (bool): Calculate moving and stationary gas phases.
-      stationary_gas_n_years (int): Number of years to look back for the
-                                    moving/stationary gas comparison
 
     Returns:
       CO2Data
@@ -1570,10 +1569,8 @@ def calculate_co2(
     co2_data = _calculate_co2_data_from_source_data(
         source_data,
         calc_type=calc_type,
-        residual_trapping=residual_trapping,
+        gas_split_info=gas_split_info,
         cirrus_info_file=cirrus_info_file,
-        find_stationary_gas=find_stationary_gas,
-        stationary_gas_n_years=stationary_gas_n_years,
     )
     timer.stop("calculate_co2")
     return co2_data

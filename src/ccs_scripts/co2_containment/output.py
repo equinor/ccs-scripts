@@ -9,14 +9,52 @@ import pandas as pd
 
 from ccs_scripts.co2_containment.input import (
     CalculationType,
+    GasSplitInfo,
     set_calc_type_from_input_string,
 )
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_warning
 
 
+_LOG_PHASE_NAMES = {
+    "gas": "gaseous",
+    "moving_gas": "moving gas",
+    "stationary_gas": "stationary gas",
+    "free_gas": "free gas",
+    "trapped_gas": "trapped gas",
+    "moving_free_gas": "moving free gas",
+    "stationary_free_gas": "stationary free gas",
+    "dissolved_water": "dissolved in water",
+    "dissolved_oil": "dissolved in oil",
+}
+
+_READABLE_PHASE_NAMES = {
+    "gas": "Gas",
+    "moving_gas": "Moving gas",
+    "stationary_gas": "Stat. gas",
+    "free_gas": "Free gas",
+    "trapped_gas": "Trapped gas",
+    "moving_free_gas": "Mov.fr.gas",
+    "stationary_free_gas": "Stat.fr.gas",
+    "dissolved_water": "Dis. water",
+    "dissolved_oil": "Dis. oil",
+}
+
+
+def _reported_phases(
+    gas_split_info: GasSplitInfo,
+    include_dissolved_oil: bool,
+) -> List[str]:
+    phases = [*gas_split_info.gas_phases(), "dissolved_water"]
+    if include_dissolved_oil:
+        phases.append("dissolved_oil")
+    return phases
+
+
 def _merge_date_rows(
-    data_frame: pd.DataFrame, calc_type: CalculationType, residual_trapping: bool
+    data_frame: pd.DataFrame,
+    calc_type: CalculationType,
+    gas_split_info: GasSplitInfo,
 ) -> pd.DataFrame:
     """
     Uses input dataframe to calculate various new columns and renames/merges
@@ -26,6 +64,7 @@ def _merge_date_rows(
         data_frame (pd.DataFrame): Input data frame
         calc_type (CalculationType): Choose mass / cell_volume /
             actual_volume from enum CalculationType
+        gas_split_info (GasSplitInfo): Information about gas split, including residual trapping
 
     Returns:
         pd.DataFrame: Output data frame
@@ -56,20 +95,11 @@ def _merge_date_rows(
             .drop(["phase", "containment"], axis=1)
             .rename(columns={"amount": "total"})
         )
-        df_phases = list(pd.unique(data_frame["phase"]))
-        df_phases = [name for name in df_phases if name not in ["all"]]
-        phases = ["free_gas", "trapped_gas"] if residual_trapping else ["gas"]
-        # Add moving/stationary breakdown phases if they exist
-        if residual_trapping:
-            phases += ["moving_free_gas"] if "moving_free_gas" in df_phases else []
-            phases += (
-                ["stationary_free_gas"] if "stationary_free_gas" in df_phases else []
-            )
-        else:
-            phases += ["moving_gas"] if "moving_gas" in df_phases else []
-            phases += ["stationary_gas"] if "stationary_gas" in df_phases else []
-        phases += ["dissolved_water"]
-        phases += ["dissolved_oil"] if "dissolved_oil" in df_phases else []
+        phase_values = set(data_frame["phase"])
+        phases = _reported_phases(
+            gas_split_info,
+            include_dissolved_oil="dissolved_oil" in phase_values,
+        )
         # Total by phase
         for phase in phases:
             _df = (
@@ -111,6 +141,7 @@ def _merge_date_rows(
 def _log_summary_of_results(
     df: pd.DataFrame,
     calc_type_input: str,
+    gas_split_info: GasSplitInfo,
 ) -> None:
     """
     Log a rough summary of the output
@@ -135,69 +166,15 @@ def _log_summary_of_results(
     logging.info(f"{'Last date':<{col1}} : {dfs['date'].iloc[-1]}")
     logging.info(f"{'End state total':<{col1}} : {total:{n}.1f}")
     if not cell_volume:
-        if "gas" in list(df_subset["phase"]):
-            value = extract_amount(df_subset, "total", "gas")
-            percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(
-                f"{'End state gaseous':<{col1}} : "
-                f"{value:{n}.1f}  ={percent:>5.1f} %"
-            )
-            # Log moving/stationary breakdown if available
-            if "moving_gas" in list(df_subset["phase"]):
-                value = extract_amount(df_subset, "total", "moving_gas")
-                percent = 100.0 * value / total if total > 0.0 else 0.0
-                logging.info(
-                    f"{'  - Moving gas':<{col1}} : "
-                    f"{value:{n}.1f}  ={percent:>5.1f} %"
-                )
-            if "stationary_gas" in list(df_subset["phase"]):
-                value = extract_amount(df_subset, "total", "stationary_gas")
-                percent = 100.0 * value / total if total > 0.0 else 0.0
-                logging.info(
-                    f"{'  - Stationary gas':<{col1}} : "
-                    f"{value:{n}.1f}  ={percent:>5.1f} %"
-                )
-        else:
-            value = extract_amount(df_subset, "total", "free_gas")
-            percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(
-                f"{'End state free gas':<{col1}} : "
-                f"{value:{n}.1f}  ={percent:>5.1f} %"
-            )
-            # Log moving/stationary breakdown if available
-            if "moving_free_gas" in list(df_subset["phase"]):
-                value = extract_amount(df_subset, "total", "moving_free_gas")
-                percent = 100.0 * value / total if total > 0.0 else 0.0
-                logging.info(
-                    f"{'  - Moving free gas':<{col1}} : "
-                    f"{value:{n}.1f}  ={percent:>5.1f} %"
-                )
-            if "stationary_free_gas" in list(df_subset["phase"]):
-                value = extract_amount(df_subset, "total", "stationary_free_gas")
-                percent = 100.0 * value / total if total > 0.0 else 0.0
-                logging.info(
-                    f"{'  - Stationary free gas':<{col1}} : "
-                    f"{value:{n}.1f}  ={percent:>5.1f} %"
-                )
-            value = extract_amount(df_subset, "total", "trapped_gas")
-            percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(
-                f"{'End state trapped gas':<{col1}} : "
-                f"{value:{n}.1f}  ={percent:>5.1f} %"
-            )
-        value = extract_amount(df_subset, "total", "dissolved_water")
-        percent = 100.0 * value / total if total > 0.0 else 0.0
-        logging.info(
-            f"{'End state dissolved in water':<{col1}} : "
-            f"{value:{n}.1f}  ={percent:>5.1f} %"
+        phases = _reported_phases(
+            gas_split_info,
+            include_dissolved_oil="dissolved_oil" in set(df_subset["phase"]),
         )
-        if "dissolved_oil" in list(df_subset["phase"]):
-            value = extract_amount(df_subset, "total", "dissolved_oil")
+        for phase in phases:
+            value = extract_amount(df_subset, "total", phase)
             percent = 100.0 * value / total if total > 0.0 else 0.0
-            logging.info(
-                f"{'End state dissolved in oil':<{col1}} : "
-                f"{value:{n}.1f}  ={percent:>5.1f} %"
-            )
+            heading = f"End state {_LOG_PHASE_NAMES[phase]}"
+            logging.info(f"{heading:<{col1}} : {value:{n}.1f}  ={percent:>5.1f} %")
     value = extract_amount(df_subset, "contained", "total", cell_volume)
     percent = 100.0 * value / total if total > 0.0 else 0.0
     logging.info(
@@ -277,7 +254,7 @@ def _convert_data_frame(
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
     calc_type_input: str,
-    residual_trapping: bool,
+    gas_split_info: GasSplitInfo,
 ) -> pd.DataFrame:
     """
     Convert output format to human-/Excel-readable state.
@@ -291,7 +268,7 @@ def _convert_data_frame(
             & (data_frame["plume_group"] == "all")
         ],
         calc_type,
-        residual_trapping,
+        gas_split_info,
     )
     total_df["zone"] = ["all"] * total_df.shape[0]
     total_df["region"] = ["all"] * total_df.shape[0]
@@ -306,7 +283,7 @@ def _convert_data_frame(
                     (data_frame["zone"] == z) & (data_frame["plume_group"] == "all")
                 ],
                 calc_type,
-                residual_trapping,
+                gas_split_info,
             )
             _df["zone"] = [z] * _df.shape[0]
             zone_df = pd.concat([zone_df, _df])
@@ -322,7 +299,7 @@ def _convert_data_frame(
                     (data_frame["region"] == r) & (data_frame["plume_group"] == "all")
                 ],
                 calc_type,
-                residual_trapping,
+                gas_split_info,
             )
             _df["region"] = [r] * _df.shape[0]
             region_df = pd.concat([region_df, _df])
@@ -341,7 +318,7 @@ def _convert_data_frame(
                     & (data_frame["region"] == "all")
                 ],
                 calc_type,
-                residual_trapping,
+                gas_split_info,
             )
             _df["plume_group"] = [p] * _df.shape[0]
             plume_groups_df = pd.concat([plume_groups_df, _df])
@@ -380,7 +357,7 @@ def _export_readable_output(
     int_to_region: Optional[List[Optional[str]]],
     out_dir: str,
     calc_type_input: str,
-    residual_trapping: bool,
+    gas_split_info: GasSplitInfo,
 ) -> None:
     """
     Exports the results to a more readable csv file than the standard output,
@@ -392,7 +369,7 @@ def _export_readable_output(
     file_path = os.path.join(out_dir, file_name)
     if os.path.isfile(file_path):
         logging.info(f"Output text file already exists. Overwriting: {file_path}")
-    df, details = _prepare_writing_details(df, calc_type_input, residual_trapping)
+    df, details = _prepare_writing_details(df, calc_type_input, gas_split_info)
 
     zones = []
     regions = []
@@ -449,7 +426,7 @@ def _find_width(num_decimals: int, max_value: Union[int, float]) -> int:
 def _prepare_writing_details(
     df: pd.DataFrame,
     calc_type: str,
-    residual_trapping: bool,
+    gas_split_info: GasSplitInfo,
 ) -> Tuple[pd.DataFrame, dict]:
     """
     Prepare headers and other information to be written in the summary file.
@@ -466,32 +443,17 @@ def _prepare_writing_details(
         df[column] /= 1e6
     width = _find_width(details["num_decimals"], np.nanmax(df[details["numeric"]]))
     # Keep length of column names below <= 11 to be sure of no alignment issues
-    phase_names = ["Free gas", "Trapped gas"] if residual_trapping else ["Gas"]
-    # Add moving/stationary breakdown phases if they exist
-    if residual_trapping:
-        phase_names += (
-            ["Mov.fr.gas"]
-            if any("moving_free_gas" in col for col in df.columns)
-            else []
-        )
-        phase_names += (
-            ["Stat.fr.gas"]
-            if any("stationary_free_gas" in col for col in df.columns)
-            else []
-        )
+    if calc_type == "cell_volume":
+        phase_names = []
     else:
-        phase_names += (
-            ["Moving gas"] if any("moving_gas" in col for col in df.columns) else []
+        phases = _reported_phases(
+            gas_split_info,
+            include_dissolved_oil="total_dissolved_oil" in df.columns,
         )
-        phase_names += (
-            ["Stat. gas"] if any("stationary_gas" in col for col in df.columns) else []
-        )
-    phase_names += ["Dis. water"]
-    phase_names += (
-        ["Dis. oil"] if any("dissolved_oil" in col for col in df.columns) else []
-    )
+        phase_names = [_READABLE_PHASE_NAMES[phase] for phase in phases]
+
+    n_phase = len(phase_names)
     phase = "," + ",".join(f"{name:>{width}}" for name in phase_names)
-    n_phase = 0 if calc_type == "cell_volume" else len(phase_names)
     details["num_phase"] = n_phase
     details["num_cols"] = 5 + 4 * n_phase
     details["blank"] = "," + " " * width
@@ -595,7 +557,7 @@ def export_results(
     out_dir: str,
     int_to_zone: Optional[List[Optional[str]]],
     int_to_region: Optional[List[Optional[str]]],
-    residual_trapping: bool,
+    gas_split_info: GasSplitInfo,
     readable_output: bool,
 ) -> None:
     """
@@ -604,7 +566,7 @@ def export_results(
     """
     timer = Timer()
     sort_and_replace_nones(containment_data)
-    _log_summary_of_results(containment_data, calc_type_input)
+    _log_summary_of_results(containment_data, calc_type_input, gas_split_info)
     timer.start("export_results")
     _export_output_to_csv(
         out_dir,
@@ -617,7 +579,7 @@ def export_results(
             int_to_zone,
             int_to_region,
             calc_type_input,
-            residual_trapping,
+            gas_split_info,
         )
         _export_readable_output(
             df_old_output,
@@ -625,6 +587,6 @@ def export_results(
             int_to_region,
             out_dir,
             calc_type_input,
-            residual_trapping,
+            gas_split_info,
         )
     timer.stop("export_results")
