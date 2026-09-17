@@ -182,7 +182,7 @@ def _log_input_configuration(input_path: str, output_path: str) -> None:
     log_input_banner(
         __file__,
         "Plume area calculations",
-        is_dev_version=True,
+        is_dev_version=False,
     )
 
     logging.info(f"\nInput path  : {input_path}")
