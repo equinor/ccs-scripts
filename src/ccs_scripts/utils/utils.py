@@ -71,7 +71,7 @@ def log_input_banner(
     is_dev_version: bool = True,
     col_width: int = 24,
 ) -> None:
-    version = "v0.16.0"  # NBNB: Fetch from version.py?
+    version = "v0.17.0"  # NBNB: Fetch from version.py?
     if is_dev_version:
         version += "_dev"
         try:

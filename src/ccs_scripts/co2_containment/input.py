@@ -556,7 +556,7 @@ def _log_input_configuration(args: argparse.Namespace) -> None:
     log_input_banner(
         __file__,
         "Containment calculations",
-        is_dev_version=False,
+        is_dev_version=True,
         col_width=col1,
     )
 
