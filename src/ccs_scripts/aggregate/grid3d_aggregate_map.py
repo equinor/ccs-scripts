@@ -11,7 +11,6 @@ import xtgeo
 from xtgeo.common import XTGeoDialog
 
 from ccs_scripts.aggregate import _config, _grid_aggregation
-from ccs_scripts.aggregate._co2_mass import MapName
 from ccs_scripts.aggregate._config import (
     AggregationMethod,
     ComputeSettings,
@@ -29,6 +28,9 @@ from ccs_scripts.aggregate._parser import (
 from ccs_scripts.aggregate._utils import log_input_configuration
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, format_warning
+from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
+
+setup_xtgeo_logging()
 
 _XTG = XTGeoDialog()
 
@@ -67,18 +69,6 @@ def _check_input(computesettings: ComputeSettings) -> None:
         raise Exception(format_error(error_text))
 
 
-def modify_mass_property_names(properties: List[xtgeo.GridProperty]):
-    if any("MASS" in p.name for p in properties):  # NBNB-AS: Can remove this check?
-        for p in properties:
-            if "MASS" in p.name:
-                parts = p.name.split("--")
-                mass_prop_name = parts[0]
-                p.name = f"{MapName[mass_prop_name].value}"
-                if len(parts) > 1:
-                    mass_prop_date = parts[1]
-                    p.name += f"--{mass_prop_date}"
-
-
 def _log_grid_info(grid: xtgeo.Grid) -> None:
     timer = Timer()
     timer.start("logging")
@@ -100,19 +90,28 @@ def _log_grid_info(grid: xtgeo.Grid) -> None:
 def _log_properties_info(properties: List[xtgeo.GridProperty]) -> None:
     timer = Timer()
     timer.start("logging")
+
+    name_width = 4
+    if properties:
+        name_width = max(
+            len(p.name.split("--")[0] if "--" in p.name else p.name) for p in properties
+        )
+    name_width = max(name_width, len("Name"))
+
     logging.info("\nProperties read from file:")  # NBNB-AS: Not always from file
     logging.info(
-        f"\n{'Name':<21} {'Date':>10} {'Mean':>10} {'Max':>10} "
+        f"\n{'Name':<{name_width}} {'Date':>10} {'Mean':>10} {'Max':>10} "
         f"{'n_values':>10} {'n_masked':>10}"
     )
-    logging.info("-" * 76)
+    separator_length = name_width + 10 + 10 + 10 + 10 + 10 + 5  # 5 for spaces
+    logging.info("-" * separator_length)
     for p in properties:
         n_values = p.values.count()
         name_stripped = p.name.split("--")[0] if "--" in p.name else p.name
         mean_val = f"{p.values.mean():.3f}" if n_values > 0 else "-"
         max_val = f"{p.values.max():.3f}" if n_values > 0 else "-"
         logging.info(
-            f"{name_stripped:<21} "
+            f"{name_stripped:<{name_width}} "
             f"{p.date if p.date is not None else '-':>10} "
             f"{mean_val:>10} "
             f"{max_val:>10} "
@@ -132,8 +131,10 @@ def _log_surfaces_exported(
     logging.info(f"\nDone exporting {len(surfs)} {map_type} maps")
     logging.info(f"  - {len(types):>2} types: {', '.join(types)}")
     logging.info(f"  - {len(zone_names):>2} zones: {', '.join(zone_names)}")
-    if len(categories[0]) == 3:  # No date for time migration maps
-        dates = list(set([v[2] for v in categories]))
+    dates = list(
+        set([v[2] for v in categories if len(v) > 2])
+    )  # Static properties don't have dates
+    if len(dates) > 0:
         dates.sort()
         logging.info(f"  - {len(dates):>2} dates: {', '.join(dates)}")
     timer.stop("logging")
@@ -145,6 +146,8 @@ def generate_maps(
     computesettings: ComputeSettings,
     map_settings: MapSettings,
     output: Output,
+    preloaded_properties: Optional[List[xtgeo.GridProperty]] = None,
+    preloaded_grid: Optional[xtgeo.Grid] = None,
 ):
     """
     Calculate and write aggregated property maps to file
@@ -153,16 +156,26 @@ def generate_maps(
     _check_input(computesettings)
     logging.info("\nReading grid, properties and zone(s)")
     timer.start("read_xtgeo_grid")
-    grid = xtgeo.grid_from_file(input_.grid)
+    if preloaded_grid is None:
+        grid = xtgeo.grid_from_file(input_.grid)
+    else:
+        grid = preloaded_grid
     timer.stop("read_xtgeo_grid")
     _log_grid_info(grid)
 
-    timer.start("extract_properties")
-    properties = extract_properties(input_.properties, grid, input_.dates)
-    timer.stop("extract_properties")
+    if preloaded_properties is None:
+        timer.start("extract_properties")
+        properties = extract_properties(input_.properties, grid, input_.dates)
+        timer.stop("extract_properties")
+    else:
+        properties = []
+        for _p in preloaded_properties:
+            _c = _p.copy()
+            _c.date, _c.name = _p.date, _p.name
+            properties.append(_c)
+        _apply_lower_thresholds(properties, input_.properties)
     _log_properties_info(properties)
 
-    modify_mass_property_names(properties)
     _filters: List[Tuple[str, Optional[Union[np.ndarray, None]]]] = []
     if computesettings.all:
         _filters.append(("all", None))
@@ -184,15 +197,29 @@ def generate_maps(
         create_map_template(map_settings),
         grid,
         properties,
-        [f[1] for f in _filters],
+        _filters,
         computesettings.aggregation,
         computesettings.weight_by_dz,
     )
     logging.info("\nDone calculating properties")
-    prop_tags = [
-        _property_tag(p.name, computesettings.aggregation, output.aggregation_tag)
-        for p in properties
-    ]
+    if preloaded_properties is None:
+        # Preserve legacy naming for standard aggregate flow
+        prop_tags = [
+            _property_tag(
+                p.name,
+                computesettings.aggregation,
+                output.aggregation_tag,
+            )
+            for p in properties
+        ]
+    else:
+        # In-memory CO2 mass path needs date in name to avoid overwriting
+        prop_tags = [
+            _property_tag(
+                _name_with_date(p), computesettings.aggregation, output.aggregation_tag
+            )
+            for p in properties
+        ]
     if computesettings.aggregate_map:
         surfs = _ndarray_to_regsurfs(
             [f[0] for f in _filters],
@@ -239,6 +266,18 @@ def _property_tag(prop: str, agg_method: AggregationMethod, agg_tag: bool):
     return f"{agg}{prop}"
 
 
+def _name_with_date(prop: xtgeo.GridProperty) -> str:
+    """
+    Ensure date is part of property tag used for output map names.
+    File-based extraction often embeds date in prop.name already, while
+    preloaded properties may carry date only in prop.date.
+    """
+    name = prop.name if prop.name is not None else "property"
+    if prop.date is not None and "--" not in name:
+        return f"{name}--{prop.date}"
+    return name
+
+
 # pylint: disable=too-many-arguments
 def _ndarray_to_regsurfs(
     filter_names: List[str],
@@ -276,18 +315,22 @@ def _deduce_surface_name(filter_name, property_name, lowercase):
 
 
 def _log_surfaces(surfaces: List[xtgeo.RegularSurface]):
+    name_width = max(len(s.name) for s in surfaces) if surfaces else 4
+    name_width = max(name_width, len("Name"))
+
     logging.info("\nSummary of calculated 2D maps:")
     logging.info(
-        f"\n{'Name':<40} {'Mean':>10} {'Max':>10} "
+        f"\n{'Name':<{name_width}} {'Mean':>10} {'Max':>10} "
         f"{'n_values':>10} {'n_pos':>10} {'n_masked':>10}"
     )
-    logging.info("-" * 95)
+    separator_length = name_width + 10 + 10 + 10 + 10 + 10 + 5  # 5 for spaces
+    logging.info("-" * separator_length)
     for s in surfaces:
         n_values = s.values.count()
         n_pos = np.sum(s.values > 1e-10) if n_values != 0 else 0
         mean_val = f"{s.values.mean():.3f}" if n_values > 0 else "-"
         max_val = f"{s.values.max():.3f}" if n_values > 0 else "-"
-        txt = f"{s.name:<40} {mean_val:>10} {max_val:>10} "
+        txt = f"{s.name:<{name_width}} {mean_val:>10} {max_val:>10} "
         txt += f"{n_values:>10} {n_pos:>10} {np.ma.count_masked(s.values):>10}"
         if "all" in s.name:
             logging.info(txt)
@@ -349,6 +392,24 @@ def generate_from_config(config: _config.RootConfig):
         config.mapsettings,
         config.output,
     )
+
+
+def _apply_lower_thresholds(
+    properties: List[xtgeo.GridProperty],
+    property_spec: Optional[List[_config.Property]],
+) -> None:
+    """
+    Apply lower-threshold masking on already-loaded properties.
+    Mirrors logic in _parser.extract_properties.
+    """
+    if property_spec is None:
+        return
+    for spec, prop in zip(property_spec, properties):
+        if spec.lower_threshold is None:
+            continue
+        if not isinstance(prop.values.mask, np.ndarray):
+            prop.values.mask = np.asarray(prop.values.mask)
+        prop.values.mask[np.abs(prop.values) < spec.lower_threshold] = True
 
 
 def _distribute_config_property(

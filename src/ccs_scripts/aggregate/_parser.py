@@ -26,19 +26,23 @@ from ccs_scripts.aggregate._config import (
     Zonation,
     ZProperty,
 )
-from ccs_scripts.co2_containment.co2_containment import str_to_bool
-from ccs_scripts.utils.utils import format_error, format_warning
+from ccs_scripts.utils.utils import (
+    format_error,
+    format_warning,
+    replace_default_ert_dummies,
+    setup_log_configuration,
+    str_to_bool,
+)
+from ccs_scripts.utils.xtgeo_logging import (
+    setup_xtgeo_logging,
+    suppress_xtgeo_warning_by_message,
+)
 
 # Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
 warnings.filterwarnings("ignore", "EGrid file given with numres < 1", UserWarning)
 warnings.filterwarnings("ignore", "Unknown simulator code -1", UserWarning)
 
-# Temp suppress these warnings. Can remove if input data or xtgeo behaviour changes
-warnings.filterwarnings("ignore", "EGrid file given with numres < 1", UserWarning)
-warnings.filterwarnings("ignore", "Unknown simulator code -1", UserWarning)
-
-xtgeo_logger = logging.getLogger("xtgeo")
-xtgeo_logger.setLevel(logging.WARNING)
+setup_xtgeo_logging()
 
 
 def parse_arguments(arguments, map_type: str):
@@ -117,29 +121,9 @@ def parse_arguments(arguments, map_type: str):
             "--cirrus_info_file",
             help="Path to Cirrus info file. Relevant for COMP3/4",
             default=None,
-            metavar="<CIRRUSINFOFILE>",
+            metavar="<CIRRUS_INFO_FILE>",
         )
     return parser.parse_args(arguments)
-
-
-def _replace_default_dummies_from_ert(args, map_type: str):
-    if args.eclroot == "-1":
-        args.eclroot = None
-    if args.mapfolder == "-1":
-        args.mapfolder = None
-    if args.plotfolder == "-1":
-        args.plotfolder = None
-    if args.folderroot == "-1":
-        args.folderroot = None
-    if args.no_logging == "-1":
-        args.no_logging = False
-    if args.debug == "-1":
-        args.debug = False
-    if map_type == "co2_mass":
-        if args.gridfolder == "-1":
-            args.gridfolder = None
-        if args.cirrus_info_file == "-1":
-            args.cirrus_info_file = None
 
 
 def process_arguments(arguments, map_type: str) -> RootConfig:
@@ -148,19 +132,21 @@ def process_arguments(arguments, map_type: str) -> RootConfig:
     in the `RootConfig` class
     """
     parsed_args = parse_arguments(arguments, map_type)
-    _replace_default_dummies_from_ert(parsed_args, map_type)
+    none_list = ["eclroot", "mapfolder", "plotfolder", "folderroot"]
+    if map_type == "co2_mass":
+        none_list += ["gridfolder", "cirrus_info_file"]
+    replace_default_ert_dummies(
+        parsed_args,
+        false_list=["no_logging", "debug"],
+        none_list=none_list,
+    )
     replacements = {}
     if parsed_args.eclroot is not None:
         replacements["eclroot"] = parsed_args.eclroot
     if parsed_args.folderroot is not None:
         replacements["folderroot"] = parsed_args.folderroot
 
-    if parsed_args.debug:
-        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
-    elif parsed_args.no_logging:
-        logging.basicConfig(format="%(message)s", level=logging.WARNING)
-    else:
-        logging.basicConfig(format="%(message)s", level=logging.INFO)
+    setup_log_configuration(parsed_args)
 
     if map_type == "aggregate":
         config_file = getattr(parsed_args, "config_aggregate")
@@ -355,6 +341,11 @@ def extract_properties(
     properties: List[xtgeo.GridProperty] = []
     if property_spec is None:
         return properties
+    # If property reading becomes a performance bottleneck, consider using
+    # GridHandler for faster reading. GridHandler is currently best suited
+    # for an EGRID/UNRST pair of files, so some adjustment to GridHandler
+    # is necessary to better handle properties in multiple files that are
+    # all related to the same grid.
     for spec in property_spec:
         try:
             names = (
@@ -362,14 +353,16 @@ def extract_properties(
                 if spec.name is None
                 else [spec.name] if isinstance(spec.name, str) else spec.name
             )
-            props = xtgeo.gridproperties_from_file(
-                spec.source,
-                names=names,
-                grid=grid,
-                dates=dates or "all",
-            ).props
+            with suppress_xtgeo_warning_by_message("Unknown simulator code"):
+                props = xtgeo.gridproperties_from_file(
+                    spec.source,
+                    names=names,
+                    grid=grid,
+                    dates=dates or "all",
+                ).props
         except (RuntimeError, ValueError):
-            props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
+            with suppress_xtgeo_warning_by_message("Unknown simulator code"):
+                props = [xtgeo.gridproperty_from_file(spec.source, name=spec.name)]
         if mask_low_values and spec.lower_threshold is not None:
             for prop in props:
                 if not isinstance(prop.values.mask, np.ndarray):

@@ -1,0 +1,32 @@
+dimens
+100 100 10 
+
+tops
+10000*2500.0 /
+
+dx
+100000*100
+
+dy
+100000*100
+
+dz
+100000*20
+
+external_file dep_gas_perm.inc
+
+external_file dep_gas_poro.inc
+
+carfin
+  rfin 15 18 19 22 4 5 8 8 4/
+endfin
+
+carfin
+  rfin_well 70 79 70 79 1 10 40 20 20/
+endfin
+
+
+
+dpcf
+0.5 3
+

@@ -1,0 +1,8 @@
+﻿Mnemonic  , Value   , Units   , Description
+VERSION   ,    2.0.2,         , Cirrus version
+MWG       ,16.04, gm/mol  , Gas molecular weight
+SDG       ,0.971, Kg/sm3  , Gas surface density
+MWS       ,44.01, gm/mol  , Solvent molecular weight
+SDS       ,1.98, Kg/sm3  , Solvent surface density
+MWB       ,18.015, gm/mol  , Brine molecular weight
+SDB       ,996.957, Kg/sm3  , Brine surface density

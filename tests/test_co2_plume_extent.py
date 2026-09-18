@@ -5,24 +5,24 @@ import numpy as np
 import pandas
 import pytest
 
-from ccs_scripts.co2_plume_extent.co2_plume_extent import (
+from ccs_scripts.co2_plume_extent.co2_plume_extent import main
+from ccs_scripts.co2_plume_extent.compute import calculate_distances
+from ccs_scripts.co2_plume_extent.config import (
     Configuration,
     LineDirection,
-    _calculate_well_coordinates,
-    _collect_results_into_dataframe,
-    calculate_distances,
-    main,
+    calculate_well_coordinates,
 )
+from ccs_scripts.co2_plume_extent.output import _collect_results_into_dataframe
 
 
 def test_calculate_well_coordinates():
     well_picks_path = str(
         Path(__file__).parents[1] / "tests" / "testdata_co2_plume" / "well_picks.csv"
     )
-    x1, y1 = _calculate_well_coordinates("dummmy", "well1", well_picks_path)
+    x1, y1 = calculate_well_coordinates("dummmy", "well1", well_picks_path)
     assert x1 == pytest.approx(4050.0)
     assert y1 == pytest.approx(4050.0)
-    x2, y2 = _calculate_well_coordinates("dummmy", "well2", well_picks_path)
+    x2, y2 = calculate_well_coordinates("dummmy", "well2", well_picks_path)
     assert x2 == pytest.approx(3000.0)
     assert y2 == pytest.approx(3000.0)
 

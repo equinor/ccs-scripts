@@ -10,14 +10,14 @@ import xtgeo
 
 from ccs_scripts.aggregate._config import AggregationMethod
 from ccs_scripts.utils.timer import Timer
-from ccs_scripts.utils.utils import format_error
+from ccs_scripts.utils.utils import format_error, format_warning
 
 
 def aggregate_maps(
     map_template: Union[xtgeo.RegularSurface, float],
     grid: xtgeo.Grid,
     grid_props: List[xtgeo.GridProperty],
-    inclusion_filters: List[Optional[np.ndarray]],
+    filters: List[Tuple[str, Optional[np.ndarray]]],
     method: AggregationMethod,
     weight_by_dz: bool,
 ) -> Tuple[np.ndarray, np.ndarray, List[List[np.ndarray]]]:
@@ -30,8 +30,8 @@ def aggregate_maps(
             map bounds and resolution from the grid.
         grid: The 3D grid
         grid_props: List of the grid properties to be aggregated
-        inclusion_filters: List containing the grid cell filters. A filter is defined by
-            either a numpy array or `None`. If a numpy array is used, it must be a
+        filters: List of tuples (filter_name, inclusion_filter). Each inclusion_filter
+            is either a numpy array or `None`. If a numpy array is used, it must be a
             boolean 1D array representing which cells (among the active cells) that are
             to be included. A `1` indicates inclusion. If `None` is provided, all of the
             grid cells are included.
@@ -41,12 +41,14 @@ def aggregate_maps(
             method is MIN or MAX
 
     Returns:
-        Doubly nested list of maps. The first index corresponds to `ìnclusion_filters`,
+        Doubly nested list of maps. The first index corresponds to `filters`,
         and the second index to `grid_props`.
     """
     # pylint: disable=too-many-arguments
     timer = Timer()
     timer.start("aggregate_maps")
+    filter_names = [f[0] for f in filters]
+    inclusion_filters = [f[1] for f in filters]
     props, active_cells, inclusion_filters = _read_properties_and_find_active_cells(
         grid, grid_props, inclusion_filters
     )
@@ -65,6 +67,19 @@ def aggregate_maps(
         method,
         conn_data,
     )
+
+    if method in [AggregationMethod.SUM, AggregationMethod.DISTRIBUTE]:
+        prop_names = [p.name for p in grid_props]
+        _check_cell_coverage(
+            props,
+            inclusion_filters,
+            conn_data,
+            prop_names,
+            filter_names,
+            grid,
+            active_cells,
+        )
+
     timer.stop("aggregate_maps")
     return conn_data.x_nodes, conn_data.y_nodes, results
 
@@ -107,6 +122,207 @@ class _ConnectionData:
     y_nodes: np.ndarray
     node_indices: np.ndarray
     grid_indices: np.ndarray
+
+
+def _check_cell_coverage(
+    props: List[np.ma.MaskedArray],
+    inclusion_filters: List[Optional[np.ndarray]],
+    conn_data: _ConnectionData,
+    prop_names: List[str],
+    filter_names: Optional[List[str]] = None,
+    grid: Optional[xtgeo.Grid] = None,
+    active_cells: Optional[np.ndarray] = None,
+) -> None:
+    """
+    Check if all valid (non-masked) grid cells are included in
+    the aggregation. Warns if significant values are lost, and
+    reports the worst affected property. Distinguishes between
+    cells outside map extent vs cells within extent but unmapped.
+
+    Args:
+        props: List of properties (after filtering for active cells)
+        inclusion_filters: List of inclusion filters
+        conn_data: Connection data between grid and map nodes
+        prop_names: List of property names for better reporting
+        filter_names: Names of the filters (e.g., zone names) for better reporting
+        grid: The 3D grid (for getting cell coordinates)
+        active_cells: Boolean array of active cells
+    """
+    logging.info(
+        "\nChecking cell coverage for aggregation with SUM or DISTRIBUTE method."
+    )
+
+    # Get cell centers if grid is provided
+    cell_centers_xy = None
+    if grid is not None and active_cells is not None:
+        cell_centers = grid.get_xyz()
+        cell_x = cell_centers[0].values1d[active_cells]
+        cell_y = cell_centers[1].values1d[active_cells]
+        cell_centers_xy = np.column_stack((cell_x, cell_y))
+
+    # Determine map extent
+    map_x_min, map_x_max = conn_data.x_nodes.min(), conn_data.x_nodes.max()
+    map_y_min, map_y_max = conn_data.y_nodes.min(), conn_data.y_nodes.max()
+    # Add half pixel buffer
+    x_inc = (
+        conn_data.x_nodes[1] - conn_data.x_nodes[0] if len(conn_data.x_nodes) > 1 else 0
+    )
+    y_inc = (
+        conn_data.y_nodes[1] - conn_data.y_nodes[0] if len(conn_data.y_nodes) > 1 else 0
+    )
+    map_x_min -= x_inc / 2
+    map_x_max += x_inc / 2
+    map_y_min -= y_inc / 2
+    map_y_max += y_inc / 2
+
+    for filter_idx, incl in enumerate(inclusion_filters):
+        grd_ix = conn_data.grid_indices
+
+        if incl is not None:
+            to_remove = ~np.isin(grd_ix, np.argwhere(incl).flatten())
+            grd_ix = grd_ix[~to_remove]
+        unique_mapped_cells = np.unique(grd_ix)
+
+        # Find cells with ANY valid data across all properties
+        any_valid_cells = np.zeros(len(props[0]), dtype=bool)
+        for prop in props:
+            if hasattr(prop, "mask"):
+                valid_cells = ~prop.mask
+            else:
+                valid_cells = np.ones(len(prop), dtype=bool)
+            if incl is not None:
+                valid_cells = valid_cells & incl
+            any_valid_cells |= valid_cells
+        total_cells_with_data = np.sum(any_valid_cells)
+
+        if total_cells_with_data == 0:
+            continue
+
+        # Find unmapped cells:
+        cell_indices_with_data = np.argwhere(any_valid_cells).flatten()
+        unmapped_cell_indices = np.setdiff1d(
+            cell_indices_with_data, unique_mapped_cells
+        )
+
+        # Split unmapped cells into those inside vs outside map extent
+        unmapped_inside = unmapped_cell_indices
+        unmapped_outside = np.array([], dtype=int)
+
+        if cell_centers_xy is not None and len(unmapped_cell_indices) > 0:
+            unmapped_coords = cell_centers_xy[unmapped_cell_indices]
+            inside_extent = (
+                (unmapped_coords[:, 0] >= map_x_min)
+                & (unmapped_coords[:, 0] <= map_x_max)
+                & (unmapped_coords[:, 1] >= map_y_min)
+                & (unmapped_coords[:, 1] <= map_y_max)
+            )
+            unmapped_inside = unmapped_cell_indices[inside_extent]
+            unmapped_outside = unmapped_cell_indices[~inside_extent]
+
+        num_unmapped = len(unmapped_cell_indices)
+        num_unmapped_inside = len(unmapped_inside)
+        num_unmapped_outside = len(unmapped_outside)
+        percentage_unmapped = (num_unmapped / total_cells_with_data) * 100.0
+
+        if filter_names is not None and filter_idx < len(filter_names):
+            filter_name = filter_names[filter_idx]
+        else:
+            filter_name = (
+                f"filter_{filter_idx}" if len(inclusion_filters) > 1 else "all"
+            )
+
+        if num_unmapped == 0:
+            logging.info(f"Cell coverage for '{filter_name}': all cells mapped")
+            continue
+
+        percentage_inside = (num_unmapped_inside / total_cells_with_data) * 100.0
+        percentage_outside = (num_unmapped_outside / total_cells_with_data) * 100.0
+
+        # Find the property with the highest lost value for each category
+        def _find_worst_property(cell_indices):
+            if len(cell_indices) == 0:
+                return None
+            worst = None
+            for prop_idx, prop in enumerate(props):
+                if hasattr(prop, "mask"):
+                    valid = ~prop.mask[cell_indices]
+                else:
+                    valid = np.ones(len(cell_indices), dtype=bool)
+                if not np.any(valid):
+                    continue
+                lost_val = np.sum(prop[cell_indices][valid])
+                total_val = (
+                    np.sum(prop[~prop.mask]) if hasattr(prop, "mask") else np.sum(prop)
+                )
+                lost_pct = (lost_val / total_val * 100.0) if total_val != 0 else 0.0
+                name = (
+                    prop_names[prop_idx]
+                    if prop_idx < len(prop_names)
+                    else f"property_{prop_idx}"
+                )
+                if worst is None or abs(lost_val) > abs(worst[1]):
+                    worst = (name, lost_val, lost_pct)
+            return worst
+
+        worst_res = _find_worst_property(unmapped_inside)
+        worst_ext = _find_worst_property(unmapped_outside)
+
+        # Determine worst lost percentage across both categories
+        worst_lost_pct = 0.0
+        if worst_res is not None:
+            worst_lost_pct = max(worst_lost_pct, abs(worst_res[2]))
+        if worst_ext is not None:
+            worst_lost_pct = max(worst_lost_pct, abs(worst_ext[2]))
+
+        lost_value_threshold = 1.0  # percent of total value
+
+        if worst_lost_pct < lost_value_threshold:
+            logging.info(
+                f"Cell coverage for '{filter_name}': "
+                f"{percentage_unmapped:.2f}% of cells "
+                f"({num_unmapped}/{total_cells_with_data}) are "
+                f"unmapped, but worst lost value is only "
+                f"{worst_lost_pct:.3f}% of total"
+            )
+        else:
+            warning_text = (
+                f"\nWARNING: {percentage_unmapped:.2f}% of grid cells with data "
+                f"({num_unmapped}/{total_cells_with_data}) are not used in the "
+                f"aggregation for '{filter_name}'."
+                f"\n         Due to map resolution : {percentage_inside:.2f}% "
+                f"({num_unmapped_inside} cells within extent but between pixels)"
+                f"\n         Due to map extent     : {percentage_outside:.2f}% "
+                f"({num_unmapped_outside} cells outside the map boundaries)"
+            )
+            if num_unmapped_inside > 0 and num_unmapped_outside > 0:
+                warning_text += (
+                    "\n         Consider both finer resolution"
+                    " and extending map extent."
+                )
+            elif num_unmapped_inside > 0:
+                warning_text += (
+                    "\n         Consider using a finer map"
+                    " resolution (smaller pixel size)."
+                )
+            elif num_unmapped_outside > 0:
+                warning_text += (
+                    "\n         Consider extending the map"
+                    " extent or using automatic bounds."
+                )
+            logging.warning(format_warning(warning_text))
+
+            if worst_res is not None or worst_ext is not None:
+                logging.warning("         Worst affected property per category:")
+            if worst_res is not None:
+                logging.warning(
+                    f"           Resolution : {worst_res[0]} "
+                    f"(lost {worst_res[1]:.2f}, {worst_res[2]:.2f}% of total)"
+                )
+            if worst_ext is not None:
+                logging.warning(
+                    f"           Extent     : {worst_ext[0]} "
+                    f"(lost {worst_ext[1]:.2f}, {worst_ext[2]:.2f}% of total)"
+                )
 
 
 def _find_connections(

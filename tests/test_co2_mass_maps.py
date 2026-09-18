@@ -2,7 +2,8 @@ import os
 import shutil
 from pathlib import Path
 
-from resdata.resfile import FortIO, ResdataFile, openFortIO
+import numpy as np
+import resfo
 
 from ccs_scripts.aggregate import grid3d_co2_mass_map
 
@@ -20,17 +21,32 @@ def adapt_reek_grid_for_co2_mass_map_test():
         / "model"
         / "2_R001_REEK-0.UNRST"
     )
-    properties = ResdataFile(str(reek_unrstfile))
-    SGAS = properties["SGAS"]
-    AMFG = []
-    YMFG = []
-    DGAS = []
-    DWAT = []
-    for x in SGAS:
-        AMFG.append(x.copy())
-        YMFG.append(x.copy())
-        DGAS.append(x.copy())
-        DWAT.append(x.copy())
+    records = resfo.read(reek_unrstfile)
+    sgas_values = [
+        np.asarray(values) for keyword, values in records if keyword.strip() == "SGAS"
+    ]
+
+    patched_records = []
+    report_index = 0
+
+    for keyword, values in records:
+        patched_records.append((keyword, values))
+
+        if keyword.strip() == "SEQNUM":
+            sgas = sgas_values[report_index]
+            patched_records.extend(
+                [
+                    ("AMFG    ", sgas * np.float32(0.02)),
+                    ("YMFG    ", np.full_like(sgas, 0.99)),
+                    ("DGAS    ", np.full_like(sgas, 100)),
+                    ("DWAT    ", np.full_like(sgas, 1000)),
+                ]
+            )
+            report_index += 1
+
+    # The auxilliary properties needs to be written to the correct seqnum section
+    # of the file, so we re-write the entire unrst file, and inject the properties
+    # at the correct place.
     new_unrst_file = str(
         Path(__file__).absolute().parent
         / "data"
@@ -39,32 +55,7 @@ def adapt_reek_grid_for_co2_mass_map_test():
         / "model"
         / "2_R001_REEK-0-mass-maps.UNRST"
     )
-    shutil.copy(str(reek_unrstfile), new_unrst_file)
-    with openFortIO(new_unrst_file, mode=FortIO.APPEND_MODE) as f:
-        for y in AMFG:
-            y.name = "AMFG"
-            a = y.numpy_view()
-            for i in range(0, len(a)):
-                a[i] = a[i] * 0.02
-            y.fwrite(f)
-        for y in YMFG:
-            y.name = "YMFG"
-            a = y.numpy_view()
-            for i in range(0, len(a)):
-                a[i] = 0.99
-            y.fwrite(f)
-        for y in DGAS:
-            y.name = "DGAS"
-            a = y.numpy_view()
-            for i in range(0, len(a)):
-                a[i] = 100
-            y.fwrite(f)
-        for y in DWAT:
-            y.name = "DWAT"
-            a = y.numpy_view()
-            for i in range(0, len(a)):
-                a[i] = 1000
-            y.fwrite(f)
+    resfo.write(new_unrst_file, patched_records)
 
 
 def test_co2_mass_map_reek_grid():
@@ -85,6 +76,8 @@ def test_co2_mass_map_reek_grid():
             ),
             "--mapfolder",
             str(result),
+            "--gridfolder",
+            f"{str(result)}/3d",
         ]
     )
     dissolved_co2_file = (
@@ -139,6 +132,8 @@ def test_co2_mass_map_residual_trapping_cirrus():
             ),
             "--mapfolder",
             str(result),
+            "--gridfolder",
+            f"{str(result)}/3d",
         ]
     )
     free_gas_co2_file = (
@@ -156,7 +151,7 @@ def test_co2_mass_map_residual_trapping_cirrus():
     total_co2_file = (
         Path(__file__).absolute().parent
         / "answers"
-        / "mass_maps"
+        / "mass_map"
         / "all--co2_mass_total--23000101.gri"
     )
     assert free_gas_co2_file.exists()

@@ -1,15 +1,80 @@
 import itertools
 import logging
-from dataclasses import dataclass
+import sys
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from functools import cached_property
+from typing import Any, Dict, List, Optional
 
-from resdata.grid import Grid
+import numpy as np
+import resdata.grid
+import xtgeo
 
 from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import format_error, read_yaml_file
 
+DEFAULT_THRESHOLD_GAS = 0.2
+DEFAULT_THRESHOLD_DISSOLVED = 0.0005
 MAX_STEPS_RESOLVE_CELLS = 20
 MAX_NEAREST_GROUPS_SEARCH_DISTANCE = 3
+
+
+@dataclass
+class GridData:
+    """Pre-computed grid lookup arrays (C-order / xtgeo convention)."""
+
+    nx: int
+    ny: int
+    nz: int
+    n_active: int
+    ijk_from_active: np.ndarray  # (n_active, 3)
+    x_active: np.ndarray  # (n_active,)
+    y_active: np.ndarray  # (n_active,)
+    z_active: np.ndarray  # (n_active,)
+    active_index_3d: np.ndarray  # (nx, ny, nz), values are active index or -1
+    xtgeo_grid: Any = field(repr=False)  # xtgeo.Grid (kept for point-in-cell lookups)
+
+    def find_cell(self, x: float, y: float, z: float) -> tuple[int, int, int] | None:
+        # Use resdata to find cell indices. We have tried using
+        # xtgeo_grid.get_ijk_from_points, but it does not seem to work for some
+        # geometries. The reason is unclear since the error either occurs due to some
+        # caching mechanism, or due to some internals in C++ code.
+        return self._resdata_grid.find_cell(x, y, z)
+
+    @cached_property
+    def _resdata_grid(self) -> resdata.grid.Grid:
+        return resdata.grid.Grid(self.xtgeo_grid.filesrc)
+
+    @staticmethod
+    def from_xtgeo_grid(grid: xtgeo.Grid) -> "GridData":
+        """Build pre-computed lookup arrays from an xtgeo grid (C-order)."""
+        dims = grid.dimensions  # (ncol, nrow, nlay)
+        actnum_flat = grid.actnum_array.ravel()
+        active_global = np.where(actnum_flat > 0)[0]
+        n_active = len(active_global)
+
+        ijk = (
+            np.column_stack(np.unravel_index(active_global, dims))
+            if n_active > 0
+            else np.empty((0, 3), dtype=int)
+        )
+
+        global_to_active = np.full(int(np.prod(dims)), -1, dtype=int)
+        global_to_active[active_global] = np.arange(n_active)
+
+        xp, yp, zp = grid.get_xyz()
+        return GridData(
+            nx=dims[0],
+            ny=dims[1],
+            nz=dims[2],
+            n_active=n_active,
+            ijk_from_active=ijk,
+            x_active=xp.values.ravel()[active_global],
+            y_active=yp.values.ravel()[active_global],
+            z_active=zp.values.ravel()[active_global],
+            active_index_3d=global_to_active.reshape(dims),
+            xtgeo_grid=grid,
+        )
 
 
 @dataclass
@@ -49,7 +114,7 @@ class PlumeGroups:
 
     def resolve_undetermined_cells(
         self,
-        grid: Grid,
+        grid_data: GridData,
         cell_map_gasless_to_active: Dict[int, int],
         cell_map_active_to_gasless: Dict[int, int],
     ) -> List:
@@ -62,9 +127,9 @@ class PlumeGroups:
         groups_to_merge = []  # A list of list of groups to merge
         while len(ind_to_resolve) > 0 and counter <= MAX_STEPS_RESOLVE_CELLS:
             for ind in ind_to_resolve:
-                ijk = grid.get_ijk(active_index=cell_map_gasless_to_active[ind])
+                ijk = tuple(grid_data.ijk_from_active[cell_map_gasless_to_active[ind]])
                 groups_nearby = self._find_nearest_groups(
-                    ijk, grid, cell_map_active_to_gasless
+                    ijk, grid_data, cell_map_active_to_gasless
                 )
                 if [-1] in groups_nearby:
                     groups_nearby = [x for x in groups_nearby if x != [-1]]
@@ -84,11 +149,13 @@ class PlumeGroups:
             if len(updated_ind_to_resolve) == len(ind_to_resolve):
                 updated = False
                 for ind in ind_to_resolve:
-                    ijk = grid.get_ijk(active_index=cell_map_gasless_to_active[ind])
+                    ijk = tuple(
+                        grid_data.ijk_from_active[cell_map_gasless_to_active[ind]]
+                    )
                     # Wider search radius when looking for nearby groups
                     for tolerance in range(2, MAX_NEAREST_GROUPS_SEARCH_DISTANCE + 1):
                         groups_nearby = self._find_nearest_groups(
-                            ijk, grid, cell_map_active_to_gasless, tol=tolerance
+                            ijk, grid_data, cell_map_active_to_gasless, tol=tolerance
                         )
                         if len(groups_nearby) >= 1:
                             self.set_cell_groups(ind, groups_nearby[0])
@@ -103,8 +170,7 @@ class PlumeGroups:
                     ind_to_resolve = updated_ind_to_resolve
                     counter += 1
                     continue
-                else:
-                    break
+                break
             ind_to_resolve = updated_ind_to_resolve
             counter += 1
 
@@ -134,20 +200,24 @@ class PlumeGroups:
         return new_groups_to_merge
 
     def _find_nearest_groups(
-        self, ijk, grid, cell_map_active_to_gasless: Dict[int, int], tol: int = 1
+        self,
+        ijk,
+        grid_data: GridData,
+        cell_map_active_to_gasless: Dict[int, int],
+        tol: int = 1,
     ) -> List[List[int]]:
         out = []
         i1, j1, k1 = ijk
         neigs = list(
             itertools.product(
-                range(max((i1 - tol), 0), min((i1 + tol), grid.get_nx() - 1) + 1),
-                range(max((j1 - tol), 0), min((j1 + tol), grid.get_ny() - 1) + 1),
-                range(max((k1 - tol), 0), min((k1 + tol), grid.get_nz() - 1) + 1),
+                range(max((i1 - tol), 0), min((i1 + tol), grid_data.nx - 1) + 1),
+                range(max((j1 - tol), 0), min((j1 + tol), grid_data.ny - 1) + 1),
+                range(max((k1 - tol), 0), min((k1 + tol), grid_data.nz - 1) + 1),
             )
         )
 
         for ijk in neigs:
-            active_ind = grid.get_active_index(ijk=ijk)
+            active_ind = int(grid_data.active_index_3d[ijk])
             if active_ind in cell_map_active_to_gasless:
                 ind = cell_map_active_to_gasless[active_ind]
                 if ind != -1 and self.status[ind] == Status.HAS_CO2:
@@ -235,3 +305,52 @@ def sort_well_names(input_dict: Dict, inj_wells: List[InjectionWellData]):
     for col in sorted_cols:
         dict_sorted[col] = input_dict[col]
     return dict_sorted
+
+
+class Configuration:
+    """Holds the configuration for plume tracking calculations."""
+
+    def __init__(
+        self,
+        config_file: str,
+    ):
+        self.injection_wells: List[InjectionWellData] = []
+
+        input_dict = read_yaml_file(config_file)
+        self.make_config_from_input_dict(input_dict)
+
+    def make_config_from_input_dict(self, input_dict: Dict):
+        if "injection_wells" not in input_dict:
+            logging.error("\nERROR: No injection wells specified.")
+        else:
+            if not isinstance(input_dict["injection_wells"], list):
+                error_text = (
+                    '\nERROR: Specification under "injection_wells" in '
+                    "input YAML file is not a list."
+                )
+                logging.error(format_error(error_text))
+                sys.exit(1)
+            for i, injection_well_info in enumerate(input_dict["injection_wells"], 1):
+                args_required = ["name", "x", "y"]
+                for arg in args_required:
+                    if arg not in injection_well_info:
+                        error_text = (
+                            f'\nERROR: Missing "{arg}" under "injection_wells" '
+                            f"for injection well number {i}."
+                        )
+                        logging.error(format_error(error_text))
+                        sys.exit(1)
+
+                self.injection_wells.append(
+                    InjectionWellData(
+                        name=injection_well_info["name"],
+                        x=injection_well_info["x"],
+                        y=injection_well_info["y"],
+                        z=(
+                            [injection_well_info["z"]]
+                            if "z" in injection_well_info
+                            else None
+                        ),
+                        number=len(self.injection_wells) + 1,
+                    )
+                )
