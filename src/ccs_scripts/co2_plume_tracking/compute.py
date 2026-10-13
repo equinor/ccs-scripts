@@ -35,7 +35,13 @@ INJ_POINT_THRESHOLD_VERTICAL = 10.0
 def _find_cell_xy(
     grid_data: GridData, x: float, y: float, k: int
 ) -> Optional[Tuple[int, int]]:
-    """Find (i, j) of cell at (x, y) in layer k (nearest-neighbor)."""
+    """
+    Find (i, j) of the active cell in layer k whose centre is nearest to (x, y).
+
+    Returns None if the layer has no active cells, or if the nearest centre is
+    farther away than INJ_POINT_THRESHOLD_LATERAL or half the cell's diagonal,
+    whichever is larger.
+    """
     layer_active = grid_data.active_index_3d[:, :, k]
     mask = layer_active >= 0
     if not mask.any():
@@ -44,7 +50,14 @@ def _find_cell_xy(
     cx = grid_data.x_active[active_indices]
     cy = grid_data.y_active[active_indices]
     dist_sq = (cx - x) ** 2 + (cy - y) ** 2
-    idx = np.argmin(dist_sq)
+    idx = int(np.argmin(dist_sq))
+    max_dist = INJ_POINT_THRESHOLD_LATERAL
+    if grid_data.half_diagonal_active is not None:
+        max_dist = max(
+            max_dist, float(grid_data.half_diagonal_active[active_indices[idx]])
+        )
+    if dist_sq[idx] > max_dist**2:
+        return None
     ij_positions = np.argwhere(mask)
     return (int(ij_positions[idx, 0]), int(ij_positions[idx, 1]))
 
@@ -247,6 +260,24 @@ def _log_number_of_grid_cells(
             logging.warning("")  # Line ending
 
 
+def _well_cell_in_layer(
+    grid_data: GridData,
+    well: InjectionWellData,
+    co2_cell: Tuple[int, int, int],
+) -> Tuple[int, int, int]:
+    """
+    Cell of the well in the layer of a cell with CO2 found next to it.
+
+    The layer is used, not the depth of that cell. Falls back to the cell
+    with CO2 itself if no cell is found for the well in that layer.
+    """
+    k = co2_cell[2]
+    ij = _find_cell_xy(grid_data, x=well.x, y=well.y, k=k)
+    if ij is None:
+        return co2_cell
+    return (ij[0], ij[1], k)
+
+
 def _find_inj_wells_grid_indices(
     inj_wells_grid_indices: Dict[str, List[Tuple[int, int, Optional[int]]]],
     grid_data: GridData,
@@ -258,7 +289,11 @@ def _find_inj_wells_grid_indices(
         if well.z is not None:
             found = False
             for z in well.z:
-                ijk = grid_data.find_cell(x=well.x, y=well.y, z=z)
+                ijk: Optional[Tuple[int, int, int]]
+                if z in well.learned_cells:
+                    ijk = _well_cell_in_layer(grid_data, well, well.learned_cells[z])
+                else:
+                    ijk = grid_data.find_cell(x=well.x, y=well.y, z=z)
                 if ijk is not None:
                     inj_wells_grid_indices[well.name] = [ijk]
                     found = True
@@ -270,7 +305,7 @@ def _find_inj_wells_grid_indices(
             for k in range(grid_data.nz):
                 ij = _find_cell_xy(grid_data, x=well.x, y=well.y, k=k)
                 if ij is None:
-                    # Inactive layer, skip
+                    # No active cell near the well in this layer, skip
                     continue
                 active_index = int(grid_data.active_index_3d[ij[0], ij[1], k])
                 if active_index != -1:
@@ -520,7 +555,8 @@ def _initialize_groups_from_prev_step_and_inj_wells(
     groups: PlumeGroups,
     cell_map_gasless_to_active: Dict[int, int],
 ):
-    new_z_coords: Dict[str, List[float]] = {}
+    # Per well: z of each new cell with CO2 next to it -> that cell (i, j, k)
+    new_z_coords: Dict[str, Dict[float, Tuple[int, int, int]]] = {}
     for index in cells_with_co2:
         if prev_groups.status[index] == Status.HAS_CO2:
             groups.status[index] = prev_groups.status[index]
@@ -571,14 +607,9 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                         groups.set_cell_groups(index, [well.number])
                     else:
                         groups.set_cell_groups(index, merged_group)
-                    if (
-                        well.name not in new_z_coords
-                        or z not in new_z_coords[well.name]
-                    ):
-                        if well.name not in new_z_coords:
-                            new_z_coords[well.name] = [z]
-                        else:
-                            new_z_coords[well.name].append(z)
+                    new_z_coords.setdefault(well.name, {}).setdefault(
+                        z, (int(i), int(j), int(k))
+                    )
                     break
             if not found:
                 groups.status[index] = Status.UNDETERMINED
@@ -589,12 +620,12 @@ def _initialize_groups_from_prev_step_and_inj_wells(
 
 def _update_inj_z_coordinates(
     inj_wells: List[InjectionWellData],
-    new_z_coords: Dict[str, List[float]],
+    new_z_coords: Dict[str, Dict[float, Tuple[int, int, int]]],
 ):
     changed = False
     for well in inj_wells:
         if well.name in new_z_coords:
-            for z in new_z_coords[well.name]:
+            for z, cell in new_z_coords[well.name].items():
                 if well.z is None or z not in well.z and len(well.z) < 5:
                     logging.debug(
                         f"Found new injection z-coordinate for well {well.name}: {z}"
@@ -603,5 +634,6 @@ def _update_inj_z_coordinates(
                         well.z = [z]
                     else:
                         well.z.append(z)
+                    well.learned_cells[z] = cell
                     changed = True
     return changed
