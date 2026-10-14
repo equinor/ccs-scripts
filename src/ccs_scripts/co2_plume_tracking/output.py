@@ -14,6 +14,7 @@ from ccs_scripts.co2_plume_tracking.utils import (
     assemble_plume_groups_into_dict,
     sort_well_names,
 )
+from ccs_scripts.utils.utils import OUTPUT_FORMAT_FILES, OUTPUT_FORMAT_FMU_DATAIO
 
 
 def _log_results(
@@ -85,9 +86,8 @@ def export_results(
     pg_prop_dissolved: Optional[List[List[str]]],
     dissolved_prop_key: Optional[str],
     injection_wells: List[InjectionWellData],
+    output_format: str = OUTPUT_FORMAT_FILES,
 ):
-    output_file = _find_output_file(output_csv, case)
-
     df = _collect_results_into_dataframe(
         dates,
         pg_prop_gas,
@@ -97,8 +97,27 @@ def export_results(
     )
     _log_results(df)
 
-    logging.info("\nExport results to CSV file")
-    logging.info(f"    - File path: {output_file}")
-    if os.path.isfile(output_file):
-        logging.info("Output CSV file already exists => Will overwrite existing file")
-    df.to_csv(output_file, index=False)
+    if output_format == OUTPUT_FORMAT_FMU_DATAIO:
+        # Imported here so that fmu-dataio is only needed when it is used
+        # pylint: disable-next=import-outside-toplevel
+        from ccs_scripts.utils.fmu_export import export_table
+
+        logging.info("\nExport results through fmu-dataio")
+        file_path = export_table(
+            df,
+            name="co2_plume_tracking",
+            # Keeps tables apart when the script is run more than once, as the
+            # name of the csv file does
+            tagname=Path(output_csv).stem if output_csv else "plume_tracking",
+            unit="",  # Number of grid cells
+        )
+        logging.info(f"    - Path: {file_path}")
+    else:
+        output_file = _find_output_file(output_csv, case)
+        logging.info("\nExport results to CSV file")
+        logging.info(f"    - File path: {output_file}")
+        if os.path.isfile(output_file):
+            logging.info(
+                "Output CSV file already exists => Will overwrite existing file"
+            )
+        df.to_csv(output_file, index=False)

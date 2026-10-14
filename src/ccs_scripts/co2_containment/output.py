@@ -14,6 +14,10 @@ from ccs_scripts.co2_containment.input import (
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_warning
 
+# Unit of the amounts in the table, by calculation type. Cell volume is a number of
+# cells, so it has no unit.
+_FMU_DATAIO_UNITS = {"mass": "t", "actual_volume": "m3", "cell_volume": ""}
+
 
 def _merge_date_rows(
     data_frame: pd.DataFrame, calc_type: CalculationType, residual_trapping: bool
@@ -335,6 +339,30 @@ def _export_output_to_csv(
     data_frame.to_csv(file_path, index=False)
 
 
+def _export_output_with_fmu_dataio(
+    calc_type_input: str,
+    data_frame: pd.DataFrame,
+) -> None:
+    """
+    Exports the results through fmu-dataio, which decides where the file is written
+    and adds FMU metadata. Named according to the calculation type
+    (mass / cell_volume / actual_volume).
+    """
+    # Imported here so that fmu-dataio is only needed when it is used
+    # pylint: disable-next=import-outside-toplevel
+    from ccs_scripts.utils.fmu_export import export_table
+
+    logging.info("\nExport results through fmu-dataio")
+    logging.info(f"    - Name          : co2_containment ({calc_type_input})")
+    file_path = export_table(
+        data_frame,
+        name="co2_containment",
+        tagname=calc_type_input,
+        unit=_FMU_DATAIO_UNITS.get(calc_type_input, ""),
+    )
+    logging.info(f"    - Path          : {file_path}")
+
+
 def _export_readable_output(
     df: pd.DataFrame,
     int_to_zone: Optional[List[Optional[str]]],
@@ -539,20 +567,26 @@ def export_results(
     int_to_region: Optional[List[Optional[str]]],
     residual_trapping: bool,
     readable_output: bool,
+    output_format: str = "files",
 ) -> None:
     """
     Exports the results to a csv file, named according to the calculation type
     (mass / cell_volume / actual_volume), and also in a more readable format.
+    With output_format "fmu-dataio" the table is exported through fmu-dataio
+    instead of being written to out_dir. The readable format is still written there.
     """
     timer = Timer()
     sort_and_replace_nones(containment_data)
     _log_summary_of_results(containment_data, calc_type_input)
     timer.start("export_results")
-    _export_output_to_csv(
-        out_dir,
-        calc_type_input,
-        containment_data,
-    )
+    if output_format == "fmu-dataio":
+        _export_output_with_fmu_dataio(calc_type_input, containment_data)
+    else:
+        _export_output_to_csv(
+            out_dir,
+            calc_type_input,
+            containment_data,
+        )
     if readable_output:
         df_old_output = _convert_data_frame(
             containment_data,

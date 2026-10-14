@@ -64,6 +64,7 @@ def main():
         pg_prop_dissolved,
         dissolved_prop_key,
         config.injection_wells,
+        args.export_format,
     )
 
     dt = time.time() - time_start

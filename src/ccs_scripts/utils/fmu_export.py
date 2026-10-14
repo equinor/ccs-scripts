@@ -81,3 +81,30 @@ def export_surface(
         workflow=WORKFLOW,
     )
     return str(exporter.export(surface))
+
+
+def export_table(
+    table: pd.DataFrame,
+    name: str,
+    tagname: str,
+    unit: str = "",
+    content: str = "timeseries",
+) -> str:
+    """Export a table through fmu-dataio and return the path it was written to.
+
+    The default content is "timeseries", so that webviz can find the table. No
+    table_index is given: fmu-dataio finds it itself when the date column has the
+    standard name DATE, and otherwise exports the table with an empty index (and
+    warns). The ccs-scripts tables name that column "date", so it is renamed in the
+    exported table. The tables written as plain files are not changed.
+    """
+    if "date" in table.columns and "DATE" not in table.columns:
+        table = table.rename(columns={"date": "DATE"})
+    exporter = ExportData(
+        content=content,
+        name=name,
+        tagname=tagname,
+        unit=unit,
+        workflow=WORKFLOW,
+    )
+    return str(exporter.export(table))

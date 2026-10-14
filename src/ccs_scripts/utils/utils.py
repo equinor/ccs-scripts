@@ -16,6 +16,9 @@ import yaml
 THRESHOLD_GAS = 1e-16
 THRESHOLD_DISSOLVED = 1e-16  # Used also in co2_calculation to avoid numerical issues
 
+OUTPUT_FORMAT_FILES = "files"
+OUTPUT_FORMAT_FMU_DATAIO = "fmu-dataio"
+
 
 def format_warning(txt: Union[str, Exception]) -> str:
     return f"\x1b[37;45m\x1b[1m{txt}\x1b[0m"
@@ -35,6 +38,24 @@ def str_to_bool(value):
     elif value == "-1":
         return "-1"
     raise ValueError(format_error(f"{value} is not a valid boolean value"))
+
+
+def add_output_format_argument(parser: argparse.ArgumentParser) -> None:
+    """Adds --export_format, which selects how the results table is written.
+
+    Not named output_*: argparse accepts --output for --output_csv, and a second
+    option starting with --output would make that abbreviation ambiguous.
+    """
+    parser.add_argument(
+        "--export_format",
+        help="How the results table is written: "
+        f"'{OUTPUT_FORMAT_FILES}' (plain csv file, default) or "
+        f"'{OUTPUT_FORMAT_FMU_DATAIO}' (exported through fmu-dataio, which decides "
+        "where the file is written and adds FMU metadata).",
+        choices=[OUTPUT_FORMAT_FILES, OUTPUT_FORMAT_FMU_DATAIO],
+        default=OUTPUT_FORMAT_FILES,
+        metavar="<EXPORT_FORMAT>",
+    )
 
 
 def replace_default_ert_dummies(

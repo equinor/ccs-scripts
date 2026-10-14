@@ -15,6 +15,7 @@ from ccs_scripts.co2_plume_extent.config import (
 )
 from ccs_scripts.co2_plume_tracking.utils import InjectionWellData, sort_well_names
 from ccs_scripts.utils.timer import Timer
+from ccs_scripts.utils.utils import OUTPUT_FORMAT_FILES, OUTPUT_FORMAT_FMU_DATAIO
 
 
 def _find_output_file(output: Optional[str], case: str):
@@ -152,6 +153,7 @@ def export_results(
     config: Configuration,
     output_csv: Optional[str],
     case: str,
+    output_format: str = OUTPUT_FORMAT_FILES,
 ):
     timer = Timer()
     timer.start("export_results")
@@ -163,10 +165,28 @@ def export_results(
     _log_results(df)
     _log_results_detailed(df)
 
-    output_file = _find_output_file(output_csv, case)
-    logging.info("\nExport results to CSV file")
-    logging.info(f"    - File path: {output_file}")
-    if os.path.isfile(output_file):
-        logging.info("Output CSV file already exists => Will overwrite existing file")
-    df.to_csv(output_file, index=False, na_rep="0.0")
+    if output_format == OUTPUT_FORMAT_FMU_DATAIO:
+        # Imported here so that fmu-dataio is only needed when it is used
+        # pylint: disable-next=import-outside-toplevel
+        from ccs_scripts.utils.fmu_export import export_table
+
+        logging.info("\nExport results through fmu-dataio")
+        file_path = export_table(
+            df.fillna(0.0),  # As na_rep="0.0" in the csv file
+            name="co2_plume_extent",
+            # Keeps tables apart when the script is run more than once, as the
+            # name of the csv file does
+            tagname=Path(output_csv).stem if output_csv else "plume_extent",
+            unit="m",
+        )
+        logging.info(f"    - Path: {file_path}")
+    else:
+        output_file = _find_output_file(output_csv, case)
+        logging.info("\nExport results to CSV file")
+        logging.info(f"    - File path: {output_file}")
+        if os.path.isfile(output_file):
+            logging.info(
+                "Output CSV file already exists => Will overwrite existing file"
+            )
+        df.to_csv(output_file, index=False, na_rep="0.0")
     timer.stop("export_results")

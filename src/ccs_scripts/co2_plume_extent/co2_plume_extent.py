@@ -50,7 +50,7 @@ def main():
         args.threshold_dissolved,
     )
 
-    export_results(all_results, config, args.output_csv, args.case)
+    export_results(all_results, config, args.output_csv, args.case, args.export_format)
 
     timer.stop("total")
     timer.report()

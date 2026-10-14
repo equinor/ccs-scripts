@@ -24,6 +24,8 @@ import pandas as pd
 import xtgeo
 
 from ccs_scripts.utils.utils import (
+    OUTPUT_FORMAT_FMU_DATAIO,
+    add_output_format_argument,
     format_error,
     log_input_banner,
     replace_default_ert_dummies,
@@ -48,6 +50,7 @@ def _make_parser():
         default=None,
         metavar="<OUTPUT_CSV>",
     )
+    add_output_format_argument(parser)
     parser.add_argument(
         "--no_logging",
         help="Skip print of detailed information during execution of script",
@@ -163,7 +166,7 @@ def calculate_plume_area(path: str, rskey: str) -> Optional[List[List[float]]]:
     return list_out
 
 
-def _read_args() -> Tuple[str, str]:
+def _read_args() -> Tuple[str, str, str]:
     args = _make_parser().parse_args()
     replace_default_ert_dummies(args, false_list=["no_logging", "debug"], none_list=[])
     setup_log_configuration(args)
@@ -175,7 +178,7 @@ def _read_args() -> Tuple[str, str]:
         text = f"Input surface directory not found: {input_path}"
         raise FileNotFoundError(format_error(text))
 
-    return input_path, output_path
+    return input_path, output_path, args.export_format
 
 
 def _log_input_configuration(input_path: str, output_path: str) -> None:
@@ -225,7 +228,7 @@ def main():
     for SGAS (gas phase) and AMFG/XMF2 (dissolved phase) per formation and year.
     Collects the results into a CSV file.
     """
-    input_path, output_path = _read_args()
+    input_path, output_path, output_format = _read_args()
 
     if output_path is None:
         p = pathlib.Path("share") / "results" / "tables" / "plume_area.csv"
@@ -259,7 +262,22 @@ def main():
 
     _log_results(df)
 
-    if df is not None:
+    if df is not None and output_format == OUTPUT_FORMAT_FMU_DATAIO:
+        # Imported here so that fmu-dataio is only needed when it is used
+        # pylint: disable-next=import-outside-toplevel
+        from ccs_scripts.utils.fmu_export import export_table
+
+        logging.info("\nExport results through fmu-dataio")
+        exported_path = export_table(
+            df,
+            name="co2_plume_area",
+            # Keeps tables apart when the script is run more than once, as the
+            # name of the csv file does
+            tagname=pathlib.Path(output_path).stem,
+            unit="m2",
+        )
+        logging.info(f"    - Path: {exported_path}")
+    elif df is not None:
         logging.info("\nExport results to CSV file")
         logging.info(f"    - File path: {output_path}")
         if os.path.isfile(output_path):

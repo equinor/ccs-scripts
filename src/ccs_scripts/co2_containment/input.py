@@ -25,6 +25,7 @@ from ccs_scripts.co2_plume_tracking.utils import (
 )
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
+    add_output_format_argument,
     format_error,
     format_warning,
     log_input_banner,
@@ -263,6 +264,7 @@ def _get_parser() -> argparse.ArgumentParser:
         const=True,
         metavar="<READABLE_OUTPUT>",
     )
+    add_output_format_argument(parser)
     parser.add_argument(
         "--config_plume_tracking",
         help="YML file with configurations for plume tracking calculations.",
@@ -507,6 +509,7 @@ def _log_input_configuration(args: argparse.Namespace) -> None:
     logging.info(f"{'Unit':<{col1}} : {unit_str}")
     logging.info(f"{'Root directory':<{col1}} : {args.root_dir}")
     logging.info(f"{'Output directory':<{col1}} : {args.out_dir}")
+    logging.info(f"{'Output format':<{col1}} : {args.export_format}")
     logging.info(f"{'Containment polygon':<{col1}} : {args.containment_polygon}")
     logging.info(f"{'No-go polygon':<{col1}} : {args.nogo_polygon}")
     logging.info(f"{'EGRID file':<{col1}} : {args.egrid}")

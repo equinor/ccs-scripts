@@ -12,6 +12,7 @@ from ccs_scripts.co2_plume_extent.config import (
 )
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
+    add_output_format_argument,
     log_input_banner,
     replace_default_ert_dummies,
     setup_log_configuration,
@@ -58,6 +59,7 @@ def _make_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="<OUTPUT_CSV>",
     )
+    add_output_format_argument(parser)
     parser.add_argument(
         "--threshold_gas",
         default=DEFAULT_THRESHOLD_GAS,

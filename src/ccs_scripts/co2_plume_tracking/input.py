@@ -10,7 +10,11 @@ from ccs_scripts.co2_plume_tracking.utils import (
     DEFAULT_THRESHOLD_GAS,
     Configuration,
 )
-from ccs_scripts.utils.utils import log_input_banner, setup_log_configuration
+from ccs_scripts.utils.utils import (
+    add_output_format_argument,
+    log_input_banner,
+    setup_log_configuration,
+)
 
 
 def _make_parser() -> argparse.ArgumentParser:
@@ -28,6 +32,7 @@ def _make_parser() -> argparse.ArgumentParser:
         help="Path to output CSV file",
         default=None,
     )
+    add_output_format_argument(parser)
     parser.add_argument(
         "--threshold_gas",
         default=DEFAULT_THRESHOLD_GAS,

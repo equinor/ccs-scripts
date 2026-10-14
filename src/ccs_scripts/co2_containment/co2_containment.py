@@ -65,6 +65,7 @@ def main() -> None:
         region_info.int_to_region,
         args.residual_trapping,
         args.readable_output,
+        args.export_format,
     )
 
     timer.stop("total")
