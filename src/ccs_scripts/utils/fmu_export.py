@@ -7,9 +7,11 @@ serializer - fmu-dataio itself already knows how to handle xtgeo.RegularSurface
 Extend _CONTENT_MAP when a new property is added; keep the content decision here
 instead of scattering string checks elsewhere.
 """
+
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
+import pandas as pd
 import xtgeo
 from fmu.dataio import ExportData
 
