@@ -16,8 +16,9 @@ import glob
 import logging
 import os
 import pathlib
+import re
 import sys
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -25,6 +26,7 @@ import xtgeo
 
 from ccs_scripts.utils.utils import (
     format_error,
+    format_warning,
     log_input_banner,
     replace_default_ert_dummies,
     setup_log_configuration,
@@ -33,6 +35,28 @@ from ccs_scripts.utils.utils import (
 
 xtgeo_logger = logging.getLogger("xtgeo")
 xtgeo_logger.setLevel(logging.WARNING)
+
+GAS_PHASE = "gas_phase"
+AQUEOUS_PHASE = "dissolved_phase"
+OIL_PHASE = "oil_phase"
+
+
+def _phase_of_property(prop: str) -> Optional[str]:
+    """
+    The phase CO2 is in for a property (lower case), or None if it is not one of
+    the properties for CO2.
+
+    XMF is taken as the aqueous phase, which is what it is when there is no oil.
+    With oil, XMF is the oil phase, and AMF is the aqueous phase: see
+    _warn_about_xmf().
+    """
+    if re.fullmatch(r"sgas|ymfs|ymf\d+", prop):
+        return GAS_PHASE
+    if re.fullmatch(r"amfg|amfs|amf\d+|xmf\d+", prop):
+        return AQUEOUS_PHASE
+    if prop == "xmfs":  # Cirrus: always the oil phase
+        return OIL_PHASE
+    return None
 
 
 def _make_parser():
@@ -189,6 +213,72 @@ def _log_input_configuration(input_path: str, output_path: str) -> None:
     logging.info(f"Output path : {output_path}\n")
 
 
+def _find_map_properties(search_path: str) -> Dict[str, str]:
+    """
+    The properties for CO2 that have max_<property> maps in the folder, with the
+    phase each stands for. Gas phase first, then aqueous phase, then oil phase.
+    """
+    found = set()
+    for file in glob.glob(search_path + "*--max_*--*.gri"):
+        parts = pathlib.Path(file).stem.split("--")
+        if len(parts) >= 3 and parts[1].lower().startswith("max_"):
+            found.add(parts[1][len("max_") :].lower())
+    order = {GAS_PHASE: 0, AQUEOUS_PHASE: 1, OIL_PHASE: 2}
+    phases = {prop: _phase_of_property(prop) for prop in found}
+    kept = {prop: phase for prop, phase in phases.items() if phase is not None}
+    return dict(sorted(kept.items(), key=lambda item: (order[item[1]], item[0])))
+
+
+def _warn_about_xmf(properties: Dict[str, str]) -> None:
+    """
+    Plume area cannot tell whether there is oil, so XMF is taken as the aqueous
+    phase. This is always said, as it is wrong when there is oil.
+    """
+    xmf = [p for p in properties if re.fullmatch(r"xmf\d+", p)]
+    if not xmf:
+        return
+    names = ", ".join(p.upper() for p in xmf)
+    amf = [p for p in properties if re.fullmatch(r"amf\d+", p)]
+    text = (
+        f"WARNING: {names} is taken as CO2 in the aqueous phase "
+        f"({AQUEOUS_PHASE}_{xmf[0]}). If the case has oil, XMF is the oil phase "
+        "and that column is the area of CO2 in the oil phase. "
+    )
+    if amf:
+        text += (
+            f"Maps for {', '.join(p.upper() for p in amf)} exist: "
+            "use those for the aqueous phase."
+        )
+    else:
+        text += (
+            "The aqueous phase is then given by AMF, which has to be written to "
+            "the restart file (RPTRST)."
+        )
+    logging.warning(format_warning(text))
+
+
+def _warn_about_sgas(properties: Dict[str, str]) -> None:
+    if "sgas" in properties and any(
+        p != "sgas" and phase == GAS_PHASE for p, phase in properties.items()
+    ):
+        text = (
+            "WARNING: Maps for SGAS and for the mole fraction of CO2 in the gas "
+            "phase both exist. In depleted fields SGAS also counts hydrocarbon gas, "
+            "so its area is not the area of CO2."
+        )
+        logging.warning(format_warning(text))
+
+
+def _warn_about_amfg(properties: Dict[str, str]) -> None:
+    if "amfg" in properties and "amfs" in properties:
+        text = (
+            "WARNING: Maps for AMFG and AMFS both exist. In Cirrus cases with "
+            "native gas, AMFG is the native gas dissolved in water, and AMFS is "
+            "the CO2 dissolved in water: the area of CO2 is given by AMFS."
+        )
+        logging.warning(format_warning(text))
+
+
 def _convert_to_data_frame(results: List[List[float]], rskey: str) -> pd.DataFrame:
     # Convert plume area results into a Pandas DataFrame
     df = pd.DataFrame.from_records(
@@ -221,9 +311,10 @@ def _log_results(df: pd.DataFrame) -> None:
 
 def main():
     """
-    Reads directory of input surface files (.gri) and calculates plume area
-    for SGAS (gas phase) and AMFG/XMF2 (dissolved phase) per formation and year.
-    Collects the results into a CSV file.
+    Reads directory of input surface files (.gri) and calculates plume area per formatin and
+    year for SGAS/YMF (gas phase) and AMFG/XMF2 (dissolved in water phase) and XMFS (dissolved
+    in oil phase. The columns are named <formation>_<phase>_<property>.Collects the results
+    into a CSV file.
     """
     input_path, output_path = _read_args()
 
@@ -231,42 +322,46 @@ def main():
         p = pathlib.Path("share") / "results" / "tables" / "plume_area.csv"
         output_path = str(p)
     _log_input_configuration(input_path, output_path)
+    if not input_path.endswith("/"):
+        input_path += "/"
 
-    df_gas, df_dissolved = None, None
-    results_gas = calculate_plume_area(input_path, "sgas")
-    if results_gas:
-        logging.info("\nDone calculating plume areas for SGAS (gas phase).")
-        df_gas = _convert_to_data_frame(results_gas, "gas_phase")
+    properties = _find_map_properties(input_path)
+    if not properties:
+        text = (
+            f"No max_<property> maps for CO2 found in {input_path}. Looking for "
+            "SGAS, YMF*, AMF* and XMF*, made with grid3d_aggregate_map."
+        )
+        logging.error(format_error(text))
+        return 1
+    logging.info(
+        "Properties found: "
+        + ", ".join(f"{p.upper()} ({phase})" for p, phase in properties.items())
+        + "\n"
+    )
+    _warn_about_xmf(properties)
+    _warn_about_sgas(properties)
+    _warn_about_amfg(properties)
 
-    results_dissolved = calculate_plume_area(input_path, "AMFG")
-    if results_dissolved:
-        logging.info("\nDone calculating plume areas for AMFG (dissolved phase).")
-        df_dissolved = _convert_to_data_frame(results_dissolved, "dissolved_phase")
-    else:
-        results_dissolved = calculate_plume_area(input_path, "XMF2")
-        if results_dissolved:
-            logging.info("\nDone calculating plume areas for XMF2 (dissolved phase).")
-            df_dissolved = _convert_to_data_frame(results_dissolved, "dissolved_phase")
-
-    # Merge the data frames
     df = None
-    for df_prop in [df_gas, df_dissolved]:
-        if df_prop is not None:
-            if df is None:
-                df = df_prop
-            else:
-                df = pd.merge(df, df_prop)
+    for prop, phase in properties.items():
+        results = calculate_plume_area(input_path, prop)
+        if not results:
+            continue
+        logging.info(f"\nDone calculating plume areas for {prop.upper()} ({phase}).")
+        df_prop = _convert_to_data_frame(results, f"{phase}_{prop}")
+        df = df_prop if df is None else pd.merge(df, df_prop)
+
+    if df is None:
+        logging.error(format_error("No plume areas could be calculated."))
+        return 1
 
     _log_results(df)
 
-    if df is not None:
-        logging.info("\nExport results to CSV file")
-        logging.info(f"    - File path: {output_path}")
-        if os.path.isfile(output_path):
-            logging.info(
-                "Output CSV file already exists => Will overwrite existing file"
-            )
-        df.to_csv(output_path, index=False)
+    logging.info("\nExport results to CSV file")
+    logging.info(f"    - File path: {output_path}")
+    if os.path.isfile(output_path):
+        logging.info("Output CSV file already exists => Will overwrite existing file")
+    df.to_csv(output_path, index=False)
 
     return 0
 
