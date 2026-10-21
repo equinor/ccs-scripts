@@ -105,10 +105,9 @@ def export_results(
         logging.info("\nExport results through fmu-dataio")
         file_path = export_table(
             df,
-            name="co2_plume_tracking",
-            # Keeps tables apart when the script is run more than once, as the
-            # name of the csv file does
-            tagname=Path(output_csv).stem if output_csv else "plume_tracking",
+            # Named as the csv file would be: the same table has the same name
+            # with and without fmu-dataio
+            name=Path(output_csv).stem if output_csv else "plume_tracking",
             unit="",  # Number of grid cells
         )
         logging.info(f"    - Path: {file_path}")

@@ -345,19 +345,19 @@ def _export_output_with_fmu_dataio(
 ) -> None:
     """
     Exports the results through fmu-dataio, which decides where the file is written
-    and adds FMU metadata. Named according to the calculation type
-    (mass / cell_volume / actual_volume).
+    and adds FMU metadata. Named as the csv file would be, according to the
+    calculation type: plume_mass, plume_cell_volume or plume_actual_volume.
     """
     # Imported here so that fmu-dataio is only needed when it is used
     # pylint: disable-next=import-outside-toplevel
     from ccs_scripts.utils.fmu_export import export_table
 
+    name = f"plume_{calc_type_input}"
     logging.info("\nExport results through fmu-dataio")
-    logging.info(f"    - Name          : co2_containment ({calc_type_input})")
+    logging.info(f"    - Name          : {name}")
     file_path = export_table(
         data_frame,
-        name="co2_containment",
-        tagname=calc_type_input,
+        name=name,
         unit=_FMU_DATAIO_UNITS.get(calc_type_input, ""),
     )
     logging.info(f"    - Path          : {file_path}")

@@ -88,7 +88,7 @@ def export_surface(
 def export_table(
     table: pd.DataFrame,
     name: str,
-    tagname: str,
+    tagname: str = "",
     unit: str = "",
     content: str = "timeseries",
 ) -> str:
