@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """
 Calculations for tracking the CO2 plumes from different injection wells,
-using SGAS and the dissolved property (AMFG/XMF2).
+using a proxy for CO2 in the gas phase (SGAS, or its mole fraction in depleted
+fields) and the dissolved property (AMFS/AMFG/XMF2).
 Keeps track of which grid cells belong to which
 plume group at each time step, and merges plumes if they meet.
 """
@@ -21,7 +22,9 @@ setup_xtgeo_logging()
 
 DESCRIPTION = """
 Calculations for tracking the CO2 plumes from different injection wells,
-using SGAS and the dissolved property (AMFS/AMFG/XMF2). Keeps track of
+using a proxy for CO2 in the gas phase (SGAS in aquifers, the mole fraction of
+CO2 in the gas phase in depleted fields) and the dissolved property
+(AMFS/AMFG/XMF2). Keeps track of
 which grid cells belong to which plume group at each time step, and
 merges plumes if they meet.
 
@@ -47,13 +50,15 @@ def main():
     (
         pg_prop_gas,
         pg_prop_dissolved,
-        dissolved_prop_key,
+        proxies,
         dates,
     ) = load_data_and_calculate_plume_groups(
         args.case,
         config.injection_wells,
         args.threshold_gas,
         args.threshold_dissolved,
+        args.threshold_gas_mole_fraction,
+        args.cirrus_info_file,
     )
 
     export_results(
@@ -62,7 +67,7 @@ def main():
         dates,
         pg_prop_gas,
         pg_prop_dissolved,
-        dissolved_prop_key,
+        proxies,
         config.injection_wells,
     )
 
