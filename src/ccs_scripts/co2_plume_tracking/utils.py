@@ -14,6 +14,9 @@ from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, read_yaml_file
 
 DEFAULT_THRESHOLD_GAS = 0.2
+# Used instead of DEFAULT_THRESHOLD_GAS when CO2 in the gas phase is represented by
+# its mole fraction (depleted fields) rather than by SGAS
+DEFAULT_THRESHOLD_GAS_MOLE_FRACTION = 0.005
 DEFAULT_THRESHOLD_DISSOLVED = 0.0005
 MAX_STEPS_RESOLVE_CELLS = 20
 MAX_NEAREST_GROUPS_SEARCH_DISTANCE = 3
