@@ -1,5 +1,6 @@
 import copy
 import logging
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -11,6 +12,7 @@ import xtgeo
 
 from ccs_scripts.co2_containment.input import GasSplitInfo, RegionInfo, ZoneInfo
 from ccs_scripts.utils.gridproperty_tools import GridHandler
+from ccs_scripts.utils.restart_header import read_component_names
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     format_error,
@@ -99,6 +101,10 @@ class SourceData:
     xmfs: Dict[int, Dict[str, np.ndarray]] = field(default_factory=dict)
     ymfs: Dict[int, Dict[str, np.ndarray]] = field(default_factory=dict)
     zmfs: Dict[int, Dict[str, np.ndarray]] = field(default_factory=dict)
+    amfs: Dict[int, Dict[str, np.ndarray]] = field(default_factory=dict)
+    # Component names in the header of the restart file (E300), in upper case, when it
+    # has them. They tell whether water is one of the ZMF components.
+    zcomps: Optional[List[str]] = None
 
     # Names of static property fields (excludes coordinates, DATES, zone, region,
     # and the indexed mf dicts — see active_property_names for a full list).
@@ -134,7 +140,7 @@ class SourceData:
         """Return names of all non-None properties, including indexed XMF/YMF/ZMF.
 
         The indexed component properties are expanded to their string names
-        (e.g. ``"XMF1"``, ``"XMF2"``) so that functions like ``_n_components``
+        (e.g. ``"XMF1"``, ``"XMF2"``) so that functions like ``component_count``
         and ``_find_source_and_scenario`` work unchanged.
         """
         names: List[str] = [
@@ -144,16 +150,6 @@ class SourceData:
         names.extend(f"YMF{i}" for i in sorted(self.ymfs))
         names.extend(f"ZMF{i}" for i in sorted(self.zmfs))
         return names
-
-
-class Scenario(Enum):
-    """
-    Which scenario is CO2 amounts calculated in
-    """
-
-    AQUIFER = 0
-    DEPLETED_GAS_FIELD = 1
-    DEPLETED_OIL_GAS_FIELD = 2
 
 
 @dataclass
@@ -214,6 +210,15 @@ def _detect_eclipse_mole_fraction_props(
     return mole_frac_props, component_indices, has_zmf
 
 
+def _aqueous_mole_fraction_props(unrst_file: str) -> List[str]:
+    """The numbered AMF<n> properties in an UNRST file, if it has any"""
+    return [
+        name
+        for name in xtgeo.list_gridproperties(unrst_file)
+        if re.fullmatch(r"AMF\d+", name)
+    ]
+
+
 def _find_props_to_extract(
     unrst_file: str, residual_trapping: bool
 ) -> Tuple[List[str], List[int], bool]:
@@ -223,6 +228,7 @@ def _find_props_to_extract(
         unrst_file
     )
     props_to_extract.extend(mole_frac_props)
+    props_to_extract.extend(_aqueous_mole_fraction_props(unrst_file))
     if residual_trapping:
         props_to_extract.extend(["SGSTRAND", "SGTRH"])
     return props_to_extract, component_indices, has_zmf
@@ -492,8 +498,12 @@ def _extract_source_data_from_properties(
     if init is None:
         logging.info(format_warning("No INIT-file loaded"))
 
-    # Determine reduced set of active cells based on actnum and gasless cells
-    dissolved_props = [d for d in ["AMFS", "AMFG", "XMF2"] if d in unrst_names]
+    # Determine reduced set of active cells based on actnum and gasless cells.
+    # AMF2 comes before XMF2: with oil, XMF2 is the CO2 in the oil phase, and the cells
+    # that only have CO2 dissolved in water would be taken as gasless and be left out.
+    # Without oil they are the same property.
+    dissolved_candidates = ["AMFS", "AMFG", "AMF2", "XMF2"]
+    dissolved_props = [d for d in dissolved_candidates if d in unrst_names]
     if len(dissolved_props) == 0 or "SGAS" not in unrst_names:
         error_text = (
             "CO2 containment calculation failed. "
@@ -504,7 +514,11 @@ def _extract_source_data_from_properties(
     unrst_props = grid_handler.read_properties(names=unrst_names, dates="all")
     gasless = identify_gas_less_cells_from_iterator(
         (p.values for p in unrst_props.props if p.name.startswith("SGAS")),
-        (p.values for p in unrst_props.props if p.name.startswith(dissolved_props[0])),
+        (
+            p.values
+            for p in unrst_props.props
+            if p.name.split("--")[0] == dissolved_props[0]
+        ),
     )
     # TODO: whenever active cells are used in general, make
     # sure that they are bool in type, otherwise, unexpected
@@ -642,6 +656,12 @@ def _extract_source_data_from_properties(
         if has_zmf
         else {}
     )
+    amf_names = [p for p in list(props_reduced) if re.fullmatch(r"AMF\d+", p)]
+    amfs = {int(p[len("AMF") :]): props_reduced.pop(p) for p in amf_names}
+    try:
+        zcomps = read_component_names(unrst_file)
+    except (OSError, ValueError):
+        zcomps = None
     source_data = SourceData(
         cells_x,
         cells_y,
@@ -654,6 +674,8 @@ def _extract_source_data_from_properties(
         xmfs=xmfs,
         ymfs=ymfs,
         zmfs=zmfs,
+        amfs=amfs,
+        zcomps=zcomps,
     )
     logging.info("\nDone extracting source data\n")
     return source_data, grid

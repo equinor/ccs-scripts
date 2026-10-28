@@ -10,8 +10,8 @@ from typing import List, Optional, Union
 
 import resfo
 
-WATER_NAMES = ({"H2O", "WATER"})
-CO2_NAMES = frozensfrozensetet({"CO2"})
+WATER_NAMES = frozenset({"H2O", "WATER"})
+CO2_NAMES = frozenset({"CO2"})
 
 
 def _decode(value) -> str:
