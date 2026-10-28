@@ -1,6 +1,8 @@
 import logging
+import re
 import sys
 import time
+from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -10,13 +12,33 @@ import numpy as np
 from ccs_scripts.co2_plume_tracking.utils import (
     DEFAULT_THRESHOLD_DISSOLVED,
     DEFAULT_THRESHOLD_GAS,
+    DEFAULT_THRESHOLD_GAS_MOLE_FRACTION,
     GridData,
     InjectionWellData,
     PlumeGroups,
     Status,
     sort_well_names,
 )
+from ccs_scripts.utils.aqueous_proxy import (
+    ZmfConvention,
+    aqueous_mole_fraction,
+    detect_zmf_convention_with_basis,
+)
+from ccs_scripts.utils.case_type import (
+    Co2Proxies,
+    Source,
+    classify_case,
+    component_count,
+    oil_is_present,
+    select_co2_proxies,
+)
+from ccs_scripts.utils.cirrus_info import (
+    default_info_file,
+    molar_densities,
+    read_molar_masses,
+)
 from ccs_scripts.utils.gridproperty_tools import GridHandler
+from ccs_scripts.utils.restart_header import co2_position, read_component_names
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     format_error,
@@ -52,13 +74,17 @@ def _find_cell_xy(
 def _fetch_properties_xtgeo(
     grid_handler: GridHandler,
     props_to_extract: List[str],
+    dates: Optional[List[str]] = None,
+    log: bool = True,
 ) -> Tuple[Dict[str, Dict[str, np.ndarray]], List[str]]:
-    """Fetch properties from UNRST file using xtgeo.
+    """Fetch properties from UNRST file using xtgeo, for all or the given dates.
 
     Returns properties for active cells only, in C-order.
     """
     names = [p for p in props_to_extract if p in grid_handler.property_names]
-    gprops = grid_handler.read_properties(names=names, dates="all")
+    gprops = grid_handler.read_properties(
+        names=names, dates=dates if dates is not None else "all"
+    )
     actnum = grid_handler.grid.actnum_array.astype(bool)
 
     props: Dict[str, Dict[str, np.ndarray]] = {}
@@ -76,54 +102,312 @@ def _fetch_properties_xtgeo(
         if pdate not in dates_ordered:
             dates_ordered.append(pdate)
 
-    logging.info(
-        "Done reading properties from file"
-        "\nRelevant properties extracted:"
-        f"\n    {', '.join(list(props.keys()))}\n"
-    )
+    if log:
+        logging.info(
+            "Done reading properties from file"
+            "\nRelevant properties extracted:"
+            f"\n    {', '.join(list(props.keys()))}\n"
+        )
     return props, dates_ordered
+
+
+def _read_cirrus_info(
+    grid_handler: GridHandler,
+    grid_file: str,
+    has_oil: Optional[bool],
+    cirrus_info_file: Optional[str],
+) -> Optional[Dict[str, Tuple[int, float]]]:
+    """
+    Molar masses by component for Cirrus COMP cases
+    Returns None for other cases, and when there is no info file.
+    """
+    case_type = classify_case(grid_handler.property_names, has_oil=has_oil)
+    if case_type is None or case_type.source != Source.CIRRUS_COMP:
+        return None
+    info_file = cirrus_info_file or default_info_file(grid_file)
+    if info_file is None:
+        return None
+    if not Path(info_file).is_file():
+        raise FileNotFoundError(
+            format_error(f"Cirrus info file not found: {info_file}")
+        )
+    try:
+        molar_masses = read_molar_masses(info_file)
+        n_components = case_type.n_components
+        if n_components is not None and len(molar_masses) != n_components:
+            error_text = (
+                f"The Cirrus info file has {len(molar_masses)} MW_ rows, but the "
+                f"case has {n_components} components: {info_file}"
+            )
+            raise ValueError(format_error(error_text))
+    except ValueError as exc:
+        if cirrus_info_file is not None:
+            raise
+        text = f"WARNING: Cirrus info file {info_file} not used. {exc}"
+        logging.warning(format_warning(text))
+        return None
+    logging.info(f"Cirrus info file used for molar masses: {info_file}")
+    return molar_masses
+
+
+def _read_component_names(grid_handler: GridHandler) -> Optional[List[str]]:
+    """
+    The component names in the header of an E300 restart file, if it has them. They tell
+    whether water is one of the ZMF components (CO2STORE) and where CO2 is.
+    """
+    unrst_file = getattr(grid_handler, "properties_file", None)
+    if unrst_file is None:
+        return None
+    try:
+        return read_component_names(unrst_file)
+    except (OSError, ValueError) as exc:
+        logging.warning(
+            format_warning(f"WARNING: Could not read the component names: {exc}")
+        )
+        return None
+
+
+def _derive_aqueous_proxy(
+    grid_handler: GridHandler,
+    proxies: Co2Proxies,
+    dates: List[str],
+    molar_masses: Optional[Dict[str, Tuple[int, float]]] = None,
+) -> Tuple[Co2Proxies, Optional[Dict[str, np.ndarray]]]:
+    """
+    Derive the mole fraction of CO2 in the aqueous phase for each date, from the
+    overall composition, when AMF is not written.
+
+    Returns the proxies, updated with how the values were derived, and the values by
+    date. If they cannot be derived, the aqueous proxy is dropped.
+    """
+    assert proxies.dissolved is not None
+    assert proxies.dissolved_derived_from is not None
+    component = proxies.dissolved_derived_from[len("ZMF") :]
+    case_type = proxies.case_type
+    from_mass = case_type is not None and case_type.source == Source.CIRRUS_COMP
+    zmf_names = sorted(
+        name
+        for name in set(grid_handler.property_names)
+        if re.fullmatch(r"ZMF\d+", name)
+    )
+    if from_mass:
+        assert molar_masses is not None
+        assert case_type is not None and case_type.n_components is not None
+        positions = range(1, case_type.n_components + 1)
+        composition = [f"{phase}MF{i}" for phase in "XY" for i in positions]
+        densities = ["DGAS", "DWAT", "DOIL"]
+    else:
+        composition = [f"XMF{component}", f"YMF{component}"]
+        densities = ["BGAS", "BWAT", "BOIL"]
+    to_read = ["SGAS", "SWAT", "SOIL", *densities, *composition, *zmf_names, "ZMFW"]
+
+    def read_date(date: str) -> Dict[str, np.ndarray]:
+        props, _ = _fetch_properties_xtgeo(grid_handler, to_read, [date], log=False)
+        return {name: values[date] for name, values in props.items()}
+
+    def molar_densities_of(
+        values: Dict[str, np.ndarray],
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        if not from_mass:
+            return values["BGAS"], values["BWAT"], values["BOIL"]
+        assert molar_masses is not None
+        return molar_densities(
+            molar_masses,
+            {i: values[f"XMF{i}"] for i in positions},
+            {i: values[f"YMF{i}"] for i in positions},
+            values["DGAS"],
+            values["DWAT"],
+            values.get("DOIL"),
+        )
+
+    last = read_date(dates[-1])
+    soil_last = last.get("SOIL")
+    if soil_last is None:
+        soil_last = np.clip(1.0 - last["SGAS"] - last["SWAT"], 0.0, None)
+    zmf_total = np.sum([last[name] for name in zmf_names], axis=0)
+    convention, basis = detect_zmf_convention_with_basis(
+        zmf_total,
+        last["SGAS"],
+        soil_last,
+        zmfw=last.get("ZMFW"),
+        zcomps=_read_component_names(grid_handler),
+        n_zmf=len(zmf_names),
+    )
+    if convention is None:
+        reason = (
+            f"{proxies.dissolved} is not written, and it could not be derived "
+            f"from {proxies.dissolved_derived_from}: it is not clear whether ZMF "
+            "includes water. Add AMF to RPTRST"
+        )
+        return (
+            replace(
+                proxies,
+                dissolved=None,
+                dissolved_reason=reason,
+                dissolved_derived_from=None,
+            ),
+            None,
+        )
+
+    reason = (
+        f"{proxies.dissolved} is not written, derived from "
+        f"{proxies.dissolved_derived_from} by a mole balance "
+        f"(ZMF {convention.value}, from {basis})"
+    )
+    if from_mass:
+        reason += "; mass densities converted with the molar masses of the info file"
+    if convention == ZmfConvention.EXCLUDES_WATER:
+        reason += "; approximate: cells with only water are not seen"
+    logging.info(f"\nDeriving {proxies.dissolved} for {len(dates)} dates")
+
+    derived: Dict[str, np.ndarray] = {}
+    for date in dates:
+        values = last if date == dates[-1] else read_date(date)
+        bgas, bwat, boil = molar_densities_of(values)
+        derived[date] = aqueous_mole_fraction(
+            convention,
+            values["SGAS"],
+            values["SWAT"],
+            values.get("SOIL"),
+            bgas,
+            bwat,
+            boil,
+            values[f"XMF{component}"],
+            values[f"YMF{component}"],
+            values[f"ZMF{component}"],
+        )
+    logging.info(f"Done deriving {proxies.dissolved}\n")
+    return replace(proxies, dissolved_reason=reason), derived
 
 
 def _find_gasless_cells(
     properties: Dict[str, Dict[str, np.ndarray]],
+    dissolved_prop: Optional[str],
 ) -> np.ndarray:
-    """Identify gasless cells from property arrays for active cells."""
-    dissolved_prop = None
-    if "AMFS" in properties:
-        dissolved_prop = properties["AMFS"]
-    elif "AMFG" in properties:
-        dissolved_prop = properties["AMFG"]
-    elif "XMF2" in properties:
-        dissolved_prop = properties["XMF2"]
+    """
+    Identify gasless cells from property arrays for active cells. Based on SGAS
+    (and the dissolved proxy, if any).
+    """
+    dissolved = properties[dissolved_prop] if dissolved_prop is not None else None
+    return identify_gas_less_cells(properties["SGAS"], dissolved)
 
-    return identify_gas_less_cells(properties["SGAS"], dissolved_prop)
+
+def _infer_oil_presence(
+    grid_handler: GridHandler,
+    dates: List[str],
+    sgas: Dict[str, np.ndarray],
+) -> Optional[bool]:
+    """
+    For cases with numbered components that do not store SOIL, infer whether oil
+    is present from SGAS (given, per date) and SWAT at the first and last of the
+    given dates. Returns None when the property names are enough to classify the
+    case, or when the saturations cannot be read.
+    """
+    names = set(grid_handler.property_names)
+    if "SOIL" in names or not {"SGAS", "SWAT"}.issubset(names) or not dates:
+        return None
+    n_components = component_count(names)
+    if n_components is None or n_components <= 3:
+        return None
+    check_dates = sorted({dates[0], dates[-1]})
+    try:
+        props, _ = _fetch_properties_xtgeo(grid_handler, ["SWAT"], check_dates)
+    except ValueError as exc:
+        logging.warning(
+            format_warning(f"WARNING: Could not read SWAT to look for oil: {exc}")
+        )
+        return None
+    has_oil = oil_is_present(
+        [sgas[d] for d in check_dates], [props["SWAT"][d] for d in check_dates]
+    )
+    logging.info(
+        "SOIL not stored; oil saturation inferred as 1 - SGAS - SWAT "
+        f"(first and last date): oil {'present' if has_oil else 'not present'}"
+    )
+    return has_oil
+
+
+def gas_threshold(
+    proxies: Co2Proxies,
+    threshold_gas: float,
+    threshold_gas_mole_fraction: float,
+) -> float:
+    """Threshold for the gas proxy: a saturation for SGAS, else a mole fraction"""
+    if proxies.gas_is_mole_fraction:
+        logging.info(
+            f"{'Threshold gas (used)':<24}: {threshold_gas_mole_fraction} "
+            f"(mole fraction of CO2 in gas phase, {proxies.gas})"
+        )
+        return threshold_gas_mole_fraction
+    logging.info(f"{'Threshold gas (used)':<24}: {threshold_gas} (SGAS)")
+    return threshold_gas
 
 
 def load_plume_tracking_data(
-    grid_file: str, unrst_file: str
-) -> Tuple[GridData, Dict[str, Dict[str, np.ndarray]], List[str], np.ndarray]:
+    grid_file: str,
+    unrst_file: str,
+    read_gas_proxy: bool = True,
+    cirrus_info_file: Optional[str] = None,
+) -> Tuple[
+    GridData, Dict[str, Dict[str, np.ndarray]], List[str], np.ndarray, Co2Proxies
+]:
     """Load grid and properties needed for plume tracking.
+
+    cirrus_info_file is used for Cirrus COMP cases only.
 
     Returns:
         grid_data: Pre-computed grid lookup arrays
         properties: {prop_name: {date_str: array}} for active cells
         dates: Ordered date strings
         gasless: Boolean mask over active cells (True = gasless)
+        proxies: Properties representing CO2 in the gas phase and dissolved
     """
     grid_handler = GridHandler(Path(grid_file), Path(unrst_file))
     grid_data = GridData.from_xtgeo_grid(grid_handler.grid)
 
-    dissolved_prop = next(
-        (p for p in ("AMFS", "AMFG", "XMF2") if p in grid_handler.property_names), None
+    # SGAS is always needed (gasless cells), and gives the report dates
+    properties, dates = _fetch_properties_xtgeo(grid_handler, ["SGAS"])
+    has_oil = _infer_oil_presence(grid_handler, dates, sgas=properties["SGAS"])
+    molar_masses = _read_cirrus_info(grid_handler, grid_file, has_oil, cirrus_info_file)
+    # Where CO2 is: Cirrus COMP says it in the info file, E300 in the restart header
+    co2_component = (
+        molar_masses["CO2"][0]
+        if molar_masses is not None
+        else co2_position(_read_component_names(grid_handler))
     )
+    proxies = select_co2_proxies(
+        grid_handler.property_names,
+        has_oil=has_oil,
+        co2_component=co2_component,
+    )
+    derived_dissolved = None
+    if proxies.dissolved_derived_from is not None:
+        proxies, derived_dissolved = _derive_aqueous_proxy(
+            grid_handler, proxies, dates, molar_masses
+        )
+    proxies.log()
 
-    props_to_extract = ["SGAS"]
-    if dissolved_prop is not None:
-        props_to_extract.append(dissolved_prop)
+    props_to_extract = []
+    if read_gas_proxy and proxies.gas != "SGAS":
+        props_to_extract.append(proxies.gas)
+    if proxies.dissolved is not None and derived_dissolved is None:
+        props_to_extract.append(proxies.dissolved)
+    if props_to_extract:
+        more_properties, _ = _fetch_properties_xtgeo(grid_handler, props_to_extract)
+        properties.update(more_properties)
+        missing = [
+            (p, d) for p in props_to_extract for d in dates if d not in properties[p]
+        ]
+        if missing:
+            error_text = "Properties missing at some report dates: " + ", ".join(
+                f"{p} ({d})" for p, d in missing
+            )
+            raise ValueError(format_error(error_text))
+    if derived_dissolved is not None and proxies.dissolved is not None:
+        properties[proxies.dissolved] = derived_dissolved
 
-    properties, dates = _fetch_properties_xtgeo(grid_handler, props_to_extract)
-    gasless = _find_gasless_cells(properties)
-    return grid_data, properties, dates, gasless
+    gasless = _find_gasless_cells(properties, proxies.dissolved)
+    return grid_data, properties, dates, gasless, proxies
 
 
 def calculate_all_plume_groups(
@@ -134,17 +418,11 @@ def calculate_all_plume_groups(
     threshold_gas: float,
     threshold_dissolved: float,
     inj_wells: List[InjectionWellData],
-) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str]]:
-    dissolved_prop_key = None
-    if "AMFS" in properties:
-        dissolved_prop_key = "AMFS"
-    elif "AMFG" in properties:
-        dissolved_prop_key = "AMFG"
-    elif "XMF2" in properties:
-        dissolved_prop_key = "XMF2"
-
+    proxies: Co2Proxies,
+) -> Tuple[List[List[str]], Optional[List[List[str]]]]:
+    """threshold_gas must be the one matching proxies.gas"""
     pg_prop_gas, _ = calculate_plume_groups(
-        "SGAS",
+        proxies.gas,
         threshold_gas,
         grid_data,
         properties,
@@ -153,9 +431,9 @@ def calculate_all_plume_groups(
         gasless,
     )
 
-    if dissolved_prop_key is not None:
+    if proxies.dissolved is not None:
         pg_prop_dissolved, _ = calculate_plume_groups(
-            dissolved_prop_key,
+            proxies.dissolved,
             threshold_dissolved,
             grid_data,
             properties,
@@ -165,11 +443,8 @@ def calculate_all_plume_groups(
         )
     else:
         pg_prop_dissolved = None
-        warning_text = "WARNING: Cannot find any of the following properties: "
-        warning_text += "AMFS, AMFG or XMF2."
-        logging.warning(format_warning(warning_text))
 
-    return pg_prop_gas, pg_prop_dissolved, dissolved_prop_key
+    return pg_prop_gas, pg_prop_dissolved
 
 
 def load_data_and_calculate_plume_groups(
@@ -177,25 +452,28 @@ def load_data_and_calculate_plume_groups(
     injection_wells: List[InjectionWellData],
     threshold_gas: float = DEFAULT_THRESHOLD_GAS,
     threshold_dissolved: float = DEFAULT_THRESHOLD_DISSOLVED,
-) -> Tuple[List[List[str]], Optional[List[List[str]]], Optional[str], List[datetime]]:
+    threshold_gas_mole_fraction: float = DEFAULT_THRESHOLD_GAS_MOLE_FRACTION,
+    cirrus_info_file: Optional[str] = None,
+) -> Tuple[List[List[str]], Optional[List[List[str]]], Co2Proxies, List[datetime]]:
     logging.info("\nStart calculations for plume tracking")
-    grid_data, properties, dates, gasless = load_plume_tracking_data(
-        f"{case}.EGRID", f"{case}.UNRST"
+    grid_data, properties, dates, gasless, proxies = load_plume_tracking_data(
+        f"{case}.EGRID", f"{case}.UNRST", cirrus_info_file=cirrus_info_file
     )
     logging.info(f"Number of active grid cells: {grid_data.n_active}")
 
-    pg_prop_gas, pg_prop_dissolved, dissolved_prop_key = calculate_all_plume_groups(
+    pg_prop_gas, pg_prop_dissolved = calculate_all_plume_groups(
         grid_data,
         properties,
         dates,
         gasless,
-        threshold_gas,
+        gas_threshold(proxies, threshold_gas, threshold_gas_mole_fraction),
         threshold_dissolved,
         injection_wells,
+        proxies,
     )
 
     report_dates = [datetime.strptime(d, "%Y%m%d") for d in dates]
-    return pg_prop_gas, pg_prop_dissolved, dissolved_prop_key, report_dates
+    return pg_prop_gas, pg_prop_dissolved, proxies, report_dates
 
 
 def _log_number_of_grid_cells(

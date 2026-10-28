@@ -145,10 +145,14 @@ class Co2PlumeExtentStep(ForwardModelStepPlugin):
                 "<OUTPUT_CSV>",
                 "--threshold_gas",
                 "<THRESHOLD_GAS>",
+                "--threshold_gas_mole_fraction",
+                "<THRESHOLD_GAS_MOLE_FRACTION>",
                 "--threshold_dissolved",
                 "<THRESHOLD_DISSOLVED>",
                 "--column_name",
                 "<COLUMN_NAME>",
+                "--cirrus_info_file",
+                "<CIRRUS_INFO_FILE>",
                 "--no_logging",
                 "<NO_LOGGING>",
                 "--debug",
@@ -160,8 +164,10 @@ class Co2PlumeExtentStep(ForwardModelStepPlugin):
                 "<CALC_TYPE>": "plume_extent",
                 "<OUTPUT_CSV>": "share/results/tables/plume_extent.csv",
                 "<THRESHOLD_GAS>": "0.2",
+                "<THRESHOLD_GAS_MOLE_FRACTION>": "0.005",
                 "<THRESHOLD_DISSOLVED>": "0.0005",
                 "<COLUMN_NAME>": "",
+                "<CIRRUS_INFO_FILE>": "",
                 "<NO_LOGGING>": "-1",
                 "<DEBUG>": "-1",
             },
@@ -381,8 +387,9 @@ representative volume of CO2
 
 
 _DESC_CO2_PLUME_AREA = """
-Calculates the area of the CO2 plume for each formation and time step, for both
-SGAS and AMFG (Cirrus) / YMF2 (Eclipse).
+Calculates the area of the CO2 plume for each formation and time step, for each
+of the properties that have maps: SGAS and YMF (CO2 in gas phase), AMF and XMF 
+(CO2 dissolved in water), or XMFS (CO2 dissolved in oil).
 
 Output is a table on CSV format.
 """
