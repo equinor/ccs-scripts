@@ -13,8 +13,19 @@ from ccs_scripts.co2_containment.input import CalculationType, GasSplitInfo
 from ccs_scripts.co2_containment.source_data import (
     PROPERTIES_NEEDED_CIRRUS,
     PROPERTIES_NEEDED_ECLIPSE,
-    Scenario,
     SourceData,
+)
+from ccs_scripts.utils.aqueous_proxy import (
+    ZmfConvention,
+    aqueous_mole_fraction,
+    detect_zmf_convention_with_basis,
+)
+from ccs_scripts.utils.case_type import (
+    Scenario,
+    Source,
+    classify_case,
+    component_count,
+    scenario_from_components,
 )
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
@@ -179,33 +190,6 @@ def _extract_comp_molar_masses(
     return molar_weights
 
 
-def _n_components(active_props: List):
-    """
-    Detects how many components are there in vapor phase
-
-    Args:
-        active_props (List): List of active properties
-
-    Returns
-        int with the number of components
-    """
-    xmf_suffixes = [int(item[3:]) for item in active_props if item.startswith("XMF")]
-    # Find the max suffix
-    max_xmf_suffix = max(xmf_suffixes)
-
-    ymf_suffixes = [int(item[3:]) for item in active_props if item.startswith("YMF")]
-    # Find the max suffix
-    max_ymf_suffix = max(ymf_suffixes)
-
-    if max_xmf_suffix != max_ymf_suffix:
-        error_text = (
-            "Error: Number of components with XMF property differ from "
-            "the number of components with YMF"
-        )
-        raise ValueError(format_error(error_text))
-    return max_xmf_suffix
-
-
 def _compute_phases_avg_mol_weight(
     source_data: SourceData,
     comp_molar_masses: Optional[Dict[str, Tuple[int, float]]],
@@ -231,11 +215,12 @@ def _compute_phases_avg_mol_weight(
             gas_avg_mol_weight_at_date[idx] = molar_mass * ymf_tmp_date
             if scenario == Scenario.DEPLETED_OIL_GAS_FIELD:
                 oil_avg_mol_weight_at_date[idx] = molar_mass * xmf_tmp_date
+            if scenario == Scenario.AQUIFER:
+                water_avg_mol_weight_at_date[idx] = molar_mass * xmf_tmp_date
+            else:
                 water_avg_mol_weight_at_date[idx] = (
                     water_molar_mass / len(comp_molar_masses)
                 ) * np.ones_like(xmf_tmp_date)
-            else:
-                water_avg_mol_weight_at_date[idx] = molar_mass * xmf_tmp_date
         gas_avg_mol_weight[date] = np.sum(
             list(gas_avg_mol_weight_at_date.values()), axis=0
         )
@@ -469,6 +454,132 @@ def _cirrus_co2mass(
     return co2_mass
 
 
+# How the CO2 in the aqueous phase is found when there is oil, and for depleted gas in
+# Cirrus COMP. With oil XMF is the oil phase, and in Cirrus COMP it repeats YMF, so
+# the aqueous phase is AMF, or else it is what ZMF leaves over.
+AQUEOUS_FROM_AMF = "AMF"
+AQUEOUS_ZMF_WITH_WATER = "ZMF with water"
+AQUEOUS_ZMF_WITHOUT_WATER = "ZMF without water"
+AQUEOUS_ZMF_UNKNOWN = "ZMF, unknown"
+
+_AQUEOUS_HELP = (
+    "Write AMF to the restart file (RPTRST ... AMF) to have the CO2 in the aqueous "
+    "phase from the simulator."
+)
+
+
+def _aqueous_co2_method(source_data: SourceData, source: str, co2_idx: int) -> str:
+    """
+    Decides, once, how the CO2 in the aqueous phase is found for oil and gas, and for
+    depleted gas in Cirrus COMP, and says so in the log:
+
+    1. AMF<co2> is in the restart file: the CO2 is the moles of water times AMF.
+    2. Otherwise from the overall composition ZMF, by a mole balance, which depends on
+       whether ZMF counts water:
+       - it does (Cirrus COMP by construction, or E300 with CO2STORE): what ZMF leaves
+         over after gas and oil is in the aqueous phase.
+       - it does not (standard E300): the balance only sees the cells that have gas or
+         oil, so it is approximate.
+       - it cannot be told: as ZMF counting water, which is what was done before.
+    """
+    if co2_idx in source_data.amfs:
+        logging.info(
+            f"CO2 in the aqueous phase: from AMF{co2_idx}, written by the simulator"
+        )
+        return AQUEOUS_FROM_AMF
+    if co2_idx not in source_data.zmfs:
+        help_text = (
+            "Write ZMF to the restart file (RPTRST ... ZMF): Cirrus writes AMF "
+            "only in MODE COMP3P."
+            if source == "Cirrus COMP"
+            else _AQUEOUS_HELP
+        )
+        error_text = (
+            f"Cannot find the CO2 in the aqueous phase: neither AMF{co2_idx} nor "
+            f"ZMF{co2_idx} are in the restart file, and XMF is not the aqueous phase "
+            "here (with oil it is the oil phase, and in Cirrus COMP it repeats YMF). "
+            + help_text
+        )
+        raise ValueError(format_error(error_text))
+    if source == "Cirrus COMP":
+        # ZMFW is always written, and ZMF + ZMFW add up to 1
+        logging.info(
+            f"CO2 in the aqueous phase: AMF{co2_idx} is not written (Cirrus writes it "
+            "in MODE COMP3P), so it is what ZMF leaves over; Cirrus COMP counts water "
+            "in ZMF"
+        )
+        return AQUEOUS_ZMF_WITH_WATER
+    last = source_data.DATES[-1]
+    assert source_data.SGAS is not None and source_data.SOIL is not None
+    zmf_total = np.sum([source_data.zmfs[i][last] for i in source_data.zmfs], axis=0)
+    convention, basis = detect_zmf_convention_with_basis(
+        zmf_total,
+        source_data.SGAS[last],
+        source_data.SOIL[last],
+        zcomps=source_data.zcomps,
+        n_zmf=len(source_data.zmfs),
+    )
+    intro = f"CO2 in the aqueous phase: AMF{co2_idx} is not written, so from ZMF"
+    if convention == ZmfConvention.INCLUDES_WATER:
+        logging.info(f"{intro}, which counts water (found from {basis})")
+        return AQUEOUS_ZMF_WITH_WATER
+    if convention == ZmfConvention.EXCLUDES_WATER:
+        warning_text = (
+            f"WARNING: {intro}, which does not count water (found from {basis}). "
+            "The CO2 dissolved in cells with only water is not seen, so the aqueous "
+            "CO2 is underestimated. " + _AQUEOUS_HELP
+        )
+        logging.warning(format_warning(warning_text))
+        return AQUEOUS_ZMF_WITHOUT_WATER
+    warning_text = (
+        f"WARNING: {intro}, but it could not be told whether ZMF counts water. It is "
+        "taken to count it, as before. If it does not, the CO2 in the aqueous phase "
+        "and the total are wrong, by a lot. " + _AQUEOUS_HELP
+    )
+    logging.warning(format_warning(warning_text))
+    return AQUEOUS_ZMF_UNKNOWN
+
+
+def _aqueous_co2_mass(
+    method: str,
+    source_data: SourceData,
+    co2_idx: int,
+    date: str,
+    moles: List[np.ndarray],
+    gas_mass: np.ndarray,
+    oil_mass: np.ndarray,
+    co2_molar_mass: float,
+) -> np.ndarray:
+    """
+    The mass of CO2 in the aqueous phase for one date, with the method that was decided
+    in _aqueous_co2_method(). moles are those of water, gas and oil in each cell.
+    """
+    if method == AQUEOUS_FROM_AMF:
+        return moles[0] * source_data.amfs[co2_idx][date] * co2_molar_mass
+    if method == AQUEOUS_ZMF_WITHOUT_WATER:
+        assert source_data.SGAS is not None and source_data.SOIL is not None
+        assert source_data.BGAS is not None and source_data.BOIL is not None
+        assert source_data.SWAT is not None and source_data.BWAT is not None
+        fraction = aqueous_mole_fraction(
+            ZmfConvention.EXCLUDES_WATER,
+            source_data.SGAS[date],
+            source_data.SWAT[date],
+            source_data.SOIL[date],
+            source_data.BGAS[date],
+            source_data.BWAT[date],
+            source_data.BOIL[date],
+            source_data.xmfs[co2_idx][date],
+            source_data.ymfs[co2_idx][date],
+            source_data.zmfs[co2_idx][date],
+        )
+        return moles[0] * fraction * co2_molar_mass
+    # ZMF counts water (or it is not known, and is taken to): the CO2 is in all the
+    # moles, and what is not in gas or oil is in the aqueous phase
+    total_moles = moles[0] + moles[1] + moles[2]
+    total_mass = total_moles * source_data.zmfs[co2_idx][date] * co2_molar_mass
+    return total_mass - gas_mass - oil_mass
+
+
 def _compositional_co2mass(
     source_data: SourceData,
     scenario: Scenario,
@@ -502,28 +613,40 @@ def _compositional_co2mass(
     soil = source_data.SOIL
     eff_vols = source_data.RPORV if pore_volume_prop == "RPORV" else source_data.PORV
     conv_fact = co2_molar_mass
+    co2_idx = 2
     if co2_position is not None and source == "Cirrus COMP":
-        xmf_co2 = source_data.xmfs[co2_position]
-        ymf_co2 = source_data.ymfs[co2_position]
-    else:
-        xmf_co2 = source_data.xmfs[2]
-        ymf_co2 = source_data.ymfs[2]
+        co2_idx = co2_position
+    xmf_co2 = source_data.xmfs[co2_idx]
+    ymf_co2 = source_data.ymfs[co2_idx]
+    with_oil = scenario == Scenario.DEPLETED_OIL_GAS_FIELD
+    # In Cirrus COMP, XMF is not the aqueous phase without oil either: it repeats YMF.
+    # So the aqueous phase is found from AMF, or else from what ZMF leaves.
+    aqueous_by_balance = with_oil or (
+        source == "Cirrus COMP" and scenario == Scenario.DEPLETED_GAS_FIELD
+    )
+    aqueous_method = (
+        _aqueous_co2_method(source_data, source, co2_idx)
+        if aqueous_by_balance
+        else None
+    )
     phase_moles = {}
     co2_mass = {}
     assert eff_vols is not None
     assert bgas is not None
     assert sgas is not None
     assert bwat is not None
+    if with_oil:
+        assert swat is not None
     for date in dates:
+        # Without oil, the water saturation is what the gas leaves
+        water_saturation = (
+            swat[date] if aqueous_by_balance and swat is not None else 1 - sgas[date]
+        )
         phase_moles[date] = [
-            (
-                bwat[date] * swat[date] * eff_vols[date]  # type: ignore[index]
-                if scenario == Scenario.DEPLETED_OIL_GAS_FIELD
-                else bwat[date] * (1 - sgas[date]) * eff_vols[date]
-            ),
+            bwat[date] * water_saturation * eff_vols[date],
             bgas[date] * sgas[date] * eff_vols[date],
         ]
-        if scenario != Scenario.DEPLETED_OIL_GAS_FIELD:
+        if not aqueous_by_balance:
             phase_moles[date].extend([np.zeros_like(phase_moles[date][0])])
             co2_mass[date] = [
                 conv_fact * phase_moles[date][0] * xmf_co2[date],
@@ -531,25 +654,34 @@ def _compositional_co2mass(
                 phase_moles[date][2],
             ]
         else:
-            zmf_co2 = (
-                source_data.zmfs[co2_position]
-                if co2_position is not None and source == "Cirrus COMP"
-                else source_data.zmfs[2]
+            assert aqueous_method is not None
+            assert conv_fact is not None
+            if with_oil:
+                assert boil is not None
+                assert soil is not None
+                oil_moles = boil[date] * soil[date] * eff_vols[date]
+            else:
+                oil_moles = np.zeros_like(phase_moles[date][0])
+            phase_moles[date].extend([oil_moles])
+            gas_mass = phase_moles[date][1] * ymf_co2[date] * conv_fact
+            oil_mass = phase_moles[date][2] * xmf_co2[date] * conv_fact
+            aqueous_mass = _aqueous_co2_mass(
+                aqueous_method,
+                source_data,
+                co2_idx,
+                date,
+                phase_moles[date],
+                gas_mass,
+                oil_mass,
+                conv_fact,
             )
-            assert boil is not None
-            assert soil is not None
-            phase_moles[date].extend([boil[date] * soil[date] * eff_vols[date]])
-            total_moles = (
-                phase_moles[date][0] + phase_moles[date][1] + phase_moles[date][2]
-            )
-            total_co2_mass = total_moles * zmf_co2[date] * conv_fact
-            co2_mass[date] = [
-                phase_moles[date][1] * ymf_co2[date] * conv_fact,
-                phase_moles[date][2] * xmf_co2[date] * conv_fact,
-            ]
-            co2_mass[date].insert(
-                0, total_co2_mass - co2_mass[date][0] - co2_mass[date][1]
-            )
+            if not with_oil:
+                # What ZMF leaves over is rounding error where there is no water,
+                # and slightly negative where there is almost none
+                aqueous_mass = np.where(
+                    phase_moles[date][0] > 0, np.maximum(aqueous_mass, 0.0), 0.0
+                )
+            co2_mass[date] = [aqueous_mass, gas_mass, oil_mass]
         if any(x is not None for x in (sgstrand, sgtrh)):
             assert sgtrh is not None
             co2_mass[date].extend(
@@ -998,34 +1130,21 @@ def _find_source_and_scenario(
         props_needed_cirrus.append("SGSTRAND")
         props_needed_eclipse.append("SGTRH")
     if is_subset(props_needed_cirrus, active_props):
-        source = "Cirrus"
-        if is_subset(["AMFS", "YMFO"], active_props):
-            scenario = Scenario.DEPLETED_OIL_GAS_FIELD
-        elif is_subset(["AMFS"], active_props):
-            scenario = Scenario.DEPLETED_GAS_FIELD
-        elif is_subset(["AMFG", "YMFG"], active_props):
-            scenario = Scenario.AQUIFER
-        elif is_subset(["XMF2"], active_props):
-            source = "Cirrus COMP"
-            if _n_components(active_props) <= 3:
-                scenario = Scenario.AQUIFER
-            elif is_subset(["SOIL"], active_props):
-                scenario = Scenario.DEPLETED_OIL_GAS_FIELD
-            else:
-                scenario = Scenario.DEPLETED_GAS_FIELD
-        else:
+        case = classify_case(active_props)
+        if case is None:
             error_text = (
                 "Need to provide either AMFS, AMFG or XMF2 to perform the calculations"
             )
             raise ValueError(format_error(error_text))
+        source, scenario = case.source.value, case.scenario
     elif is_subset(props_needed_eclipse, active_props):
-        source = "Eclipse"
-        if _n_components(active_props) <= 3:
-            scenario = Scenario.AQUIFER
-        elif is_subset(["SOIL"], active_props):
-            scenario = Scenario.DEPLETED_OIL_GAS_FIELD
-        else:
-            scenario = Scenario.DEPLETED_GAS_FIELD
+        # XMF2 and YMF2 are required for Eclipse, so the count is always found
+        n_components = component_count(active_props)
+        assert n_components is not None
+        source = Source.ECLIPSE.value
+        scenario = scenario_from_components(
+            n_components, has_oil=is_subset(["SOIL"], active_props)
+        )
     else:
         _raise_missing_props_error(
             active_props, props_needed_cirrus, props_needed_eclipse

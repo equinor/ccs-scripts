@@ -217,7 +217,7 @@ def _derive_aqueous_proxy(
             {i: values[f"YMF{i}"] for i in positions},
             values["DGAS"],
             values["DWAT"],
-            values["DOIL"],
+            values.get("DOIL"),
         )
 
     last = read_date(dates[-1])
