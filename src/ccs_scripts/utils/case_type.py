@@ -215,7 +215,7 @@ def select_co2_proxies(
                        Aquifer        Depleted gas   Depleted oil & gas
         Cirrus         SGAS / AMFG    YMFS / AMFS    YMFS / AMFS / XMFS
         Cirrus COMP    SGAS / XMF2    YMF2 / AMF2    YMF2 / AMF2 / XMF2
-        Eclipse        SGAS / XMF2    YMF2 / XMF2    YMF2 / AMF2 / XMF2
+        Eclipse        SGAS / XMF2    YMF2 / AMF2    YMF2 / AMF2 / XMF2
 
     With oil, XMF is the oil phase, so the aqueous phase is AMF. In Cirrus COMP it is
     AMF also without oil: water is not part of the flash, and XMF repeats YMF where
@@ -223,7 +223,8 @@ def select_co2_proxies(
     not written (Cirrus writes it in MODE COMP3P), it is derived from the overall
     composition ZMF by a mole balance, when the properties for that are there
     (dissolved_derived_from is then set). The derivation itself needs values, see
-    ccs_scripts.utils.aqueous_proxy.
+    ccs_scripts.utils.aqueous_proxy. Eclipse without oil is the exception when
+    neither AMF nor ZMF can be used: XMF is then what is used, as it always was.
 
     Args:
         property_names: Properties in the restart file.
@@ -272,8 +273,9 @@ def select_co2_proxies(
             dissolved_reason = "mole fraction of CO2 in the aqueous phase"
             oil = f"XMF{component}"
             oil_reason = "mole fraction of CO2 in the oil phase"
-        elif case.source == Source.CIRRUS_COMP and not aquifer:
-            # Depleted gas in MODE COMP: XMF is not the aqueous phase, see above
+        elif not aquifer:
+            # Depleted gas in MODE COMP and in Eclipse: XMF is not (always) the
+            # aqueous phase, see above
             dissolved = f"AMF{component}"
             dissolved_reason = "mole fraction of CO2 in the aqueous phase"
         else:
@@ -291,26 +293,31 @@ def select_co2_proxies(
         gas_reason = f"{gas} not found, SGAS used instead (includes hydrocarbon gas)"
         gas = "SGAS"
     # Depleted gas in Cirrus COMP: as with oil, the aqueous phase has no property of
-    # its own that can be used, XMF only repeats YMF
+    # its own that can be used, XMF only repeats YMF. In Eclipse, XMF is the aqueous
+    # phase only if water is part of the flash, so it is derived as with oil
     comp_gas = (
         case.source == Source.CIRRUS_COMP
         and case.scenario == Scenario.DEPLETED_GAS_FIELD
     )
+    eclipse_gas = (
+        case.source == Source.ECLIPSE and case.scenario == Scenario.DEPLETED_GAS_FIELD
+    )
+    no_oil = comp_gas or eclipse_gas
     if dissolved is not None and dissolved not in names:
-        if (with_oil and case.source != Source.CIRRUS) or comp_gas:
+        if (with_oil and case.source != Source.CIRRUS) or no_oil:
             component = co2_component or DEFAULT_CO2_COMPONENT
             from_mass = case.source == Source.CIRRUS_COMP
             # Cirrus COMP writes mass densities: the molecular weights in the
             # Cirrus info file are needed to get to moles. The info file is also
             # what gives co2_component
             if not from_mass:
-                densities = ["BGAS", "BWAT", "BOIL"]
-            elif comp_gas:
+                densities = ["BGAS", "BWAT"] if no_oil else ["BGAS", "BWAT", "BOIL"]
+            elif no_oil:
                 densities = ["DGAS", "DWAT"]  # No oil phase
             else:
                 densities = ["DGAS", "DWAT", "DOIL"]
             needed = [f"ZMF{component}", f"YMF{component}"]
-            if not comp_gas:  # Without oil, the balance does not need XMF
+            if not no_oil:  # Without oil, the balance does not need XMF
                 needed.append(f"XMF{component}")
             needed.extend(["SGAS", "SWAT", *densities])
             missing = [name for name in needed if name not in names]
@@ -324,15 +331,45 @@ def select_co2_proxies(
                     f"{dissolved} is not written, derived from {derived_from} "
                     "by a mole balance"
                 )
+            elif eclipse_gas:
+                # What was always used. It is right if water is part of the flash
+                xmf = f"XMF{component}"
+                cannot = (
+                    f"{dissolved} is not written, and it cannot be derived, "
+                    f"{', '.join(missing)} not found"
+                )
+                if xmf in names:
+                    dissolved_reason = (
+                        f"{cannot}. {xmf} is used: it is the aqueous phase if water "
+                        "is part of the flash (CO2STORE), and about zero if not. "
+                        "Add AMF or ZMF to RPTRST"
+                    )
+                    dissolved = xmf
+                else:
+                    dissolved_reason = f"{cannot}, and neither is {xmf}"
+                    dissolved = None
             else:
                 if comp_gas:
                     why = (
                         f"{dissolved} is not written, and XMF is not the aqueous "
                         f"phase in MODE COMP"
                     )
-                    hint = "ZMF and the Cirrus info file are needed"
                 else:
                     why = f"{dissolved} is not written, and XMF is the oil phase here"
+                if from_mass:
+                    # Cirrus has no AMF to add in MODE COMP: what helps is what the
+                    # derivation needs
+                    hint = (
+                        "Cirrus writes AMF only in MODE COMP3P. In MODE COMP it is "
+                        "derived from ZMF"
+                    )
+                    if needs_info:
+                        hint += (
+                            ", which needs the Cirrus info file (INFO_FILE in the "
+                            "OUTPUT block of the deck, and --cirrus_info_file if it "
+                            "is not next to the case)"
+                        )
+                else:
                     hint = "Add AMF to RPTRST"
                 dissolved_reason = (
                     f"{why}. It cannot be derived either, {', '.join(missing)} "

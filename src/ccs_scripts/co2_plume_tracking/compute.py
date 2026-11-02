@@ -26,6 +26,7 @@ from ccs_scripts.utils.aqueous_proxy import (
 )
 from ccs_scripts.utils.case_type import (
     Co2Proxies,
+    Scenario,
     Source,
     classify_case,
     component_count,
@@ -207,9 +208,9 @@ def _derive_aqueous_proxy(
 
     def molar_densities_of(
         values: Dict[str, np.ndarray],
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         if not from_mass:
-            return values["BGAS"], values["BWAT"], values["BOIL"]
+            return values["BGAS"], values["BWAT"], values.get("BOIL")  # None: no oil
         assert molar_masses is not None
         return molar_densities(
             molar_masses,
@@ -234,11 +235,36 @@ def _derive_aqueous_proxy(
         n_zmf=len(zmf_names),
     )
     if convention is None:
+        hint = "Add AMF to RPTRST"
+        if from_mass:  # Cirrus has no AMF to add in MODE COMP
+            hint = "Cirrus writes AMF only in MODE COMP3P"
         reason = (
             f"{proxies.dissolved} is not written, and it could not be derived "
             f"from {proxies.dissolved_derived_from}: it is not clear whether ZMF "
-            "includes water. Add AMF to RPTRST"
+            f"includes water. {hint}"
         )
+        xmf = f"XMF{component}"
+        if (
+            case_type is not None
+            and case_type.source == Source.ECLIPSE
+            and case_type.scenario == Scenario.DEPLETED_GAS_FIELD
+            and xmf in grid_handler.property_names
+        ):
+            # Without oil XMF is what was always used. It is the aqueous phase if
+            # water is part of the flash (CO2STORE), and about zero if not
+            reason = (
+                f"{reason}. {xmf} is used: it is the aqueous phase if water is part "
+                "of the flash (CO2STORE), and about zero if not"
+            )
+            return (
+                replace(
+                    proxies,
+                    dissolved=xmf,
+                    dissolved_reason=reason,
+                    dissolved_derived_from=None,
+                ),
+                None,
+            )
         return (
             replace(
                 proxies,
@@ -272,7 +298,7 @@ def _derive_aqueous_proxy(
             bgas,
             bwat,
             boil,
-            values[f"XMF{component}"],
+            values.get(f"XMF{component}", np.zeros_like(values["SGAS"])),
             values[f"YMF{component}"],
             values[f"ZMF{component}"],
         )

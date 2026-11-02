@@ -454,10 +454,11 @@ def _cirrus_co2mass(
     return co2_mass
 
 
-# How the CO2 in the aqueous phase is found when there is oil, and for depleted gas in
-# Cirrus COMP. With oil XMF is the oil phase, and in Cirrus COMP it repeats YMF, so
-# the aqueous phase is AMF, or else it is what ZMF leaves over.
+# How the CO2 in the aqueous phase is found in compositional cases. It is proxied by
+# AMF when available, else it is what ZMF leaves over. Eclipse without oil can fall
+# back on XMF.
 AQUEOUS_FROM_AMF = "AMF"
+AQUEOUS_FROM_XMF = "XMF"
 AQUEOUS_ZMF_WITH_WATER = "ZMF with water"
 AQUEOUS_ZMF_WITHOUT_WATER = "ZMF without water"
 AQUEOUS_ZMF_UNKNOWN = "ZMF, unknown"
@@ -468,10 +469,15 @@ _AQUEOUS_HELP = (
 )
 
 
-def _aqueous_co2_method(source_data: SourceData, source: str, co2_idx: int) -> str:
+def _aqueous_co2_method(
+    source_data: SourceData,
+    source: str,
+    co2_idx: int,
+    xmf_fallback: bool = False,
+) -> str:
     """
     Decides, once, how the CO2 in the aqueous phase is found for oil and gas, and for
-    depleted gas in Cirrus COMP, and says so in the log:
+    depleted gas, and says so in the log:
 
     1. AMF<co2> is in the restart file: the CO2 is the moles of water times AMF.
     2. Otherwise from the overall composition ZMF, by a mole balance, which depends on
@@ -481,12 +487,24 @@ def _aqueous_co2_method(source_data: SourceData, source: str, co2_idx: int) -> s
        - it does not (standard E300): the balance only sees the cells that have gas or
          oil, so it is approximate.
        - it cannot be told: as ZMF counting water, which is what was done before.
+    3. xmf_fallback (Eclipse without oil): if there is no ZMF, or it cannot be told
+       whether it counts water, XMF is taken as the aqueous phase, as it always was.
     """
     if co2_idx in source_data.amfs:
         logging.info(
             f"CO2 in the aqueous phase: from AMF{co2_idx}, written by the simulator"
         )
         return AQUEOUS_FROM_AMF
+    if xmf_fallback and co2_idx not in source_data.zmfs:
+        warning_text = (
+            f"WARNING: CO2 in the aqueous phase: neither AMF{co2_idx} nor "
+            f"ZMF{co2_idx} are in the restart file, so XMF{co2_idx} is taken as the "
+            "aqueous phase. It is if water is part of the flash (CO2STORE), and "
+            "about zero if not. Write AMF or ZMF to the restart file (RPTRST ... "
+            "AMF, ZMF)."
+        )
+        logging.warning(format_warning(warning_text))
+        return AQUEOUS_FROM_XMF
     if co2_idx not in source_data.zmfs:
         help_text = (
             "Write ZMF to the restart file (RPTRST ... ZMF): Cirrus writes AMF "
@@ -510,12 +528,17 @@ def _aqueous_co2_method(source_data: SourceData, source: str, co2_idx: int) -> s
         )
         return AQUEOUS_ZMF_WITH_WATER
     last = source_data.DATES[-1]
-    assert source_data.SGAS is not None and source_data.SOIL is not None
+    assert source_data.SGAS is not None
+    soil_last = (
+        source_data.SOIL[last]
+        if source_data.SOIL is not None
+        else np.zeros_like(source_data.SGAS[last])
+    )
     zmf_total = np.sum([source_data.zmfs[i][last] for i in source_data.zmfs], axis=0)
     convention, basis = detect_zmf_convention_with_basis(
         zmf_total,
         source_data.SGAS[last],
-        source_data.SOIL[last],
+        soil_last,
         zcomps=source_data.zcomps,
         n_zmf=len(source_data.zmfs),
     )
@@ -531,6 +554,14 @@ def _aqueous_co2_method(source_data: SourceData, source: str, co2_idx: int) -> s
         )
         logging.warning(format_warning(warning_text))
         return AQUEOUS_ZMF_WITHOUT_WATER
+    if xmf_fallback:
+        warning_text = (
+            f"WARNING: {intro}, but it could not be told whether ZMF counts water. "
+            f"XMF{co2_idx} is taken as the aqueous phase instead. It is if water is "
+            "part of the flash (CO2STORE), and about zero if not. " + _AQUEOUS_HELP
+        )
+        logging.warning(format_warning(warning_text))
+        return AQUEOUS_FROM_XMF
     warning_text = (
         f"WARNING: {intro}, but it could not be told whether ZMF counts water. It is "
         "taken to count it, as before. If it does not, the CO2 in the aqueous phase "
@@ -557,17 +588,17 @@ def _aqueous_co2_mass(
     if method == AQUEOUS_FROM_AMF:
         return moles[0] * source_data.amfs[co2_idx][date] * co2_molar_mass
     if method == AQUEOUS_ZMF_WITHOUT_WATER:
-        assert source_data.SGAS is not None and source_data.SOIL is not None
-        assert source_data.BGAS is not None and source_data.BOIL is not None
-        assert source_data.SWAT is not None and source_data.BWAT is not None
+        assert source_data.SGAS is not None
+        assert source_data.BGAS is not None and source_data.BWAT is not None
+        assert source_data.SWAT is not None
         fraction = aqueous_mole_fraction(
             ZmfConvention.EXCLUDES_WATER,
             source_data.SGAS[date],
             source_data.SWAT[date],
-            source_data.SOIL[date],
+            source_data.SOIL[date] if source_data.SOIL is not None else None,
             source_data.BGAS[date],
             source_data.BWAT[date],
-            source_data.BOIL[date],
+            source_data.BOIL[date] if source_data.BOIL is not None else None,
             source_data.xmfs[co2_idx][date],
             source_data.ymfs[co2_idx][date],
             source_data.zmfs[co2_idx][date],
@@ -620,15 +651,17 @@ def _compositional_co2mass(
     ymf_co2 = source_data.ymfs[co2_idx]
     with_oil = scenario == Scenario.DEPLETED_OIL_GAS_FIELD
     # In Cirrus COMP, XMF is not the aqueous phase without oil either: it repeats YMF.
-    # So the aqueous phase is found from AMF, or else from what ZMF leaves.
-    aqueous_by_balance = with_oil or (
-        source == "Cirrus COMP" and scenario == Scenario.DEPLETED_GAS_FIELD
-    )
+    # In Eclipse it is only if water is part of RPTSR. So the aqueous phase is
+    # found from AMF, or else from what ZMF leaves. Eclipse without AMF and ZMF keeps
+    # XMF, as it always did
+    comp_gas = source == "Cirrus COMP" and scenario == Scenario.DEPLETED_GAS_FIELD
+    eclipse_gas = source == "Eclipse" and scenario == Scenario.DEPLETED_GAS_FIELD
     aqueous_method = (
-        _aqueous_co2_method(source_data, source, co2_idx)
-        if aqueous_by_balance
+        _aqueous_co2_method(source_data, source, co2_idx, xmf_fallback=eclipse_gas)
+        if with_oil or comp_gas or eclipse_gas
         else None
     )
+    aqueous_by_balance = aqueous_method not in (None, AQUEOUS_FROM_XMF)
     phase_moles = {}
     co2_mass = {}
     assert eff_vols is not None
