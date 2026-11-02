@@ -1,10 +1,17 @@
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas
 import pytest
+import xtgeo
 
-from ccs_scripts.co2_plume_area.co2_plume_area import calculate_plume_area, main
+from ccs_scripts.co2_plume_area.co2_plume_area import (
+    _find_map_properties,
+    _phase_of_property,
+    calculate_plume_area,
+    main,
+)
 
 
 def test_calc_plume_area():
@@ -33,9 +40,9 @@ def test_plume_area(mocker):
     df = pandas.read_csv(output_path)
     os.remove(output_path)
 
-    assert "formation_gas_phase" in df.keys()
-    assert "formation_dissolved_phase" not in df.keys()
-    assert df["formation_gas_phase"].iloc[-1] == pytest.approx(285000.0)
+    assert "formation_gas_phase_sgas" in df.keys()
+    assert not any("dissolved_phase" in c for c in df.keys())
+    assert df["formation_gas_phase_sgas"].iloc[-1] == pytest.approx(285000.0)
 
 
 def _get_synthetic_case_paths(case: str):
