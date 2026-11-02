@@ -14,6 +14,7 @@ from ccs_scripts.co2_plume_tracking.utils import (
     assemble_plume_groups_into_dict,
     sort_well_names,
 )
+from ccs_scripts.utils.case_type import Co2Proxies
 
 
 def _log_results(
@@ -45,14 +46,15 @@ def _collect_results_into_dataframe(
     report_dates: List[datetime],
     pg_prop_gas: List[List[str]],
     pg_prop_dissolved: Optional[List[List[str]]],
-    dissolved_prop_key: Optional[str],
+    proxies: Co2Proxies,
     injection_wells: List[InjectionWellData],
 ) -> pd.DataFrame:
     dates = [[d.strftime("%Y-%m-%d")] for d in report_dates]
     df = pd.DataFrame.from_records(dates, columns=["date"])
 
+    # Columns are named after the tracked property (e.g. SGAS_well1, YMF2_well1)
     for prop_key, pg_prop in zip(
-        ["SGAS", dissolved_prop_key], [pg_prop_gas, pg_prop_dissolved]
+        [proxies.gas, proxies.dissolved], [pg_prop_gas, pg_prop_dissolved]
     ):
         if pg_prop is None or prop_key is None:
             continue
@@ -83,7 +85,7 @@ def export_results(
     dates: List[datetime],
     pg_prop_gas: List[List[str]],
     pg_prop_dissolved: Optional[List[List[str]]],
-    dissolved_prop_key: Optional[str],
+    proxies: Co2Proxies,
     injection_wells: List[InjectionWellData],
 ):
     output_file = _find_output_file(output_csv, case)
@@ -92,7 +94,7 @@ def export_results(
         dates,
         pg_prop_gas,
         pg_prop_dissolved,
-        dissolved_prop_key,
+        proxies,
         injection_wells,
     )
     _log_results(df)

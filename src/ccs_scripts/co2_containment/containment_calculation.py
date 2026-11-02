@@ -15,7 +15,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Co2DataAtTimeStep,
 )
 from ccs_scripts.co2_containment.input import CalculationType, GasSplitInfo
-from ccs_scripts.co2_containment.source_data import Scenario
+from ccs_scripts.utils.case_type import Scenario
 from ccs_scripts.utils.timer import Timer
 
 

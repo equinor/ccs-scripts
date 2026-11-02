@@ -48,6 +48,8 @@ def main():
         config.do_plume_tracking,
         args.threshold_gas,
         args.threshold_dissolved,
+        args.threshold_gas_mole_fraction,
+        args.cirrus_info_file,
     )
 
     export_results(all_results, config, args.output_csv, args.case)

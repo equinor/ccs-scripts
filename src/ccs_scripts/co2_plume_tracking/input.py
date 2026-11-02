@@ -8,6 +8,7 @@ from typing import Tuple
 from ccs_scripts.co2_plume_tracking.utils import (
     DEFAULT_THRESHOLD_DISSOLVED,
     DEFAULT_THRESHOLD_GAS,
+    DEFAULT_THRESHOLD_GAS_MOLE_FRACTION,
     Configuration,
 )
 from ccs_scripts.utils.utils import log_input_banner, setup_log_configuration
@@ -35,10 +36,24 @@ def _make_parser() -> argparse.ArgumentParser:
         help="Threshold for gas saturation (SGAS)",
     )
     parser.add_argument(
+        "--threshold_gas_mole_fraction",
+        default=DEFAULT_THRESHOLD_GAS_MOLE_FRACTION,
+        type=float,
+        help="Threshold for the mole fraction of CO2 in the gas phase, used instead "
+        "of --threshold_gas in depleted fields (YMF2/YMFS)",
+    )
+    parser.add_argument(
         "--threshold_dissolved",
         default=DEFAULT_THRESHOLD_DISSOLVED,
         type=float,
         help="Threshold for aqueous mole fraction of gas (AMFS, AMFG or XMF2)",
+    )
+    parser.add_argument(
+        "--cirrus_info_file",
+        default=None,
+        help="Cirrus info file (CSV) with molar masses, MW_<component>. Used for "
+        "Cirrus COMP cases to convert mass densities to moles, and to find CO2 among "
+        "the components. Default: <CASE>_INFO.CSV, if it exists.",
     )
     parser.add_argument(
         "--no_logging",
@@ -75,7 +90,12 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
         text = arguments.output_csv
     logging.info(f"Output CSV file         : {text}")
     logging.info(f"Threshold gas           : {arguments.threshold_gas}")
-    logging.info(f"Threshold dissolved     : {arguments.threshold_dissolved}\n")
+    logging.info(f"Threshold gas mole frac.: {arguments.threshold_gas_mole_fraction}")
+    logging.info(f"Threshold dissolved     : {arguments.threshold_dissolved}")
+    info_text = (
+        arguments.cirrus_info_file or "Not specified, <CASE>_INFO.CSV if it exists"
+    )
+    logging.info(f"Cirrus info file        : {info_text}\n")
 
 
 def _log_configuration(config: Configuration) -> None:
