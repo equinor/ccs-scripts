@@ -8,6 +8,7 @@ Determine if a Eclipse realization is CO2STORE based on the components in ZCOMPS
 from pathlib import Path
 from typing import List, Optional, Union
 
+import numpy as np
 import resfo
 
 WATER_NAMES = frozenset({"H2O", "WATER"})
@@ -31,7 +32,10 @@ def read_component_names(unrst_file: Union[str, Path]) -> Optional[List[str]]:
             if steps > 1:
                 return None
         elif keyword == "ZCOMPS":
-            return [_decode(name).upper() for name in entry.read_array()]
+            names = entry.read_array()
+            if not isinstance(names, np.ndarray):
+                return None
+            return [_decode(name).upper() for name in names]
     return None
 
 

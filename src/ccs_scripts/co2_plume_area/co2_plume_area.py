@@ -311,7 +311,7 @@ def _log_results(df: pd.DataFrame) -> None:
 
 def main():
     """
-    Reads directory of input surface files (.gri) and calculates plume area per formatin and
+    Reads directory of input surface files (.gri) and calculates plume area per formation and
     year for SGAS/YMF (gas phase) and AMFG/XMF2 (dissolved in water phase) and XMFS (dissolved
     in oil phase. The columns are named <formation>_<phase>_<property>.Collects the results
     into a CSV file.

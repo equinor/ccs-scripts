@@ -388,7 +388,7 @@ representative volume of CO2
 
 _DESC_CO2_PLUME_AREA = """
 Calculates the area of the CO2 plume for each formation and time step, for each
-of the properties that have maps: SGAS and YMF (CO2 in gas phase), AMF and XMF 
+of the properties that have maps: SGAS and YMF (CO2 in gas phase), AMF and XMF
 (CO2 dissolved in water), or XMFS (CO2 dissolved in oil).
 
 Output is a table on CSV format.
