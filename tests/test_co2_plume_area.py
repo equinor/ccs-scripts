@@ -1,14 +1,10 @@
 import os
 from pathlib import Path
 
-import numpy as np
 import pandas
 import pytest
-import xtgeo
 
 from ccs_scripts.co2_plume_area.co2_plume_area import (
-    _find_map_properties,
-    _phase_of_property,
     calculate_plume_area,
     main,
 )
