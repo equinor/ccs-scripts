@@ -1,0 +1,22 @@
+{
+    "name": "ccs-scripts",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "mounts": [
+        "source=${localEnv:CCS_DATA_DIR},target=/data,type=bind,readonly"
+    ],
+    "containerEnv": {
+        "MPLBACKEND": "Agg"
+    },
+    "remoteUser": "vscode",
+    "postCreateCommand": "python -m pip install --user -e '.[tests]'",
+    "customizations": {
+        "vscode": {
+            "extensions": ["ms-python.python"],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python"
+            }
+        }
+    }
+}
