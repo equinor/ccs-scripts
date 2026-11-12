@@ -10,6 +10,7 @@ from ccs_scripts.co2_plume_extent.config import (
     DEFAULT_THRESHOLD_GAS,
     Configuration,
 )
+from ccs_scripts.co2_plume_tracking.utils import DEFAULT_THRESHOLD_GAS_MOLE_FRACTION
 from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import (
     log_input_banner,
@@ -66,6 +67,14 @@ def _make_parser() -> argparse.ArgumentParser:
         metavar="<THRESHOLD_GAS>",
     )
     parser.add_argument(
+        "--threshold_gas_mole_fraction",
+        default=DEFAULT_THRESHOLD_GAS_MOLE_FRACTION,
+        type=float,
+        help="Threshold for the mole fraction of CO2 in the gas phase, used instead "
+        "of --threshold_gas in depleted fields (YMF2/YMFS)",
+        metavar="<THRESHOLD_GAS_MOLE_FRACTION>",
+    )
+    parser.add_argument(
         "--threshold_dissolved",
         default=DEFAULT_THRESHOLD_DISSOLVED,
         type=float,
@@ -78,6 +87,15 @@ def _make_parser() -> argparse.ArgumentParser:
         type=str,
         help="Name that will be included in the column of the CSV file",
         metavar="<COLUMN_NAME>",
+    )
+    parser.add_argument(
+        "--cirrus_info_file",
+        default=None,
+        type=str,
+        help="Cirrus info file (CSV) with molar masses, MW_<component>. Used for "
+        "Cirrus COMP cases to convert mass densities to moles, and to find CO2 among "
+        "the components. Default: <CASE>_INFO.CSV, if it exists.",
+        metavar="<CIRRUS_INFO_FILE>",
     )
     parser.add_argument(
         "--no_logging",
@@ -132,7 +150,10 @@ def _log_input_configuration(args: argparse.Namespace) -> None:
         text = args.output_csv
     logging.info(f"Output CSV file         : {text}")
     logging.info(f"Threshold gas           : {args.threshold_gas}")
-    logging.info(f"Threshold dissolved     : {args.threshold_dissolved}\n")
+    logging.info(f"Threshold gas mole frac.: {args.threshold_gas_mole_fraction}")
+    logging.info(f"Threshold dissolved     : {args.threshold_dissolved}")
+    info_text = args.cirrus_info_file or "Not specified, <CASE>_INFO.CSV if it exists"
+    logging.info(f"Cirrus info file        : {info_text}\n")
 
 
 def _log_distance_calculation_configurations(config: Configuration) -> None:
@@ -185,6 +206,7 @@ def init_timer() -> None:
 def process_input() -> Tuple[argparse.Namespace, Configuration]:
     args = _make_parser().parse_args()
     replace_default_ert_dummies(args, false_list=["no_logging", "debug"], none_list=[])
+    args.cirrus_info_file = args.cirrus_info_file or None  # "" from ERT
     args.column_name = (
         args.column_name.upper() if args.column_name is not None else None
     )
