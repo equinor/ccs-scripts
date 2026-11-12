@@ -3,9 +3,15 @@
     "build": {
         "dockerfile": "Dockerfile"
     },
+    // User can define a CCS_DATA_DIR environment variable that will be mounted
+    // and available as /data inside the container. If not specified, nothing
+    // is mounted.
     "mounts": [
         "source=${localEnv:CCS_DATA_DIR},target=/data,type=bind,readonly"
     ],
+    // Using Agg backend for Matplotlib allows us to display plots
+    // on the host. Other solutions might also work, but using Agg
+    // seems quite reliable
     "containerEnv": {
         "MPLBACKEND": "Agg"
     },
