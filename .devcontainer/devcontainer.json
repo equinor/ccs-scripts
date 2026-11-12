@@ -17,6 +17,8 @@
     },
     "remoteUser": "vscode",
     "postCreateCommand": "python -m pip install --user -e '.[tests]'",
+    // Handle CRLF files from Windows checkouts, including after host Git config is copied.
+    "postStartCommand": "git config --global core.autocrlf true",
     "customizations": {
         "vscode": {
             "extensions": ["ms-python.python"],
