@@ -285,6 +285,7 @@ def _find_inj_wells_grid_indices(
     print_table: bool = False,
 ):
     wells_with_errors = []
+    wells_without_cells = []
     for well in inj_wells:
         if well.z is not None:
             found = False
@@ -311,6 +312,8 @@ def _find_inj_wells_grid_indices(
                 if active_index != -1:
                     if ij + (None,) not in inj_wells_grid_indices[well.name]:
                         inj_wells_grid_indices[well.name].append((ij[0], ij[1], None))
+            if not inj_wells_grid_indices[well.name]:
+                wells_without_cells.append(well)
 
     if print_table:
         logging.info("Found the following grid cell indices for injection wells:")
@@ -323,7 +326,7 @@ def _find_inj_wells_grid_indices(
             x_str = f"{well.x:.2f}"
             y_str = f"{well.y:.2f}"
             z_str = f"{well.z[0]:.2f}" if well.z is not None else "-"
-            if well not in wells_with_errors:
+            if well not in wells_with_errors and well not in wells_without_cells:
                 indices = inj_wells_grid_indices[well.name]
                 for idx, entry in enumerate(indices):
                     if entry is None or entry[0] is None:
@@ -347,7 +350,18 @@ def _find_inj_wells_grid_indices(
                     f"{well.name:<25} {x_str:>12} {y_str:>12} "
                     f"{z_str:>9} {'X':>6} {'X':>6} {'X':>6}"
                 )
-
+        if wells_without_cells:
+            warning_text = "\nWARNING: No active grid cell found near the following "
+            warning_text += "injection well(s):"
+            for well in wells_without_cells:
+                warning_text += f"\n         - {well.name}  (x: {well.x}, "
+                warning_text += f"y: {well.y}, z: not provided)"
+            warning_text += "\n         They will not get any plume group, and CO2 "
+            warning_text += "near them will go to"
+            warning_text += "\n         other wells or to 'undetermined'."
+            warning_text += "\n         Please check the coordinates and make sure "
+            warning_text += "they are within the grid."
+            logging.warning(format_warning(warning_text))
     if wells_with_errors:
         error_text = "\nERROR: Could not find grid cell indices for "
         error_text += "the following injection well(s):"
@@ -571,6 +585,8 @@ def _initialize_groups_from_prev_step_and_inj_wells(
 
             found = False
             for well in inj_wells:
+                dx, dy = x - well.x, y - well.y
+                lateral_close = dx * dx + dy * dy <= INJ_POINT_THRESHOLD_LATERAL**2
                 if well.z is not None:
                     same_cell = any(
                         [
@@ -579,14 +595,8 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                         ]
                     )
                     xyz_close = (
-                        abs(x - well.x) <= INJ_POINT_THRESHOLD_LATERAL
-                        and abs(y - well.y) <= INJ_POINT_THRESHOLD_LATERAL
-                        and any(
-                            [
-                                abs(z - well_z) <= INJ_POINT_THRESHOLD_VERTICAL
-                                for well_z in well.z
-                            ]
-                        )
+                        abs(z - well_z) <= INJ_POINT_THRESHOLD_VERTICAL
+                        for well_z in well.z
                     )
                 else:
                     same_cell = False
@@ -594,10 +604,7 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                         if (i, j) == (cell_i, cell_j):
                             same_cell = True
                             break
-                    xyz_close = (
-                        abs(x - well.x) <= INJ_POINT_THRESHOLD_LATERAL
-                        and abs(y - well.y) <= INJ_POINT_THRESHOLD_LATERAL
-                    )
+                    xyz_close = lateral_close
                 if same_cell or xyz_close:
                     found = True
                     merged_group = groups.check_if_well_is_part_of_larger_group(
