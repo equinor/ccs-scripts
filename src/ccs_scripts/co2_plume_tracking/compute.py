@@ -594,9 +594,11 @@ def _initialize_groups_from_prev_step_and_inj_wells(
                             for (wi, wj, wk) in inj_wells_grid_indices[well.name]
                         ]
                     )
-                    xyz_close = (
-                        abs(z - well_z) <= INJ_POINT_THRESHOLD_VERTICAL
-                        for well_z in well.z
+                    xyz_close = lateral_close and any(
+                        [
+                            abs(z - well_z) <= INJ_POINT_THRESHOLD_VERTICAL
+                            for well_z in well.z
+                        ]
                     )
                 else:
                     same_cell = False
