@@ -59,7 +59,7 @@ def _log_input_configuration(arguments: argparse.Namespace) -> None:
     log_input_banner(
         __file__,
         "Plume tracking calculations",
-        is_dev_version=False,
+        is_dev_version=True,
     )
 
     logging.info(f"\nCase                    : {arguments.case}")
