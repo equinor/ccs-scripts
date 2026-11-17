@@ -1,0 +1,29 @@
+{
+    "name": "ccs-scripts",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    // CCS_DATA_DIR must be set in the host environment to an existing directory.
+    // It is mounted read-only at /data. Container startup fails if unset or empty.
+    "mounts": [
+        "source=${localEnv:CCS_DATA_DIR},target=/data,type=bind,readonly"
+    ],
+    // Using Agg backend for Matplotlib allows us to display plots
+    // on the host. Other solutions might also work, but using Agg
+    // seems quite reliable
+    "containerEnv": {
+        "MPLBACKEND": "Agg"
+    },
+    "remoteUser": "vscode",
+    "postCreateCommand": "python -m pip install --user -e '.[tests]'",
+    // Handle CRLF files from Windows checkouts, including after host Git config is copied.
+    "postStartCommand": "git config --global core.autocrlf true",
+    "customizations": {
+        "vscode": {
+            "extensions": ["ms-python.python"],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python"
+            }
+        }
+    }
+}
