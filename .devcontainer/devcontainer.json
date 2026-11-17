@@ -3,9 +3,8 @@
     "build": {
         "dockerfile": "Dockerfile"
     },
-    // User can define a CCS_DATA_DIR environment variable that will be mounted
-    // and available as /data inside the container. If not specified, nothing
-    // is mounted.
+    // CCS_DATA_DIR must be set in the host environment to an existing directory.
+    // It is mounted read-only at /data. Container startup fails if unset or empty.
     "mounts": [
         "source=${localEnv:CCS_DATA_DIR},target=/data,type=bind,readonly"
     ],
