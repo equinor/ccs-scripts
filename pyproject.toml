@@ -45,6 +45,7 @@ dependencies = [
     "ert",
     "resfo",
     "pyarrow",
+    "six",
 ]
 
 [project.optional-dependencies]

@@ -148,7 +148,13 @@ def process_input() -> Tuple[
     else:
         config = Configuration(args.config_plume_tracking)
         injection_wells = config.injection_wells
-        plume_groups = _find_plume_groups(args.egrid, args.unrst, injection_wells)
+        info_file = args.cirrus_info_file
+        plume_groups = _find_plume_groups(
+            args.egrid,
+            args.unrst,
+            injection_wells,
+            info_file if info_file and os.path.isfile(info_file) else None,
+        )
 
     cont_polygon = _read_polygon(args.containment_polygon)
     nogo_polygon = _read_polygon(args.nogo_polygon)
@@ -616,21 +622,29 @@ def _find_plume_groups(
     grid_file: str,
     unrst_file: str,
     injection_wells: List[InjectionWellData],
+    cirrus_info_file: Optional[str] = None,
 ) -> Optional[List[List[str]]]:
     if len(injection_wells) == 0:
         return None
-    grid_data, properties, dates, gasless = load_plume_tracking_data(
-        grid_file, unrst_file
+    # Plume groups are found from dissolved CO2
+    grid_data, properties, dates, gasless, proxies = load_plume_tracking_data(
+        grid_file,
+        unrst_file,
+        read_gas_proxy=False,
+        cirrus_info_file=cirrus_info_file,
     )
-
-    dissolved_prop = next(
-        (p for p in ("AMFS", "AMFG", "XMF2") if p in properties), None
-    )
-    if dissolved_prop is None:
+    if proxies.dissolved is None:
+        logging.warning(
+            format_warning(
+                "WARNING: Plume groups are not calculated, so results will not be "
+                "split per plume. There is no property for dissolved CO2 to track "
+                f"the plumes with: {proxies.dissolved_reason}."
+            )
+        )
         return None
 
     plume_groups, _ = calculate_plume_groups(
-        attribute_key=dissolved_prop,
+        attribute_key=proxies.dissolved,
         threshold=0.1 * DEFAULT_THRESHOLD_DISSOLVED,
         grid_data=grid_data,
         properties=properties,

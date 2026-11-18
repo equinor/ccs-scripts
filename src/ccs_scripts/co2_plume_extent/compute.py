@@ -15,15 +15,17 @@ from ccs_scripts.co2_plume_extent.config import (
 )
 from ccs_scripts.co2_plume_tracking.compute import (
     calculate_plume_groups,
+    gas_threshold,
     load_plume_tracking_data,
 )
 from ccs_scripts.co2_plume_tracking.utils import (
+    DEFAULT_THRESHOLD_GAS_MOLE_FRACTION,
     GridData,
     InjectionWellData,
     assemble_plume_groups_into_dict,
 )
+from ccs_scripts.utils.case_type import Co2Proxies
 from ccs_scripts.utils.timer import Timer
-from ccs_scripts.utils.utils import format_warning
 
 
 def _calculate_grid_cell_distances(
@@ -92,7 +94,9 @@ def calculate_single_distances(
     inj_wells: Optional[List[InjectionWellData]],
     plume_groups_gas: Optional[List[List[str]]],
     plume_groups_dissolved: Optional[List[List[str]]],
+    proxies: Co2Proxies,
 ):
+    """threshold_gas must be the one matching proxies.gas"""
     calculation_type = config.type
 
     non_gasless = np.where(~gasless)[0]
@@ -104,12 +108,10 @@ def calculate_single_distances(
         inj_wells, calculation_type, x_co2, y_co2, config
     )
 
-    dissolved_prop_key = next(
-        (p for p in ("AMFS", "AMFG", "XMF2") if p in properties), None
-    )
+    dissolved_prop_key = proxies.dissolved
 
     gas_results = _find_distances_per_time_step(
-        "SGAS",
+        proxies.gas,
         calculation_type,
         threshold_gas,
         properties,
@@ -133,9 +135,8 @@ def calculate_single_distances(
             non_gasless,
         )
     else:
+        # The reason is logged when the proxies are selected
         dissolved_results = None
-        warning_text = "WARNING: Neither AMFG nor XMF2 exists as properties."
-        logging.warning(format_warning(warning_text))
 
     return gas_results, dissolved_results, dissolved_prop_key
 
@@ -147,23 +148,23 @@ def calculate_distances(
     do_plume_tracking: bool = False,
     threshold_gas: float = DEFAULT_THRESHOLD_GAS,
     threshold_dissolved: float = DEFAULT_THRESHOLD_DISSOLVED,
+    threshold_gas_mole_fraction: float = DEFAULT_THRESHOLD_GAS_MOLE_FRACTION,
+    cirrus_info_file: Optional[str] = None,
 ) -> List[Tuple[dict, Optional[dict], Optional[str]]]:
     """
     Find distance (plume extent / distance to point / distance to line) per
-    date for SGAS and AMFG/XMF2.
+    date for CO2 in the gas phase (SGAS, or its mole fraction in depleted
+    fields) and dissolved CO2 (AMFS/AMFG/XMF2).
     """
     logging.info("\nStart calculating distances")
-    grid_data, properties, dates, gasless = load_plume_tracking_data(
-        f"{case}.EGRID", f"{case}.UNRST"
+    grid_data, properties, dates, gasless, proxies = load_plume_tracking_data(
+        f"{case}.EGRID", f"{case}.UNRST", cirrus_info_file=cirrus_info_file
     )
+    threshold_gas = gas_threshold(proxies, threshold_gas, threshold_gas_mole_fraction)
 
     if do_plume_tracking and injection_wells is not None:
-        dissolved_prop_key = next(
-            (p for p in ("AMFS", "AMFG", "XMF2") if p in properties), None
-        )
-
         plume_groups_gas, _ = calculate_plume_groups(
-            "SGAS",
+            proxies.gas,
             threshold_gas,
             grid_data,
             properties,
@@ -172,9 +173,9 @@ def calculate_distances(
             gasless,
         )
 
-        if dissolved_prop_key is not None:
+        if proxies.dissolved is not None:
             plume_groups_dissolved, _ = calculate_plume_groups(
-                dissolved_prop_key,
+                proxies.dissolved,
                 threshold_dissolved,
                 grid_data,
                 properties,
@@ -204,6 +205,7 @@ def calculate_distances(
             injection_wells,
             plume_groups_gas,
             plume_groups_dissolved,
+            proxies,
         )
         all_results.append((a, b, c))
         logging.info(f"Done calculating distances for configuration number: {i}\n")

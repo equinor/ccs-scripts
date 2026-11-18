@@ -15,7 +15,8 @@ from ccs_scripts.co2_containment.co2_containment import main
 from ccs_scripts.co2_containment.containment_calculation import calculate_containment
 from ccs_scripts.co2_containment.input import CalculationType, GasSplitInfo
 from ccs_scripts.co2_containment.output import export_results
-from ccs_scripts.co2_containment.source_data import Scenario, SourceData
+from ccs_scripts.co2_containment.source_data import SourceData
+from ccs_scripts.utils.case_type import Scenario
 
 REGION_PROPERTY = "FIPREG"
 

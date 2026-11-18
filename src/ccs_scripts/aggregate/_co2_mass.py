@@ -12,7 +12,7 @@ from ccs_scripts.co2_containment.co2_calculation import (
     Co2Data,
     Co2DataAtTimeStep,
 )
-from ccs_scripts.co2_containment.source_data import Scenario
+from ccs_scripts.utils.case_type import Scenario
 from ccs_scripts.utils.utils import format_error
 from ccs_scripts.utils.xtgeo_logging import setup_xtgeo_logging
 
