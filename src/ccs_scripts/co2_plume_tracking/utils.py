@@ -4,7 +4,7 @@ import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import resdata.grid
@@ -14,6 +14,9 @@ from ccs_scripts.utils.timer import Timer
 from ccs_scripts.utils.utils import format_error, read_yaml_file
 
 DEFAULT_THRESHOLD_GAS = 0.2
+# Used instead of DEFAULT_THRESHOLD_GAS when CO2 in the gas phase is represented by
+# its mole fraction (depleted fields) rather than by SGAS
+DEFAULT_THRESHOLD_GAS_MOLE_FRACTION = 0.005
 DEFAULT_THRESHOLD_DISSOLVED = 0.0005
 MAX_STEPS_RESOLVE_CELLS = 20
 MAX_NEAREST_GROUPS_SEARCH_DISTANCE = 3
@@ -33,6 +36,9 @@ class GridData:
     z_active: np.ndarray  # (n_active,)
     active_index_3d: np.ndarray  # (nx, ny, nz), values are active index or -1
     xtgeo_grid: Any = field(repr=False)  # xtgeo.Grid (kept for point-in-cell lookups)
+    # Half of the lateral cell diagonal, (n_active,). Used to tell whether a point
+    # can lie in the cell whose centre is nearest to it.
+    half_diagonal_active: Optional[np.ndarray] = field(default=None, repr=False)
 
     def find_cell(self, x: float, y: float, z: float) -> tuple[int, int, int] | None:
         # Use resdata to find cell indices. We have tried using
@@ -63,6 +69,8 @@ class GridData:
         global_to_active[active_global] = np.arange(n_active)
 
         xp, yp, zp = grid.get_xyz()
+        dx = np.ma.filled(grid.get_dx().values.ravel()[active_global], 0.0)
+        dy = np.ma.filled(grid.get_dy().values.ravel()[active_global], 0.0)
         return GridData(
             nx=dims[0],
             ny=dims[1],
@@ -74,6 +82,7 @@ class GridData:
             z_active=zp.values.ravel()[active_global],
             active_index_3d=global_to_active.reshape(dims),
             xtgeo_grid=grid,
+            half_diagonal_active=0.5 * np.hypot(dx, dy),
         )
 
 
@@ -86,6 +95,9 @@ class InjectionWellData:
         List[float]
     ]  # Normally only 1 value, but we might keep multiple when z is not provided
     number: int
+    # For z values learned during plume tracking (not given in the configuration):
+    # the cell (i, j, k) with CO2 next to the well that each z comes from
+    learned_cells: Dict[float, Tuple[int, int, int]] = field(default_factory=dict)
 
 
 class Status(Enum):

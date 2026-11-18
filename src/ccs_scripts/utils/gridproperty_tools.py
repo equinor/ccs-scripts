@@ -48,6 +48,10 @@ class GridHandler:
         return self._has_lgr
 
     @property
+    def properties_file(self) -> Path:
+        return self._properties_file
+
+    @property
     def property_names(self) -> list[str]:
         return self._available_properties
 

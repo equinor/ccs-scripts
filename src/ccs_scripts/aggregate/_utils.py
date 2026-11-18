@@ -17,7 +17,7 @@ def log_input_configuration(config_: RootConfig, map_type: str = "aggregate") ->
     log_input_banner(
         script=__file__,
         calculation=map_name,
-        is_dev_version=False,
+        is_dev_version=True,
         col_width=col1,
     )
 
